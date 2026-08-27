@@ -9,6 +9,7 @@ import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft } from 'lucide-r
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from './utils/supabaseClient';
+import { Login } from './components/Login';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -36,6 +37,24 @@ function App() {
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [activeTab, setActiveTab] = useState('calculator'); // 'calculator' | 'catalog' | 'quote'
   const [inputs, setInputs] = useState(defaultInputs);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Autenticación Supabase
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const results = useMemo(() => calculateProfitability(inputs), [inputs]);
 
@@ -62,8 +81,30 @@ function App() {
     return () => clearTimeout(timer);
   }, [inputs, activeWorkspace]);
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Login />;
+  }
+
   if (!activeWorkspace) {
-    return <WorkspaceSelector onSelect={handleSelectWorkspace} />;
+    return (
+      <div className="relative">
+        <button 
+          onClick={() => supabase.auth.signOut()}
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 text-sm font-medium text-slate-500 hover:text-red-500 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors z-50"
+        >
+          Cerrar Sesión
+        </button>
+        <WorkspaceSelector onSelect={handleSelectWorkspace} />
+      </div>
+    );
   }
 
   return (
@@ -80,12 +121,12 @@ function App() {
             </button>
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+              <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20 hidden sm:block">
                 {activeTab === 'calculator' && <Calculator size={20} />}
                 {activeTab === 'catalog' && <LayoutList size={20} />}
                 {activeTab === 'quote' && <FileText size={20} />}
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <h2 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{activeWorkspace.name}</h2>
                 <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight">
                   {activeTab === 'calculator' && 'Calculadora'}
@@ -93,8 +134,22 @@ function App() {
                   {activeTab === 'quote' && 'Presupuestos'}
                 </h1>
               </div>
+              {/* Solo en móviles, mostrar el nombre simple */}
+              <div className="sm:hidden">
+                <h1 className="text-base font-bold text-slate-800 dark:text-white truncate max-w-[120px]">
+                  {activeWorkspace.name}
+                </h1>
+              </div>
             </div>
           </div>
+          
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors"
+            >
+              Salir
+            </button>
 
           <nav className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl">
             <button
