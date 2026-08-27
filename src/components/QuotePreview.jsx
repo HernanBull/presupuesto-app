@@ -54,7 +54,7 @@ export function QuotePreview({ items, onRemoveItem, onUpdateItemStatus, maintena
   const finalMaintQuote = supportCost + infraWithMargin + recurringServicesCost;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 flex flex-col h-[700px] lg:h-[calc(100vh-100px)]">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 flex flex-col h-auto lg:h-[calc(100vh-100px)]">
       
       {/* Cabecera del Panel */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 text-white relative overflow-hidden shrink-0">
@@ -71,7 +71,7 @@ export function QuotePreview({ items, onRemoveItem, onUpdateItemStatus, maintena
       </div>
 
       {/* Contenido (Lista de ítems) */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/50">
+      <div className="flex-none lg:flex-1 lg:overflow-y-auto min-h-[300px] p-4 sm:p-8 custom-scrollbar bg-slate-50/50 dark:bg-slate-950/50">
         {items.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400">
             <FileText size={48} className="mb-4 opacity-20" />
