@@ -237,28 +237,29 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col h-full space-y-4 sm:space-y-6">
       {/* Barra superior de Guardado y Carga */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
+      <div className="sticky top-[68px] sm:top-20 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-md border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
           <input
             type="text"
             placeholder="Nombre del Presupuesto (Ej. Cliente Juan)"
             value={currentBudgetName}
             onChange={(e) => setCurrentBudgetName(e.target.value)}
-            className="flex-1 md:w-80 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="flex-1 min-w-0 md:w-80 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
           />
           <button
             onClick={() => saveCurrentBudget(true)}
             disabled={isSaving || !currentBudgetName}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 whitespace-nowrap text-sm sm:text-base"
           >
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            {currentBudgetId ? 'Guardado' : 'Guardar'}
+            <span className="hidden sm:inline">{currentBudgetId ? 'Guardado' : 'Guardar'}</span>
+            <span className="sm:hidden">Guardar</span>
           </button>
         </div>
         
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FolderOpen size={16} className="text-slate-400" />
@@ -266,21 +267,21 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
             <select
               onChange={loadBudget}
               defaultValue=""
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
             >
-              <option value="">Cargar presupuesto...</option>
+              <option value="">Cargar...</option>
               {savedBudgets.map(b => (
                 <option key={b.id} value={b.id}>{b.name} ({new Date(b.date).toLocaleDateString()})</option>
               ))}
             </select>
           </div>
-          <button onClick={startNewBudget} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700">
-            <FilePlus size={16} /> Nuevo
+          <button onClick={startNewBudget} className="flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 text-sm sm:text-base">
+            <FilePlus size={16} /> <span className="hidden sm:inline">Nuevo</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start h-full">
         {/* Panel Izquierdo: Configuración */}
         <div className="lg:col-span-4 xl:col-span-4 space-y-6 flex flex-col lg:sticky lg:top-24">
           
