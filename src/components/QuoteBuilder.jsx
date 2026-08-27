@@ -282,7 +282,7 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start h-full">
         {/* Panel Izquierdo: Configuración */}
-        <div className="lg:col-span-4 xl:col-span-4 space-y-6 flex flex-col sticky top-24">
+        <div className="lg:col-span-4 xl:col-span-4 space-y-6 flex flex-col lg:sticky lg:top-24">
           
           {/* TABS */}
           <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl">

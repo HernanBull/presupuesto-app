@@ -68,9 +68,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-row items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 flex-1">
             <button 
               onClick={() => setActiveWorkspace(null)}
               className="text-slate-400 hover:text-indigo-500 transition-colors bg-slate-100 dark:bg-slate-800 p-2 rounded-xl"
@@ -96,7 +96,7 @@ function App() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl">
+          <nav className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl">
             <button
               onClick={() => setActiveTab('calculator')}
               className={cn(
@@ -137,11 +137,11 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 sm:pb-8">
         {activeTab === 'calculator' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
             {/* Panel Izquierdo (Configuración) */}
-            <div className="lg:col-span-5 xl:col-span-4 sticky top-24">
+            <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24">
               <ConfigPanel inputs={inputs} setInputs={setInputs} />
             </div>
 
@@ -162,6 +162,52 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* Bottom Navigation para Móviles */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-1 pb-4 flex items-center justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <button
+          onClick={() => setActiveTab('calculator')}
+          className={cn(
+            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
+            activeTab === 'calculator'
+              ? "text-indigo-600 dark:text-indigo-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
+          )}
+        >
+          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'calculator' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
+            <Calculator size={20} />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">Calc</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('catalog')}
+          className={cn(
+            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
+            activeTab === 'catalog'
+              ? "text-indigo-600 dark:text-indigo-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
+          )}
+        >
+          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'catalog' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
+            <LayoutList size={20} />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">Catálogo</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('quote')}
+          className={cn(
+            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
+            activeTab === 'quote'
+              ? "text-indigo-600 dark:text-indigo-400"
+              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
+          )}
+        >
+          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'quote' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
+            <FileText size={20} />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">Presup.</span>
+        </button>
+      </nav>
     </div>
   );
 }

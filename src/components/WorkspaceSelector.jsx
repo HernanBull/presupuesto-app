@@ -104,15 +104,15 @@ export function WorkspaceSelector({ onSelect }) {
   }, [globalBudgets]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 py-12">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 py-8 sm:py-12">
       
       <div className="max-w-5xl w-full">
         {/* Cabecera Principal */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-4 shadow-sm">
-            <LayoutDashboard size={32} />
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-4 shadow-sm">
+            <LayoutDashboard size={28} className="sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Vista General del Negocio
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">
@@ -137,13 +137,13 @@ export function WorkspaceSelector({ onSelect }) {
                     <TrendingUp size={24} />
                   </div>
                   <div>
-                    <p className="text-emerald-100 font-medium">MRR Total (Ingreso Recurrente)</p>
+                    <p className="text-emerald-100 font-medium text-sm sm:text-base">MRR Total (Ingreso Recurrente)</p>
                   </div>
                 </div>
-                <h2 className="text-4xl font-black relative z-10">{globalMetrics.totalMRR.toFixed(2)}€<span className="text-xl font-medium text-emerald-200">/mes</span></h2>
+                <h2 className="text-3xl sm:text-4xl font-black relative z-10">{globalMetrics.totalMRR.toFixed(2)}€<span className="text-lg sm:text-xl font-medium text-emerald-200">/mes</span></h2>
                 <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center relative z-10">
-                  <span className="text-sm text-emerald-100 font-medium">ARR Proyectado:</span>
-                  <span className="font-bold text-white bg-white/10 px-3 py-1 rounded-lg">{globalMetrics.arr.toFixed(2)}€ /año</span>
+                  <span className="text-xs sm:text-sm text-emerald-100 font-medium">ARR Proyectado:</span>
+                  <span className="font-bold text-white bg-white/10 px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-sm sm:text-base">{globalMetrics.arr.toFixed(2)}€ /año</span>
                 </div>
               </div>
 
@@ -156,49 +156,49 @@ export function WorkspaceSelector({ onSelect }) {
                     <DollarSign size={24} />
                   </div>
                   <div>
-                    <p className="text-blue-100 font-medium">Facturación Global (Cerrada)</p>
+                    <p className="text-blue-100 font-medium text-sm sm:text-base">Facturación Global (Cerrada)</p>
                   </div>
                 </div>
-                <h2 className="text-4xl font-black relative z-10">{globalMetrics.totalRevenue.toFixed(2)}€</h2>
+                <h2 className="text-3xl sm:text-4xl font-black relative z-10">{globalMetrics.totalRevenue.toFixed(2)}€</h2>
                 <div className="mt-4 pt-4 border-t border-white/20 flex justify-between items-center relative z-10">
-                  <span className="text-sm text-blue-100 font-medium">Margen Bruto Real:</span>
-                  <span className="font-bold text-white bg-white/10 px-3 py-1 rounded-lg">{globalMetrics.grossMargin.toFixed(1)}%</span>
+                  <span className="text-xs sm:text-sm text-blue-100 font-medium">Margen Bruto Real:</span>
+                  <span className="font-bold text-white bg-white/10 px-2 py-1 sm:px-3 sm:py-1 rounded-lg text-sm sm:text-base">{globalMetrics.grossMargin.toFixed(1)}%</span>
                 </div>
               </div>
             </div>
 
             {/* Dashboard Global - Small Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12">
+              <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                   <Clock size={16} className="text-amber-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Pipeline (Pendiente)</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Pipeline (Pendiente)</span>
                 </div>
-                <span className="text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.pipeline.toFixed(2)}€</span>
+                <span className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.pipeline.toFixed(2)}€</span>
               </div>
               
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
+              <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                   <Target size={16} className="text-indigo-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Tasa de Conversión</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Tasa de Conversión</span>
                 </div>
-                <span className="text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.winRate.toFixed(1)}%</span>
+                <span className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.winRate.toFixed(1)}%</span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
+              <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                   <Award size={16} className="text-fuchsia-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Ticket Promedio</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Ticket Promedio</span>
                 </div>
-                <span className="text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.avgTicket.toFixed(2)}€</span>
+                <span className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">{globalMetrics.avgTicket.toFixed(2)}€</span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
+              <div className="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col">
                 <div className="flex items-center gap-2 text-slate-500 mb-2">
                   <Activity size={16} className="text-rose-500" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Proyectos Activos</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Proyectos Activos</span>
                 </div>
-                <span className="text-xl font-black text-slate-800 dark:text-slate-100">{globalBudgets.length}</span>
+                <span className="text-lg sm:text-xl font-black text-slate-800 dark:text-slate-100">{globalBudgets.length}</span>
               </div>
             </div>
 
