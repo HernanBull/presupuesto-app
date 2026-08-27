@@ -245,73 +245,80 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
 
   return (
     <div className="flex flex-col h-full space-y-4 sm:space-y-6">
-      {/* Barra superior de Guardado y Carga */}
-      <div className="sticky top-[68px] sm:top-20 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl p-3 sm:p-4 shadow-md border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
-          <input
-            type="text"
-            placeholder="Nombre del Presupuesto (Ej. Cliente Juan)"
-            value={currentBudgetName}
-            onChange={(e) => setCurrentBudgetName(e.target.value)}
-            className="flex-1 min-w-0 md:w-80 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-          />
-          <button
-            onClick={() => saveCurrentBudget(true)}
-            disabled={isSaving || !currentBudgetName}
-            className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 whitespace-nowrap text-sm sm:text-base"
-          >
-            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-            <span className="hidden sm:inline">{currentBudgetId ? 'Guardado' : 'Guardar'}</span>
-            <span className="sm:hidden">Guardar</span>
-          </button>
-        </div>
-        
-        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FolderOpen size={16} className="text-slate-400" />
-            </div>
-            <select
-              onChange={loadBudget}
-              defaultValue=""
-              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+      
+      {/* ZONA SUPERIOR STICKY */}
+      <div className="sticky top-0 z-20 -mt-4 pt-4 pb-2 bg-slate-50 dark:bg-slate-950 shadow-[0_4px_10px_-4px_rgba(0,0,0,0.1)] dark:shadow-none">
+        <div className="flex flex-col gap-3 sm:gap-4">
+          
+          {/* Navegación Móvil Interna */}
+          <div className="flex lg:hidden bg-white dark:bg-slate-900 p-1.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
+            <button
+              onClick={() => setMobileTab('edit')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
+                mobileTab === 'edit'
+                  ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-800"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border border-transparent"
+              )}
             >
-              <option value="">Cargar...</option>
-              {savedBudgets.map(b => (
-                <option key={b.id} value={b.id}>{b.name} ({new Date(b.date).toLocaleDateString()})</option>
-              ))}
-            </select>
+              <Edit3 size={16} /> Configuración
+            </button>
+            <button
+              onClick={() => setMobileTab('preview')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
+                mobileTab === 'preview'
+                  ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 shadow-sm border border-indigo-100 dark:border-indigo-800"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border border-transparent"
+              )}
+            >
+              <Eye size={16} /> Resultados
+            </button>
           </div>
-          <button onClick={startNewBudget} className="flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 text-sm sm:text-base">
-            <FilePlus size={16} /> <span className="hidden sm:inline">Nuevo</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Navegación Móvil Interna */}
-      <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-        <button
-          onClick={() => setMobileTab('edit')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
-            mobileTab === 'edit'
-              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          )}
-        >
-          <Edit3 size={16} /> Configuración
-        </button>
-        <button
-          onClick={() => setMobileTab('preview')}
-          className={cn(
-            "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
-            mobileTab === 'preview'
-              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
-              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          )}
-        >
-          <Eye size={16} /> Resultados
-        </button>
+          {/* Barra superior de Guardado y Carga */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Nombre del Presupuesto (Ej. Cliente Juan)"
+                value={currentBudgetName}
+                onChange={(e) => setCurrentBudgetName(e.target.value)}
+                className="flex-1 min-w-0 md:w-80 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              <button
+                onClick={() => saveCurrentBudget(true)}
+                disabled={isSaving || !currentBudgetName}
+                className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold transition-all shadow-md active:scale-95 whitespace-nowrap text-sm sm:text-base"
+              >
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                <span className="hidden sm:inline">{currentBudgetId ? 'Guardado' : 'Guardar'}</span>
+                <span className="sm:hidden">Guardar</span>
+              </button>
+            </div>
+            
+            <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FolderOpen size={16} className="text-slate-400" />
+                </div>
+                <select
+                  onChange={loadBudget}
+                  value=""
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 sm:pl-10 pr-4 py-2 sm:py-2.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none appearance-none"
+                >
+                  <option value="" disabled>Cargar...</option>
+                  {savedBudgets.map(b => (
+                    <option key={b.id} value={b.id}>{b.name} ({new Date(b.date).toLocaleDateString()})</option>
+                  ))}
+                </select>
+              </div>
+              <button onClick={startNewBudget} className="flex items-center justify-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-700 text-sm sm:text-base">
+                <FilePlus size={16} /> <span className="hidden sm:inline">Nuevo</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start h-full">
