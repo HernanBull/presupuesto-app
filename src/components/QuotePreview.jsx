@@ -54,7 +54,7 @@ export function QuotePreview({ items, onRemoveItem, onUpdateItemStatus, maintena
   const finalMaintQuote = supportCost + infraWithMargin + recurringServicesCost;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 flex flex-col h-[calc(100vh-100px)]">
+    <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 flex flex-col h-[700px] lg:h-[calc(100vh-100px)]">
       
       {/* Cabecera del Panel */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 sm:p-8 text-white relative overflow-hidden shrink-0">
