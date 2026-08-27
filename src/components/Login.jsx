@@ -6,7 +6,7 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
 
@@ -17,15 +17,12 @@ export function Login() {
     setMessage(null);
 
     try {
-      if (isSignUp) {
-        // En tu caso, solo te registrarás una vez y luego bloquearemos esta ruta en Supabase
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+      if (isResetting) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
         });
         if (error) throw error;
-        setMessage('¡Registro exitoso! Ya puedes iniciar sesión.');
-        setIsSignUp(false);
+        setMessage('Te hemos enviado un correo con las instrucciones para recuperar tu contraseña.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -55,10 +52,10 @@ export function Login() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-          {isSignUp ? 'Crea tu Cuenta Maestra' : 'Acceso Seguro'}
+          {isResetting ? 'Recuperar Cuenta' : 'Acceso Seguro'}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
-          {isSignUp ? 'Solo podrás registrarte una vez' : 'Gestión de Presupuestos Privada'}
+          {isResetting ? 'Ingresa tu correo para restablecer tu contraseña' : 'Gestión de Presupuestos Privada'}
         </p>
       </div>
 
@@ -97,36 +94,38 @@ export function Login() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Contraseña
-              </label>
-              <div className="mt-1 relative rounded-xl shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
+            {!isResetting && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Contraseña
+                </label>
+                <div className="mt-1 relative rounded-xl shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                  />
                 </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                  placeholder="••••••••"
-                />
               </div>
-            </div>
+            )}
 
             <div>
               <button
                 type="submit"
-                disabled={loading || !email || !password}
+                disabled={loading || !email || (!isResetting && !password)}
                 className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-lg shadow-indigo-500/30 text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
               >
                 {loading ? (
                   <Loader2 className="animate-spin h-5 w-5" />
                 ) : (
                   <>
-                    {isSignUp ? 'Crear Cuenta' : 'Ingresar al Sistema'}
+                    {isResetting ? 'Enviar Correo de Recuperación' : 'Ingresar al Sistema'}
                     <ArrowRight size={18} />
                   </>
                 )}
@@ -136,10 +135,11 @@ export function Login() {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setIsSignUp(!isSignUp)}
+              type="button"
+              onClick={() => setIsResetting(!isResetting)}
               className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
             >
-              {isSignUp ? '¿Ya tienes tu cuenta? Inicia Sesión' : '¿Primera vez? Configura tu cuenta maestra'}
+              {isResetting ? 'Volver al Inicio de Sesión' : '¿Olvidaste tu contraseña?'}
             </button>
           </div>
         </div>
