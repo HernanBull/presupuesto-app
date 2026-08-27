@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Box, Zap, Save, FolderOpen, FilePlus, Loader2, Calendar, Clock, Trash2 } from 'lucide-react';
+import { Plus, Box, Zap, Save, FolderOpen, FilePlus, Loader2, Calendar, Clock, Trash2, Eye, Edit3 } from 'lucide-react';
 import { QuotePreview } from './QuotePreview';
 import { supabase } from '../utils/supabaseClient';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}
 
 export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
   const [catalog, setCatalog] = useState([]);
   const [categories, setCategories] = useState([]);
   
   // -- ESTADO PROYECTO --
+  const [mobileTab, setMobileTab] = useState('edit'); // 'edit' | 'preview' - solo aplica a móviles
   const [quoteItems, setQuoteItems] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -281,9 +288,38 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
         </div>
       </div>
 
+      {/* Navegación Móvil Interna */}
+      <div className="flex lg:hidden bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+        <button
+          onClick={() => setMobileTab('edit')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
+            mobileTab === 'edit'
+              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          )}
+        >
+          <Edit3 size={16} /> Configuración
+        </button>
+        <button
+          onClick={() => setMobileTab('preview')}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-lg transition-all",
+            mobileTab === 'preview'
+              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+              : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          )}
+        >
+          <Eye size={16} /> Resultados
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start h-full">
         {/* Panel Izquierdo: Configuración */}
-        <div className="lg:col-span-4 xl:col-span-4 space-y-6 flex flex-col lg:sticky lg:top-24">
+        <div className={cn(
+          "lg:col-span-4 xl:col-span-4 space-y-6 lg:sticky lg:top-24",
+          mobileTab === 'edit' ? "flex flex-col" : "hidden lg:flex lg:flex-col"
+        )}>
           
           {/* TABS */}
           <div className="flex p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl">
@@ -433,7 +469,10 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
         </div>
 
         {/* Panel Derecho: Vista Previa y Análisis */}
-        <div className="lg:col-span-8 xl:col-span-8">
+        <div className={cn(
+          "lg:col-span-8 xl:col-span-8",
+          mobileTab === 'preview' ? "block" : "hidden lg:block"
+        )}>
           <QuotePreview 
             items={quoteItems} 
             onRemoveItem={handleRemoveFromQuote} 
