@@ -246,8 +246,8 @@ export function QuoteBuilder({ baseHourlyRate = 40, activeWorkspace }) {
   return (
     <div className="flex flex-col h-full space-y-4 sm:space-y-6">
       
-      {/* ZONA SUPERIOR STICKY */}
-      <div className="sticky top-0 z-20 -mt-4 pt-4 pb-2 bg-slate-50 dark:bg-slate-950 shadow-[0_4px_10px_-4px_rgba(0,0,0,0.1)] dark:shadow-none">
+      {/* ZONA SUPERIOR (No Sticky) */}
+      <div className="mb-2">
         <div className="flex flex-col gap-3 sm:gap-4">
           
           {/* Navegación Móvil Interna */}
