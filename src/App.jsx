@@ -219,49 +219,69 @@ function App() {
         )}
       </main>
 
-      {/* Bottom Navigation para Móviles */}
-      <nav className="sm:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-1 pb-4 flex items-center justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
+      {/* Bottom Navigation para Móviles (Look Premium) */}
+      <nav className="sm:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 z-30 px-2 pt-2 pb-6 flex items-center justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.04)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.2)] shrink-0 transition-colors duration-300">
         <button
           onClick={() => setActiveTab('calculator')}
-          className={cn(
-            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
-            activeTab === 'calculator'
-              ? "text-indigo-600 dark:text-indigo-400"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
-          )}
+          className="relative flex flex-col items-center justify-center p-2 transition-all w-20 group"
         >
-          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'calculator' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
-            <Calculator size={20} />
+          {activeTab === 'calculator' && (
+             <div className="absolute inset-0 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
+          )}
+          <div className={cn(
+            "p-1.5 rounded-xl mb-1 transition-all duration-300", 
+            activeTab === 'calculator' ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          )}>
+            <Calculator size={24} strokeWidth={activeTab === 'calculator' ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] font-semibold tracking-wide">Calc</span>
+          <span className={cn(
+            "text-[10px] font-bold tracking-wide transition-colors", 
+            activeTab === 'calculator' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+          )}>
+            Calculadora
+          </span>
         </button>
+
         <button
           onClick={() => setActiveTab('catalog')}
-          className={cn(
-            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
-            activeTab === 'catalog'
-              ? "text-indigo-600 dark:text-indigo-400"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
-          )}
+          className="relative flex flex-col items-center justify-center p-2 transition-all w-20 group"
         >
-          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'catalog' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
-            <LayoutList size={20} />
+          {activeTab === 'catalog' && (
+             <div className="absolute inset-0 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
+          )}
+          <div className={cn(
+            "p-1.5 rounded-xl mb-1 transition-all duration-300", 
+            activeTab === 'catalog' ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          )}>
+            <LayoutList size={24} strokeWidth={activeTab === 'catalog' ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] font-semibold tracking-wide">Catálogo</span>
+          <span className={cn(
+            "text-[10px] font-bold tracking-wide transition-colors", 
+            activeTab === 'catalog' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+          )}>
+            Catálogo
+          </span>
         </button>
+
         <button
           onClick={() => setActiveTab('quote')}
-          className={cn(
-            "flex flex-col items-center justify-center p-2 rounded-xl transition-all w-16",
-            activeTab === 'quote'
-              ? "text-indigo-600 dark:text-indigo-400"
-              : "text-slate-500 dark:text-slate-400 hover:text-slate-900"
-          )}
+          className="relative flex flex-col items-center justify-center p-2 transition-all w-20 group"
         >
-          <div className={cn("p-1.5 rounded-lg mb-0.5", activeTab === 'quote' ? "bg-indigo-100 dark:bg-indigo-900/40" : "")}>
-            <FileText size={20} />
+          {activeTab === 'quote' && (
+             <div className="absolute inset-0 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
+          )}
+          <div className={cn(
+            "p-1.5 rounded-xl mb-1 transition-all duration-300", 
+            activeTab === 'quote' ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          )}>
+            <FileText size={24} strokeWidth={activeTab === 'quote' ? 2.5 : 2} />
           </div>
-          <span className="text-[10px] font-semibold tracking-wide">Presup.</span>
+          <span className={cn(
+            "text-[10px] font-bold tracking-wide transition-colors", 
+            activeTab === 'quote' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+          )}>
+            Presupuestos
+          </span>
         </button>
       </nav>
     </div>
