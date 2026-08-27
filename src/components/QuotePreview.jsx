@@ -478,7 +478,7 @@ export function QuotePreview({ items, onRemoveItem, onUpdateItemStatus, maintena
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
               <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Soporte ({maintenance.hours}h)</p>
               <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{supportCost.toFixed(2)}€</p>
-              <p className="text-[10px] text-slate-400 mt-1">A {maintenance.hourlyRate}€/h</p>
+              <p className="text-[10px] text-slate-400 mt-1">A {Number(maintenance.hourlyRate).toFixed(2)}€/h</p>
             </div>
             
             <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/30">

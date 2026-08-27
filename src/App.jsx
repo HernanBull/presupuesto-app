@@ -108,8 +108,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20">
+    <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shrink-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex flex-row items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-4 flex-1">
             <button 
@@ -193,7 +193,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 sm:pb-8">
+      <main className="flex-1 overflow-y-auto w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pb-6 sm:pb-8 custom-scrollbar">
         {activeTab === 'calculator' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
             {/* Panel Izquierdo (Configuración) */}
@@ -220,7 +220,7 @@ function App() {
       </main>
 
       {/* Bottom Navigation para Móviles */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-1 pb-4 flex items-center justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <nav className="sm:hidden bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-30 px-2 py-1 pb-4 flex items-center justify-around shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] shrink-0">
         <button
           onClick={() => setActiveTab('calculator')}
           className={cn(
