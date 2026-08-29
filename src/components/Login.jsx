@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Lock, Mail, Loader2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Lock, Mail, Loader2, ArrowRight } from 'lucide-react';
+import logoAxon from '../logo/logo-sin-fondo.png';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -46,9 +47,9 @@ export function Login() {
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
-            <ShieldCheck size={32} className="text-white" />
+        <div className="flex justify-center mb-2">
+          <div className="w-24 h-24 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full overflow-hidden flex items-center justify-center shadow-xl shadow-indigo-500/10 p-2 border border-white/20 dark:border-slate-700/50">
+            <img src={logoAxon} alt="Logo Axon" className="w-full h-full object-contain rounded-full drop-shadow-md" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
