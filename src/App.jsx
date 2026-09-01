@@ -4,8 +4,9 @@ import { DashboardPanel } from './components/DashboardPanel';
 import { CatalogBuilder } from './components/CatalogBuilder';
 import { QuoteBuilder } from './components/QuoteBuilder';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
+import { ContractsViewer } from './components/ContractsViewer';
 import { calculateProfitability } from './utils/calculator';
-import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft } from 'lucide-react';
+import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft, Scale } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from './utils/supabaseClient';
@@ -125,6 +126,7 @@ function App() {
                 {activeTab === 'calculator' && <Calculator size={20} />}
                 {activeTab === 'catalog' && <LayoutList size={20} />}
                 {activeTab === 'quote' && <FileText size={20} />}
+                {activeTab === 'contracts' && <Scale size={20} />}
               </div>
               <div className="hidden sm:block">
                 <h2 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{activeWorkspace.name}</h2>
@@ -132,6 +134,7 @@ function App() {
                   {activeTab === 'calculator' && 'Calculadora'}
                   {activeTab === 'catalog' && 'Catálogo Global'}
                   {activeTab === 'quote' && 'Presupuestos'}
+                  {activeTab === 'contracts' && 'Contratos'}
                 </h1>
               </div>
               {/* Solo en móviles, mostrar el nombre simple */}
@@ -188,6 +191,18 @@ function App() {
               <FileText size={16} />
               Presupuestos
             </button>
+            <button
+              onClick={() => setActiveTab('contracts')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === 'contracts' 
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              )}
+            >
+              <Scale size={16} />
+              Contratos
+            </button>
           </nav>
         </div>
         </div>
@@ -215,6 +230,11 @@ function App() {
         {activeTab === 'quote' && (
           <div className="h-full">
             <QuoteBuilder baseHourlyRate={results.finalHourlyRate} activeWorkspace={activeWorkspace} />
+          </div>
+        )}
+        {activeTab === 'contracts' && (
+          <div className="h-full">
+            <ContractsViewer />
           </div>
         )}
       </main>
@@ -281,6 +301,27 @@ function App() {
             activeTab === 'quote' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
           )}>
             Presupuestos
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('contracts')}
+          className="relative flex flex-col items-center justify-center p-2 transition-all w-20 group"
+        >
+          {activeTab === 'contracts' && (
+             <div className="absolute inset-0 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
+          )}
+          <div className={cn(
+            "p-1.5 rounded-xl mb-1 transition-all duration-300", 
+            activeTab === 'contracts' ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          )}>
+            <Scale size={24} strokeWidth={activeTab === 'contracts' ? 2.5 : 2} />
+          </div>
+          <span className={cn(
+            "text-[10px] font-bold tracking-wide transition-colors", 
+            activeTab === 'contracts' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+          )}>
+            Contratos
           </span>
         </button>
       </nav>
