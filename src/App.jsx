@@ -5,12 +5,14 @@ import { CatalogBuilder } from './components/CatalogBuilder';
 import { QuoteBuilder } from './components/QuoteBuilder';
 import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { ContractsViewer } from './components/ContractsViewer';
+import { SDDManager } from './components/SDDManager';
 import { calculateProfitability } from './utils/calculator';
-import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft, Scale } from 'lucide-react';
+import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft, Scale, Bot } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from './utils/supabaseClient';
 import { Login } from './components/Login';
+import { ClientTracker } from './components/ClientTracker';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -40,6 +42,12 @@ function App() {
   const [inputs, setInputs] = useState(defaultInputs);
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+
+  const clientCode = localStorage.getItem('sdd_client_code');
+
+  if (clientCode) {
+    return <ClientTracker />;
+  }
 
   // Autenticación Supabase
   useEffect(() => {
@@ -127,6 +135,7 @@ function App() {
                 {activeTab === 'catalog' && <LayoutList size={20} />}
                 {activeTab === 'quote' && <FileText size={20} />}
                 {activeTab === 'contracts' && <Scale size={20} />}
+                {activeTab === 'sdd' && <Bot size={20} />}
               </div>
               <div className="hidden sm:block">
                 <h2 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">{activeWorkspace.name}</h2>
@@ -135,6 +144,7 @@ function App() {
                   {activeTab === 'catalog' && 'Catálogo Global'}
                   {activeTab === 'quote' && 'Presupuestos'}
                   {activeTab === 'contracts' && 'Contratos'}
+                  {activeTab === 'sdd' && 'Proyectos AI'}
                 </h1>
               </div>
               {/* Solo en móviles, mostrar el nombre simple */}
@@ -203,6 +213,18 @@ function App() {
               <Scale size={16} />
               Contratos
             </button>
+            <button
+              onClick={() => setActiveTab('sdd')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === 'sdd' 
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm" 
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              )}
+            >
+              <Bot size={16} />
+              Proyectos AI
+            </button>
           </nav>
         </div>
         </div>
@@ -235,6 +257,11 @@ function App() {
         {activeTab === 'contracts' && (
           <div className="h-full">
             <ContractsViewer />
+          </div>
+        )}
+        {activeTab === 'sdd' && (
+          <div className="h-full">
+            <SDDManager activeWorkspace={activeWorkspace} />
           </div>
         )}
       </main>
@@ -322,6 +349,27 @@ function App() {
             activeTab === 'contracts' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
           )}>
             Contratos
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('sdd')}
+          className="relative flex flex-col items-center justify-center p-2 transition-all w-20 group"
+        >
+          {activeTab === 'sdd' && (
+             <div className="absolute inset-0 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
+          )}
+          <div className={cn(
+            "p-1.5 rounded-xl mb-1 transition-all duration-300", 
+            activeTab === 'sdd' ? "text-indigo-600 dark:text-indigo-400 scale-110" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+          )}>
+            <Bot size={24} strokeWidth={activeTab === 'sdd' ? 2.5 : 2} />
+          </div>
+          <span className={cn(
+            "text-[10px] font-bold tracking-wide transition-colors", 
+            activeTab === 'sdd' ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
+          )}>
+            SDD
           </span>
         </button>
       </nav>

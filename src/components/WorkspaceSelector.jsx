@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Loader2, LayoutDashboard, TrendingUp, DollarSign, Target, Activity, Award, Clock } from 'lucide-react';
+import { Briefcase, Plus, Loader2, LayoutDashboard, TrendingUp, DollarSign, Target, Activity, Award, Clock, Trash2 } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
 
 export function WorkspaceSelector({ onSelect }) {
@@ -16,13 +16,21 @@ export function WorkspaceSelector({ onSelect }) {
 
   const fetchWorkspacesAndBudgets = async () => {
     try {
-      const [wsRes, budgetsRes] = await Promise.all([
+      const [wsRes, budgetsRes, sddRes] = await Promise.all([
         supabase.from('workspaces').select('*'),
-        supabase.from('budgets').select('*')
+        supabase.from('budgets').select('*'),
+        supabase.from('sdd_projects').select('workspace_id, client_code')
       ]);
       const wsData = wsRes.data || [];
       const budgetsData = budgetsRes.data || [];
-      setWorkspaces(wsData);
+      const sddData = sddRes.data || [];
+      
+      const workspacesWithCode = wsData.map(ws => {
+        const sdd = sddData.find(s => s.workspace_id === ws.id);
+        return { ...ws, client_code: sdd ? sdd.client_code : null };
+      });
+
+      setWorkspaces(workspacesWithCode);
       setGlobalBudgets(budgetsData);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -35,16 +43,58 @@ export function WorkspaceSelector({ onSelect }) {
     if (!newName.trim()) return;
     setIsCreating(true);
     try {
-      const { error } = await supabase.from('workspaces').insert([{ name: newName.trim() }]);
-      if (!error) {
+      const { data: newWs, error: wsError } = await supabase.from('workspaces').insert([{ name: newName.trim() }]).select().single();
+      
+      if (wsError) throw wsError;
+
+      if (newWs) {
+        // Generar código de acceso automático
+        const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const clientCode = `PRO-${randomCode}`;
+        
+        const { error: sddError } = await supabase.from('sdd_projects').insert([{
+          workspace_id: newWs.id,
+          client_name: newName.trim(),
+          project_name: newName.trim(),
+          client_code: clientCode
+        }]);
+
+        if (sddError) {
+          console.error("Error inserting sdd_projects:", sddError);
+          alert("Advertencia: El negocio se creó, pero falló la generación del código. Asegúrate de haber ejecutado el SQL en Supabase (columna client_code).");
+        } else {
+          alert(`¡Negocio creado con éxito!\n\nEl código de acceso para tu cliente es: ${clientCode}\n\n(También lo verás en la tarjeta del cliente)`);
+        }
+
         setNewName('');
         setShowCreate(false);
         fetchWorkspacesAndBudgets();
       }
     } catch (error) {
       console.error('Error creating workspace:', error);
+      alert('Hubo un error al crear el negocio.');
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleDelete = async (e, workspace) => {
+    e.stopPropagation();
+    if (window.confirm(`¿Estás seguro de eliminar el negocio "${workspace.name}" de forma permanente?\n\nSe borrarán:\n- Todos los presupuestos\n- El portal de seguimiento del cliente\n- Todo el registro de progreso\n\nEsta acción NO se puede deshacer.`)) {
+      try {
+        // Borrar dependencias primero para evitar errores de llave foránea
+        await supabase.from('sdd_projects').delete().eq('workspace_id', workspace.id);
+        await supabase.from('budgets').delete().eq('workspace_id', workspace.id);
+        
+        // Borrar workspace
+        const { error } = await supabase.from('workspaces').delete().eq('id', workspace.id);
+        if (error) throw error;
+        
+        fetchWorkspacesAndBudgets();
+      } catch (error) {
+        console.error('Error deleting workspace:', error);
+        alert('Hubo un error al intentar borrar el proyecto.');
+      }
     }
   };
 
@@ -213,20 +263,46 @@ export function WorkspaceSelector({ onSelect }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
             {/* Tarjetas de Workspaces */}
+            {/* Tarjetas de Workspaces */}
             {workspaces.map(w => (
-              <button
-                key={w.id}
-                onClick={() => onSelect(w)}
-                className="group flex flex-col text-left bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Briefcase size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">{w.name}</h3>
-                <p className="text-sm text-slate-500 mt-4 flex items-center gap-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors font-medium">
-                  Configurar y cotizar &rarr;
-                </p>
-              </button>
+              <div key={w.id} className="group relative flex flex-col text-left bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm hover:shadow-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all duration-300 transform hover:-translate-y-1">
+                
+                {/* Client Code Badge */}
+                {w.client_code && (
+                  <div className="absolute top-4 right-4 flex flex-col items-end">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Código Portal</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(w.client_code); alert('Código copiado: ' + w.client_code); }}
+                      className="bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 px-3 py-1.5 rounded-lg text-sm font-mono font-bold border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shadow-sm flex items-center gap-2 cursor-copy z-10"
+                      title="Copiar código del cliente"
+                    >
+                      {w.client_code}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => onSelect(w)}
+                  className="flex-1 flex flex-col items-start w-full focus:outline-none"
+                >
+                  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Briefcase size={24} />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">{w.name}</h3>
+                  <p className="text-sm text-slate-500 mt-4 flex items-center gap-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors font-medium">
+                    Configurar y cotizar &rarr;
+                  </p>
+                </button>
+                
+                <button
+                  onClick={(e) => handleDelete(e, w)}
+                  className="absolute bottom-6 right-6 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-all z-10 opacity-0 group-hover:opacity-100"
+                  title="Borrar Proyecto Permanentemente"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             ))}
 
             {/* Crear Nuevo */}
