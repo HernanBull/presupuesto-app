@@ -10,6 +10,7 @@ import { ChatWidget } from './ChatWidget';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import logoAxon from '../logo/logo-sin-fondo.png';
 
 function cx(...inputs) {
   return twMerge(clsx(inputs));
@@ -149,8 +150,8 @@ export function ClientTracker() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 pt-20 pb-12 md:py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
-      {/* Controles Superiores */}
-      <div className="absolute top-4 right-4 sm:top-8 sm:right-8 flex items-center gap-3">
+      {/* Esquina Izquierda: Tema */}
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-50">
         <button
           onClick={toggleTheme}
           className="bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-500 px-3 py-2 rounded-xl shadow-sm transition-colors"
@@ -158,6 +159,10 @@ export function ClientTracker() {
         >
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
+      </div>
+
+      {/* Esquina Derecha: Salir */}
+      <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-50">
         <button
           onClick={handleLogout}
           className="bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-red-500 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors"
@@ -169,10 +174,15 @@ export function ClientTracker() {
       <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
 
         {/* Header Superior */}
-        <div className="mb-8 md:mb-10 p-6 md:p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-slate-800/50 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 relative overflow-hidden group">
+        <div className="text-center mb-8 md:mb-10 p-6 md:p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-slate-800/50 flex flex-col items-center justify-center relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-3xl rounded-full"></div>
 
+          <img 
+            src={logoAxon} 
+            alt="Axon Logo" 
+            className="h-16 w-auto object-contain mb-6 brightness-150 drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" 
+          />
           <div>
             <h1 className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tight mb-2">
               Progreso del Proyecto
@@ -841,7 +851,7 @@ export function ClientTracker() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed inset-y-0 right-0 w-full sm:w-[400px] z-40 shadow-[-10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_30px_rgba(0,0,0,0.5)]"
+            className="fixed inset-y-0 right-0 w-full sm:w-[400px] z-[100] shadow-[-10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_30px_rgba(0,0,0,0.5)]"
           >
             <ChatWidget
               projectId={projectData.id}

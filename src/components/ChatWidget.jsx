@@ -4,6 +4,7 @@ import { Send, MessageSquare, X, User, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import logoAxon from '../logo/logo-sin-fondo.png';
 
 function cx(...inputs) {
   return twMerge(clsx(inputs));
@@ -88,33 +89,30 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-xl border-l border-slate-200/50 dark:border-slate-800/50 shadow-2xl relative">
+    <div className="flex flex-col h-full bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-2xl border-l border-slate-200/50 dark:border-zinc-800/50 shadow-2xl relative overflow-hidden">
       {/* Glow background */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 blur-3xl rounded-full pointer-events-none"></div>
 
       {/* Header */}
-      <div className="flex items-center justify-between p-5 border-b border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-10">
+      <div className="flex items-center justify-between p-5 border-b border-slate-200/50 dark:border-zinc-800/50 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl z-10 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="p-2.5 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/30">
-              <MessageSquare size={20} />
+            <div className="p-1.5 bg-gradient-to-tr from-zinc-800 to-zinc-950 rounded-xl shadow-lg shadow-amber-500/20 border border-amber-500/30">
+              <img src={logoAxon} alt="Axon Logo" className="h-6 w-auto object-contain brightness-150 drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]" />
             </div>
             <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-white dark:border-slate-900"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-green-500 border-2 border-white dark:border-zinc-900"></span>
             </span>
           </div>
           <div>
             <h3 className="font-extrabold text-slate-800 dark:text-white tracking-tight leading-none mb-1">
               {currentUserType === 'client' ? 'Soporte Agencia' : 'Cliente'}
             </h3>
-            <span className="text-[10px] text-green-600 dark:text-green-400 font-bold uppercase tracking-widest flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div> Sistema en línea
-            </span>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-zinc-800/50 rounded-xl transition-all">
             <X size={20} />
           </button>
         )}
@@ -122,31 +120,8 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar z-10">
-        {messages.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 space-y-4"
-          >
-            <div className="relative">
-              <motion.div 
-                animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="absolute -inset-4 bg-gradient-to-r from-indigo-500 to-purple-500 blur-xl rounded-full"
-              ></motion.div>
-              <div className="p-5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border border-slate-200 dark:border-slate-700 rounded-full relative shadow-sm">
-                <MessageSquare size={32} className="text-indigo-500 dark:text-indigo-400" />
-              </div>
-            </div>
-            <div className="text-center">
-              <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-1">Centro de Soporte</h4>
-              <p className="text-xs max-w-[200px] text-slate-500 mx-auto">La conversación está vacía. Escribe un mensaje abajo para iniciar.</p>
-            </div>
-          </motion.div>
-        ) : (
-          <AnimatePresence initial={false}>
-            {messages.map((msg, idx) => {
+        <AnimatePresence initial={false}>
+          {messages.map((msg, idx) => {
               const isMe = msg.sender === currentUserType;
               const isAgency = msg.sender === 'agency';
               
@@ -164,10 +139,10 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
                 >
                   {!isMe && (
                     <div className={cx(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-auto shadow-sm border",
-                      isAgency ? "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white border-indigo-400" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-auto shadow-sm border overflow-hidden",
+                      isAgency ? "bg-gradient-to-tr from-zinc-800 to-zinc-950 border-amber-500/50 p-1" : "bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-zinc-700"
                     )}>
-                      {isAgency ? <Building size={14} /> : <User size={14} />}
+                      {isAgency ? <img src={logoAxon} alt="Axon" className="h-full w-full object-contain brightness-150" /> : <User size={14} />}
                     </div>
                   )}
 
@@ -181,8 +156,8 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
                     <div className={cx(
                       "p-4 text-sm relative shadow-md leading-relaxed",
                       isMe 
-                        ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl rounded-br-sm shadow-indigo-500/20" 
-                        : "bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-800 dark:text-slate-100 rounded-2xl rounded-bl-sm border border-slate-200/50 dark:border-slate-700/50"
+                        ? "bg-gradient-to-br from-amber-500 to-yellow-600 text-zinc-950 font-medium rounded-2xl rounded-br-sm shadow-amber-500/20" 
+                        : "bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md text-slate-800 dark:text-slate-100 rounded-2xl rounded-bl-sm border border-slate-200/50 dark:border-zinc-700/50"
                     )}>
                       {msg.text}
                     </div>
@@ -190,36 +165,35 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
 
                   {isMe && (
                     <div className={cx(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-auto shadow-sm border",
-                      isAgency ? "bg-gradient-to-tr from-indigo-600 to-purple-600 text-white border-indigo-400" : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700"
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-auto shadow-sm border overflow-hidden",
+                      isAgency ? "bg-gradient-to-tr from-zinc-800 to-zinc-950 border-amber-500/50 p-1" : "bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-zinc-700"
                     )}>
-                      {isAgency ? <Building size={14} /> : <User size={14} />}
+                      {isAgency ? <img src={logoAxon} alt="Axon" className="h-full w-full object-contain brightness-150" /> : <User size={14} />}
                     </div>
                   )}
                 </motion.div>
               );
             })}
           </AnimatePresence>
-        )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="p-5 border-t border-slate-200/50 dark:border-slate-800/50 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md z-10">
+      <form onSubmit={handleSendMessage} className="p-5 border-t border-slate-200/50 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-2xl z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
         <div className="relative flex items-center group">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-full py-3.5 pl-5 pr-14 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 shadow-sm transition-all"
+            placeholder="Escribe tu mensaje aquí..."
+            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-300 dark:border-white/10 group-hover:border-amber-500/50 rounded-full py-4 pl-6 pr-14 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 shadow-inner dark:shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-all duration-300"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || isSending}
-            className="absolute right-1.5 p-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-full disabled:opacity-50 transition-all shadow-md group-focus-within:scale-105"
+            className="absolute right-1.5 p-3 bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:via-amber-400 hover:to-amber-500 text-zinc-950 rounded-full disabled:opacity-30 transition-all duration-300 shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:shadow-[0_0_25px_rgba(245,158,11,0.6)] group-focus-within:scale-105 group-focus-within:shadow-[0_0_20px_rgba(245,158,11,0.5)]"
           >
-            <Send size={16} className={isSending ? "animate-pulse" : "transform translate-x-px -translate-y-px"} />
+            <Send size={18} className={cx(isSending ? "animate-pulse" : "transform translate-x-px -translate-y-px", "drop-shadow-sm")} />
           </button>
         </div>
       </form>
