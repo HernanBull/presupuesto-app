@@ -16,7 +16,53 @@ export function Login() {
   const [viewMode, setViewMode] = useState('admin'); // 'admin' | 'client'
   const [clientCode, setClientCode] = useState('');
 
-  const TRANSITION_DURATION = 1500; // 1.5 seconds
+  const TRANSITION_DURATION = 3500; // 3.5 seconds
+
+  const playShatterSound = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      // Bass Drop (Sci-Fi Boom)
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2.5);
+      gainNode.gain.setValueAtTime(1.5, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 2.5);
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 2.5);
+
+      // Glass Shatter (Filtered white noise)
+      const bufferSize = ctx.sampleRate * 2.0;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 4000;
+      
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.8, ctx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+      
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noise.start();
+    } catch (e) {
+      console.log("Audio not supported", e);
+    }
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -34,6 +80,7 @@ export function Login() {
         setLoading(false);
       } else {
         // Trigger Deconstruction Animation
+        playShatterSound();
         setIsExiting(true);
         setTimeout(async () => {
           try {
@@ -72,6 +119,7 @@ export function Login() {
       }
       
       // Trigger Deconstruction Animation
+      playShatterSound();
       setIsExiting(true);
       setTimeout(() => {
         // Guardar el código en localStorage para que App.jsx lo detecte
@@ -115,32 +163,35 @@ export function Login() {
 
       {/* ====================================================
           PHASE 2: THE SHATTERING BLACK WORLD (Z-INDEX: 5)
-          A grid of blocks that breaks apart to reveal the canvas.
+          A grid of blocks that breaks apart physically to reveal the canvas.
       ==================================================== */}
-      <div className="absolute inset-0 z-[5] grid" style={{ gridTemplateColumns: 'repeat(15, 1fr)', gridTemplateRows: 'repeat(15, 1fr)' }}>
+      <div className="absolute inset-0 z-[5] grid" style={{ gridTemplateColumns: 'repeat(15, 1fr)', gridTemplateRows: 'repeat(15, 1fr)', perspective: '1000px' }}>
         {[...Array(225)].map((_, i) => {
           const x = i % 15;
           const y = Math.floor(i / 15);
           // Calculate diagonal delay (top-left to bottom-right)
-          const delay = (x + y) * 0.04;
-          // Cols 0-5 are left side (black), Cols 6-14 are right side (zinc-950)
-          const isRightSide = x >= 6;
+          const delay = (x + y) * 0.08;
           
           return (
             <motion.div
               key={`block-${i}`}
-              className={`w-full h-full ${isRightSide ? 'bg-zinc-950' : 'bg-black'}`}
+              className="w-full h-full bg-zinc-950"
               // We scale up slightly initially to avoid sub-pixel gaps between grid items
-              initial={{ scale: 1.02 }}
+              initial={{ scale: 1.05, x: 0, y: 0, z: 0 }}
               animate={{ 
-                scale: isExiting ? 0 : 1.02,
+                scale: isExiting ? 0 : 1.05,
                 opacity: isExiting ? 0 : 1,
-                rotate: isExiting ? (Math.random() * 90 - 45) : 0, // Chaos rotation
+                x: isExiting ? (Math.random() * 600 - 300) : 0,      // Explode outwards X
+                y: isExiting ? (Math.random() * 600 - 300) : 0,      // Explode outwards Y
+                z: isExiting ? (Math.random() * 800 - 200) : 0,      // Fly into 3D space
+                rotateX: isExiting ? (Math.random() * 720 - 360) : 0, // Crazy 3D tumble
+                rotateY: isExiting ? (Math.random() * 720 - 360) : 0, // Crazy 3D tumble
+                rotateZ: isExiting ? (Math.random() * 180 - 90) : 0,  // Spin
               }}
               transition={{ 
-                duration: 0.6, 
+                duration: 2.2, 
                 delay: isExiting ? delay : 0, 
-                ease: "backIn" 
+                ease: [0.16, 1, 0.3, 1] // Snappy exponential out
               }}
             />
           );
@@ -153,9 +204,71 @@ export function Login() {
       ==================================================== */}
       <div className="absolute inset-0 z-10 flex overflow-hidden pointer-events-none">
         
+        {/* ====================================================
+            GLOBAL BACKGROUND EFFECTS (Full Screen)
+        ==================================================== */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {/* Luces y Efectos de Fondo Globales */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(217,119,6,0.1)_0%,transparent_80%)]"></div>
+          
+          {/* Lluvia de Meteoritos (Estrellas Fugaces) */}
+          {[...Array(8)].map((_, i) => {
+            const delay = Math.random() * 5;
+            const duration = Math.random() * 1.5 + 1.5;
+            const top = Math.random() * 80 - 10; 
+            const left = Math.random() * 120 - 10; 
+            return (
+              <motion.div
+                key={`meteor-${i}`}
+                className="absolute h-[2px] w-[150px] bg-gradient-to-r from-transparent via-amber-500 to-white rounded-full shadow-[0_0_10px_rgba(245,158,11,0.8)] z-0"
+                style={{
+                  top: `${top}%`,
+                  left: `${left}%`,
+                  rotate: '45deg',
+                }}
+                initial={{ opacity: 0, x: -500, y: -500 }}
+                animate={{ opacity: [0, 1, 0], x: [0, 1500], y: [0, 1500] }}
+                transition={{
+                  duration: duration,
+                  repeat: Infinity,
+                  repeatDelay: delay,
+                  ease: "linear"
+                }}
+              >
+                {/* Cabeza del meteorito */}
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[3px] bg-white rounded-full shadow-[0_0_15px_#fff]"></div>
+              </motion.div>
+            );
+          })}
+
+          {/* Partículas Flotantes Decorativas */}
+          {[...Array(30)].map((_, i) => (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute bg-amber-500 rounded-full"
+              style={{
+                width: Math.random() * 3 + 1 + 'px',
+                height: Math.random() * 3 + 1 + 'px',
+                top: Math.random() * 100 + '%',
+                left: Math.random() * 100 + '%',
+                opacity: Math.random() * 0.4 + 0.1,
+              }}
+              animate={{
+                y: [0, Math.random() * -100 - 50],
+                opacity: [null, 0]
+              }}
+              transition={{
+                duration: Math.random() * 10 + 10,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            />
+          ))}
+        </div>
+
         {/* We use pointer-events-auto on the inner content to allow clicks */}
         <motion.div 
-          className="flex w-full h-full pointer-events-auto"
+          className="flex flex-col lg:flex-row w-full h-full pointer-events-auto relative z-10 p-4 lg:p-0"
           animate={{
             scale: isExiting ? 0.8 : 1,
             opacity: isExiting ? 0 : 1,
@@ -165,11 +278,50 @@ export function Login() {
         >
 
           {/* Lado Izquierdo: Formulario Minimalista */}
-          <div className="w-full lg:w-5/12 flex flex-col justify-center px-8 sm:px-16 lg:px-24 xl:px-32 relative z-10 shadow-[20px_0_50px_rgba(0,0,0,0.5)]">
+          <div className="w-full max-w-md mx-auto lg:max-w-none lg:mx-0 lg:w-5/12 flex flex-col justify-center px-6 sm:px-12 lg:px-24 xl:px-32 relative z-20 bg-zinc-950 shadow-[0_20px_50px_rgba(0,0,0,0.8)] lg:shadow-[20px_0_50px_rgba(0,0,0,0.8)] border border-white/[0.04] lg:border-t-0 lg:border-b-0 lg:border-l-0 rounded-3xl lg:rounded-none my-auto lg:my-0 py-10 lg:py-0 h-auto lg:h-full">
             
-            {/* Logo (Solo visible en móviles) */}
-            <div className="lg:hidden mb-12 flex justify-center">
-              <img src={logoAxon} alt="Axon Logo" className="h-16 w-auto object-contain brightness-200" />
+            {/* Reflejo de luz orgánico y premium en el borde de cristal */}
+            <div className="hidden lg:block absolute top-0 right-0 w-[1px] h-full overflow-hidden opacity-80 mix-blend-screen">
+              <motion.div
+                className="w-full h-[40vh] bg-gradient-to-b from-transparent via-amber-400/80 to-transparent"
+                animate={{ 
+                  y: ["-100%", "250%"],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: [0.4, 0, 0.2, 1], // Cubic bezier para un movimiento muy orgánico (lento en los bordes, rápido al centro)
+                }}
+              />
+              <motion.div
+                className="absolute top-0 w-full h-[20vh] bg-gradient-to-b from-transparent via-white/50 to-transparent"
+                animate={{ 
+                  y: ["250%", "-100%"],
+                }}
+                transition={{
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: "linear",
+                }}
+              />
+            </div>
+            
+            {/* Logo Animado (Solo visible en móviles) */}
+            <div className="lg:hidden mb-12 flex justify-center relative" style={{ perspective: '1000px' }}>
+              <motion.img 
+                src={logoAxon} 
+                alt="Axon Logo" 
+                className="h-16 w-auto object-contain brightness-200 relative z-10"
+                animate={{ 
+                  y: [-3, 3, -3],
+                  rotateY: [-15, 15, -15],
+                  rotateX: [5, -5, 5],
+                  scale: [1, 1.05, 1]
+                }}
+                transition={{
+                  duration: 6, repeat: Infinity, ease: "easeInOut" 
+                }}
+              />
             </div>
 
             <motion.div
@@ -318,13 +470,19 @@ export function Login() {
                       <button
                         type="submit"
                         disabled={loading || isExiting}
-                        className="w-full bg-zinc-900 border border-zinc-800 hover:border-amber-500 text-white hover:text-amber-500 font-bold tracking-widest uppercase py-4 transition-all duration-300 flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] mt-4"
+                        className="group relative w-full overflow-hidden bg-[#111] hover:bg-[#1a1a1a] border border-white/5 hover:border-amber-500/30 text-zinc-400 hover:text-amber-400 font-light tracking-[0.2em] uppercase py-4 px-6 transition-all duration-500 flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_30px_rgba(245,158,11,0.1)] mt-6 rounded-sm"
                       >
-                        {loading || isExiting ? <Loader2 className="animate-spin" size={20} /> : (
-                          <>
-                            {isResetting ? 'Enviar Instrucciones' : 'Desbloquear Bóveda'} <Shield size={18} />
-                          </>
-                        )}
+                        {/* Brillo dinámico en hover */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
+                        
+                        <span className="relative z-10 flex items-center gap-3">
+                          {loading || isExiting ? <Loader2 className="animate-spin" size={20} /> : (
+                            <>
+                              {isResetting ? 'Enviar Instrucciones' : 'Iniciar Sesión'} 
+                              <ArrowRight size={18} className="transition-transform duration-500 group-hover:translate-x-2 opacity-70 group-hover:opacity-100" />
+                            </>
+                          )}
+                        </span>
                       </button>
                     </form>
                   )}
@@ -335,82 +493,31 @@ export function Login() {
           </div>
 
           {/* Lado Derecho: Arte y Marca (Oculto en móviles) */}
-          <div className="hidden lg:flex lg:w-7/12 relative items-center justify-center overflow-hidden">
+          <div className="hidden lg:flex lg:w-7/12 relative items-center justify-center overflow-hidden pointer-events-none">
             
-            {/* Luces y Efectos de Fondo */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(217,119,6,0.15)_0%,transparent_70%)]"></div>
-            <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
-            
-            {/* Lluvia de Meteoritos (Estrellas Fugaces) */}
-            {[...Array(6)].map((_, i) => {
-              const delay = Math.random() * 5;
-              const duration = Math.random() * 1.5 + 1.5;
-              const top = Math.random() * 50 - 20; 
-              const left = Math.random() * 100 - 50; 
-              return (
-                <motion.div
-                  key={`meteor-${i}`}
-                  className="absolute h-[2px] w-[150px] bg-gradient-to-r from-transparent via-amber-500 to-white rounded-full shadow-[0_0_10px_rgba(245,158,11,0.8)] z-0"
-                  style={{
-                    top: `${top}%`,
-                    left: `${left}%`,
-                    rotate: '45deg',
-                  }}
-                  initial={{ opacity: 0, x: -500, y: -500 }}
-                  animate={{ opacity: [0, 1, 0], x: [0, 1500], y: [0, 1500] }}
-                  transition={{
-                    duration: duration,
-                    repeat: Infinity,
-                    repeatDelay: delay,
-                    ease: "linear"
-                  }}
-                >
-                  {/* Cabeza del meteorito */}
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[3px] bg-white rounded-full shadow-[0_0_15px_#fff]"></div>
-                </motion.div>
-              );
-            })}
-
             {/* Logo Gigante Central */}
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, filter: 'blur(10px)' }}
               animate={{ scale: 1, opacity: 0.8, filter: 'blur(0px)' }}
               transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
               className="relative z-10 w-96 h-96 flex items-center justify-center"
+              style={{ perspective: '1000px' }}
             >
-              {/* Resplandor detrás del logo */}
-              <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-[100px] animate-pulse"></div>
-              
-              <img 
+              <motion.img 
                 src={logoAxon} 
                 alt="Axon Large Logo" 
-                className="w-full h-full object-contain filter drop-shadow-[0_0_30px_rgba(245,158,11,0.3)] brightness-150" 
-              />
-            </motion.div>
-
-            {/* Partículas Flotantes Decorativas */}
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute bg-amber-500 rounded-full"
-                style={{
-                  width: Math.random() * 3 + 1 + 'px',
-                  height: Math.random() * 3 + 1 + 'px',
-                  top: Math.random() * 100 + '%',
-                  left: Math.random() * 100 + '%',
-                  opacity: Math.random() * 0.5 + 0.1,
-                }}
-                animate={{
-                  y: [0, Math.random() * -100 - 50],
-                  opacity: [null, 0]
+                className="w-full h-full object-contain brightness-150"
+                animate={{ 
+                  y: [-8, 8, -8],
+                  rotateY: [-15, 15, -15],
+                  rotateX: [5, -5, 5],
+                  scale: [1, 1.03, 1]
                 }}
                 transition={{
-                  duration: Math.random() * 10 + 10,
-                  repeat: Infinity,
-                  ease: "linear"
+                  duration: 8, repeat: Infinity, ease: "easeInOut" 
                 }}
               />
-            ))}
+            </motion.div>
 
             {/* Marca de Agua Inferior */}
             <div className="absolute bottom-8 right-12 text-zinc-700 text-xs font-medium tracking-[0.3em] uppercase">

@@ -136,7 +136,7 @@ export function ClientTracker() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 pt-20 pb-12 md:py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
 
       {/* Botón de Cerrar Sesión */}
       <button
@@ -146,18 +146,14 @@ export function ClientTracker() {
         Salir
       </button>
 
-      <div className="max-w-3xl mx-auto space-y-12">
+      <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
 
         {/* Header Superior */}
-        <div className="mb-10 p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-slate-800/50 flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden group">
+        <div className="mb-8 md:mb-10 p-6 md:p-10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-white/50 dark:border-slate-800/50 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-3xl rounded-full"></div>
 
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-widest mb-4 shadow-sm border border-indigo-200/50 dark:border-indigo-800/30">
-              <Sparkles size={14} className="animate-pulse" />
-              Tu Software está en marcha
-            </div>
             <h1 className="text-4xl md:text-5xl font-black text-slate-800 dark:text-white tracking-tight mb-2">
               Progreso del Proyecto
             </h1>
@@ -168,11 +164,11 @@ export function ClientTracker() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex p-2 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-xl rounded-2xl mb-8 w-fit mx-auto border border-slate-300/30 dark:border-slate-700/30 shadow-inner">
+        <div className="flex p-2 bg-slate-200/50 dark:bg-slate-800/50 backdrop-blur-xl rounded-2xl mb-8 w-full md:w-fit mx-auto border border-slate-300/30 dark:border-slate-700/30 shadow-inner overflow-x-auto hide-scrollbar snap-x">
           <button
             onClick={() => setActiveTab('tablero')}
             className={clsx(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap shrink-0 snap-start",
               activeTab === 'tablero' ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -181,7 +177,7 @@ export function ClientTracker() {
           <button
             onClick={() => setActiveTab('finanzas')}
             className={clsx(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap shrink-0 snap-start",
               activeTab === 'finanzas' ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -190,7 +186,7 @@ export function ClientTracker() {
           <button
             onClick={() => setActiveTab('entregables')}
             className={clsx(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap shrink-0 snap-start",
               activeTab === 'entregables' ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -199,7 +195,7 @@ export function ClientTracker() {
           <button
             onClick={() => setActiveTab('equipo')}
             className={clsx(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap shrink-0 snap-start",
               activeTab === 'equipo' ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -208,7 +204,7 @@ export function ClientTracker() {
           <button
             onClick={() => setActiveTab('mantenimiento')}
             className={clsx(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300",
+              "flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-xl font-bold text-sm transition-all duration-300 whitespace-nowrap shrink-0 snap-start",
               activeTab === 'mantenimiento' ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-md" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
             )}
           >
@@ -288,7 +284,7 @@ export function ClientTracker() {
               </motion.div>
 
               {/* Status Card (Línea de Tiempo Compacta) */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200/50 dark:border-slate-800 p-8 relative overflow-hidden">
+              <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-800 p-6 md:p-8 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
 
                 {/* Stepper Vertical */}
@@ -655,12 +651,12 @@ export function ClientTracker() {
           className="space-y-8"
         >
           {(!projectData.maintenance_data || projectData.maintenance_data.status === 'inactive') ? (
-            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden relative p-8 md:p-16 text-center">
-              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
-                <Wrench size={40} />
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden relative p-6 md:p-16 text-center">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-inner">
+                <Wrench size={32} className="md:w-10 md:h-10" />
               </div>
-              <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-4">Soporte y Mantenimiento</h2>
-              <p className="text-slate-500 max-w-lg mx-auto text-lg">Este módulo se activará automáticamente una vez que tu software sea lanzado a producción.</p>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white mb-3 md:mb-4">Soporte y Mantenimiento</h2>
+              <p className="text-sm md:text-lg text-slate-500 max-w-lg mx-auto">Este módulo se activará automáticamente una vez que tu software sea lanzado a producción.</p>
             </div>
           ) : (
             <>
