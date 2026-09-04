@@ -4,7 +4,7 @@ import {
   CheckCircle2, Clock, PlayCircle, ShieldCheck,
   Sparkles, Code2, PenTool, Search, MessageSquare, X,
   Wallet, FolderKanban, Link as LinkIcon, FileText, Download, DollarSign, ArrowRight,
-  Users, CalendarDays, ExternalLink, Wrench, Server, Database, Globe, Headset, Check
+  Users, CalendarDays, ExternalLink, Wrench, Server, Database, Globe, Headset, Check, Sun, Moon
 } from 'lucide-react';
 import { ChatWidget } from './ChatWidget';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,6 +48,18 @@ export function ClientTracker() {
   const [error, setError] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tablero');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -137,14 +149,22 @@ export function ClientTracker() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 pt-20 pb-12 md:py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
-
-      {/* Botón de Cerrar Sesión */}
-      <button
-        onClick={handleLogout}
-        className="absolute top-4 right-4 sm:top-8 sm:right-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-red-500 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors"
-      >
-        Salir
-      </button>
+      {/* Controles Superiores */}
+      <div className="absolute top-4 right-4 sm:top-8 sm:right-8 flex items-center gap-3">
+        <button
+          onClick={toggleTheme}
+          className="bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-500 px-3 py-2 rounded-xl shadow-sm transition-colors"
+          title="Cambiar Tema"
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <button
+          onClick={handleLogout}
+          className="bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-red-500 px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-colors"
+        >
+          Salir
+        </button>
+      </div>
 
       <div className="max-w-3xl mx-auto space-y-8 md:space-y-12">
 

@@ -278,7 +278,7 @@ export function Login() {
         >
 
           {/* Lado Izquierdo: Formulario Minimalista */}
-          <div className="w-full max-w-md mx-auto lg:max-w-none lg:mx-0 lg:w-5/12 flex flex-col justify-center px-6 sm:px-12 lg:px-24 xl:px-32 relative z-20 bg-zinc-950 shadow-[0_20px_50px_rgba(0,0,0,0.8)] lg:shadow-[20px_0_50px_rgba(0,0,0,0.8)] border border-white/[0.04] lg:border-t-0 lg:border-b-0 lg:border-l-0 rounded-3xl lg:rounded-none my-auto lg:my-0 py-10 lg:py-0 h-auto lg:h-full">
+          <div className="w-full max-w-md mx-auto lg:max-w-none lg:mx-0 lg:w-5/12 flex flex-col justify-center px-6 sm:px-12 lg:px-24 xl:px-32 relative z-20 bg-zinc-950/40 lg:bg-zinc-950 backdrop-blur-xl lg:backdrop-blur-none shadow-[0_20px_50px_rgba(0,0,0,0.8)] lg:shadow-[20px_0_50px_rgba(0,0,0,0.8)] border border-white/[0.04] lg:border-t-0 lg:border-b-0 lg:border-l-0 rounded-3xl lg:rounded-none my-auto lg:my-0 py-10 lg:py-0 h-auto lg:h-full">
             
             {/* Reflejo de luz orgánico y premium en el borde de cristal */}
             <div className="hidden lg:block absolute top-0 right-0 w-[1px] h-full overflow-hidden opacity-80 mix-blend-screen">

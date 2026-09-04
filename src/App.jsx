@@ -7,7 +7,7 @@ import { WorkspaceSelector } from './components/WorkspaceSelector';
 import { ContractsViewer } from './components/ContractsViewer';
 import { SDDManager } from './components/SDDManager';
 import { calculateProfitability } from './utils/calculator';
-import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft, Scale, Bot } from 'lucide-react';
+import { Calculator, LayoutList, FileText, Briefcase, ArrowLeft, Scale, Bot, Sun, Moon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from './utils/supabaseClient';
@@ -42,6 +42,18 @@ function App() {
   const [inputs, setInputs] = useState(defaultInputs);
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
   const clientCode = localStorage.getItem('sdd_client_code');
 
@@ -106,8 +118,15 @@ function App() {
     return (
       <div className="relative">
         <button 
+          onClick={toggleTheme}
+          className="absolute top-4 left-4 sm:top-6 sm:left-6 text-slate-500 hover:text-indigo-500 bg-white dark:bg-slate-900 p-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors z-50"
+          title="Cambiar Tema"
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <button 
           onClick={() => supabase.auth.signOut()}
-          className="absolute top-4 right-4 sm:top-6 sm:right-6 text-sm font-medium text-slate-500 hover:text-red-500 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors z-50"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 text-sm font-medium text-slate-500 hover:text-red-500 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors z-50"
         >
           Cerrar Sesión
         </button>
@@ -157,6 +176,13 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleTheme}
+              className="text-slate-400 hover:text-indigo-500 transition-colors bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg"
+              title="Cambiar Tema"
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <button 
               onClick={() => supabase.auth.signOut()}
               className="text-xs font-semibold text-slate-500 hover:text-red-500 transition-colors"

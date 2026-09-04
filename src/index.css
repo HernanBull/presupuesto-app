@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* ====================================================
      OVERRIDE: INDIGO -> LUXURY GOLD
@@ -45,13 +47,15 @@
 
 @layer base {
   body {
-    /* Forzamos Dark Mode global en el body */
-    @apply bg-black text-slate-50;
-    
-    /* Fondo radial elegante: Negro con un resplandor súper sutil en el centro arriba */
+    /* Global support for Light and Dark mode */
+    @apply bg-slate-50 text-slate-900 dark:bg-black dark:text-slate-50;
+    min-height: 100vh;
+  }
+  
+  .dark body {
+    /* Elegant radial background only for dark mode */
     background: radial-gradient(circle at top, #111111 0%, #000000 100%);
     background-attachment: fixed;
-    min-height: 100vh;
   }
 }
 

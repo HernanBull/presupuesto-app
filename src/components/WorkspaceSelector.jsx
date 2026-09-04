@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Briefcase, Plus, Loader2, LayoutDashboard, TrendingUp, DollarSign, Target, Activity, Award, Clock, Trash2 } from 'lucide-react';
 import { supabase } from '../utils/supabaseClient';
+import logoAxon from '../logo/logo-sin-fondo.png';
 
 export function WorkspaceSelector({ onSelect }) {
   const [workspaces, setWorkspaces] = useState([]);
@@ -158,10 +159,12 @@ export function WorkspaceSelector({ onSelect }) {
       
       <div className="max-w-5xl w-full">
         {/* Cabecera Principal */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-4 shadow-sm">
-            <LayoutDashboard size={28} className="sm:w-8 sm:h-8" />
-          </div>
+        <div className="text-center mb-10 flex flex-col items-center">
+          <img 
+            src={logoAxon} 
+            alt="Axon Logo" 
+            className="h-16 w-auto object-contain mb-4 brightness-150 drop-shadow-[0_0_15px_rgba(212,175,55,0.4)]" 
+          />
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Vista General del Negocio
           </h1>
