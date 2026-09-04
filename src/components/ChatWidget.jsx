@@ -69,9 +69,7 @@ export function ChatWidget({ projectId, initialMessages = [], currentUserType = 
       setNewMessage('');
 
       const { error } = await supabase
-        .from('sdd_projects')
-        .update({ messages: updatedMessages })
-        .eq('id', projectId);
+        .rpc('append_chat_message', { project_id: projectId, new_messages: updatedMessages });
 
       if (error) {
         throw error;

@@ -64,44 +64,47 @@ export function ClientTracker() {
 
   useEffect(() => {
     const fetchProject = async () => {
-      const clientCode = localStorage.getItem('sdd_client_code');
+      try {
+        const clientCode = localStorage.getItem('sdd_client_code');
 
-      if (!clientCode) {
-        setError('No hay sesión de cliente activa.');
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('sdd_projects')
-        .select('*')
-        .eq('client_code', clientCode)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setProjectData(data);
-
-        // Fetch budget (El presupuesto más reciente del workspace)
-        if (data.workspace_id) {
-          const { data: bData } = await supabase
-            .from('budgets')
-            .select('*')
-            .eq('workspace_id', data.workspace_id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (bData) {
-            setBudgetData(bData);
-          }
+        if (!clientCode) {
+          setError('No hay sesión de cliente activa.');
+          setLoading(false);
+          return;
         }
-      } else {
-        console.error("Error fetching tracker data:", error);
-        setError('No pudimos encontrar este proyecto o el código es inválido.');
+
+        const { data, error } = await supabase
+          .rpc('get_full_project_by_code', { code_input: clientCode });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const project = data[0];
+          setProjectData(project);
+
+          // Fetch budget (El presupuesto más reciente del workspace)
+          if (project.workspace_id) {
+            const { data: bData } = await supabase
+              .from('budgets')
+              .select('*')
+              .eq('workspace_id', project.workspace_id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (bData) {
+              setBudgetData(bData);
+            }
+          }
+        } else {
+          setError('No pudimos encontrar este proyecto o el código es inválido.');
+        }
+      } catch (err) {
+        console.error("Error fetching tracker data:", err);
+        setError('Ocurrió un error al cargar el proyecto. Verifica tu conexión o contacta a soporte.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchProject();
