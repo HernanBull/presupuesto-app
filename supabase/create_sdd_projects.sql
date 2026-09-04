@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS public.sdd_projects (
     messages JSONB DEFAULT '[]'::jsonb, -- Canal de conversacion
     deliverable_links JSONB DEFAULT '[]'::jsonb, -- Enlaces a entregables
     client_code TEXT, -- Nuevo campo para el código de login
+    mfa_secret TEXT, -- Secreto TOTP para Google Authenticator
+    mfa_enabled BOOLEAN DEFAULT false, -- Indica si MFA está activado
     maintenance_data JSONB DEFAULT '{"status": "inactive", "next_date": null, "logs": []}'::jsonb, -- Datos de soporte
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -21,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.sdd_projects (
 -- Si ya creaste la tabla anteriormente, ejecuta este comando para agregar la nueva columna:
 -- ALTER TABLE public.sdd_projects ADD COLUMN IF NOT EXISTS tasks_data JSONB DEFAULT '[]'::jsonb;
 -- ALTER TABLE public.sdd_projects ADD COLUMN IF NOT EXISTS client_code TEXT;
+-- ALTER TABLE public.sdd_projects ADD COLUMN IF NOT EXISTS mfa_secret TEXT;
+-- ALTER TABLE public.sdd_projects ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT false;
 -- ALTER TABLE public.sdd_projects ADD COLUMN IF NOT EXISTS maintenance_data JSONB DEFAULT '{"status": "inactive", "next_date": null, "logs": []}'::jsonb;
 
 

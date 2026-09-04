@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Loader2, ArrowRight, Shield, User, Key, Mail, Fingerprint } from 'lucide-react';
+import { Loader2, ArrowRight, Shield, User, Key, Mail, Fingerprint, Eye, EyeOff, QrCode, Smartphone } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import * as OTPAuth from 'otpauth';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoAxon from '../logo/logo-sin-fondo.png';
 
@@ -15,6 +17,64 @@ export function Login() {
   
   const [viewMode, setViewMode] = useState('admin'); // 'admin' | 'client'
   const [clientCode, setClientCode] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [mfaStep, setMfaStep] = useState('none'); // 'none' | 'setup' | 'verify'
+  const [mfaSecret, setMfaSecret] = useState('');
+  const [mfaToken, setMfaToken] = useState('');
+  const [projectData, setProjectData] = useState(null);
+  const [qrUrl, setQrUrl] = useState('');
+  const [lockoutTime, setLockoutTime] = useState(0);
+
+  useEffect(() => {
+    const lockoutUntil = localStorage.getItem('sdd_lockout_until');
+    if (lockoutUntil) {
+      const remaining = Math.floor((parseInt(lockoutUntil) - Date.now()) / 1000);
+      if (remaining > 0) {
+        setLockoutTime(remaining);
+      } else {
+        localStorage.removeItem('sdd_lockout_until');
+      }
+    }
+
+    let interval = null;
+    if (lockoutTime > 0) {
+      interval = setInterval(() => {
+        setLockoutTime((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [lockoutTime]);
+
+  const recordFailedAttempt = () => {
+    const attempts = parseInt(localStorage.getItem('sdd_failed_attempts') || '0') + 1;
+    localStorage.setItem('sdd_failed_attempts', attempts.toString());
+    
+    if (attempts >= 3) {
+      let durationMinutes = 1;
+      if (attempts === 4) durationMinutes = 5;
+      if (attempts >= 5) durationMinutes = 15;
+      
+      const lockoutMs = durationMinutes * 60 * 1000;
+      localStorage.setItem('sdd_lockout_until', (Date.now() + lockoutMs).toString());
+      setLockoutTime(durationMinutes * 60);
+      setError(`Demasiados intentos fallidos. Inténtalo de nuevo en ${durationMinutes} minuto(s).`);
+    } else {
+      setError(`Código incorrecto. Te quedan ${3 - attempts} intento(s) antes del bloqueo temporal.`);
+    }
+  };
+
+  const clearFailedAttempts = () => {
+    localStorage.removeItem('sdd_failed_attempts');
+    localStorage.removeItem('sdd_lockout_until');
+  };
 
   const TRANSITION_DURATION = 3500; // 3.5 seconds
 
@@ -66,6 +126,10 @@ export function Login() {
 
   const handleAuth = async (e) => {
     e.preventDefault();
+    if (lockoutTime > 0) {
+      setError(`Por seguridad, debes esperar ${Math.ceil(lockoutTime / 60)} minuto(s) antes de intentar de nuevo.`);
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -89,9 +153,10 @@ export function Login() {
               password,
             });
             if (error) throw error;
+            clearFailedAttempts();
           } catch (err) {
             setIsExiting(false);
-            setError(err.message || 'Error de autenticación');
+            recordFailedAttempt();
             setLoading(false);
           }
         }, TRANSITION_DURATION);
@@ -104,31 +169,102 @@ export function Login() {
 
   const handleClientLogin = async (e) => {
     e.preventDefault();
+    if (lockoutTime > 0) {
+      setError(`Por seguridad, debes esperar ${Math.ceil(lockoutTime / 60)} minuto(s) antes de intentar de nuevo.`);
+      return;
+    }
     setLoading(true);
     setError(null);
     
     try {
       const { data, error } = await supabase
-        .from('sdd_projects')
-        .select('client_code')
-        .eq('client_code', clientCode.trim().toUpperCase())
-        .single();
+        .rpc('verify_client_code', { code_input: clientCode.trim().toUpperCase() });
         
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         throw new Error('Código de acceso inválido o expirado.');
       }
       
-      // Trigger Deconstruction Animation
-      playShatterSound();
-      setIsExiting(true);
-      setTimeout(() => {
-        // Guardar el código en localStorage para que App.jsx lo detecte
-        localStorage.setItem('sdd_client_code', data.client_code);
-        window.location.reload();
-      }, TRANSITION_DURATION);
+      const project = data[0];
+      setProjectData(project);
+      
+      if (project.mfa_enabled) {
+        setMfaStep('verify');
+        setLoading(false);
+      } else {
+        // Generar nuevo secreto para setup
+        const secret = new OTPAuth.Secret({ size: 20 });
+        const totp = new OTPAuth.TOTP({
+          issuer: 'Axon Agency',
+          label: project.project_name || project.client_code,
+          algorithm: 'SHA1',
+          digits: 6,
+          period: 30,
+          secret: secret
+        });
+        setMfaSecret(secret.base32);
+        setQrUrl(totp.toString());
+        setMfaStep('setup');
+        setLoading(false);
+      }
       
     } catch (err) {
-      setError(err.message || 'Código incorrecto');
+      recordFailedAttempt();
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyMFA = async (e) => {
+    e.preventDefault();
+    if (lockoutTime > 0) {
+      setError(`Por seguridad, debes esperar ${Math.ceil(lockoutTime / 60)} minuto(s) antes de intentar de nuevo.`);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const secretToUse = mfaStep === 'setup' ? mfaSecret : projectData.mfa_secret;
+      
+      const totp = new OTPAuth.TOTP({
+        issuer: 'Axon Agency',
+        label: projectData.project_name || projectData.client_code,
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(secretToUse)
+      });
+      
+      const delta = totp.validate({ token: mfaToken, window: 10 });
+      
+      if (delta !== null) {
+        clearFailedAttempts();
+        
+        // Success
+        if (mfaStep === 'setup') {
+          const { data, error } = await supabase
+            .rpc('setup_client_mfa', { code_input: projectData.client_code, new_secret: secretToUse });
+            
+          if (error || !data) throw new Error('Error guardando configuración MFA');
+        }
+        
+        // Trigger Deconstruction Animation
+        playShatterSound();
+        setIsExiting(true);
+        setTimeout(() => {
+          localStorage.setItem('sdd_client_code', projectData.client_code);
+          window.location.reload();
+        }, TRANSITION_DURATION);
+      } else {
+        const expected = totp.generate();
+        console.log("Secret:", secretToUse, "Expected:", expected, "User submitted:", mfaToken);
+        throw new Error('invalid_mfa');
+      }
+    } catch (err) {
+      if (err.message === 'invalid_mfa') {
+         recordFailedAttempt();
+      } else {
+         setError(err.message || 'Error de validación');
+      }
       setLoading(false);
     }
   };
@@ -393,36 +529,90 @@ export function Login() {
                 >
                   {viewMode === 'client' ? (
                     // --- FORMULARIO CLIENTE ---
-                    <form onSubmit={handleClientLogin} className="space-y-8">
-                      <div className="relative group">
-                        <Fingerprint className="absolute left-0 top-3 text-zinc-600 group-focus-within:text-amber-500 transition-colors" size={20} />
-                        <input
-                          id="clientCode"
-                          name="clientCode"
-                          type="text"
-                          required
-                          value={clientCode}
-                          onChange={(e) => setClientCode(e.target.value)}
-                          placeholder="Código de Proyecto (Ej: PRO-1234)"
-                          className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-amber-500 focus:ring-0 text-white transition-colors py-3 pl-10 pr-0 placeholder-zinc-700 outline-none uppercase tracking-widest text-sm"
-                        />
-                      </div>
+                    mfaStep === 'none' ? (
+                      <form onSubmit={handleClientLogin} className="space-y-8">
+                        <div className="relative group">
+                          <Fingerprint className="absolute left-0 top-3 text-zinc-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            id="clientCode"
+                            name="clientCode"
+                            type="text"
+                            required
+                            value={clientCode}
+                            onChange={(e) => setClientCode(e.target.value)}
+                            placeholder="Código de Proyecto (Ej: PRO-1234)"
+                            className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-amber-500 focus:ring-0 text-white transition-colors py-3 pl-10 pr-0 placeholder-zinc-700 outline-none uppercase tracking-widest text-sm"
+                          />
+                        </div>
 
-                      <button
-                        type="submit"
-                        disabled={loading || isExiting}
-                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-widest uppercase py-4 transition-all duration-300 flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] mt-4"
-                      >
-                        {loading || isExiting ? <Loader2 className="animate-spin" size={20} /> : (
-                          <>
-                            Ingresar al Portal <ArrowRight size={18} />
-                          </>
+                        <button
+                          type="submit"
+                          disabled={loading || isExiting}
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-widest uppercase py-4 transition-all duration-300 flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] mt-4"
+                        >
+                          {loading || isExiting ? <Loader2 className="animate-spin" size={20} /> : (
+                            <>
+                              Ingresar al Portal <ArrowRight size={18} />
+                            </>
+                          )}
+                        </button>
+                        <p className="text-center text-xs text-zinc-600 mt-6 tracking-wide">
+                          Contacta a tu Project Manager si perdiste tu código de acceso.
+                        </p>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleVerifyMFA} className="space-y-6">
+                        {mfaStep === 'setup' && (
+                          <div className="flex flex-col items-center justify-center space-y-4 mb-6">
+                            <p className="text-center text-sm text-zinc-400">Escanea este código QR en tu app de Google Authenticator para vincular tu dispositivo.</p>
+                            <div className="bg-white p-4 rounded-xl shadow-lg border border-white/20">
+                              <QRCodeSVG value={qrUrl} size={180} />
+                            </div>
+                            <p className="text-xs text-zinc-600">O ingresa esta clave manualmente: <span className="font-mono text-amber-500 block text-center mt-1 text-sm tracking-widest">{mfaSecret}</span></p>
+                          </div>
                         )}
-                      </button>
-                      <p className="text-center text-xs text-zinc-600 mt-6 tracking-wide">
-                        Contacta a tu Project Manager si perdiste tu código de acceso.
-                      </p>
-                    </form>
+                        {mfaStep === 'verify' && (
+                          <div className="text-center mb-6">
+                            <Shield className="mx-auto text-amber-500 mb-3" size={48} />
+                            <p className="text-sm text-zinc-400">Ingresa el código de 6 dígitos de tu app de autenticación.</p>
+                          </div>
+                        )}
+
+                        <div className="relative group">
+                          <Smartphone className="absolute left-0 top-3 text-zinc-600 group-focus-within:text-amber-500 transition-colors" size={20} />
+                          <input
+                            id="mfaToken"
+                            name="mfaToken"
+                            type="text"
+                            required
+                            maxLength={6}
+                            value={mfaToken}
+                            onChange={(e) => setMfaToken(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Código de 6 dígitos"
+                            className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-amber-500 focus:ring-0 text-white transition-colors py-3 pl-10 pr-0 placeholder-zinc-700 outline-none tracking-[0.5em] text-center font-mono text-lg"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={loading || mfaToken.length < 6 || isExiting}
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold tracking-widest uppercase py-4 transition-all duration-300 flex justify-center items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] mt-4"
+                        >
+                          {loading || isExiting ? <Loader2 className="animate-spin" size={20} /> : (
+                            <>
+                              Verificar Código <ArrowRight size={18} />
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setMfaStep('none'); setMfaToken(''); }}
+                          className="w-full text-zinc-500 hover:text-white text-xs uppercase tracking-widest transition-colors mt-4"
+                        >
+                          Volver
+                        </button>
+                      </form>
+                    )
 
                   ) : (
                     // --- FORMULARIO AGENCIA ---
@@ -447,13 +637,20 @@ export function Login() {
                           <input
                             id="password"
                             name="password"
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Contraseña Maestra"
-                            className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-amber-500 focus:ring-0 text-white transition-colors py-3 pl-10 pr-0 placeholder-zinc-700 outline-none text-sm"
+                            className="w-full bg-transparent border-0 border-b border-zinc-800 focus:border-amber-500 focus:ring-0 text-white transition-colors py-3 pl-10 pr-10 placeholder-zinc-700 outline-none text-sm"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-0 top-3 text-zinc-600 hover:text-amber-500 transition-colors"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                       )}
 
