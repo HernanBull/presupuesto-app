@@ -13,6 +13,7 @@ import { twMerge } from 'tailwind-merge';
 import { supabase } from './utils/supabaseClient';
 import { Login } from './components/Login';
 import { ClientTracker } from './components/ClientTracker';
+import { LandingPage } from './components/LandingPage';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -43,6 +44,7 @@ function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -111,7 +113,22 @@ function App() {
   }
 
   if (!session) {
-    return <Login />;
+    if (showLogin) {
+      return (
+        <div className="relative h-screen w-screen bg-black overflow-hidden">
+           <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-50">
+             <button 
+               onClick={() => setShowLogin(false)} 
+               className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 border border-zinc-800 rounded-full text-zinc-400 hover:text-white hover:border-amber-500/50 backdrop-blur-md transition-all text-xs font-medium tracking-wide uppercase"
+             >
+               <ArrowLeft size={16} /> Volver
+             </button>
+           </div>
+           <Login />
+        </div>
+      );
+    }
+    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
   }
 
   if (!activeWorkspace) {

@@ -43,6 +43,13 @@
   
   --color-primary: #d4af37; /* Gold */
   --color-success: #10b981; 
+  
+  --animate-marquee: marquee 40s linear infinite;
+
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(calc(-100% / 3)); }
+  }
 }
 
 @layer base {
