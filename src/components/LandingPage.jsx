@@ -71,6 +71,7 @@ const SpotlightCard = ({ title, description, icon: Icon, span = 1, delay = 0, on
 
 // --- Animations ---
 
+
 const ToolSelectorAnimation = () => {
   const [activeTool, setActiveTool] = useState(0);
 
@@ -157,8 +158,69 @@ const ToolSelectorAnimation = () => {
 
 // --- VIEWS ---
 
+const HERO_PHRASES = [
+  { p: "Operación ", s: "Absoluta." },
+  { p: "Gestión ", s: "Inteligente." },
+  { p: "Expansión ", s: "Sin Límites." },
+  { p: "Control ", s: "Total." }
+];
+
 const HomeView = ({ onNavigate }) => {
   const { scrollYProgress } = useScroll();
+  const [typedText, setTypedText] = useState("");
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    let charIndex = 0;
+    let phraseIdx = 0;
+    let isDeleting = false;
+    let timeoutId;
+
+    const loop = () => {
+      const currentFull = HERO_PHRASES[phraseIdx].p + HERO_PHRASES[phraseIdx].s;
+      setTypedText(currentFull.substring(0, charIndex));
+      setCurrentIndex(phraseIdx);
+
+      let nextDelay = 0;
+
+      if (!isDeleting) {
+        // Typing: Slower speed (random between 100ms and 180ms)
+        nextDelay = Math.random() * 80 + 100;
+        charIndex++;
+        
+        // When finished typing, pause before deleting
+        if (charIndex > currentFull.length) {
+          isDeleting = true;
+          nextDelay = 3000; // 3 seconds pause
+        }
+      } else {
+        // Deleting: Faster speed (random between 30ms and 60ms)
+        nextDelay = Math.random() * 30 + 30;
+        charIndex--;
+        
+        // When finished deleting, switch to next phrase and pause before typing again
+        if (charIndex === 0) {
+          isDeleting = false;
+          phraseIdx = (phraseIdx + 1) % HERO_PHRASES.length;
+          nextDelay = 500; // 0.5 seconds pause
+        }
+      }
+
+      timeoutId = setTimeout(loop, nextDelay);
+    };
+
+    // Initial delay before typing starts
+    timeoutId = setTimeout(loop, 400);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  const currentPhrase = HERO_PHRASES[currentIndex];
+  const prefixLen = currentPhrase.p.length;
+  
+  const part1 = typedText.substring(0, prefixLen - 1);
+  const part2 = typedText.length > prefixLen ? typedText.substring(prefixLen) : "";
+  const showBr = typedText.length >= prefixLen;
 
   const techs = [
     { name: "ERP", icon: Settings }, { name: "POS", icon: Store },
@@ -174,10 +236,36 @@ const HomeView = ({ onNavigate }) => {
         className="min-h-screen flex flex-col lg:flex-row items-center justify-center lg:justify-between pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-screen-2xl mx-auto text-center lg:text-left relative gap-16 lg:gap-8 overflow-hidden lg:overflow-visible"
       >
         <div className="flex-1 flex flex-col items-center lg:items-start z-10 w-full mt-20 lg:mt-0">
-          <motion.h1 initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, delay: 0.2, ease: [0.16, 1, 0.3, 1] }} className="text-6xl sm:text-8xl lg:text-9xl xl:text-[9rem] font-light tracking-tighter text-white leading-[0.9] w-full mix-blend-plus-lighter relative z-20">
-            Operación <br />
-            <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700">Absoluta.</span>
-          </motion.h1>
+          <h1 className="text-6xl sm:text-8xl lg:text-9xl xl:text-[9rem] font-light tracking-tighter leading-none w-full mix-blend-plus-lighter relative z-20">
+            {/* Invisible placeholder to maintain layout height */}
+            <div className="opacity-0 pointer-events-none select-none text-white" aria-hidden="true">
+              {currentPhrase.p.trim()} <br />
+              <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700 leading-normal pb-4 inline-block">{currentPhrase.s}</span>
+            </div>
+            {/* Actual typing text */}
+            <div className="absolute top-0 left-0 w-full h-full text-white flex flex-col items-center lg:items-start">
+              <span>
+                {part1}
+                {!showBr && (
+                  <motion.span 
+                    animate={{ opacity: [1, 0] }} 
+                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                    className="inline-block w-[3px] sm:w-[5px] h-[0.75em] bg-amber-500 ml-1 sm:ml-2 align-baseline translate-y-[2px]"
+                  />
+                )}
+              </span>
+              {showBr && (
+                <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700 leading-normal pb-4 inline-block">
+                  {part2}
+                  <motion.span 
+                    animate={{ opacity: [1, 0] }} 
+                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                    className="inline-block w-[3px] sm:w-[5px] h-[0.75em] bg-amber-500 ml-1 sm:ml-2 align-baseline translate-y-[2px]"
+                  />
+                </span>
+              )}
+            </div>
+          </h1>
           
           <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, delay: 0.4, ease: [0.16, 1, 0.3, 1] }} className="mt-10 lg:mt-14 text-xl sm:text-2xl lg:text-3xl text-zinc-400 max-w-3xl font-light tracking-wide leading-relaxed">
             El único ecosistema SaaS que sincroniza nativamente tu <strong className="text-white font-normal">ERP, WMS, CRM y Tienda Virtual</strong>. Construido para empresas que escalan sin límites.
