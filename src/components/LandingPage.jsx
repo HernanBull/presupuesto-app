@@ -313,7 +313,9 @@ const HomeView = ({ onNavigate }) => {
         <section className="py-40 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto relative">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-100px" }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="mb-8 text-center">
             <h2 className="text-xs font-bold tracking-[0.4em] uppercase text-amber-500 mb-6">Arquitectura Modular</h2>
-            <p className="text-5xl sm:text-7xl font-light text-white max-w-4xl mx-auto leading-tight">Control maestro sobre cada <span className="font-normal text-zinc-500">milisegundo</span> de tu operación.</p>
+            <p className="text-5xl sm:text-7xl font-light text-white max-w-4xl mx-auto leading-tight">
+              Control maestro sobre cada <span className="font-mono font-normal text-amber-400 drop-shadow-[0_0_20px_rgba(245,158,11,0.6)]">segundo</span> de tu operación.
+            </p>
           </motion.div>
           
           <ToolSelectorAnimation />
