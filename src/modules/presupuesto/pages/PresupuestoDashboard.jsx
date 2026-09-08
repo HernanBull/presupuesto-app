@@ -14,6 +14,7 @@ import { supabase } from '../utils/supabaseClient';
 import { Login } from '../components/Login';
 import { ClientTracker } from '../components/ClientTracker';
 import { LandingPage } from '../components/LandingPage';
+import { Link } from 'react-router-dom';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -166,6 +167,12 @@ export default function PresupuestoDashboard({ session, toggleTheme, theme }) {
             >
               Salir
             </button>
+            <Link 
+              to="/ecommerce"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-lg text-xs font-bold hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+            >
+              Ir a E-commerce
+            </Link>
 
           <nav className="hidden sm:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-xl">
             <button

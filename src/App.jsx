@@ -5,12 +5,16 @@ import { Login } from './modules/presupuesto/components/Login';
 import { LandingPage } from './modules/presupuesto/components/LandingPage';
 import { ArrowLeft } from 'lucide-react';
 import PresupuestoDashboard from './modules/presupuesto/pages/PresupuestoDashboard';
+import EcommerceRouter from './modules/ecommerce/EcommerceRouter';
 
 function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [showLogin, setShowLogin] = useState(false);
+
+  // Aislar E-commerce para pruebas sin autenticación
+  const isEcommerceRoute = window.location.pathname.startsWith('/ecommerce');
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -39,11 +43,24 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading) {
+  if (authLoading && !isEcommerceRoute) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
+    );
+  }
+
+  if (isEcommerceRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route 
+            path="/ecommerce/*" 
+            element={<EcommerceRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
+          />
+        </Routes>
+      </BrowserRouter>
     );
   }
 
