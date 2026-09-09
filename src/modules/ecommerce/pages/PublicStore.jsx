@@ -3,23 +3,45 @@ import { ShoppingCart, LayoutTemplate, Image as ImageIcon } from 'lucide-react';
 
 export default function PublicStore() {
   const [config, setConfig] = useState(null);
-  const [currentPage, setCurrentPage] = useState('home'); // home, catalog, offers
+  const [currentPage, setCurrentPage] = useState('home'); 
 
   useEffect(() => {
     const loadConfig = () => {
-      const saved = localStorage.getItem('storefrontConfig');
+      let saved;
+      try {
+        saved = JSON.parse(localStorage.getItem('storefrontConfig'));
+      } catch (e) {
+        saved = null;
+      }
+
+      const defaultTexts = {
+        banner: '¡Envíos gratis en compras mayores a $100!', nav1: 'Inicio', nav2: 'Catálogo', nav3: 'Ofertas',
+        heroTitle: 'Descubre la nueva colección', heroSub: 'Productos exclusivos diseñados para ti.', heroBtn: 'Comprar Ahora',
+        sectionTitle: 'Novedades', catalogTitle: 'Todo nuestro catálogo', offersTitle: 'Ofertas Flash', footerText: '© 2026 Todos los derechos reservados.',
+        newsletterTitle: 'Únete a nuestro boletín', newsletterSub: 'Recibe ofertas exclusivas en tu correo.', testimonialsTitle: 'Lo que dicen nuestros clientes'
+      };
+
       if (saved) {
-        setConfig(JSON.parse(saved));
+        // Ensure texts is properly merged
+        saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
+        if (!Array.isArray(saved.sections)) {
+          saved.sections = [
+            { id: 'sec-hero-1', type: 'hero' },
+            { id: 'sec-feat-1', type: 'featured' }
+          ];
+        }
+        setConfig(saved);
       } else {
         setConfig({
           themeMode: 'light', primaryColor: '#7c3aed', typography: 'font-sans', baseFontSize: 'text-base', headingWeight: 'font-black',
           logoUrl: null, headerStyle: 'solid', showBanner: true, heroUrl: null, heroLayout: 'centered',
           buttonStyle: 'rounded-full', cardStyle: 'elevated', catalogFilterStyle: 'sidebar', offersCountdown: true, discountBadgeColor: '#ef4444',
-          texts: {
-            banner: '¡Envíos gratis en compras mayores a $100!', nav1: 'Inicio', nav2: 'Catálogo', nav3: 'Ofertas',
-            heroTitle: 'Descubre la nueva colección', heroSub: 'Productos exclusivos diseñados para ti.', heroBtn: 'Comprar Ahora',
-            sectionTitle: 'Novedades', catalogTitle: 'Todo nuestro catálogo', offersTitle: 'Ofertas Flash', footerText: '© 2026 Todos los derechos reservados.'
-          }
+          sections: [
+            { id: 'sec-hero-1', type: 'hero' },
+            { id: 'sec-feat-1', type: 'featured' }
+          ],
+          animationsEnabled: true,
+          texts: defaultTexts
         });
       }
     };
@@ -33,7 +55,8 @@ export default function PublicStore() {
   const {
     themeMode, primaryColor, typography, baseFontSize, headingWeight,
     logoUrl, headerStyle, showBanner, heroUrl, heroLayout,
-    buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts
+    buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, 
+    sections = [], animationsEnabled = true, texts
   } = config;
 
   // Clases dinámicas
@@ -56,82 +79,131 @@ export default function PublicStore() {
 
       {/* Navbar */}
       <div className={`flex items-center justify-between z-40 transition-all px-6 md:px-16 py-5 ${
-        headerStyle === 'transparent' && currentPage === 'home' ? 'absolute w-full bg-gradient-to-b from-black/60 to-transparent border-none' : 'relative border-b'
+        headerStyle === 'transparent' && currentPage === 'home' && sections[0]?.type === 'hero' ? 'absolute w-full bg-gradient-to-b from-black/60 to-transparent border-none' : 'relative border-b'
       } ${headerStyle === 'solid' || currentPage !== 'home' ? (themeMode === 'dark' ? 'border-slate-800' : 'border-slate-100') : ''}`}
-        style={headerStyle === 'transparent' && showBanner && currentPage === 'home' ? { top: '44px' } : {}}
+        style={headerStyle === 'transparent' && showBanner && currentPage === 'home' && sections[0]?.type === 'hero' ? { top: '44px' } : {}}
       >
         {logoUrl ? (
           <img onClick={() => setCurrentPage('home')} src={logoUrl} alt="Logo" className="h-8 md:h-10 object-contain cursor-pointer" />
         ) : (
-          <span onClick={() => setCurrentPage('home')} className={`${headingWeight} tracking-tighter cursor-pointer ${headerStyle === 'transparent' && currentPage === 'home' ? 'text-white' : textColor} text-2xl md:text-3xl`}>
+          <span onClick={() => setCurrentPage('home')} className={`${headingWeight} tracking-tighter cursor-pointer ${headerStyle === 'transparent' && currentPage === 'home' && sections[0]?.type === 'hero' ? 'text-white' : textColor} text-2xl md:text-3xl`}>
             MI TIENDA
           </span>
         )}
         
-        <div className={`hidden md:flex gap-10 font-bold ${headerStyle === 'transparent' && currentPage === 'home' ? 'text-white/90' : textColor}`}>
+        <div className={`hidden md:flex gap-10 font-bold ${headerStyle === 'transparent' && currentPage === 'home' && sections[0]?.type === 'hero' ? 'text-white/90' : textColor}`}>
           <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' && headerStyle !== 'transparent' ? primaryColor : (currentPage === 'home' && headerStyle === 'transparent' ? 'white' : '') }}>{texts.nav1}</span>
           <span onClick={() => setCurrentPage('catalog')} className="hover:opacity-70 cursor-pointer transition-colors" style={{ color: currentPage === 'catalog' ? primaryColor : '' }}>{texts.nav2}</span>
           <span onClick={() => setCurrentPage('offers')} className="hover:opacity-70 cursor-pointer transition-colors" style={{ color: currentPage === 'offers' ? primaryColor : '' }}>{texts.nav3}</span>
         </div>
         
         <div className="relative cursor-pointer hover:scale-110 transition-transform">
-          <ShoppingCart size={28} className={headerStyle === 'transparent' && currentPage === 'home' ? 'text-white' : textColor} />
+          <ShoppingCart size={28} className={headerStyle === 'transparent' && currentPage === 'home' && sections[0]?.type === 'hero' ? 'text-white' : textColor} />
           <span className="absolute -top-1.5 -right-1.5 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full shadow-sm" style={{ backgroundColor: primaryColor }}>2</span>
         </div>
       </div>
 
-      {/* PÁGINAS */}
-      
-      {/* 1. INICIO */}
+      {/* 1. INICIO (Mapeo de Bloques) */}
       {currentPage === 'home' && (
-        <>
-          {/* Hero Section */}
-          <div className={`relative overflow-hidden min-h-[500px] md:min-h-[700px] flex ${heroLayout === 'split' ? 'flex-col md:flex-row' : 'flex-col items-center justify-center text-center'} ${heroLayout === 'split' ? secondaryBg : 'bg-slate-900'}`}>
-            {heroUrl ? (
-                heroLayout === 'split' ? (
-                  <div className="md:absolute right-0 top-0 bottom-0 w-full md:w-1/2 h-[300px] md:h-full order-1 md:order-2">
-                    <img src={heroUrl} alt="Cover" className="w-full h-full object-cover" />
+        <div className="flex-1 flex flex-col">
+          {sections.length === 0 && (
+            <div className="flex-1 flex items-center justify-center text-slate-400 p-20 text-center text-xl">No hay secciones activas.</div>
+          )}
+          {sections.map((section, idx) => {
+            if (section.type === 'hero') {
+              return (
+                <div key={section.id} className={`relative overflow-hidden min-h-[500px] md:min-h-[700px] flex ${heroLayout === 'split' ? 'flex-col md:flex-row' : 'flex-col items-center justify-center text-center'} ${heroLayout === 'split' ? secondaryBg : 'bg-slate-900'} ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-1000' : ''}`} style={{ animationDelay: `${idx * 100}ms`}}>
+                  {heroUrl ? (
+                      heroLayout === 'split' ? (
+                        <div className="md:absolute right-0 top-0 bottom-0 w-full md:w-1/2 h-[300px] md:h-full order-1 md:order-2">
+                          <img src={heroUrl} alt="Cover" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 z-0">
+                          <img src={heroUrl} alt="Cover" className="w-full h-full object-cover opacity-60" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
+                        </div>
+                      )
+                  ) : (
+                      <div className={`absolute inset-0 z-0 opacity-20 ${heroLayout === 'split' ? 'md:w-1/2 md:left-1/2 bg-slate-400' : 'bg-slate-400'}`}></div>
+                  )}
+                  
+                  <div className={`relative z-10 p-8 md:p-16 order-2 md:order-1 ${heroLayout === 'split' ? 'w-full md:w-1/2 flex flex-col justify-center items-start text-left' : 'max-w-4xl mx-auto space-y-6'}`}>
+                    <h1 className={`${headingWeight} leading-tight drop-shadow-sm text-4xl md:text-6xl lg:text-7xl ${heroLayout === 'split' ? textColor : 'text-white'}`}>{texts.heroTitle}</h1>
+                    <p className={`mt-6 text-lg md:text-xl opacity-90 max-w-2xl ${heroLayout === 'split' ? mutedText : 'text-slate-200'}`}>{texts.heroSub}</p>
+                    <button className={`mt-10 text-white font-bold transition-all hover:scale-105 shadow-xl hover:shadow-2xl ${buttonStyle} px-12 py-5 text-lg`} style={{ backgroundColor: primaryColor }}>{texts.heroBtn}</button>
                   </div>
-                ) : (
-                  <div className="absolute inset-0 z-0">
-                    <img src={heroUrl} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
-                  </div>
-                )
-            ) : (
-                <div className={`absolute inset-0 z-0 opacity-20 ${heroLayout === 'split' ? 'md:w-1/2 md:left-1/2 bg-slate-400' : 'bg-slate-400'}`}></div>
-            )}
-            
-            <div className={`relative z-10 p-8 md:p-16 order-2 md:order-1 ${heroLayout === 'split' ? 'w-full md:w-1/2 flex flex-col justify-center items-start text-left' : 'max-w-4xl mx-auto space-y-6'}`}>
-              <h1 className={`${headingWeight} leading-tight drop-shadow-sm text-4xl md:text-6xl lg:text-7xl ${heroLayout === 'split' ? textColor : 'text-white'}`}>{texts.heroTitle}</h1>
-              <p className={`mt-6 text-lg md:text-xl opacity-90 max-w-2xl ${heroLayout === 'split' ? mutedText : 'text-slate-200'}`}>{texts.heroSub}</p>
-              <button className={`mt-10 text-white font-bold transition-all hover:scale-105 shadow-xl hover:shadow-2xl ${buttonStyle} px-12 py-5 text-lg`} style={{ backgroundColor: primaryColor }}>{texts.heroBtn}</button>
-            </div>
-          </div>
-
-          {/* Featured Section */}
-          <div className={`flex-1 ${secondaryBg} px-6 md:px-16 py-20`}>
-            <div className="max-w-7xl mx-auto w-full">
-              <h2 className={`${headingWeight} ${textColor} mb-12 text-3xl md:text-5xl`}>{texts.sectionTitle}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-4 rounded-3xl -translate-y-0 hover:-translate-y-2` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-4 rounded-3xl hover:border-violet-400` : 'p-2 bg-transparent'}`}>
-                    <div className={`w-full aspect-square mb-6 flex items-center justify-center relative overflow-hidden ${cardStyle === 'minimalist' ? 'bg-slate-200 dark:bg-slate-800 rounded-3xl' : 'bg-slate-100 dark:bg-slate-900 rounded-2xl'}`}>
-                      <ImageIcon size={48} className="text-slate-300 dark:text-slate-600 transition-transform duration-500 group-hover:scale-110" />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                        <button className={`py-3 px-8 text-sm font-bold text-white shadow-2xl transition-transform hover:scale-105 ${buttonStyle}`} style={{ backgroundColor: primaryColor }}>Ver Detalles</button>
-                      </div>
+                </div>
+              );
+            }
+            if (section.type === 'featured') {
+              return (
+                <div key={section.id} className={`${secondaryBg} px-6 md:px-16 py-20 ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-1000' : ''}`} style={{ animationDelay: `${idx * 150}ms`}}>
+                  <div className="max-w-7xl mx-auto w-full">
+                    <h2 className={`${headingWeight} ${textColor} mb-12 text-3xl md:text-5xl`}>{texts.sectionTitle}</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                        <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-4 rounded-3xl -translate-y-0 hover:-translate-y-2` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-4 rounded-3xl hover:border-violet-400` : 'p-2 bg-transparent'}`}>
+                          <div className={`w-full aspect-square mb-6 flex items-center justify-center relative overflow-hidden ${cardStyle === 'minimalist' ? 'bg-slate-200 dark:bg-slate-800 rounded-3xl' : 'bg-slate-100 dark:bg-slate-900 rounded-2xl'}`}>
+                            <ImageIcon size={48} className="text-slate-300 dark:text-slate-600 transition-transform duration-500 group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                              <button className={`py-3 px-8 text-sm font-bold text-white shadow-2xl transition-transform hover:scale-105 ${buttonStyle}`} style={{ backgroundColor: primaryColor }}>Ver Detalles</button>
+                            </div>
+                          </div>
+                          <div className="px-2">
+                            <p className={`font-bold line-clamp-1 ${textColor} text-base md:text-lg`}>Producto Destacado {i}</p>
+                            <p className={`${headingWeight} mt-2 text-xl md:text-2xl`} style={{ color: primaryColor }}>$49.99</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <div className="px-2">
-                      <p className={`font-bold line-clamp-1 ${textColor} text-base md:text-lg`}>Producto Destacado {i}</p>
-                      <p className={`${headingWeight} mt-2 text-xl md:text-2xl`} style={{ color: primaryColor }}>$49.99</p>
+                  </div>
+                </div>
+              );
+            }
+            if (section.type === 'newsletter') {
+              return (
+                <div key={section.id} className={`${baseBg} border-y ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'} px-6 md:px-16 py-24 text-center ${animationsEnabled ? 'animate-in fade-in zoom-in-95 duration-1000' : ''}`} style={{ animationDelay: `${idx * 150}ms`}}>
+                  <div className="max-w-3xl mx-auto">
+                    <h2 className={`${headingWeight} ${textColor} mb-4 text-3xl md:text-5xl`}>{texts.newsletterTitle}</h2>
+                    <p className={`${mutedText} mb-10 text-lg md:text-xl`}>{texts.newsletterSub}</p>
+                    <div className={`flex max-w-xl mx-auto shadow-xl ${buttonStyle === 'rounded-full' ? 'rounded-full overflow-hidden' : buttonStyle === 'rounded-xl' ? 'rounded-xl overflow-hidden' : 'rounded-none'}`}>
+                       <input type="email" placeholder="tu@correo.com" className="flex-1 px-6 py-4 md:py-5 bg-slate-100 dark:bg-slate-800 focus:outline-none dark:text-white text-lg" />
+                       <button className={`px-8 py-4 md:py-5 font-bold text-white text-lg transition-colors hover:brightness-110 ${buttonStyle === 'rounded-none' ? 'rounded-none' : ''}`} style={{ backgroundColor: primaryColor }}>Suscribir</button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
+                </div>
+              );
+            }
+            if (section.type === 'testimonials') {
+              return (
+                <div key={section.id} className={`${secondaryBg} px-6 md:px-16 py-24 ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-1000' : ''}`} style={{ animationDelay: `${idx * 150}ms`}}>
+                  <div className="max-w-7xl mx-auto">
+                    <h2 className={`${headingWeight} ${textColor} mb-12 text-center text-3xl md:text-5xl`}>{texts.testimonialsTitle}</h2>
+                    <div className="grid gap-8 md:grid-cols-3">
+                       {[1,2,3].map(i => (
+                         <div key={i} className={`${cardBg} p-8 md:p-10 ${cardStyle === 'elevated' ? 'shadow-xl rounded-3xl' : cardStyle === 'outlined' ? 'border-2 rounded-3xl hover:border-violet-400 transition-colors' : 'rounded-none'} text-left`}>
+                           <div className="flex gap-1 text-amber-400 mb-6">
+                             {[1,2,3,4,5].map(star => <svg key={star} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
+                           </div>
+                           <p className={`text-lg md:text-xl ${textColor} mb-8 font-medium italic leading-relaxed`}>"El proceso de compra fue increíblemente fácil y rápido. ¡Los productos superaron mis expectativas totalmente!"</p>
+                           <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-full bg-slate-300 dark:bg-slate-700 flex items-center justify-center text-slate-500 font-bold">{i}</div>
+                             <div>
+                               <p className={`text-base font-bold ${textColor}`}>Cliente Satisfecho {i}</p>
+                               <p className="text-sm text-slate-500">Compra Verificada</p>
+                             </div>
+                           </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
       )}
 
       {/* 2. CATÁLOGO */}
@@ -180,7 +252,7 @@ export default function PublicStore() {
              <div className="flex-1">
                 <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-3`}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-                    <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-md hover:shadow-xl ${cardBg} p-3 rounded-2xl` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-violet-400` : 'p-2 bg-transparent'}`}>
+                    <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-md hover:shadow-xl ${cardBg} p-3 rounded-2xl` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-violet-400` : 'p-2 bg-transparent'} ${animationsEnabled ? 'animate-in fade-in zoom-in-95 duration-500' : ''}`} style={{ animationDelay: `${i * 50}ms`}}>
                       <div className={`w-full aspect-[4/5] mb-4 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden`}>
                         <ImageIcon size={32} className="text-slate-400 transition-transform duration-500 group-hover:scale-110" />
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
@@ -215,7 +287,7 @@ export default function PublicStore() {
              
              <div className="relative z-10 max-w-3xl mx-auto">
                {offersCountdown && (
-                 <div className="inline-flex flex-col items-center mb-8">
+                 <div className={`inline-flex flex-col items-center mb-8 ${animationsEnabled ? 'animate-in fade-in slide-in-from-top-4 duration-700' : ''}`}>
                    <span className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-2">Las ofertas terminan en</span>
                    <div className="flex gap-4">
                      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2 flex flex-col items-center"><span className="text-3xl font-black text-white">05</span><span className="text-[10px] uppercase text-white/50">Horas</span></div>
@@ -226,17 +298,16 @@ export default function PublicStore() {
                    </div>
                  </div>
                )}
-               <h1 className={`${headingWeight} text-5xl md:text-7xl drop-shadow-2xl text-amber-300 mb-6 italic`}>{texts.offersTitle}</h1>
-               <p className="opacity-90 text-lg md:text-xl font-medium">Hasta 70% de descuento en artículos seleccionados. ¡No te quedes sin el tuyo, cantidades limitadas!</p>
+               <h1 className={`${headingWeight} text-5xl md:text-7xl drop-shadow-2xl text-amber-300 mb-6 italic ${animationsEnabled ? 'animate-in fade-in zoom-in-95 duration-700 delay-150' : ''}`}>{texts.offersTitle}</h1>
+               <p className={`opacity-90 text-lg md:text-xl font-medium ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300' : ''}`}>Hasta 70% de descuento en artículos seleccionados. ¡No te quedes sin el tuyo, cantidades limitadas!</p>
              </div>
           </div>
           
           <div className="flex-1 px-6 md:px-16 py-16 max-w-7xl mx-auto w-full">
              <div className={`grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className={`flex flex-col group relative cursor-pointer ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-3 rounded-2xl -translate-y-0 hover:-translate-y-2 transition-all duration-300` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-rose-400 transition-colors` : 'p-2'}`}>
+                  <div key={i} className={`flex flex-col group relative cursor-pointer ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-3 rounded-2xl -translate-y-0 hover:-translate-y-2 transition-all duration-300` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-rose-400 transition-colors` : 'p-2'} ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-700' : ''}`} style={{ animationDelay: `${i * 100}ms`}}>
                     
-                    {/* Etiqueta de Descuento */}
                     <div className="absolute top-6 right-6 z-10 px-3 py-1.5 text-xs font-black text-white rounded-lg shadow-lg rotate-3" style={{ backgroundColor: discountBadgeColor }}>
                       -30% OFF
                     </div>
@@ -262,7 +333,7 @@ export default function PublicStore() {
         </div>
       )}
 
-      {/* Footer (Siempre Visible) */}
+      {/* Footer */}
       <div className="bg-slate-950 p-16 flex flex-col items-center text-center gap-8 text-white mt-auto border-t border-slate-900">
           {logoUrl ? <img src={logoUrl} alt="Store Logo" className="h-10 object-contain grayscale opacity-50" /> : <span className={`font-black text-2xl opacity-50 tracking-widest ${headingWeight}`}>MI TIENDA</span>}
           

@@ -12,17 +12,20 @@ import ReviewsManager from './pages/ReviewsManager';
 import InventoryManager from './pages/InventoryManager';
 import StoreSettings from './pages/StoreSettings';
 import PublicStore from './pages/PublicStore';
+import OrderPreparation from './pages/OrderPreparation';
 
 export default function EcommerceRouter({ theme, toggleTheme }) {
   return (
     <Routes>
       <Route path="live" element={<PublicStore />} />
+      <Route path="picking" element={<OrderPreparation />} />
       <Route element={<EcommerceLayout theme={theme} toggleTheme={toggleTheme} />}>
         <Route index element={<EcommerceDashboard />} />
         <Route path="analytics" element={<AnalyticsManager />} />
         <Route path="products" element={<ProductsManager />} />
         <Route path="inventory" element={<InventoryManager />} />
         <Route path="orders" element={<OrdersManager />} />
+        <Route path="preparation" element={<OrderPreparation />} />
         <Route path="customers" element={<CustomersManager />} />
         <Route path="reviews" element={<ReviewsManager />} />
         <Route path="promotions" element={<PromotionsManager />} />

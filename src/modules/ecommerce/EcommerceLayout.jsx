@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Users, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Users, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -25,6 +25,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Productos', path: '/ecommerce/products', icon: ShoppingBag },
     { name: 'Inventario', path: '/ecommerce/inventory', icon: PackageSearch },
     { name: 'Pedidos', path: '/ecommerce/orders', icon: ShoppingCart },
+    { name: 'Preparación', path: '/ecommerce/preparation', icon: Box },
     { name: 'Clientes', path: '/ecommerce/customers', icon: Users },
     { name: 'Reseñas', path: '/ecommerce/reviews', icon: MessageSquare },
     { name: 'Promociones', path: '/ecommerce/promotions', icon: Tag },

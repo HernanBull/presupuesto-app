@@ -1,28 +1,103 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone } from 'lucide-react';
+import { supabase } from '../../presupuesto/utils/supabaseClient';
+import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
 
 const initialOrders = [
-  { id: 'ORD-1042', customer: 'Carlos López', date: 'Hoy, 10:30 AM', total: 145.50, items: 3, status: 'Pendiente' },
-  { id: 'ORD-1043', customer: 'María García', date: 'Hoy, 09:15 AM', total: 89.99, items: 1, status: 'Pendiente' },
-  { id: 'ORD-1040', customer: 'Laura M.', date: 'Ayer, 16:45 PM', total: 320.00, items: 4, status: 'Preparando' },
-  { id: 'ORD-1039', customer: 'Andrés F.', date: 'Ayer, 11:20 AM', total: 45.00, items: 1, status: 'Enviado' },
-  { id: 'ORD-1035', customer: 'Sofía V.', date: 'Hace 2 días', total: 210.00, items: 2, status: 'Entregado' },
+  { id: 'ORD-1042', customer: 'Carlos López', date: 'Hoy, 10:30 AM', total: 145.50, items: [{id: 'i1', quantity: 1}, {id: 'i2', quantity: 1}, {id: 'i3', quantity: 1}], status: 'Pendiente', priority: 'Alta', address: 'Centro, Maracay', paymentMethod: 'pago_movil', paymentStatus: 'pending', paymentDetails: { ref: '12345678', bank: 'Banesco', phone: '0414-1234567', capture: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?q=80&w=200&auto=format&fit=crop' } },
+  { id: 'ORD-1043', customer: 'María García', date: 'Hoy, 09:15 AM', total: 89.99, items: [{id: 'i4', quantity: 1}], status: 'Pendiente', priority: 'Normal', address: 'El Bosque, Valencia', paymentMethod: 'tarjeta', paymentStatus: 'approved' },
+  { 
+    id: 'ORD-1040', 
+    customer: 'Laura M.', 
+    date: 'Ayer, 16:45 PM', 
+    total: 32.50, 
+    status: 'Preparando',
+    priority: 'Alta',
+    address: 'Av. Las Delicias, Edif. Torre Norte, Piso 4, Apto 42, Maracay',
+    paymentMethod: 'pago_movil', 
+    paymentStatus: 'approved', 
+    paymentDetails: { ref: '87654321', bank: 'Mercantil' },
+    items: [
+      { id: 'item-1', name: 'Hamburguesa Doble Carne con Tocino', sku: 'FOOD-HB-01', quantity: 1, picked: false, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=150&auto=format&fit=crop' },
+      { id: 'item-2', name: 'Papas Fritas Grandes', sku: 'FOOD-PF-02', quantity: 2, picked: false, image: 'https://images.unsplash.com/photo-1576107222684-0e7bc3864e29?q=80&w=150&auto=format&fit=crop' },
+      { id: 'item-3', name: 'Refresco Cola 500ml', sku: 'BEV-CL-03', quantity: 1, picked: true, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=150&auto=format&fit=crop' }
+    ]
+  },
+  { id: 'ORD-1039', customer: 'Andrés F.', date: 'Ayer, 11:20 AM', total: 45.00, items: [{id: 'i5', quantity: 1}], status: 'Enviado', priority: 'Normal', address: 'La Candelaria, Caracas', paymentMethod: 'efectivo', paymentStatus: 'pending' },
+  { id: 'ORD-1035', customer: 'Sofía V.', date: 'Hace 2 días', total: 210.00, items: [{id: 'i6', quantity: 1}, {id: 'i7', quantity: 1}], status: 'Entregado', priority: 'Normal', address: 'San Antonio, Miranda', paymentMethod: 'tarjeta', paymentStatus: 'approved' },
 ];
 
 export default function OrdersManager() {
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ecommerce_orders_v2');
+      return saved ? JSON.parse(saved) : initialOrders;
+    } catch (e) {
+      return initialOrders;
+    }
+  });
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Persistir en localStorage
+  useEffect(() => {
+    localStorage.setItem('ecommerce_orders_v2', JSON.stringify(orders));
+  }, [orders]);
   
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showQrModal, setShowQrModal] = useState(false);
 
   // Drag and Drop State
   const [draggedOrderId, setDraggedOrderId] = useState(null);
 
+  // Función para enviar a Telegram
+  const handleSendToDelivery = async (order) => {
+    const customerData = {
+      name: order.customer,
+      phone: '0414-0000000', // Mock de E-commerce
+      address: 'Dirección del cliente (App Tienda)',
+      zone: 'Centro de la ciudad',
+      packageType: 'Paquete E-commerce',
+      productList: `Pedido ${order.id} (${order.items.length} artículos)`,
+      weight: 1,
+      quantity: 1
+    };
+
+    const res = await sendDeliveryRequest('Tienda Principal', customerData);
+    if (!res.success) {
+      console.error("Error al enviar a Telegram: ", res.error);
+    }
+  };
+
+  // Supabase Realtime Listener
+  useEffect(() => {
+    const channel = supabase.channel('picking-sync', {
+      config: { broadcast: { ack: false } }
+    });
+
+    channel.on('broadcast', { event: 'ORDER_COMPLETED' }, (payload) => {
+      if (payload.payload?.orderId) {
+        setOrders(prevOrders => {
+          const targetOrder = prevOrders.find(o => o.id === payload.payload.orderId);
+          if (targetOrder && targetOrder.status !== 'Enviado') {
+            handleSendToDelivery(targetOrder);
+          }
+          return prevOrders.map(order => 
+            order.id === payload.payload.orderId ? { ...order, status: 'Enviado' } : order
+          );
+        });
+      }
+    }).subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
+
   const columns = [
     { id: 'Pendiente', title: 'Nuevos Pedidos', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/30' },
     { id: 'Preparando', title: 'En Preparación', icon: Package, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/30' },
-    { id: 'Enviado', title: 'Enviados', icon: Truck, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/30' },
+    { id: 'Enviado', title: 'Delivery', icon: Truck, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/30' },
     { id: 'Entregado', title: 'Entregados', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/30' },
   ];
 
@@ -38,17 +113,47 @@ export default function OrdersManager() {
   const handleDrop = (e, targetStatus) => {
     e.preventDefault();
     if (draggedOrderId) {
+      const orderToMove = orders.find(o => o.id === draggedOrderId);
+      
       setOrders(orders.map(order => 
         order.id === draggedOrderId ? { ...order, status: targetStatus } : order
       ));
+      
+      // Integración Telegram Delivery
+      if (targetStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
+        handleSendToDelivery(orderToMove);
+      }
+      
       setDraggedOrderId(null);
     }
   };
 
   const moveOrder = (id, newStatus) => {
+    const orderToMove = orders.find(o => o.id === id);
     setOrders(orders.map(order => 
       order.id === id ? { ...order, status: newStatus } : order
     ));
+    
+    // Integración Telegram Delivery
+    if (newStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
+      handleSendToDelivery(orderToMove);
+    }
+  };
+
+  const verifyPayment = (id, isApproved) => {
+    setOrders(orders.map(order => {
+      if (order.id === id) {
+        const updatedOrder = { 
+          ...order, 
+          paymentStatus: isApproved ? 'approved' : 'rejected' 
+        };
+        if (selectedOrder && selectedOrder.id === id) {
+           setSelectedOrder(updatedOrder);
+        }
+        return updatedOrder;
+      }
+      return order;
+    }));
   };
 
   const filteredOrders = orders.filter(o => 
@@ -66,15 +171,24 @@ export default function OrdersManager() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Arrastra y suelta las tarjetas para actualizar el estado del envío.</p>
         </div>
         
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text"
-            placeholder="Buscar pedido o cliente..."
-            className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-shadow dark:text-white shadow-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text"
+              placeholder="Buscar pedido o cliente..."
+              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-shadow dark:text-white shadow-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <button 
+            onClick={() => setShowQrModal(true)}
+            className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-sm"
+          >
+            <QrCode size={16} /> App de Picking
+          </button>
         </div>
       </div>
 
@@ -114,7 +228,38 @@ export default function OrdersManager() {
                     </div>
                     
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">{order.customer}</p>
-                    <p className="text-xs text-slate-500 mb-4">{order.items} {order.items === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    <p className="text-xs text-slate-500 mb-4">{order.items.length} {order.items.length === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    
+                    {order.paymentMethod === 'pago_movil' && order.paymentStatus === 'pending' && (
+                      <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl flex flex-col gap-2">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />
+                          <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Pago por verificar</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-1 text-xs">
+                            <p><span className="text-slate-500">Ref:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.ref || 'N/A'}</span></p>
+                            <p><span className="text-slate-500">Banco:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.bank || 'N/A'}</span></p>
+                          </div>
+                          
+                          {order.paymentDetails?.capture && (
+                            <a href={order.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-lg bg-slate-200 dark:bg-slate-700 overflow-hidden flex-shrink-0 block hover:opacity-80 transition-opacity">
+                              <img src={order.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
+                            </a>
+                          )}
+                        </div>
+
+                        <div className="flex gap-1.5 mt-2">
+                           <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, true); }} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors">
+                             <Check size={14} /> Aprobar
+                           </button>
+                           <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, false); }} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors">
+                             <X size={14} /> Rechazar
+                           </button>
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                       <button 
@@ -178,8 +323,58 @@ export default function OrdersManager() {
                 <p className="text-sm text-slate-600 dark:text-slate-400">+34 600 000 000</p>
               </div>
               
+              {selectedOrder.paymentMethod === 'pago_movil' && (
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago Móvil</h4>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
+                    <div className="flex-1 space-y-2">
+                       <div className="flex justify-between text-sm">
+                         <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
+                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
+                       </div>
+                       <div className="flex justify-between text-sm">
+                         <span className="text-slate-500 dark:text-slate-400">Banco:</span>
+                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
+                       </div>
+                       <div className="flex justify-between text-sm">
+                         <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>
+                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.phone || 'N/A'}</span>
+                       </div>
+                       <div className="flex justify-between text-sm">
+                         <span className="text-slate-500 dark:text-slate-400">Estado:</span>
+                         {selectedOrder.paymentStatus === 'pending' ? (
+                           <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
+                         ) : selectedOrder.paymentStatus === 'approved' ? (
+                           <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
+                         ) : (
+                           <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><X size={14}/> Rechazado</span>
+                         )}
+                       </div>
+                    </div>
+                    {selectedOrder.paymentDetails?.capture && (
+                      <a href={selectedOrder.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-full sm:w-24 h-32 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group block cursor-pointer">
+                        <img src={selectedOrder.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                           <FileImage size={24} className="text-white" />
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                  {selectedOrder.paymentStatus === 'pending' && (
+                    <div className="mt-3 flex gap-2">
+                       <button onClick={() => verifyPayment(selectedOrder.id, true)} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <Check size={16} /> Confirmar Depósito
+                       </button>
+                       <button onClick={() => verifyPayment(selectedOrder.id, false)} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <X size={16} /> Rechazar
+                       </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items} arts.)</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
                 <div className="space-y-2">
                   {/* Mock items */}
                   <div className="flex justify-between items-center text-sm">
@@ -206,6 +401,46 @@ export default function OrdersManager() {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal QR Code */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowQrModal(false)}></div>
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl relative z-10 p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800">
+             <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400 mb-4 shadow-inner">
+               <Smartphone size={32} />
+             </div>
+             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Vincular Dispositivo</h3>
+             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono móvil para abrir la App de Picking.</p>
+             
+             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm mb-8 relative group">
+               {/* Genera la URL dinámicamente. Si estás en localhost, asume tu IP local de Wi-Fi */}
+               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
+                 window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/ecommerce/picking'
+               }`} alt="QR Code" className="w-48 h-48 object-contain" />
+               <a 
+                 href="/ecommerce/picking" 
+                 target="_blank" 
+                 className="absolute inset-0 bg-black/50 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl"
+               >
+                 Abrir URL Directa
+               </a>
+             </div>
+             
+             <div className="w-full mb-6 p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-medium text-left border border-amber-200 dark:border-amber-700">
+               <AlertCircle size={14} className="inline mr-1 mb-0.5" />
+               Asegúrate de ejecutar el servidor con <strong>--host</strong> (ej: <code>npm run dev -- --host</code>) para que tu teléfono tenga acceso por Wi-Fi.
+             </div>
+             
+             <button 
+               onClick={() => setShowQrModal(false)}
+               className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition-colors"
+             >
+               Cerrar
+             </button>
           </div>
         </div>
       )}
