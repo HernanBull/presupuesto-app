@@ -26,11 +26,11 @@ const sendMessageToChat = async (chatId, text, replyMarkup = undefined) => {
   } catch (e) { console.error("Error enviando mensaje", e); }
 };
 
-export const sendDeliveryRequest = async (commerceId, customerData) => {
+export const sendDeliveryRequest = async (commerceId, customerData, customOrderId = null) => {
   const chatId = localStorage.getItem('delivery_master_group_id');
   if (!chatId) return { success: false, error: "No hay un Grupo de Repartidores configurado en Ajustes." };
   
-  const orderId = 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+  const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
   const deliveryPin = Math.floor(1000 + Math.random() * 9000).toString();
 
   const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨
@@ -233,6 +233,9 @@ export const startTelegramEngine = () => {
               await sendMessageToChat(chatId, `✅ <b>¡Felicidades!</b> Tus datos han sido registrados exitosamente. Ya puedes empezar a aceptar viajes.\n\nTu ID único de repartidor es: <b>${driverCode}</b>`);
             }
           }
+          else if (text === '/start') {
+            await sendMessageToChat(chatId, "👋 ¡Hola! Bienvenido al bot de Delivery. Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones. Si eres nuevo, escribe /registrar para comenzar.");
+          }
           else if (text.startsWith('/start accept_')) {
             const orderId = text.replace('/start accept_', '');
             
@@ -247,12 +250,9 @@ export const startTelegramEngine = () => {
             const storedDrivers = JSON.parse(localStorage.getItem('delivery_drivers') || '[]');
             let driverData = storedDrivers.find(d => d.id === chatId);
             
-            if (!driverData) {
-              const fallbackCode = 'REP-' + Math.floor(1000 + Math.random() * 9000);
-              driverData = { id: chatId, driverCode: fallbackCode, name: driverName, cedula: '', telefono: '', age: '', moto: '', placa: '', agencia: 'Desconocida' };
-              storedDrivers.push(driverData);
-              localStorage.setItem('delivery_drivers', JSON.stringify(storedDrivers));
-              await sendMessageToChat(chatId, "⚠️ <b>Aviso:</b> Aceptaste el viaje, pero no estás registrado. Por favor, cuando termines envía el comando /registrar para llenar tus datos completos.");
+            if (!driverData || !driverData.cedula) {
+              await sendMessageToChat(chatId, `❌ No puedes aceptar el viaje porque no estás registrado, ${driverName}. Usa el comando /registrar para darte de alta en el sistema antes de tomar un viaje.`);
+              continue;
             } else {
               driverData.name = driverName;
               localStorage.setItem('delivery_drivers', JSON.stringify(storedDrivers));

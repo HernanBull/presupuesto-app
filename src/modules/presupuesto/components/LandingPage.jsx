@@ -528,8 +528,20 @@ export function LandingPage({ onLoginClick }) {
   return (
     <div className="min-h-screen bg-black text-slate-50 font-sans selection:bg-amber-500/30 relative flex flex-col scroll-smooth overflow-x-hidden">
 
+      {/* Dev Quick Access Bar */}
+      <div className="bg-zinc-900 border-b border-white/10 text-white px-4 py-2 flex justify-center items-center gap-8 z-[60] relative font-bold text-xs tracking-widest uppercase w-full">
+         <span className="text-amber-500 hidden sm:inline-block">Acceso Directo a Módulos:</span>
+         <a href="/ecommerce" className="hover:text-amber-500 transition-all flex items-center gap-2">
+            <ShoppingBag size={14} /> E-Commerce
+         </a>
+         <span className="w-1 h-1 rounded-full bg-white/20 hidden sm:block"></span>
+         <a href="/delivery" className="hover:text-amber-500 transition-all flex items-center gap-2">
+            <Truck size={14} /> Delivery
+         </a>
+      </div>
+
       {/* Floating Pill Header */}
-      <header className="fixed top-6 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none">
+      <header className="fixed top-12 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none">
         <div className={`pointer-events-auto flex items-center justify-between px-6 py-3 rounded-full border transition-all duration-500 w-full max-w-6xl
           ${scrolled ? 'bg-zinc-900/80 border-white/10 backdrop-blur-xl shadow-2xl' : 'bg-transparent border-transparent'}
         `}>

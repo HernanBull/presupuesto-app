@@ -1,18 +1,48 @@
-import React from 'react';
-import { DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, ArrowUpRight, Activity } from 'lucide-react';
+import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 export default function EcommerceDashboard() {
-  const stats = [
-    { title: 'Ventas Totales', value: '$12,543.00', change: '+12.5%', icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-    { title: 'Pedidos', value: '143', change: '+5.2%', icon: ShoppingCart, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10' },
-    { title: 'Productos', value: '45', change: '0%', icon: Package, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-    { title: 'Conversión', value: '3.2%', change: '+1.1%', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
-  ];
+  const [summary, setSummary] = useState({ revenue: 0, orders: 0, aov: 0, products: 0, revenueChange: 0, ordersChange: 0, aovChange: 0, productsChange: 0 });
+  const [topSellers, setTopSellers] = useState([]);
+  const [salesData, setSalesData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('7d');
 
-  const topSellers = [
-    { id: 1, name: 'Camiseta de Algodón Premium', sales: 124, revenue: '$3,718.76', image: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500' },
-    { id: 2, name: 'Auriculares Inalámbricos', sales: 89, revenue: '$7,921.00', image: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' },
-    { id: 3, name: 'Mochila de Viaje', sales: 45, revenue: '$2,925.00', image: 'bg-amber-100 dark:bg-amber-900/30 text-amber-500' },
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [summaryRes, topRes, salesRes] = await Promise.all([
+          fetch(`http://localhost:3001/api/ecommerce/analytics/summary?range=${timeRange}`),
+          fetch(`http://localhost:3001/api/ecommerce/analytics/top-products?range=${timeRange}`),
+          fetch(`http://localhost:3001/api/ecommerce/analytics/sales-by-date?range=${timeRange}`)
+        ]);
+        
+        if (summaryRes.ok) setSummary(await summaryRes.json());
+        if (topRes.ok) setTopSellers(await topRes.json());
+        if (salesRes.ok) setSalesData(await salesRes.json());
+      } catch (error) {
+        console.error("Error fetching analytics data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [timeRange]);
+
+  const formatChange = (val) => {
+    if (val === undefined || val === null) return '0%';
+    if (val > 0) return `+${val.toFixed(1)}%`;
+    if (val < 0) return `${val.toFixed(1)}%`;
+    return '0%';
+  };
+
+  const stats = [
+    { title: 'Ventas Totales', value: `$${(summary.revenue || 0).toFixed(2)}`, change: formatChange(summary.revenueChange), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { title: 'Pedidos', value: (summary.orders || 0).toString(), change: formatChange(summary.ordersChange), icon: ShoppingCart, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+    { title: 'Productos', value: (summary.products || 0).toString(), change: formatChange(summary.productsChange), icon: Package, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+    { title: 'Ticket Promedio', value: `$${(summary.aov || 0).toFixed(2)}`, change: formatChange(summary.aovChange), icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
   ];
 
   return (
@@ -48,34 +78,52 @@ export default function EcommerceDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         
         {/* Gráfico principal */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col transition-all">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Ventas y Tráfico</h3>
-            <select className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50">
-              <option>Últimos 7 días</option>
-              <option>Este mes</option>
-              <option>Este año</option>
+            <h3 className="text-base font-bold text-slate-800 dark:text-white">Ingresos vs Pedidos</h3>
+            <select 
+              value={timeRange} 
+              onChange={(e) => setTimeRange(e.target.value)} 
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer"
+            >
+              <option value="7d">Últimos 7 días</option>
+              <option value="30d">Últimos 30 días</option>
+              <option value="year">Último año</option>
             </select>
           </div>
           
-          <div className="flex-1 min-h-[250px] flex items-end gap-2 mt-4 relative">
-             {/* Mock Chart Columns */}
-             {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col justify-end group cursor-pointer relative h-full">
-                  <div 
-                    className="w-full bg-violet-100 dark:bg-violet-900/30 rounded-t-lg transition-all duration-300 group-hover:bg-violet-200 dark:group-hover:bg-violet-900/50 absolute bottom-0"
-                    style={{ height: `${h}%` }}
-                  >
-                    <div 
-                      className="w-full bg-violet-600 rounded-t-lg transition-all duration-300 group-hover:bg-violet-500 absolute bottom-0 shadow-[0_0_15px_rgba(124,58,237,0.3)]"
-                      style={{ height: `${h * 0.7}%` }}
-                    ></div>
-                  </div>
-                  <div className="absolute -bottom-6 w-full text-center text-[10px] font-bold text-slate-400">
-                    D{i+1}
-                  </div>
-                </div>
-             ))}
+          <div className="flex-1 min-h-[300px] w-full mt-4">
+             {loading ? (
+               <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                 <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
+                 <p className="text-sm">Analizando datos...</p>
+               </div>
+             ) : salesData.length === 0 ? (
+               <div className="h-full flex items-center justify-center text-slate-400 text-sm">No hay datos en este periodo</div>
+             ) : (
+               <ResponsiveContainer width="100%" height="100%">
+                 <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                   <defs>
+                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                     </linearGradient>
+                   </defs>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                   <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#334155" tickLine={false} axisLine={false} dy={10} />
+                   <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+                   <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} hide={true} />
+                   <Tooltip 
+                     contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}
+                     itemStyle={{ fontWeight: 600 }}
+                     cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }}
+                   />
+                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '15px' }} iconType="circle" />
+                   <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} />
+                   <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Pedidos" />
+                 </ComposedChart>
+               </ResponsiveContainer>
+             )}
           </div>
         </div>
 
@@ -113,9 +161,13 @@ export default function EcommerceDashboard() {
             </h3>
             
             <div className="space-y-4">
-               {topSellers.map((product, idx) => (
+               {loading ? <p className="text-sm text-slate-400">Cargando...</p> : topSellers.map((product, idx) => (
                  <div key={product.id} className="flex items-center gap-3">
-                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${product.image}`}>
+                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
+                     idx === 0 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500' : 
+                     idx === 1 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' : 
+                     'bg-amber-100 dark:bg-amber-900/30 text-amber-500'
+                   }`}>
                      #{idx + 1}
                    </div>
                    <div className="flex-1 min-w-0">
@@ -123,7 +175,7 @@ export default function EcommerceDashboard() {
                      <p className="text-xs text-slate-500 truncate">{product.sales} ventas</p>
                    </div>
                    <div className="text-right shrink-0">
-                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{product.revenue}</p>
+                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">${product.revenue.toFixed(2)}</p>
                    </div>
                  </div>
                ))}

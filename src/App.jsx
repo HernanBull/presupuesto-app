@@ -6,6 +6,8 @@ import { LandingPage } from './modules/presupuesto/components/LandingPage';
 import { ArrowLeft } from 'lucide-react';
 import PresupuestoDashboard from './modules/presupuesto/pages/PresupuestoDashboard';
 import EcommerceRouter from './modules/ecommerce/EcommerceRouter';
+import DeliveryRouter from './modules/delivery/DeliveryRouter';
+import { startTelegramEngine } from './modules/delivery/utils/telegramService';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -13,8 +15,9 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [showLogin, setShowLogin] = useState(false);
 
-  // Aislar E-commerce para pruebas sin autenticación
+  // Aislar E-commerce y Delivery para pruebas sin autenticación
   const isEcommerceRoute = window.location.pathname.startsWith('/ecommerce');
+  const isDeliveryRoute = window.location.pathname.startsWith('/delivery');
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -23,6 +26,9 @@ function App() {
       document.documentElement.classList.remove('dark');
     }
     localStorage.setItem('theme', theme);
+    
+    // Iniciar el motor de Telegram a nivel global para que escuche en todos los módulos
+    startTelegramEngine();
   }, [theme]);
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -43,7 +49,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading && !isEcommerceRoute) {
+  if (authLoading && !isEcommerceRoute && !isDeliveryRoute) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -58,6 +64,19 @@ function App() {
           <Route 
             path="/ecommerce/*" 
             element={<EcommerceRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
+          />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  if (isDeliveryRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route 
+            path="/delivery/*" 
+            element={<DeliveryRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
           />
         </Routes>
       </BrowserRouter>

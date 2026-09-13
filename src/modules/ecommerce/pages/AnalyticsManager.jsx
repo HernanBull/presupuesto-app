@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, CheckCircle2, RotateCcw } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, CheckCircle2, RotateCcw, CalendarDays } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 // Datos iniciales
 const initialCarts = [
@@ -20,6 +21,21 @@ const dataSets = {
 export default function AnalyticsManager() {
   const [carts, setCarts] = useState(initialCarts);
   const [timeRange, setTimeRange] = useState('30days');
+  const [salesData, setSalesData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/ecommerce/analytics/sales-by-date')
+      .then(res => res.json())
+      .then(data => {
+        setSalesData(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   // Cálculos dinámicos del carrito abandonado
   const { lostRevenue, recoveredRevenue } = useMemo(() => {
@@ -122,6 +138,39 @@ export default function AnalyticsManager() {
             <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mt-3">Compras</p>
             <p className="text-[10px] font-bold text-emerald-500">{ratePurchase}% de retención</p>
           </div>
+        </div>
+      </section>
+
+      {/* Calendario y Tendencias de Ventas */}
+      <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-lg">
+            <CalendarDays size={20} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Calendario y Tendencias de Ventas</h3>
+            <p className="text-xs text-slate-500">Visualiza patrones de ventas diarias de forma profesional.</p>
+          </div>
+        </div>
+
+        <div className="w-full h-[300px]">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-slate-400">Cargando analítica...</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
+                <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => val.substring(5)} stroke="#94a3b8" />
+                <YAxis tick={{fontSize: 12}} stroke="#94a3b8" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                  itemStyle={{ color: '#a78bfa' }}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#7c3aed" strokeWidth={3} activeDot={{ r: 8 }} name="Ingresos ($)" />
+                <Line type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={3} name="Pedidos" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 

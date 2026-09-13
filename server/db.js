@@ -42,6 +42,47 @@ db.exec(`
     config JSON,
     created_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    category TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_sales (
+    id TEXT PRIMARY KEY,
+    customer_email TEXT,
+    total REAL NOT NULL,
+    status TEXT DEFAULT 'Completed',
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_sale_items (
+    id TEXT PRIMARY KEY,
+    sale_id TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price REAL NOT NULL,
+    FOREIGN KEY(sale_id) REFERENCES ecommerce_sales(id),
+    FOREIGN KEY(product_id) REFERENCES ecommerce_products(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_orders_v2 (
+    id TEXT PRIMARY KEY,
+    customer TEXT NOT NULL,
+    date TEXT NOT NULL,
+    total REAL NOT NULL,
+    status TEXT DEFAULT 'Pendiente',
+    priority TEXT DEFAULT 'Normal',
+    address TEXT,
+    paymentMethod TEXT,
+    paymentStatus TEXT,
+    paymentDetails JSON,
+    items JSON,
+    isMobile INTEGER DEFAULT 0
+  );
 `);
 
 // Migración simple por si la tabla budgets ya existía sin la columna name o maintenance
@@ -76,5 +117,30 @@ try {
 } catch (e) {
   // Ignorar si ya existe la columna
 }
+
+// Migración para tabla de ecommerce_products
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN stock INTEGER DEFAULT 0').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN description TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN publish_status TEXT DEFAULT "Borrador"').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN image_url TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN variants INTEGER DEFAULT 1').run();
+} catch(e) {}
+
+// Migración para tabla de ecommerce_products (Ofertas)
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN is_offer INTEGER DEFAULT 0').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN discount_price REAL DEFAULT 0').run();
+} catch(e) {}
 
 export default db;

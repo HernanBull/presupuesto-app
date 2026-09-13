@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, CheckCircle2, ChevronRight, CheckSquare, Square, Printer, Box, ShieldCheck, MapPin, ScanBarcode, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
+import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
 
 const initialOrders = [
   { 
@@ -33,29 +34,35 @@ const initialOrders = [
 ];
 
 export default function OrderPreparation() {
-  const [orders, setOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ecommerce_orders_v2');
-      return saved ? JSON.parse(saved) : initialOrders;
-    } catch (e) {
-      return initialOrders;
-    }
-  });
-  
-  // Guardar en localStorage cada vez que cambie
-  useEffect(() => {
-    localStorage.setItem('ecommerce_orders_v2', JSON.stringify(orders));
-  }, [orders]);
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedOrderId, setSelectedOrderId] = useState(() => {
-    try {
-      const savedOrders = localStorage.getItem('ecommerce_orders_v2') ? JSON.parse(localStorage.getItem('ecommerce_orders_v2')) : initialOrders;
-      const pendingOrders = savedOrders.filter(o => o.status === 'Preparando' || o.status === 'Pendiente');
-      return pendingOrders.length > 0 ? pendingOrders[0].id : null;
-    } catch (e) {
-      return initialOrders[0].id;
+  // Cargar pedidos desde el backend
+  useEffect(() => {
+    fetch('http://localhost:3001/api/ecommerce/orders')
+      .then(res => res.json())
+      .then(data => {
+        setOrders(data.length > 0 ? data : initialOrders);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching orders:', err);
+        setOrders(initialOrders);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+
+  // Auto-select first preparing order when loaded
+  useEffect(() => {
+    if (!isLoading && !selectedOrderId) {
+      const pendingOrders = orders.filter(o => o.status === 'Preparando');
+      if (pendingOrders.length > 0) {
+        setSelectedOrderId(pendingOrders[0].id);
+      }
     }
-  });
+  }, [isLoading, orders, selectedOrderId]);
   const [channel, setChannel] = useState(null);
 
   // Setup Realtime Subscription
@@ -111,12 +118,39 @@ export default function OrderPreparation() {
     broadcastUpdate(updatedOrders);
   };
 
-  const markOrderAsReady = (orderId) => {
+  const markOrderAsReady = async (orderId) => {
+    const orderToSend = orders.find(o => o.id === orderId);
+
     const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: 'Listo' } : order
-    ).filter(order => order.id !== orderId); // Remover de la lista activa una vez listo
-    
+      order.id === orderId ? { ...order, status: 'Enviado' } : order
+    );
     setOrders(updatedOrders);
+    
+    fetch(`http://localhost:3001/api/ecommerce/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Enviado' })
+    }).catch(console.error);
+
+    // Enviar a Telegram directamente desde Picking
+    if (orderToSend) {
+      const customerData = {
+        name: orderToSend.customer,
+        phone: orderToSend.paymentDetails?.phone || 'Sin número',
+        address: orderToSend.address || 'Dirección del cliente',
+        zone: 'Centro de la ciudad',
+        packageType: 'Paquete E-commerce',
+        productList: `Pedido ${orderToSend.id} (${orderToSend.items?.length || 0} artículos)`,
+        weight: 1,
+        quantity: 1
+      };
+
+      const res = await sendDeliveryRequest('Tienda Principal', customerData, orderToSend.id);
+      if (!res.success) {
+        console.error("Error al enviar a Telegram: ", res.error);
+      }
+    }
+
     broadcastUpdate(updatedOrders);
     
     if (channel) {
@@ -161,16 +195,16 @@ export default function OrderPreparation() {
         
         {/* Panel Izquierdo: Lista de Pedidos */}
         <div className="w-full lg:w-1/3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col shadow-sm min-h-[300px] lg:min-h-0">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 rounded-t-2xl flex justify-between items-center">
+           <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 rounded-t-2xl flex justify-between items-center">
              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                <Package size={18} className="text-violet-500" /> Por Preparar
              </h3>
              <span className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-xs px-2 py-0.5 rounded-full font-black">
-               {orders.length}
+               {orders.filter(o => o.status === 'Preparando').length}
              </span>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-             {orders.length === 0 && (
+             {orders.filter(o => o.status === 'Preparando').length === 0 && (
                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-6 text-center animate-in zoom-in-95 duration-500">
                 <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
                   <CheckCircle2 size={48} className="text-emerald-500" />
@@ -179,7 +213,7 @@ export default function OrderPreparation() {
                  <p className="text-sm mt-2 text-slate-500">No hay pedidos pendientes de preparación.</p>
                </div>
              )}
-             {orders.map((order, idx) => {
+             {orders.filter(o => o.status === 'Preparando').map((order, idx) => {
                const progress = getProgress(order);
                const isSelected = selectedOrderId === order.id;
                

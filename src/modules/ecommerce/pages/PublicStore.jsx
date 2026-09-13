@@ -4,6 +4,9 @@ import { ShoppingCart, LayoutTemplate, Image as ImageIcon } from 'lucide-react';
 export default function PublicStore() {
   const [config, setConfig] = useState(null);
   const [currentPage, setCurrentPage] = useState('home'); 
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState(['Todas']);
+  const [activeCategory, setActiveCategory] = useState('Todas');
 
   useEffect(() => {
     const loadConfig = () => {
@@ -47,6 +50,18 @@ export default function PublicStore() {
     };
     loadConfig();
     window.addEventListener('storage', loadConfig);
+    
+    // Fetch products
+    fetch('http://localhost:3001/api/ecommerce/products')
+      .then(res => res.json())
+      .then(data => {
+        const published = data.filter(p => p.publish_status === 'Publicado');
+        setProducts(published);
+        const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
+        setCategories(['Todas', ...Array.from(cats)]);
+      })
+      .catch(console.error);
+
     return () => window.removeEventListener('storage', loadConfig);
   }, []);
 
@@ -66,6 +81,10 @@ export default function PublicStore() {
   const cardBg = themeMode === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-slate-900';
   const mutedText = themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500';
+
+  const recentProducts = products.slice(0, 8);
+  const offerProducts = products.filter(p => !!p.is_offer).slice(0, 8);
+  const catalogProducts = activeCategory === 'Todas' ? products : products.filter(p => p.category === activeCategory);
 
   return (
     <div className={`min-h-screen w-full flex flex-col ${typoClass} ${baseFontSize} ${baseBg}`}>
@@ -142,20 +161,29 @@ export default function PublicStore() {
                   <div className="max-w-7xl mx-auto w-full">
                     <h2 className={`${headingWeight} ${textColor} mb-12 text-3xl md:text-5xl`}>{texts.sectionTitle}</h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                        <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-4 rounded-3xl -translate-y-0 hover:-translate-y-2` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-4 rounded-3xl hover:border-violet-400` : 'p-2 bg-transparent'}`}>
+                      {recentProducts.length > 0 ? recentProducts.map((p, i) => (
+                        <div key={p.id} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-4 rounded-3xl -translate-y-0 hover:-translate-y-2` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-4 rounded-3xl hover:border-violet-400` : 'p-2 bg-transparent'}`}>
                           <div className={`w-full aspect-square mb-6 flex items-center justify-center relative overflow-hidden ${cardStyle === 'minimalist' ? 'bg-slate-200 dark:bg-slate-800 rounded-3xl' : 'bg-slate-100 dark:bg-slate-900 rounded-2xl'}`}>
-                            <ImageIcon size={48} className="text-slate-300 dark:text-slate-600 transition-transform duration-500 group-hover:scale-110" />
+                            {p.image_url ? (
+                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                            ) : (
+                              <ImageIcon size={48} className="text-slate-300 dark:text-slate-600 transition-transform duration-500 group-hover:scale-110" />
+                            )}
                             <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                               <button className={`py-3 px-8 text-sm font-bold text-white shadow-2xl transition-transform hover:scale-105 ${buttonStyle}`} style={{ backgroundColor: primaryColor }}>Ver Detalles</button>
                             </div>
+                            {p.stock <= 0 && (
+                               <div className="absolute top-4 right-4 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">Agotado</div>
+                            )}
                           </div>
                           <div className="px-2">
-                            <p className={`font-bold line-clamp-1 ${textColor} text-base md:text-lg`}>Producto Destacado {i}</p>
-                            <p className={`${headingWeight} mt-2 text-xl md:text-2xl`} style={{ color: primaryColor }}>$49.99</p>
+                            <p className={`font-bold line-clamp-1 ${textColor} text-base md:text-lg`}>{p.name}</p>
+                            <p className={`${headingWeight} mt-2 text-xl md:text-2xl`} style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="col-span-full py-12 text-center text-slate-500">No hay productos destacados disponibles.</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -217,16 +245,16 @@ export default function PublicStore() {
              
              {/* Filtros */}
              <div className={`${catalogFilterStyle === 'sidebar' ? 'w-full md:w-64 border-b md:border-b-0 md:border-r pb-6 md:pb-0 md:pr-10' : 'w-full flex gap-3 overflow-x-auto pb-4'} ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-                {catalogFilterStyle === 'sidebar' ? (
+                 {catalogFilterStyle === 'sidebar' ? (
                   <div className="space-y-10">
                     <div>
                       <h3 className="font-bold text-lg mb-4">Categorías</h3>
                       <ul className="space-y-3 text-base text-slate-500">
-                        <li className="font-bold cursor-pointer" style={{ color: primaryColor }}>Todas (120)</li>
-                        <li className="hover:text-slate-800 dark:hover:text-white cursor-pointer transition-colors">Ropa (45)</li>
-                        <li className="hover:text-slate-800 dark:hover:text-white cursor-pointer transition-colors">Accesorios (30)</li>
-                        <li className="hover:text-slate-800 dark:hover:text-white cursor-pointer transition-colors">Calzado (25)</li>
-                        <li className="hover:text-slate-800 dark:hover:text-white cursor-pointer transition-colors">Hogar (20)</li>
+                        {categories.map(c => (
+                          <li key={c} onClick={() => setActiveCategory(c)} className={`cursor-pointer transition-colors ${activeCategory === c ? 'font-bold' : 'hover:text-slate-800 dark:hover:text-white'}`} style={{ color: activeCategory === c ? primaryColor : '' }}>
+                            {c}
+                          </li>
+                        ))}
                       </ul>
                     </div>
                     <div>
@@ -240,9 +268,11 @@ export default function PublicStore() {
                   </div>
                 ) : (
                   <>
-                    <button className="px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap text-white shadow-md transition-transform hover:scale-105" style={{ backgroundColor: primaryColor }}>Todas las Categorías</button>
-                    <button className={`px-6 py-2.5 border rounded-full text-sm font-bold whitespace-nowrap transition-colors hover:border-violet-500 ${themeMode === 'dark' ? 'border-slate-700 text-slate-300' : 'border-slate-300 text-slate-600'}`}>Ropa (45)</button>
-                    <button className={`px-6 py-2.5 border rounded-full text-sm font-bold whitespace-nowrap transition-colors hover:border-violet-500 ${themeMode === 'dark' ? 'border-slate-700 text-slate-300' : 'border-slate-300 text-slate-600'}`}>Accesorios (30)</button>
+                    {categories.map(c => (
+                      <button key={c} onClick={() => setActiveCategory(c)} className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors shadow-sm ${activeCategory === c ? 'text-white' : 'border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-violet-500'}`} style={{ backgroundColor: activeCategory === c ? primaryColor : 'transparent' }}>
+                        {c}
+                      </button>
+                    ))}
                     <button className={`px-6 py-2.5 border rounded-full text-sm font-bold whitespace-nowrap transition-colors hover:border-violet-500 ml-auto ${themeMode === 'dark' ? 'border-slate-700 text-slate-300' : 'border-slate-300 text-slate-600'}`}>Ordenar por: Precio</button>
                   </>
                 )}
@@ -251,20 +281,29 @@ export default function PublicStore() {
              {/* Grid */}
              <div className="flex-1">
                 <div className={`grid gap-6 sm:grid-cols-2 lg:grid-cols-3`}>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
-                    <div key={i} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-md hover:shadow-xl ${cardBg} p-3 rounded-2xl` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-violet-400` : 'p-2 bg-transparent'} ${animationsEnabled ? 'animate-in fade-in zoom-in-95 duration-500' : ''}`} style={{ animationDelay: `${i * 50}ms`}}>
+                  {catalogProducts.length > 0 ? catalogProducts.map((p, i) => (
+                    <div key={p.id} className={`flex flex-col group cursor-pointer overflow-hidden transition-all duration-300 ${cardStyle === 'elevated' ? `shadow-md hover:shadow-xl ${cardBg} p-3 rounded-2xl` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-violet-400` : 'p-2 bg-transparent'} ${animationsEnabled ? 'animate-in fade-in zoom-in-95 duration-500' : ''}`} style={{ animationDelay: `${(i % 10) * 50}ms`}}>
                       <div className={`w-full aspect-[4/5] mb-4 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden`}>
-                        <ImageIcon size={32} className="text-slate-400 transition-transform duration-500 group-hover:scale-110" />
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        ) : (
+                          <ImageIcon size={32} className="text-slate-400 transition-transform duration-500 group-hover:scale-110" />
+                        )}
                         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                            <button className={`py-2 px-6 text-sm font-bold text-white shadow-lg ${buttonStyle}`} style={{ backgroundColor: primaryColor }}>Ver</button>
                         </div>
+                        {p.stock <= 0 && (
+                           <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">Agotado</div>
+                        )}
                       </div>
                       <div className="px-1">
-                        <p className={`font-bold line-clamp-1 ${textColor} text-base`}>Producto Catálogo {i}</p>
-                        <p className={`${headingWeight} text-lg mt-1`} style={{ color: primaryColor }}>$39.99</p>
+                        <p className={`font-bold line-clamp-1 ${textColor} text-base`}>{p.name}</p>
+                        <p className={`${headingWeight} text-lg mt-1`} style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="col-span-full py-16 text-center text-slate-500 font-bold">No hay productos en esta categoría.</div>
+                  )}
                 </div>
                 
                 {/* Paginación */}
@@ -305,29 +344,38 @@ export default function PublicStore() {
           
           <div className="flex-1 px-6 md:px-16 py-16 max-w-7xl mx-auto w-full">
              <div className={`grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4`}>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                  <div key={i} className={`flex flex-col group relative cursor-pointer ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-3 rounded-2xl -translate-y-0 hover:-translate-y-2 transition-all duration-300` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-rose-400 transition-colors` : 'p-2'} ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-700' : ''}`} style={{ animationDelay: `${i * 100}ms`}}>
+                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
+                  <div key={p.id} className={`flex flex-col group relative cursor-pointer ${cardStyle === 'elevated' ? `shadow-lg hover:shadow-2xl ${cardBg} p-3 rounded-2xl -translate-y-0 hover:-translate-y-2 transition-all duration-300` : cardStyle === 'outlined' ? `border-2 ${cardBg} p-3 rounded-2xl hover:border-rose-400 transition-colors` : 'p-2'} ${animationsEnabled ? 'animate-in fade-in slide-in-from-bottom-8 duration-700' : ''}`} style={{ animationDelay: `${(i % 10) * 100}ms`}}>
                     
                     <div className="absolute top-6 right-6 z-10 px-3 py-1.5 text-xs font-black text-white rounded-lg shadow-lg rotate-3" style={{ backgroundColor: discountBadgeColor }}>
-                      -30% OFF
+                      OFERTA
                     </div>
 
                     <div className={`w-full aspect-square mb-4 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden`}>
-                      <ImageIcon size={40} className="text-slate-400 transition-transform duration-500 group-hover:scale-110" />
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      ) : (
+                        <ImageIcon size={40} className="text-slate-400 transition-transform duration-500 group-hover:scale-110" />
+                      )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
                          <button className={`py-3 px-8 text-sm font-bold text-white shadow-2xl transition-transform hover:scale-105 ${buttonStyle}`} style={{ backgroundColor: discountBadgeColor }}>Aprovechar Oferta</button>
                       </div>
+                      {p.stock <= 0 && (
+                         <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">Agotado</div>
+                      )}
                     </div>
                     
                     <div className="px-2">
-                      <p className={`font-bold line-clamp-1 ${textColor} text-base`}>Súper Oferta Exclusiva {i}</p>
+                      <p className={`font-bold line-clamp-1 ${textColor} text-base`}>{p.name}</p>
                       <div className="flex items-center gap-3 mt-2">
-                        <p className={`${headingWeight} text-2xl`} style={{ color: discountBadgeColor }}>$19.99</p>
-                        <p className={`text-sm font-bold line-through text-slate-400`}>$29.99</p>
+                        <p className={`${headingWeight} text-2xl`} style={{ color: discountBadgeColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
+                        <p className={`text-sm font-bold line-through text-slate-400`}>${Number(p.price).toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="col-span-full py-16 text-center text-slate-500 font-bold">No hay ofertas disponibles por el momento.</div>
+                )}
              </div>
           </div>
         </div>

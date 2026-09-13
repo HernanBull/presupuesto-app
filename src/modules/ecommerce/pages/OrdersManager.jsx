@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone } from 'lucide-react';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
-import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
+import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 
 const initialOrders = [
   { id: 'ORD-1042', customer: 'Carlos López', date: 'Hoy, 10:30 AM', total: 145.50, items: [{id: 'i1', quantity: 1}, {id: 'i2', quantity: 1}, {id: 'i3', quantity: 1}], status: 'Pendiente', priority: 'Alta', address: 'Centro, Maracay', paymentMethod: 'pago_movil', paymentStatus: 'pending', paymentDetails: { ref: '12345678', bank: 'Banesco', phone: '0414-1234567', capture: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?q=80&w=200&auto=format&fit=crop' } },
@@ -28,20 +28,24 @@ const initialOrders = [
 ];
 
 export default function OrdersManager() {
-  const [orders, setOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem('ecommerce_orders_v2');
-      return saved ? JSON.parse(saved) : initialOrders;
-    } catch (e) {
-      return initialOrders;
-    }
-  });
+  const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Persistir en localStorage
+  // Cargar pedidos desde el backend
   useEffect(() => {
-    localStorage.setItem('ecommerce_orders_v2', JSON.stringify(orders));
-  }, [orders]);
+    fetch('http://localhost:3001/api/ecommerce/orders')
+      .then(res => res.json())
+      .then(data => {
+        setOrders(data.length > 0 ? data : initialOrders);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching orders:', err);
+        setOrders(initialOrders);
+        setIsLoading(false);
+      });
+  }, []);
   
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -63,7 +67,7 @@ export default function OrdersManager() {
       quantity: 1
     };
 
-    const res = await sendDeliveryRequest('Tienda Principal', customerData);
+    const res = await sendDeliveryRequest('Tienda Principal', customerData, order.id);
     if (!res.success) {
       console.error("Error al enviar a Telegram: ", res.error);
     }
@@ -94,6 +98,21 @@ export default function OrdersManager() {
     };
   }, []);
 
+  // Telegram Listener para Entregas
+  useEffect(() => {
+    const handleComplete = (completedOrderId) => {
+      setOrders(prevOrders => prevOrders.map(order => 
+        order.id === completedOrderId ? { ...order, status: 'Entregado' } : order
+      ));
+    };
+
+    globalListeners.onComplete.push(handleComplete);
+
+    return () => {
+      globalListeners.onComplete = globalListeners.onComplete.filter(cb => cb !== handleComplete);
+    };
+  }, []);
+
   const columns = [
     { id: 'Pendiente', title: 'Nuevos Pedidos', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/30' },
     { id: 'Preparando', title: 'En Preparación', icon: Package, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/30' },
@@ -119,6 +138,13 @@ export default function OrdersManager() {
         order.id === draggedOrderId ? { ...order, status: targetStatus } : order
       ));
       
+      // Update en backend
+      fetch(`http://localhost:3001/api/ecommerce/orders/${draggedOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: targetStatus })
+      }).catch(console.error);
+
       // Integración Telegram Delivery
       if (targetStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
         handleSendToDelivery(orderToMove);
@@ -134,6 +160,13 @@ export default function OrdersManager() {
       order.id === id ? { ...order, status: newStatus } : order
     ));
     
+    // Update en backend
+    fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    }).catch(console.error);
+
     // Integración Telegram Delivery
     if (newStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
       handleSendToDelivery(orderToMove);
@@ -141,11 +174,15 @@ export default function OrdersManager() {
   };
 
   const verifyPayment = (id, isApproved) => {
+    const newPaymentStatus = isApproved ? 'approved' : 'rejected';
+    const newStatus = isApproved ? 'Preparando' : undefined;
+
     setOrders(orders.map(order => {
       if (order.id === id) {
         const updatedOrder = { 
           ...order, 
-          paymentStatus: isApproved ? 'approved' : 'rejected' 
+          paymentStatus: newPaymentStatus,
+          ...(newStatus && { status: newStatus })
         };
         if (selectedOrder && selectedOrder.id === id) {
            setSelectedOrder(updatedOrder);
@@ -154,12 +191,24 @@ export default function OrdersManager() {
       }
       return order;
     }));
+
+    // Update en backend
+    const updatePayload = { paymentStatus: newPaymentStatus };
+    if (newStatus) updatePayload.status = newStatus;
+
+    fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatePayload)
+    }).catch(console.error);
   };
 
   const filteredOrders = orders.filter(o => 
     o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
     o.customer.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) return <div className="p-8 text-center font-bold text-slate-500">Cargando pedidos...</div>;
 
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 pb-24 md:pb-8">
@@ -227,8 +276,11 @@ export default function OrdersManager() {
                       <span className="text-sm font-black text-slate-800 dark:text-white">${order.total.toFixed(2)}</span>
                     </div>
                     
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">{order.customer}</p>
-                    <p className="text-xs text-slate-500 mb-4">{order.items.length} {order.items.length === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-1">
+                      {order.isMobile ? <Smartphone size={12} className="inline mr-1" /> : null}
+                      {order.customer}
+                    </p>
+                    <p className="text-xs text-slate-500 mb-4">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
                     
                     {order.paymentMethod === 'pago_movil' && order.paymentStatus === 'pending' && (
                       <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl flex flex-col gap-2">
@@ -239,7 +291,13 @@ export default function OrdersManager() {
                         
                         <div className="flex justify-between items-start gap-2">
                           <div className="space-y-1 text-xs">
-                            <p><span className="text-slate-500">Ref:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.ref || 'N/A'}</span></p>
+                            <p className="flex items-center gap-1"><span className="text-slate-500">Ref:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.ref || 'N/A'}</span>
+                              {order.paymentDetails?.ref && (
+                                <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(order.paymentDetails.ref); alert('Copiado: ' + order.paymentDetails.ref); }} className="text-slate-400 hover:text-violet-500 transition-colors p-0.5 rounded" title="Copiar Referencia">
+                                  <Copy size={12} />
+                                </button>
+                              )}
+                            </p>
                             <p><span className="text-slate-500">Banco:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.bank || 'N/A'}</span></p>
                           </div>
                           
@@ -317,10 +375,14 @@ export default function OrdersManager() {
             
             <div className="p-6 space-y-6">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cliente</h4>
-                <p className="text-sm font-bold text-slate-800 dark:text-white">{selectedOrder.customer}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">correo.falso@example.com</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">+34 600 000 000</p>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cliente y Entrega</h4>
+                <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1">
+                  {selectedOrder.isMobile ? <Smartphone size={14} className="text-violet-500" /> : null}
+                  {selectedOrder.customer}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                  <span className="font-bold">Dirección:</span> {selectedOrder.address}
+                </p>
               </div>
               
               {selectedOrder.paymentMethod === 'pago_movil' && (
@@ -328,9 +390,16 @@ export default function OrdersManager() {
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago Móvil</h4>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 space-y-2">
-                       <div className="flex justify-between text-sm">
+                       <div className="flex justify-between text-sm items-center">
                          <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
-                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
+                         <div className="flex items-center gap-1">
+                           <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
+                           {selectedOrder.paymentDetails?.ref && (
+                             <button onClick={() => { navigator.clipboard.writeText(selectedOrder.paymentDetails.ref); alert('Copiado: ' + selectedOrder.paymentDetails.ref); }} className="text-slate-400 hover:text-violet-500 p-1 rounded transition-colors" title="Copiar Referencia">
+                               <Copy size={14} />
+                             </button>
+                           )}
+                         </div>
                        </div>
                        <div className="flex justify-between text-sm">
                          <span className="text-slate-500 dark:text-slate-400">Banco:</span>
@@ -376,15 +445,12 @@ export default function OrdersManager() {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
                 <div className="space-y-2">
-                  {/* Mock items */}
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-700 dark:text-slate-300">Camiseta de Algodón x2</span>
-                    <span className="font-bold text-slate-800 dark:text-white">$59.98</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-700 dark:text-slate-300">Envío Estándar</span>
-                    <span className="font-bold text-slate-800 dark:text-white">$5.00</span>
-                  </div>
+                  {selectedOrder.items && selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm">
+                      <span className="text-slate-700 dark:text-slate-300">{item.name} x{item.quantity}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
                   <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-base">
                     <span className="font-bold text-slate-800 dark:text-white">Total Pagado</span>
                     <span className="font-black text-violet-600 dark:text-violet-400">${selectedOrder.total.toFixed(2)}</span>

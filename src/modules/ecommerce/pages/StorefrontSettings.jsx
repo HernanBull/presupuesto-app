@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LayoutTemplate, Image as ImageIcon, Type, Save, Globe, UploadCloud, X, ShoppingCart, Smartphone, Monitor, MousePointer2, ImagePlus, Link, Palette, LayoutGrid, Type as TypeIcon, AlignLeft, Tag, Filter } from 'lucide-react';
+import StorePreview from '../components/StorePreview';
 
 export default function StorefrontSettings() {
   const savedConfig = JSON.parse(localStorage.getItem('storefrontConfig') || '{}');
@@ -51,6 +52,14 @@ export default function StorefrontSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('pages'); // pages (nueva), typography, content, theme, header
   const [activePagePreview, setActivePagePreview] = useState('home'); // home, catalog, offers
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/ecommerce/products')
+      .then(res => res.json())
+      .then(data => setProducts(data))
+      .catch(err => console.error("Error fetching products for preview:", err));
+  }, []);
 
   const logoInputRef = useRef(null);
   const heroInputRef = useRef(null);
@@ -306,164 +315,13 @@ export default function StorefrontSettings() {
             </div>
           </div>
 
-          {/* Canvas Wrapper */}
-          <div className={`transition-all duration-500 ease-out mt-16 shadow-2xl relative overflow-hidden flex flex-col ${
-            previewMode === 'mobile' ? 'w-[340px] h-[640px] rounded-[3rem] border-[10px] border-slate-800' : 'w-full h-full rounded-xl border border-slate-200'
-          } ${baseBg}`}>
-            
-            <div className={`h-full w-full overflow-y-auto hide-scrollbar flex flex-col ${typoClass} ${baseFontSize} ${baseBg}`}>
-              
-              {/* Navbar Dinámica - Común para todas las páginas */}
-              <div className={`flex items-center justify-between z-40 transition-all ${
-                headerStyle === 'transparent' && activePagePreview === 'home' ? 'absolute top-0 w-full bg-gradient-to-b from-black/50 to-transparent border-none' : 'relative border-b'
-              } ${headerStyle === 'solid' || activePagePreview !== 'home' ? (themeMode === 'dark' ? 'border-slate-800' : 'border-slate-100') : ''} ${previewMode === 'mobile' ? 'p-4' : 'px-8 py-5'}`}>
-                {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className={`${previewMode === 'mobile' ? 'h-6' : 'h-8'} object-contain`} />
-                ) : (
-                  <span className={`${headingWeight} tracking-tighter ${headerStyle === 'transparent' && activePagePreview === 'home' ? 'text-white' : textColor} ${previewMode === 'mobile' ? 'text-xl' : 'text-2xl'}`}>MI TIENDA</span>
-                )}
-                {previewMode === 'desktop' && (
-                  <div className={`hidden md:flex gap-6 font-bold ${headerStyle === 'transparent' && activePagePreview === 'home' ? 'text-white/90' : textColor}`}>
-                    <span onClick={() => setActivePagePreview('home')} className="cursor-pointer" style={{ color: activePagePreview === 'home' ? primaryColor : '' }}>{texts.nav1}</span>
-                    <span onClick={() => setActivePagePreview('catalog')} className="cursor-pointer" style={{ color: activePagePreview === 'catalog' ? primaryColor : '' }}>{texts.nav2}</span>
-                    <span onClick={() => setActivePagePreview('offers')} className="cursor-pointer" style={{ color: activePagePreview === 'offers' ? primaryColor : '' }}>{texts.nav3}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* CONTENIDO DINÁMICO POR PÁGINA */}
-              
-              {/* 1. INICIO (HOME) */}
-              {activePagePreview === 'home' && (
-                <>
-                  <div className={`relative overflow-hidden ${previewMode === 'mobile' ? 'min-h-[300px]' : 'min-h-[400px]'} flex ${heroLayout === 'split' && previewMode === 'desktop' ? 'flex-row' : 'flex-col items-center justify-center text-center'} ${heroLayout === 'split' ? secondaryBg : 'bg-slate-900'}`}>
-                    {heroUrl ? (
-                      heroLayout === 'split' && previewMode === 'desktop' ? (
-                        <div className="absolute right-0 top-0 bottom-0 w-1/2"><img src={heroUrl} alt="Cover" className="w-full h-full object-cover" /></div>
-                      ) : (
-                        <div className="absolute inset-0 z-0"><img src={heroUrl} alt="Cover" className="w-full h-full object-cover opacity-60" /><div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div></div>
-                      )
-                    ) : (
-                      <div className={`absolute inset-0 z-0 opacity-20 ${heroLayout === 'split' && previewMode === 'desktop' ? 'w-1/2 left-1/2 bg-slate-400' : 'bg-slate-400'}`}></div>
-                    )}
-                    <div className={`relative z-10 p-8 ${heroLayout === 'split' && previewMode === 'desktop' ? 'w-1/2 flex flex-col justify-center items-start text-left pl-12' : 'max-w-xl mx-auto space-y-4'}`}>
-                      <h1 className={`${headingWeight} leading-tight drop-shadow-sm ${previewMode === 'mobile' ? 'text-3xl' : 'text-5xl'} ${heroLayout === 'split' && previewMode === 'desktop' ? textColor : 'text-white'}`}>{texts.heroTitle}</h1>
-                      <p className={`mt-2 ${previewMode === 'mobile' ? 'opacity-90' : 'text-lg opacity-90'} ${heroLayout === 'split' && previewMode === 'desktop' ? mutedText : 'text-slate-200'}`}>{texts.heroSub}</p>
-                      <button className={`mt-6 text-white font-bold ${buttonStyle} ${previewMode === 'mobile' ? 'px-6 py-2' : 'px-8 py-3'}`} style={{ backgroundColor: primaryColor }}>{texts.heroBtn}</button>
-                    </div>
-                  </div>
-                  <div className={`flex-1 ${secondaryBg} ${previewMode === 'mobile' ? 'px-4 py-8' : 'px-8 py-12'}`}>
-                    <h2 className={`${headingWeight} ${textColor} mb-6 ${previewMode === 'mobile' ? 'text-xl' : 'text-3xl'}`}>{texts.sectionTitle}</h2>
-                    <div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} className={`flex flex-col group ${cardStyle === 'elevated' ? `shadow-md ${cardBg} p-2 rounded-xl` : cardStyle === 'outlined' ? `border ${cardBg} p-2 rounded-xl` : 'p-1'}`}>
-                          <div className={`w-full aspect-square mb-2 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center`}>
-                            <ImageIcon size={24} className="text-slate-400" />
-                          </div>
-                          <p className={`font-bold line-clamp-1 ${textColor} text-xs`}>Producto Novedad {i}</p>
-                          <p className={`${headingWeight} text-sm`} style={{ color: primaryColor }}>$29.99</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* 2. CATÁLOGO */}
-              {activePagePreview === 'catalog' && (
-                <div className={`flex-1 flex flex-col ${secondaryBg}`}>
-                  <div className={`${baseBg} border-b ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'} py-6 px-6 text-center`}>
-                     <h1 className={`${headingWeight} text-2xl md:text-3xl`}>{texts.catalogTitle}</h1>
-                  </div>
-                  <div className={`flex flex-1 ${catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? 'flex-row' : 'flex-col'} px-4 md:px-8 py-6 gap-6`}>
-                     
-                     {/* Filtros */}
-                     <div className={`${catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? 'w-48 border-r pr-6' : 'w-full flex gap-2 overflow-x-auto pb-2'} ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-                        {catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? (
-                          <div className="space-y-6">
-                            <div>
-                              <h3 className="font-bold mb-2">Categorías</h3>
-                              <ul className="space-y-2 text-sm text-slate-500">
-                                <li className="font-bold text-slate-900 dark:text-white">Todas (120)</li>
-                                <li>Ropa (45)</li>
-                                <li>Accesorios (30)</li>
-                              </ul>
-                            </div>
-                            <div>
-                              <h3 className="font-bold mb-2">Precio</h3>
-                              <input type="range" className="w-full" />
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <span className="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 rounded-full text-xs font-bold whitespace-nowrap">Todas</span>
-                            <span className="px-4 py-1.5 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-bold whitespace-nowrap text-slate-500">Ropa</span>
-                            <span className="px-4 py-1.5 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-bold whitespace-nowrap text-slate-500">Precio: Menor a Mayor</span>
-                          </>
-                        )}
-                     </div>
-
-                     {/* Grid */}
-                     <div className="flex-1">
-                        <div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                          {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className={`flex flex-col group ${cardStyle === 'elevated' ? `shadow-md ${cardBg} p-2 rounded-xl` : cardStyle === 'outlined' ? `border ${cardBg} p-2 rounded-xl` : 'p-1'}`}>
-                              <div className={`w-full aspect-[3/4] mb-2 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center`}>
-                                <ImageIcon size={24} className="text-slate-400" />
-                              </div>
-                              <p className={`font-bold line-clamp-1 ${textColor} text-xs`}>Producto Catálogo {i}</p>
-                              <p className={`${headingWeight} text-sm`} style={{ color: primaryColor }}>$39.99</p>
-                            </div>
-                          ))}
-                        </div>
-                     </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 3. OFERTAS */}
-              {activePagePreview === 'offers' && (
-                <div className={`flex-1 flex flex-col ${secondaryBg}`}>
-                  
-                  <div className="bg-slate-900 text-white py-10 px-6 text-center relative overflow-hidden">
-                     {offersCountdown && (
-                       <div className="absolute top-0 right-0 p-4">
-                         <div className="bg-rose-500 px-3 py-1.5 rounded-lg font-mono text-xs font-bold animate-pulse shadow-lg flex items-center gap-1">
-                           ⏳ Termina en 05:42:10
-                         </div>
-                       </div>
-                     )}
-                     <h1 className={`${headingWeight} text-4xl md:text-5xl drop-shadow-md text-amber-300 italic mb-2`}>{texts.offersTitle}</h1>
-                     <p className="opacity-90 max-w-md mx-auto text-sm">Hasta 70% de descuento en artículos seleccionados. Cantidades limitadas.</p>
-                  </div>
-                  
-                  <div className="flex-1 px-4 md:px-8 py-8">
-                     <div className={`grid gap-5 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                        {[1, 2, 3, 4].map(i => (
-                          <div key={i} className={`flex flex-col group relative ${cardStyle === 'elevated' ? `shadow-md ${cardBg} p-2 rounded-xl` : cardStyle === 'outlined' ? `border ${cardBg} p-2 rounded-xl` : 'p-1'}`}>
-                            
-                            {/* Etiqueta de Descuento */}
-                            <div className="absolute top-4 right-4 z-10 px-2 py-1 text-[10px] font-black text-white rounded-md shadow-sm" style={{ backgroundColor: discountBadgeColor }}>
-                              -30% OFF
-                            </div>
-
-                            <div className={`w-full aspect-square mb-2 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center relative overflow-hidden`}>
-                              <ImageIcon size={24} className="text-slate-400" />
-                            </div>
-                            <p className={`font-bold line-clamp-1 ${textColor} text-xs`}>Producto en Oferta {i}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className={`${headingWeight} text-sm`} style={{ color: discountBadgeColor }}>$19.99</p>
-                              <p className={`text-[10px] line-through text-slate-400`}>$29.99</p>
-                            </div>
-                          </div>
-                        ))}
-                     </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
+          {/* Canvas Wrapper (Extracted to StorePreview) */}
+          <StorePreview 
+            config={{ themeMode, primaryColor, typography, baseFontSize, headingWeight, logoUrl, headerStyle, showBanner, heroUrl, heroLayout, buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts }}
+            products={products}
+            activePagePreview={activePagePreview}
+            previewMode={previewMode}
+          />
         </div>
 
       </div>
