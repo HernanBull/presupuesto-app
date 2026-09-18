@@ -3,36 +3,6 @@ import { Package, Clock, CheckCircle2, ChevronRight, CheckSquare, Square, Printe
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
 
-const initialOrders = [
-  { 
-    id: 'ORD-1040', 
-    customer: 'Laura M.', 
-    date: 'Hoy, 08:30 AM', 
-    total: 32.50, 
-    status: 'Preparando',
-    priority: 'Alta',
-    address: 'Av. Las Delicias, Edif. Torre Norte, Piso 4, Apto 42, Maracay',
-    items: [
-      { id: 'item-1', name: 'Hamburguesa Doble Carne con Tocino', sku: 'FOOD-HB-01', quantity: 1, picked: false, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=150&auto=format&fit=crop' },
-      { id: 'item-2', name: 'Papas Fritas Grandes', sku: 'FOOD-PF-02', quantity: 2, picked: false, image: 'https://images.unsplash.com/photo-1576107222684-0e7bc3864e29?q=80&w=150&auto=format&fit=crop' },
-      { id: 'item-3', name: 'Refresco Cola 500ml', sku: 'BEV-CL-03', quantity: 1, picked: true, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=150&auto=format&fit=crop' }
-    ]
-  },
-  { 
-    id: 'ORD-1045', 
-    customer: 'Carlos Ruiz', 
-    date: 'Hoy, 09:15 AM', 
-    total: 89.99, 
-    status: 'Preparando',
-    priority: 'Normal',
-    address: 'Urb. El Bosque, Calle 2, Casa 14, Valencia',
-    items: [
-      { id: 'item-4', name: 'Pantalón Jean Azul Clásico', sku: 'CLOTH-JN-32', quantity: 1, picked: false, image: 'https://images.unsplash.com/photo-1542272604-780c8d52a5ce?q=80&w=150&auto=format&fit=crop' },
-      { id: 'item-5', name: 'Zapatos Deportivos Casuales', sku: 'SHOE-SP-40', quantity: 1, picked: false, image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=150&auto=format&fit=crop' }
-    ]
-  }
-];
-
 export default function OrderPreparation() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,12 +12,12 @@ export default function OrderPreparation() {
     fetch('http://localhost:3001/api/ecommerce/orders')
       .then(res => res.json())
       .then(data => {
-        setOrders(data.length > 0 ? data : initialOrders);
+        setOrders(data || []);
         setIsLoading(false);
       })
       .catch(err => {
         console.error('Error fetching orders:', err);
-        setOrders(initialOrders);
+        setOrders([]);
         setIsLoading(false);
       });
   }, []);

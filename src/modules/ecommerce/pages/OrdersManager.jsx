@@ -3,29 +3,7 @@ import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye,
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 
-const initialOrders = [
-  { id: 'ORD-1042', customer: 'Carlos López', date: 'Hoy, 10:30 AM', total: 145.50, items: [{id: 'i1', quantity: 1}, {id: 'i2', quantity: 1}, {id: 'i3', quantity: 1}], status: 'Pendiente', priority: 'Alta', address: 'Centro, Maracay', paymentMethod: 'pago_movil', paymentStatus: 'pending', paymentDetails: { ref: '12345678', bank: 'Banesco', phone: '0414-1234567', capture: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?q=80&w=200&auto=format&fit=crop' } },
-  { id: 'ORD-1043', customer: 'María García', date: 'Hoy, 09:15 AM', total: 89.99, items: [{id: 'i4', quantity: 1}], status: 'Pendiente', priority: 'Normal', address: 'El Bosque, Valencia', paymentMethod: 'tarjeta', paymentStatus: 'approved' },
-  { 
-    id: 'ORD-1040', 
-    customer: 'Laura M.', 
-    date: 'Ayer, 16:45 PM', 
-    total: 32.50, 
-    status: 'Preparando',
-    priority: 'Alta',
-    address: 'Av. Las Delicias, Edif. Torre Norte, Piso 4, Apto 42, Maracay',
-    paymentMethod: 'pago_movil', 
-    paymentStatus: 'approved', 
-    paymentDetails: { ref: '87654321', bank: 'Mercantil' },
-    items: [
-      { id: 'item-1', name: 'Hamburguesa Doble Carne con Tocino', sku: 'FOOD-HB-01', quantity: 1, picked: false, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=150&auto=format&fit=crop' },
-      { id: 'item-2', name: 'Papas Fritas Grandes', sku: 'FOOD-PF-02', quantity: 2, picked: false, image: 'https://images.unsplash.com/photo-1576107222684-0e7bc3864e29?q=80&w=150&auto=format&fit=crop' },
-      { id: 'item-3', name: 'Refresco Cola 500ml', sku: 'BEV-CL-03', quantity: 1, picked: true, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=150&auto=format&fit=crop' }
-    ]
-  },
-  { id: 'ORD-1039', customer: 'Andrés F.', date: 'Ayer, 11:20 AM', total: 45.00, items: [{id: 'i5', quantity: 1}], status: 'Enviado', priority: 'Normal', address: 'La Candelaria, Caracas', paymentMethod: 'efectivo', paymentStatus: 'pending' },
-  { id: 'ORD-1035', customer: 'Sofía V.', date: 'Hace 2 días', total: 210.00, items: [{id: 'i6', quantity: 1}, {id: 'i7', quantity: 1}], status: 'Entregado', priority: 'Normal', address: 'San Antonio, Miranda', paymentMethod: 'tarjeta', paymentStatus: 'approved' },
-];
+const initialOrders = [];
 
 export default function OrdersManager() {
   const [orders, setOrders] = useState([]);
@@ -34,15 +12,16 @@ export default function OrdersManager() {
 
   // Cargar pedidos desde el backend
   useEffect(() => {
-    fetch('http://localhost:3001/api/ecommerce/orders')
+    const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+    fetch(`http://localhost:3001/api/ecommerce/orders?workspaceId=${workspaceId}`)
       .then(res => res.json())
       .then(data => {
-        setOrders(data.length > 0 ? data : initialOrders);
+        setOrders(data || []);
         setIsLoading(false);
       })
       .catch(err => {
         console.error('Error fetching orders:', err);
-        setOrders(initialOrders);
+        setOrders([]);
         setIsLoading(false);
       });
   }, []);
@@ -56,13 +35,24 @@ export default function OrdersManager() {
 
   // Función para enviar a Telegram
   const handleSendToDelivery = async (order) => {
+    let phone = 'No indicado';
+    let docId = '';
+    let address = order.address || 'Sin dirección';
+    
+    try {
+      const details = typeof order.paymentDetails === 'string' ? JSON.parse(order.paymentDetails) : (order.paymentDetails || {});
+      if (details.phone) phone = details.phone;
+      if (details.docId) docId = details.docId;
+      if (details.address) address = details.address;
+    } catch(e) {}
+
     const customerData = {
-      name: order.customer,
-      phone: '0414-0000000', // Mock de E-commerce
-      address: 'Dirección del cliente (App Tienda)',
-      zone: 'Centro de la ciudad',
+      name: `${order.customer} ${docId ? `(C.I: ${docId})` : ''}`.trim(),
+      phone: phone,
+      address: address,
+      zone: 'E-commerce',
       packageType: 'Paquete E-commerce',
-      productList: `Pedido ${order.id} (${order.items.length} artículos)`,
+      productList: `Pedido ${order.id} (${order.items ? (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).length : 0} artículos)`,
       weight: 1,
       quantity: 1
     };
@@ -104,6 +94,13 @@ export default function OrdersManager() {
       setOrders(prevOrders => prevOrders.map(order => 
         order.id === completedOrderId ? { ...order, status: 'Entregado' } : order
       ));
+
+      // Update en backend
+      fetch(`http://localhost:3001/api/ecommerce/orders/${completedOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Entregado' })
+      }).catch(console.error);
     };
 
     globalListeners.onComplete.push(handleComplete);
@@ -129,27 +126,41 @@ export default function OrdersManager() {
     e.preventDefault();
   };
 
-  const handleDrop = (e, targetStatus) => {
+  const handleDrop = async (e, targetStatus) => {
     e.preventDefault();
     if (draggedOrderId) {
       const orderToMove = orders.find(o => o.id === draggedOrderId);
+      if (!orderToMove || orderToMove.status === targetStatus) return;
+      const previousStatus = orderToMove.status;
       
+      // Update optimista
       setOrders(orders.map(order => 
         order.id === draggedOrderId ? { ...order, status: targetStatus } : order
       ));
       
-      // Update en backend
-      fetch(`http://localhost:3001/api/ecommerce/orders/${draggedOrderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: targetStatus })
-      }).catch(console.error);
+      try {
+        const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${draggedOrderId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: targetStatus })
+        });
+        const data = await res.json();
+        
+        if (!res.ok || data.error) {
+          alert(data.error || 'Error al actualizar pedido.');
+          // Revertir
+          setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus } : order));
+          return;
+        }
 
-      // Integración Telegram Delivery
-      if (targetStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
-        handleSendToDelivery(orderToMove);
+        // Integración Telegram Delivery
+        if (targetStatus === 'Enviado' && orderToMove.status !== 'Enviado') {
+          handleSendToDelivery(orderToMove);
+        }
+      } catch (err) {
+        console.error(err);
+        setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus } : order));
       }
-      
       setDraggedOrderId(null);
     }
   };
@@ -173,9 +184,14 @@ export default function OrdersManager() {
     }
   };
 
-  const verifyPayment = (id, isApproved) => {
+  const verifyPayment = async (id, isApproved) => {
     const newPaymentStatus = isApproved ? 'approved' : 'rejected';
     const newStatus = isApproved ? 'Preparando' : undefined;
+    const orderToMove = orders.find(o => o.id === id);
+    if (!orderToMove) return;
+
+    const previousStatus = orderToMove.status;
+    const previousPaymentStatus = orderToMove.paymentStatus;
 
     setOrders(orders.map(order => {
       if (order.id === id) {
@@ -192,15 +208,33 @@ export default function OrdersManager() {
       return order;
     }));
 
-    // Update en backend
     const updatePayload = { paymentStatus: newPaymentStatus };
     if (newStatus) updatePayload.status = newStatus;
 
-    fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatePayload)
-    }).catch(console.error);
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatePayload)
+      });
+      const data = await res.json();
+      
+      if (!res.ok || data.error) {
+        alert(data.error || 'Error al actualizar pedido.');
+        // Revertir
+        setOrders(prev => prev.map(order => {
+           if (order.id === id) {
+              const reverted = { ...order, status: previousStatus, paymentStatus: previousPaymentStatus };
+              if (selectedOrder && selectedOrder.id === id) setSelectedOrder(reverted);
+              return reverted;
+           }
+           return order;
+        }));
+      }
+    } catch(err) {
+      console.error(err);
+      setOrders(prev => prev.map(order => order.id === id ? { ...order, status: previousStatus, paymentStatus: previousPaymentStatus } : order));
+    }
   };
 
   const filteredOrders = orders.filter(o => 
@@ -381,58 +415,71 @@ export default function OrdersManager() {
                   {selectedOrder.customer}
                 </p>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                  <span className="font-bold">Dirección:</span> {selectedOrder.address}
+                  <span className="font-bold">Dirección / Notas:</span> {selectedOrder.address}
                 </p>
+                
+                {/* Nuevos campos de E-commerce avanzado */}
+                {(selectedOrder.booking_date || selectedOrder.table_number || selectedOrder.order_type) && (
+                  <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-lg text-sm text-indigo-900 dark:text-indigo-200">
+                    {selectedOrder.order_type && <p><span className="font-bold">Tipo:</span> {selectedOrder.order_type}</p>}
+                    {selectedOrder.booking_date && <p><span className="font-bold">Cita:</span> {selectedOrder.booking_date} {selectedOrder.booking_time}</p>}
+                    {selectedOrder.table_number && <p><span className="font-bold">Mesa:</span> {selectedOrder.table_number}</p>}
+                  </div>
+                )}
               </div>
               
-              {selectedOrder.paymentMethod === 'pago_movil' && (
+               {(selectedOrder.paymentMethod === 'pago_movil' || selectedOrder.paymentMethod === 'zelle') && (
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago Móvil</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago ({selectedOrder.paymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'})</h4>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1 space-y-2">
-                       <div className="flex justify-between text-sm items-center">
-                         <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
-                         <div className="flex items-center gap-1">
-                           <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
-                           {selectedOrder.paymentDetails?.ref && (
-                             <button onClick={() => { navigator.clipboard.writeText(selectedOrder.paymentDetails.ref); alert('Copiado: ' + selectedOrder.paymentDetails.ref); }} className="text-slate-400 hover:text-violet-500 p-1 rounded transition-colors" title="Copiar Referencia">
-                               <Copy size={14} />
-                             </button>
-                           )}
-                         </div>
-                       </div>
-                       <div className="flex justify-between text-sm">
-                         <span className="text-slate-500 dark:text-slate-400">Banco:</span>
-                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
-                       </div>
-                       <div className="flex justify-between text-sm">
-                         <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>
-                         <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.phone || 'N/A'}</span>
-                       </div>
-                       <div className="flex justify-between text-sm">
-                         <span className="text-slate-500 dark:text-slate-400">Estado:</span>
-                         {selectedOrder.paymentStatus === 'pending' ? (
-                           <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
-                         ) : selectedOrder.paymentStatus === 'approved' ? (
-                           <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
-                         ) : (
-                           <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><X size={14}/> Rechazado</span>
-                         )}
-                       </div>
-                    </div>
-                    {selectedOrder.paymentDetails?.capture && (
-                      <a href={selectedOrder.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-full sm:w-24 h-32 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group block cursor-pointer">
-                        <img src={selectedOrder.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                           <FileImage size={24} className="text-white" />
+                     <div className="flex-1 space-y-2">
+                        <div className="flex justify-between text-sm items-center">
+                          <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
+                            {selectedOrder.paymentDetails?.ref && (
+                              <button onClick={() => { navigator.clipboard.writeText(selectedOrder.paymentDetails.ref); alert('Copiado: ' + selectedOrder.paymentDetails.ref); }} className="text-slate-400 hover:text-violet-500 p-1 rounded transition-colors" title="Copiar Referencia">
+                                <Copy size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </a>
-                    )}
+                        {selectedOrder.paymentMethod === 'pago_movil' && (
+                           <>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">Banco:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.phone || 'N/A'}</span>
+                              </div>
+                           </>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500 dark:text-slate-400">Estado:</span>
+                          {selectedOrder.paymentStatus === 'pending' ? (
+                            <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
+                          ) : selectedOrder.paymentStatus === 'approved' ? (
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
+                          ) : (
+                            <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><X size={14}/> Rechazado</span>
+                          )}
+                        </div>
+                     </div>
+                     {selectedOrder.paymentDetails?.capture && (
+                       <a href={selectedOrder.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-full sm:w-24 h-32 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group block cursor-pointer">
+                         <img src={selectedOrder.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <FileImage size={24} className="text-white" />
+                         </div>
+                       </a>
+                     )}
                   </div>
                   {selectedOrder.paymentStatus === 'pending' && (
                     <div className="mt-3 flex gap-2">
                        <button onClick={() => verifyPayment(selectedOrder.id, true)} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <Check size={16} /> Confirmar Depósito
+                         <Check size={16} /> Confirmar Pago
                        </button>
                        <button onClick={() => verifyPayment(selectedOrder.id, false)} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
                          <X size={16} /> Rechazar
@@ -440,6 +487,16 @@ export default function OrdersManager() {
                     </div>
                   )}
                 </div>
+              )}
+              
+              {selectedOrder.paymentMethod === 'cash' && (
+                 <div>
+                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Método de Pago</h4>
+                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+                     <span className="font-bold text-slate-800 dark:text-white">Pago en Efectivo / Delivery</span>
+                     <span className="text-xs text-slate-500 mt-1">El cliente pagará al recibir el pedido.</span>
+                   </div>
+                 </div>
               )}
 
               <div>
@@ -451,6 +508,12 @@ export default function OrdersManager() {
                       <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
+                  {selectedOrder.shippingInfo?.cost !== undefined && (
+                     <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-sm">
+                       <span className="text-slate-600 dark:text-slate-400">Envío</span>
+                       <span className="font-bold text-slate-800 dark:text-white">${Number(selectedOrder.shippingInfo.cost).toFixed(2)}</span>
+                     </div>
+                  )}
                   <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-base">
                     <span className="font-bold text-slate-800 dark:text-white">Total Pagado</span>
                     <span className="font-black text-violet-600 dark:text-violet-400">${selectedOrder.total.toFixed(2)}</span>

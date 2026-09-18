@@ -14,7 +14,12 @@ export default function ProductsManager() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3001/api/ecommerce/products');
+      const workspaceId = localStorage.getItem('activeWorkspace');
+      if (!workspaceId) {
+        window.location.reload();
+        return;
+      }
+      const res = await fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         const mapped = data.map(p => ({
@@ -60,6 +65,27 @@ export default function ProductsManager() {
       navigate(`/ecommerce/product-studio/${product.id}`);
     } else {
       navigate('/ecommerce/product-studio');
+    }
+  };
+
+  const togglePublishStatus = async (e, id, currentStatus) => {
+    e.stopPropagation();
+    const newStatus = currentStatus === 'Publicado' ? 'Borrador' : 'Publicado';
+    
+    // Optimistic update
+    setProducts(products.map(p => p.id === id ? { ...p, publishStatus: newStatus } : p));
+    
+    try {
+      const p = products.find(p => p.id === id);
+      await fetch(`http://localhost:3001/api/ecommerce/products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publish_status: newStatus })
+      });
+    } catch (err) {
+      console.error(err);
+      // Revert on error
+      setProducts(products.map(p => p.id === id ? { ...p, publishStatus: currentStatus } : p));
     }
   };
 
@@ -129,74 +155,81 @@ export default function ProductsManager() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Producto</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoría</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Precio</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inventario</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Estado de Tienda</th>
-                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="py-8 text-center text-slate-500">
-                    No se encontraron productos.
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map(product => (
-                  <tr key={product.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/20 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-shrink-0 items-center justify-center">
-                          <ImageIcon size={18} className="text-slate-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-800 dark:text-white line-clamp-1">{product.name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{product.variants} {product.variants === 1 ? 'variante' : 'variantes'}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {product.category}
-                    </td>
-                    <td className="py-3 px-4 text-sm font-bold text-slate-800 dark:text-white">
-                      ${product.price.toFixed(2)}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`text-sm font-bold ${product.stock > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+        {/* Grid de Tarjetas */}
+        <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          {filteredProducts.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 font-medium">
+              No se encontraron productos.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredProducts.map((product, i) => (
+                <div 
+                  key={product.id} 
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-in fade-in zoom-in-95" 
+                  style={{ animationDelay: `${(i % 10) * 50}ms` }}
+                  onClick={() => openEditor(product)}
+                >
+                  <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                    {product.imageUrl ? (
+                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <ImageIcon size={40} className="text-slate-300 dark:text-slate-700" />
+                    )}
+                    
+                    {/* Badge Stock */}
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm backdrop-blur-md ${product.stock > 0 ? 'bg-white/90 text-emerald-600 dark:bg-slate-900/90 dark:text-emerald-400' : 'bg-red-500/90 text-white'}`}>
                         {product.stock > 0 ? `${product.stock} un.` : 'Agotado'}
                       </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${
-                        product.publishStatus === 'Publicado' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {product.publishStatus === 'Publicado' ? <CheckCircle size={14} /> : <Clock size={14} />}
-                        {product.publishStatus}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEditor(product)} className="p-1.5 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Editar">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleDelete(product.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Eliminar">
-                          <Trash2 size={16} />
-                        </button>
+                    </div>
+
+                    {/* Quick Actions Hover overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                       <button onClick={(e) => { e.stopPropagation(); openEditor(product); }} className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                         <Edit2 size={18} />
+                       </button>
+                       <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                         <Trash2 size={18} />
+                       </button>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <h3 className="font-bold text-slate-800 dark:text-white line-clamp-1">{product.name}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{product.category}</p>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      <p className="font-black text-lg text-violet-600 dark:text-violet-400">${product.price.toFixed(2)}</p>
+                    </div>
+                    
+                    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        {product.variants} {product.variants === 1 ? 'variante' : 'variantes'}
+                      </div>
+                      
+                      {/* Quick Toggle Status */}
+                      <button 
+                        onClick={(e) => togglePublishStatus(e, product.id, product.publishStatus)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                          product.publishStatus === 'Publicado' 
+                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {product.publishStatus === 'Publicado' ? (
+                          <><CheckCircle size={12} /> Activo</>
+                        ) : (
+                          <><Clock size={12} /> Oculto</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

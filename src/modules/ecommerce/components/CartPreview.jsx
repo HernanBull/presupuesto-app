@@ -106,6 +106,17 @@ export default function CartPreview({ config, previewMode = 'desktop' }) {
                    <span className="text-sm font-bold text-slate-800 dark:text-white">Pago Móvil</span>
                 </div>
                 
+                <div className="mt-3 space-y-2">
+                  <input type="text" placeholder="Ref. Pago (Ej: 123456)" className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900" />
+                  <select className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300">
+                    <option value="">Banco Emisor...</option>
+                    <option value="banesco">Banesco (0134)</option>
+                    <option value="mercantil">Mercantil (0105)</option>
+                    <option value="provincial">Provincial (0108)</option>
+                    <option value="venezuela">Banco de Venezuela (0102)</option>
+                  </select>
+                </div>
+
                 <div className="mt-3 p-3 border border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-1 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                    <UploadCloud size={18} className="text-slate-400" />
                    <span className="text-xs font-medium text-slate-500">Subir Captura del Pago</span>
@@ -123,8 +134,11 @@ export default function CartPreview({ config, previewMode = 'desktop' }) {
       {/* Footer / Checkout Button */}
       <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shrink-0">
          <div className="flex items-center justify-between mb-4">
-           <span className="text-sm font-bold text-slate-500">Total</span>
-           <span className="text-xl font-black text-slate-800 dark:text-white">${subtotal.toFixed(2)}</span>
+           <span className="text-sm font-bold text-slate-500">Total a Pagar</span>
+           <div className="text-right">
+             <div className="text-xl font-black text-slate-800 dark:text-white">${subtotal.toFixed(2)}</div>
+             <div className="text-xs font-bold text-slate-500">Bs. {(subtotal * (config.bcvRate || 36.50)).toFixed(2)}</div>
+           </div>
          </div>
          <button className="w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]" style={{ backgroundColor: primaryColor }}>
            <CreditCard size={18} />

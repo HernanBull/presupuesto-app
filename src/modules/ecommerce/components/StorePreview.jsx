@@ -75,13 +75,25 @@ export default function StorePreview({
         <p className={`font-bold line-clamp-1 ${textColor} text-xs mt-1`}>{product.name}</p>
         
         {showDiscount && product.is_offer && product.discount_price ? (
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 mb-2">
             <p className={`${headingWeight} text-sm`} style={{ color: discountBadgeColor }}>${Number(product.discount_price).toFixed(2)}</p>
             <p className={`text-[10px] line-through text-slate-400`}>${Number(product.price).toFixed(2)}</p>
           </div>
         ) : (
-          <p className={`${headingWeight} text-sm mt-1`} style={{ color: primaryColor }}>${Number(product.price).toFixed(2)}</p>
+          <p className={`${headingWeight} text-sm mt-1 mb-2`} style={{ color: primaryColor }}>${Number(product.price).toFixed(2)}</p>
         )}
+        
+        {/* Fast Grid Controls (Víveres) */}
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 dark:border-slate-700">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1">
+            <button className="text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold px-1">-</button>
+            <span className="text-xs font-bold w-6 text-center">{product.step_size || 1}</span>
+            <button className="text-slate-500 hover:text-slate-700 dark:hover:text-white font-bold px-1">+</button>
+          </div>
+          <button className="bg-violet-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm hover:bg-violet-700 transition-colors" style={{ backgroundColor: primaryColor }}>
+            Añadir
+          </button>
+        </div>
       </div>
     );
   };

@@ -1,14 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Star, MessageSquare, Check, X, CornerDownRight, Send, Trash2 } from 'lucide-react';
 
-const initialReviews = [
-  { id: 1, product: 'Camiseta de Algodón Premium', customer: 'Laura M.', rating: 5, date: 'Ayer', comment: 'La calidad de la tela es excelente, súper suave y cómoda. Compraré en más colores.', status: 'Pendiente' },
-  { id: 2, product: 'Auriculares Inalámbricos', customer: 'David R.', rating: 2, date: 'Hace 3 días', comment: 'El sonido es bueno pero la batería dura muy poco. Me decepcionó un poco.', status: 'Aprobado', reply: 'Lamentamos tu experiencia, David. Por favor contáctanos para revisar si hay un fallo de fábrica en tu unidad.' },
-  { id: 3, product: 'Mochila de Viaje', customer: 'Sofía P.', rating: 5, date: 'Hace 1 semana', comment: 'Tamaño perfecto para la cabina del avión. Muchos compartimentos útiles.', status: 'Aprobado' },
-];
-
 export default function ReviewsManager() {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [starsFilter, setStarsFilter] = useState('Todas');
@@ -16,6 +10,24 @@ export default function ReviewsManager() {
   // Estado para manejar qué reseña se está respondiendo actualmente
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
+
+  const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/reviews?workspaceId=${workspaceId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [workspaceId]);
 
   // KPIs
   const { totalReviews, avgRating, pendingCount } = useMemo(() => {
@@ -28,9 +40,9 @@ export default function ReviewsManager() {
   // Filtros
   const filteredReviews = reviews.filter(review => {
     const matchesSearch = 
-      review.product.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      review.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      review.customer.toLowerCase().includes(searchTerm.toLowerCase());
+      (review.product_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (review.comment || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (review.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
       
     const matchesStatus = statusFilter === 'Todos' || review.status === statusFilter;
     
@@ -43,14 +55,31 @@ export default function ReviewsManager() {
   });
 
   // Acciones
-  const handleApprove = (id) => {
-    setReviews(reviews.map(r => r.id === id ? { ...r, status: 'Aprobado' } : r));
+  const handleApprove = async (id) => {
+    try {
+      await fetch(`http://localhost:3001/api/ecommerce/reviews/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Aprobado' })
+      });
+      fetchReviews();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleReject = (id) => {
-    // Para simplificar, la eliminaremos o la pasaremos a "Rechazado"
+  const handleReject = async (id) => {
     if(window.confirm('¿Estás seguro de rechazar y ocultar esta reseña?')) {
-      setReviews(reviews.filter(r => r.id !== id));
+      try {
+        await fetch(`http://localhost:3001/api/ecommerce/reviews/${id}/status`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Rechazado' })
+        });
+        fetchReviews();
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -59,11 +88,20 @@ export default function ReviewsManager() {
     setReplyText('');
   };
 
-  const submitReply = (id) => {
+  const submitReply = async (id) => {
     if (!replyText.trim()) return;
-    setReviews(reviews.map(r => r.id === id ? { ...r, reply: replyText } : r));
-    setReplyingTo(null);
-    setReplyText('');
+    try {
+      await fetch(`http://localhost:3001/api/ecommerce/reviews/${id}/reply`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reply: replyText })
+      });
+      setReplyingTo(null);
+      setReplyText('');
+      fetchReviews();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -138,8 +176,8 @@ export default function ReviewsManager() {
                  <div className="flex items-start justify-between gap-4">
                    <div className="flex-1">
                      <div className="flex items-center gap-2 mb-1">
-                       <span className="text-sm font-bold text-slate-800 dark:text-white">{review.customer}</span>
-                       <span className="text-xs text-slate-500">• {review.date}</span>
+                       <span className="text-sm font-bold text-slate-800 dark:text-white">{review.customer_name}</span>
+                       <span className="text-xs text-slate-500">• {new Date(review.created_at).toLocaleDateString()}</span>
                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                          review.status === 'Pendiente' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
                        }`}>
@@ -148,7 +186,7 @@ export default function ReviewsManager() {
                      </div>
                      
                      <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 mb-2">
-                       En producto: {review.product}
+                       En producto: {review.product_name}
                      </p>
 
                      <div className="flex items-center gap-1 mb-3">
@@ -170,8 +208,15 @@ export default function ReviewsManager() {
                            <p className="text-sm text-slate-700 dark:text-slate-300">{review.reply}</p>
                          </div>
                          <button 
-                           onClick={() => {
-                             setReviews(reviews.map(r => r.id === review.id ? { ...r, reply: null } : r));
+                           onClick={async () => {
+                             try {
+                               await fetch(`http://localhost:3001/api/ecommerce/reviews/${review.id}/reply`, {
+                                 method: 'PUT',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ reply: null })
+                               });
+                               fetchReviews();
+                             } catch(err) {}
                            }}
                            className="absolute top-2 right-2 p-1.5 text-violet-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                            title="Eliminar Respuesta"

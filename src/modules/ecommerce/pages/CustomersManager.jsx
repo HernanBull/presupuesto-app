@@ -1,15 +1,25 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, User, Mail, Phone, Calendar, ShoppingBag, ExternalLink, Plus, Edit2, Trash2, X } from 'lucide-react';
 
-const initialCustomers = [
-  { id: 'CUST-001', name: 'Juan Pérez', email: 'juan.perez@example.com', phone: '+34 600 123 456', joinDate: '2023-01-15', totalOrders: 12, ltv: 1245.50, status: 'Activo' },
-  { id: 'CUST-002', name: 'María García', email: 'maria.garcia@example.com', phone: '+34 600 987 654', joinDate: '2023-03-22', totalOrders: 5, ltv: 450.00, status: 'Activo' },
-  { id: 'CUST-003', name: 'Carlos López', email: 'carlos.lopez@example.com', phone: '+34 611 222 333', joinDate: '2023-06-10', totalOrders: 1, ltv: 45.50, status: 'Inactivo' },
-  { id: 'CUST-004', name: 'Ana Martínez', email: 'ana.martinez@example.com', phone: '+34 622 444 555', joinDate: '2023-08-05', totalOrders: 24, ltv: 3210.00, status: 'VIP' },
-];
-
 export default function CustomersManager() {
-  const [customers, setCustomers] = useState(initialCustomers);
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/ecommerce/customers')
+      .then(res => res.json())
+      .then(data => {
+        if(Array.isArray(data)) {
+          const mapped = data.map(c => ({
+            ...c,
+            joinDate: c.join_date,
+            totalOrders: c.total_orders || 0,
+            ltv: c.ltv || 0
+          }));
+          setCustomers(mapped);
+        }
+      })
+      .catch(console.error);
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
 

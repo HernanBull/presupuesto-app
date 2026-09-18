@@ -12,6 +12,42 @@ El objetivo principal es evitar que la IA (o cualquier desarrollador) repita los
 
 ## 📋 Errores Recurrentes en el Proyecto
 
+### 12. Problema: Pantalla en blanco (Crasheo por dependencia eliminada en refactorización)
+- **Síntoma:** Al intentar acceder a la plataforma (tienda o admin), la pantalla queda totalmente en blanco y Vite lanza un error de módulo no encontrado (`[plugin:vite:import-analysis] Failed to resolve import`).
+- **Causa:** Durante la migración de arquitectura de submódulos a monolito, se eliminó la carpeta de nichos (`src/modules/ecommerce/niches`), pero se olvidó remover la importación antigua de `Registry.jsx` en el archivo cliente `PublicStore.jsx`. Esto rompió la compilación de Vite y por ende el árbol de React crasheó, dejando todo en blanco.
+- **Solución Aplicada:** Se buscó con `grep` cualquier archivo que aún importara la carpeta eliminada. Se identificó `PublicStore.jsx`, se eliminó el import de `getNicheConfig` y se reemplazó el control de carrito dinámico por un componente monolítico (botones en línea).
+- **Lección Aprendida:** **NUNCA** eliminar un archivo o carpeta sin antes buscar globalmente (ej. usando `grep_search`) si otros archivos en el proyecto dependen de sus exportaciones. Si se hace, el empaquetador de React fallará catastróficamente.
+
+### 11. Problema: Pantalla en blanco (Crasheo de React por TypeError)
+**Estado:** Resuelto
+
+**Síntoma / Problema:**
+Toda la página se quedó en blanco repentinamente. Al revisar la consola del navegador, aparecía un error de React: `TypeError: Cannot read properties of null`.
+
+**Causa Raíz:**
+En el componente `PublicStore.jsx`, se declaró el estado inicial como `const [config, setConfig] = useState(null)`. Más abajo en el cuerpo del componente, antes de que el `useEffect` tuviera tiempo de cargar los datos de la API, se intentó leer la propiedad directamente: `config.store_niche`. Como `config` era `null` en el primer render, esto lanzó una excepción fatal que desmontó todo el árbol de React.
+
+**Solución Aplicada:**
+Se utilizó el operador de encadenamiento opcional (Optional Chaining) para acceder a la propiedad de forma segura: `config?.store_niche`. Esto devuelve `undefined` en lugar de romper la app si el objeto es nulo, permitiendo que el fallback (`|| 'viveres'`) actúe correctamente.
+
+**Prevención:**
+SIEMPRE utilizar `?.` (Optional Chaining) o valores por defecto seguros cuando se lean propiedades de variables de estado que inician como nulas (`null`) o que provienen de respuestas asíncronas (APIs).
+
+### 10. Problema: Error de Vite `[PARSE_ERROR] Unexpected JSX expression`
+**Estado:** Resuelto
+
+**Síntoma / Problema:**
+Al crear los nuevos submódulos para el E-commerce, el compilador de Vite lanzó el error `[plugin:vite:oxc] Transform failed with 1 error: [PARSE_ERROR] Unexpected JSX expression` y se detuvo la aplicación con una pantalla de error. El mensaje indicaba que la sintaxis JSX estaba deshabilitada para ese archivo.
+
+**Causa Raíz:**
+Los archivos de los submódulos (`Registry.js`, `index.js` en las carpetas de nichos) se crearon con la extensión `.js`, pero su contenido incluía código JSX. En React con Vite, los archivos que contienen componentes React y sintaxis JSX **deben** tener la extensión `.jsx`. El transformador asume que un `.js` es JavaScript puro y un `.jsx` contiene componentes.
+
+**Solución Aplicada:**
+Se renombraron todos los archivos de los submódulos de `.js` a `.jsx` (ej. `Registry.jsx`). Vite automáticamente resolvió los imports sin extensión.
+
+**Prevención:**
+Al crear nuevos archivos que vayan a exportar o utilizar etiquetas JSX, siempre asegurarse de nombrarlos con la extensión `.jsx`, nunca `.js`.
+
 ### 8. Problema: Pantalla en negro/blanco al navegar a una nueva página
 **Estado:** Resuelto
 
@@ -139,3 +175,34 @@ Se corrigió la ruta para que coincida con el router real del módulo de Deliver
 
 **Prevención:**
 Siempre verificar la ruta en `DeliveryRouter.jsx` antes de generar enlaces de redirección en `sendDeliveryRequest`.
+
+### 9. Problema: Pantalla totalmente en blanco en toda la app (Crasheo de Vite por Exportación Faltante)
+**Estado:** Resuelto
+
+**Síntoma / Problema:**
+Toda la aplicación (Landing, E-commerce, Presupuesto) cargaba con la pantalla completamente en blanco o fallaba silenciosamente al iniciar.
+
+**Causa Raíz:**
+Se importó un ícono (`Instagram`) desde la librería `lucide-react` en `RegisterWizard.jsx`, pero la versión instalada no exportaba dicho componente. Esto provocó un error fatal `[MISSING_EXPORT]` durante el bundling de Vite, impidiendo que el cliente se construyera y rompiendo el árbol de componentes (ya que `App.jsx` dependía del archivo).
+
+**Solución Aplicada:**
+Se eliminó la importación de `<Instagram />` de `lucide-react` y se reemplazó por un texto estilizado equivalente (`@`).
+
+**Prevención:**
+Si la pantalla queda totalmente en blanco de manera global (en todas las rutas), siempre verificar el registro del terminal de Vite (o correr `npm run build`) para detectar errores de `MISSING_EXPORT` o de sintaxis fatal. Al usar librerías de iconos, verificar la disponibilidad de los mismos para la versión específica instalada.
+
+### 10. Problema: Error de Sintaxis JSX [PARSE_ERROR] (Expected '>' but found '<' / Unexpected token)
+**Estado:** Resuelto
+
+**Síntoma / Problema:**
+El servidor de desarrollo de Vite (HMR) crasheaba con un overlay rojo indicando un fallo de transformación con el mensaje `[PARSE_ERROR]`. Inicialmente esperaba un `>` pero encontró `<`. Luego, al intentar solucionarlo, cambió a `[PARSE_ERROR] Unexpected token`. Ambos ocurrieron en el archivo `InventoryManager.jsx` alrededor de la línea 745.
+
+**Causa Raíz:**
+1. Durante la manipulación automatizada del código JSX mediante reemplazos múltiples para inyectar lógica de Combos/Recetas, se eliminaron sin querer las etiquetas de cierre del botón `<button>` y de dos contenedores `<div>`.
+2. Al intentar inyectar las líneas faltantes con un script, se produjo una duplicación de la llave de cierre de la función `onClick` (`}}`), lo que corrompió completamente el árbol de AST (Abstract Syntax Tree) de JSX, impidiendo la compilación.
+
+**Solución Aplicada:**
+Se identificó exactamente la duplicación del bloque `}}` en la línea 745 a través del log de Vite. Se utilizó un script de Python para eliminar de forma quirúrgica la línea sobrante (la línea exacta duplicada) logrando que la estructura JSX y los contenedores de los botones quedaran perfectamente equilibrados de nuevo.
+
+**Prevención:**
+Evitar las inserciones o reemplazos masivos basados en texto (expresiones regulares o line-matching) en componentes con gran profundidad de anidación (indentación JSX). Siempre que se aplique una actualización de UI grande, revisar con atención los cierres de etiquetas (`</div>`, `}</>`) e iterar sobre los logs de Vite para asegurar que no queden tokens huerfanos.

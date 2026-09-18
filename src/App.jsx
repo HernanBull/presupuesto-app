@@ -8,6 +8,8 @@ import PresupuestoDashboard from './modules/presupuesto/pages/PresupuestoDashboa
 import EcommerceRouter from './modules/ecommerce/EcommerceRouter';
 import DeliveryRouter from './modules/delivery/DeliveryRouter';
 import { startTelegramEngine } from './modules/delivery/utils/telegramService';
+import { RegisterWizard } from './pages/RegisterWizard';
+import SuperAdminRouter from './modules/superadmin/SuperAdminRouter';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -18,6 +20,8 @@ function App() {
   // Aislar E-commerce y Delivery para pruebas sin autenticación
   const isEcommerceRoute = window.location.pathname.startsWith('/ecommerce');
   const isDeliveryRoute = window.location.pathname.startsWith('/delivery');
+  const isRegisterRoute = window.location.pathname.startsWith('/register');
+  const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -49,7 +53,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading && !isEcommerceRoute && !isDeliveryRoute) {
+  if (authLoading && !isEcommerceRoute && !isDeliveryRoute && !isRegisterRoute && !isSuperAdminRoute) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -78,6 +82,26 @@ function App() {
             path="/delivery/*" 
             element={<DeliveryRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
           />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  if (isRegisterRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/register" element={<RegisterWizard />} />
+        </Routes>
+      </BrowserRouter>
+    );
+  }
+
+  if (isSuperAdminRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/superadmin/*" element={<SuperAdminRouter />} />
         </Routes>
       </BrowserRouter>
     );

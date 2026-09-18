@@ -25,7 +25,8 @@ export default function CartSettings() {
     fetch('http://localhost:3001/api/workspaces')
       .then(res => res.json())
       .then(data => {
-        const defaultWs = data.find(w => w.id === 'default_workspace');
+        const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+        const defaultWs = data.find(w => w.id === workspaceId);
         if (defaultWs && defaultWs.config && defaultWs.config.cart) {
           const config = defaultWs.config.cart;
           setCartType(config.cartType || 'drawer');
@@ -46,10 +47,11 @@ export default function CartSettings() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
       // Primero obtener la config actual
       const res = await fetch('http://localhost:3001/api/workspaces');
       const data = await res.json();
-      const defaultWs = data.find(w => w.id === 'default_workspace') || { config: {} };
+      const defaultWs = data.find(w => w.id === workspaceId) || { config: {} };
       
       const newConfig = {
         ...defaultWs.config,
@@ -58,7 +60,7 @@ export default function CartSettings() {
         }
       };
 
-      await fetch('http://localhost:3001/api/workspaces/default_workspace/config', {
+      await fetch(`http://localhost:3001/api/workspaces/${workspaceId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: newConfig })

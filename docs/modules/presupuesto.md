@@ -13,3 +13,9 @@
 
 ## ⚠️ Notas Críticas / Gotchas
 - Este módulo maneja componentes visuales específicos (`logo`, `contratos`) enfocados a exportación o presentación formal hacia el cliente. Cambios en el modelo de datos de un presupuesto deben ser probados minuciosamente para no romper los renderizados de contratos.
+
+## 📜 Historial de Cambios / Auditoría
+
+- **Fecha y Hora:** 2026-09-08 14:50:46
+- **Versión:** 1.0.0
+- **Descripción:** Reorganización del módulo. Creación de `PresupuestoDashboard.jsx`. Se migraron los componentes de cotización (`QuoteBuilder`, `CatalogBuilder`) y documentos PDF de contratos a la carpeta interna del módulo (`src/modules/presupuesto`) consolidando su estructura.

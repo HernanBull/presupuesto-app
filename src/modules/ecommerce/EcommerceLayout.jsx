@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Wallet } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Wallet, Zap, MapPin } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -10,6 +10,19 @@ function cn(...inputs) {
 
 export default function EcommerceLayout({ theme, toggleTheme }) {
   const navigate = useNavigate();
+  const [storeName, setStoreName] = useState('Tienda');
+
+  useEffect(() => {
+    const slug = localStorage.getItem('storeSlug');
+    if (slug) {
+      fetch(`http://localhost:3001/api/workspaces/store/${slug}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.name) setStoreName(data.name);
+        })
+        .catch(err => console.error("Error fetching store name:", err));
+    }
+  }, []);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -28,24 +41,25 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Preparación', path: '/ecommerce/preparation', icon: Box },
     { name: 'Reseñas', path: '/ecommerce/reviews', icon: MessageSquare },
     { name: 'Promociones', path: '/ecommerce/promotions', icon: Tag },
-    { name: 'Escaparate', path: '/ecommerce/storefront', icon: MonitorSmartphone },
-    { name: 'Carrito', path: '/ecommerce/cart-settings', icon: Wallet },
+    { name: 'Ofertas Flash', path: '/ecommerce/offers', icon: Zap },
+    { name: 'Perfil Tienda', path: '/ecommerce/store-profile', icon: Settings },
+    { name: 'Ubicación', path: '/ecommerce/location', icon: MapPin },
     { name: 'Ajustes', path: '/ecommerce/settings', icon: Settings },
   ];
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
       
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-20 shrink-0 shadow-lg shadow-slate-200/50 dark:shadow-none transition-colors">
+      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-white/5 z-20 shrink-0 shadow-lg shadow-slate-200/50 dark:shadow-none transition-colors">
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-tr from-violet-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+            <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-2 rounded-xl text-black shadow-lg shadow-amber-200 dark:shadow-amber-900/20">
               <ShoppingBag size={24} />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight tracking-tight">Tienda</h1>
-              <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest">E-commerce</span>
+              <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight tracking-tight line-clamp-1">{storeName}</h1>
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest">E-commerce</span>
             </div>
           </div>
         </div>
@@ -59,8 +73,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300",
                 isActive 
-                  ? "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 shadow-sm" 
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
+                  ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 shadow-sm" 
+                  : "text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white"
               )}
             >
               <item.icon size={18} strokeWidth={2.5} />
@@ -69,38 +83,52 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-t border-slate-200 dark:border-white/5 space-y-3">
           <button 
-            onClick={() => navigate('/presupuesto')}
-            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-semibold"
+            onClick={() => {
+              const slug = localStorage.getItem('storeSlug');
+              if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
+              else alert('No se encontró el enlace de tu tienda.');
+            }}
+            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 hover:bg-amber-200 dark:hover:bg-amber-500/20 transition-colors text-sm font-semibold rounded-xl"
           >
-            <ArrowLeft size={16} /> Volver a Presupuestos
+            <MonitorSmartphone size={16} /> Ver mi Vitrina
+          </button>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('activeWorkspace');
+              localStorage.removeItem('storeSlug');
+              navigate('/ecommerce/live');
+            }}
+            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors text-sm font-semibold"
+          >
+            <ArrowLeft size={16} /> Salir de la tienda
           </button>
         </div>
       </aside>
 
       {/* Mobile Header */}
-      <header className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 shrink-0 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="bg-gradient-to-tr from-violet-600 to-indigo-600 p-1.5 rounded-lg text-white">
+      <header className="md:hidden bg-white dark:bg-zinc-950 border-b border-slate-200 dark:border-white/5 z-20 shrink-0 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 max-w-[60%]">
+          <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black shrink-0">
             <ShoppingBag size={20} />
           </div>
-          <h1 className="text-base font-extrabold text-slate-800 dark:text-white">E-commerce</h1>
+          <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate">{storeName}</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={toggleTheme} className="text-slate-400 hover:text-violet-500 p-2">
+          <button onClick={toggleTheme} className="text-slate-400 hover:text-amber-500 p-2">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button onClick={() => navigate('/presupuesto')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
+          <button onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/ecommerce/live'); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
             <ArrowLeft size={18} />
           </button>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-slate-950 relative">
+      <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-black relative">
         <div className="absolute top-4 right-6 hidden md:block z-50">
-           <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-violet-500 shadow-sm transition-colors">
+           <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
            </button>
         </div>

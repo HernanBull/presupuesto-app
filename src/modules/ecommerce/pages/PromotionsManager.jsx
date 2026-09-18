@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { Tag, Plus, Scissors, Calendar, Trash2 } from 'lucide-react';
 
-const initialCoupons = [
-  { id: '1', code: 'VERANO20', discount: '20%', type: 'Porcentaje (%)', usage: '45/100', expires: '2023-12-31', status: 'Activo' },
-  { id: '2', code: 'ENVIOFREE', discount: 'Envío Gratis', type: 'Envío Gratis', usage: '12/∞', expires: '2023-11-30', status: 'Activo' },
-  { id: '3', code: 'DESC50', discount: '$50.00', type: 'Monto Fijo ($)', usage: '100/100', expires: '2023-10-01', status: 'Expirado' },
-];
-
 export default function PromotionsManager() {
-  const [coupons, setCoupons] = useState(initialCoupons);
+  const [coupons, setCoupons] = useState([]);
+  const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
   
   // Estado para el formulario del creador rápido
   const [formData, setFormData] = useState({
@@ -16,6 +11,38 @@ export default function PromotionsManager() {
     type: 'Porcentaje (%)',
     value: ''
   });
+
+  const fetchPromotions = async () => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/promotions?workspaceId=${workspaceId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const formatted = data.map(p => {
+          let displayDiscount = p.value;
+          if (p.type === 'Porcentaje (%)') displayDiscount = `${p.value}%`;
+          else if (p.type === 'Monto Fijo ($)') displayDiscount = `$${Number(p.value).toFixed(2)}`;
+          else displayDiscount = 'Envío Gratis';
+
+          return {
+            id: p.id,
+            code: p.code,
+            discount: displayDiscount,
+            type: p.type,
+            usage: `${p.usage_count}/${p.usage_limit > 0 ? p.usage_limit : '∞'}`,
+            expires: p.expires_at ? new Date(p.expires_at).toLocaleDateString() : 'Ilimitado',
+            status: p.status
+          };
+        });
+        setCoupons(formatted);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchPromotions();
+  }, [workspaceId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,45 +58,51 @@ export default function PromotionsManager() {
     setFormData(prev => ({ ...prev, code: result }));
   };
 
-  const handleCreateCoupon = () => {
+  const handleCreateCoupon = async () => {
     if (!formData.code || (!formData.value && formData.type !== 'Envío Gratis')) {
       alert('Por favor ingresa un código y un valor válido.');
       return;
     }
 
-    // Dar formato visual al valor según el tipo
-    let displayDiscount = formData.value;
-    if (formData.type === 'Porcentaje (%)') {
-      displayDiscount = `${formData.value}%`;
-    } else if (formData.type === 'Monto Fijo ($)') {
-      displayDiscount = `$${Number(formData.value).toFixed(2)}`;
-    } else {
-      displayDiscount = 'Envío Gratis';
+    try {
+      const res = await fetch('http://localhost:3001/api/ecommerce/promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId,
+          code: formData.code,
+          type: formData.type,
+          value: formData.value || '0'
+        })
+      });
+
+      if (res.ok) {
+        fetchPromotions();
+        setFormData({
+          code: '',
+          type: 'Porcentaje (%)',
+          value: ''
+        });
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Error al crear el cupón');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error de conexión');
     }
-
-    const newCoupon = {
-      id: Date.now().toString(),
-      code: formData.code.toUpperCase(),
-      discount: displayDiscount,
-      type: formData.type,
-      usage: '0/∞',
-      expires: 'Ilimitado',
-      status: 'Activo'
-    };
-
-    setCoupons([newCoupon, ...coupons]);
-    
-    // Limpiar formulario
-    setFormData({
-      code: '',
-      type: 'Porcentaje (%)',
-      value: ''
-    });
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este cupón?')) {
-      setCoupons(coupons.filter(c => c.id !== id));
+      try {
+        const res = await fetch(`http://localhost:3001/api/ecommerce/promotions/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          fetchPromotions();
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 

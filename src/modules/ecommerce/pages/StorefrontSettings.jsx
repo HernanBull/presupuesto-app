@@ -55,10 +55,13 @@ export default function StorefrontSettings() {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/ecommerce/products')
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error("Error fetching products for preview:", err));
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (wsId) {
+      fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=${wsId}`)
+        .then(res => res.json())
+        .then(data => setProducts(data))
+        .catch(err => console.error("Error fetching products for preview:", err));
+    }
   }, []);
 
   const logoInputRef = useRef(null);
@@ -110,7 +113,11 @@ export default function StorefrontSettings() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Modifica el inicio, el catálogo y las ofertas.</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => window.open('/ecommerce/live', '_blank')} className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+          <button onClick={() => {
+              const slug = localStorage.getItem('storeSlug');
+              if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
+              else window.open('/ecommerce/live', '_blank');
+            }} className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
             <Globe size={18} />
             Visitar Tienda
           </button>

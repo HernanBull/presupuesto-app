@@ -2,40 +2,41 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, CheckCircle2, RotateCcw, CalendarDays } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-// Datos iniciales
-const initialCarts = [
-  { id: 'CART-982', user: 'carlos@example.com', total: 145.50, time: 'Hace 2 horas', status: 'Pendiente' },
-  { id: 'CART-983', user: 'laura.m@example.com', total: 89.99, time: 'Hace 5 horas', status: 'Email Enviado' },
-  { id: 'CART-984', user: 'miguel.g@example.com', total: 320.00, time: 'Hace 1 día', status: 'Recuperado' },
-  { id: 'CART-985', user: 'andres.f@example.com', total: 45.00, time: 'Hace 2 días', status: 'Pendiente' },
-  { id: 'CART-986', user: 'sofia.v@example.com', total: 210.00, time: 'Hace 3 días', status: 'Email Enviado' },
-];
-
-// Simulador de datos para el embudo según el rango de fechas
-const dataSets = {
-  '7days': { visitors: 3500, traffic: { org: 40, soc: 45, dir: 15 } },
-  '30days': { visitors: 12500, traffic: { org: 45, soc: 35, dir: 20 } },
-  'year': { visitors: 154000, traffic: { org: 55, soc: 25, dir: 20 } },
-};
-
 export default function AnalyticsManager() {
-  const [carts, setCarts] = useState(initialCarts);
-  const [timeRange, setTimeRange] = useState('30days');
+  const [carts, setCarts] = useState([]);
+  const [timeRange, setTimeRange] = useState('30d');
   const [salesData, setSalesData] = useState([]);
+  const [funnelData, setFunnelData] = useState({ visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases: 0 });
+  const [trafficData, setTrafficData] = useState({ org: 0, soc: 0, dir: 0 });
   const [loading, setLoading] = useState(true);
 
+  const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const [salesRes, funnelRes, cartsRes] = await Promise.all([
+        fetch(`http://localhost:3001/api/ecommerce/analytics/sales-by-date?workspaceId=${workspaceId}&range=${timeRange}`),
+        fetch(`http://localhost:3001/api/ecommerce/analytics/funnel?workspaceId=${workspaceId}&range=${timeRange}`),
+        fetch(`http://localhost:3001/api/ecommerce/analytics/abandoned-carts?workspaceId=${workspaceId}`)
+      ]);
+      
+      if (salesRes.ok) setSalesData(await salesRes.json());
+      if (funnelRes.ok) {
+        const d = await funnelRes.json();
+        setFunnelData(d.funnel || { visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases: 0 });
+        setTrafficData(d.traffic || { org: 0, soc: 0, dir: 0 });
+      }
+      if (cartsRes.ok) setCarts(await cartsRes.json());
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    fetch('http://localhost:3001/api/ecommerce/analytics/sales-by-date')
-      .then(res => res.json())
-      .then(data => {
-        setSalesData(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+    fetchAnalytics();
+  }, [workspaceId, timeRange]);
 
   // Cálculos dinámicos del carrito abandonado
   const { lostRevenue, recoveredRevenue } = useMemo(() => {
@@ -61,17 +62,16 @@ export default function AnalyticsManager() {
     setCarts(carts.map(cart => cart.id === id ? { ...cart, status: 'Recuperado' } : cart));
   };
 
-  // Cálculos dinámicos del embudo (simulando tasas de conversión fijas)
-  const currentData = dataSets[timeRange];
-  const visitors = currentData.visitors;
-  const addedToCart = Math.floor(visitors * 0.25); // 25% añaden al carrito
-  const checkoutStarted = Math.floor(addedToCart * 0.40); // 40% de los carritos inician pago
-  const purchases = Math.floor(checkoutStarted * 0.55); // 55% de los que inician terminan comprando
+  // Cálculos dinámicos del embudo (reales desde DB)
+  const visitors = funnelData.visitors || 0;
+  const addedToCart = funnelData.addedToCart || 0;
+  const checkoutStarted = funnelData.checkoutStarted || 0;
+  const purchases = funnelData.purchases || 0;
 
   // Tasas para la UI
-  const rateAddToCart = ((addedToCart / visitors) * 100).toFixed(1);
-  const rateCheckout = ((checkoutStarted / addedToCart) * 100).toFixed(1);
-  const ratePurchase = ((purchases / checkoutStarted) * 100).toFixed(1);
+  const rateAddToCart = visitors > 0 ? ((addedToCart / visitors) * 100).toFixed(1) : "0.0";
+  const rateCheckout = addedToCart > 0 ? ((checkoutStarted / addedToCart) * 100).toFixed(1) : "0.0";
+  const ratePurchase = checkoutStarted > 0 ? ((purchases / checkoutStarted) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 pb-24 md:pb-8">
@@ -86,8 +86,8 @@ export default function AnalyticsManager() {
           onChange={(e) => setTimeRange(e.target.value)}
           className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 shadow-sm"
         >
-          <option value="7days">Últimos 7 días</option>
-          <option value="30days">Últimos 30 días</option>
+          <option value="7d">Últimos 7 días</option>
+          <option value="30d">Últimos 30 días</option>
           <option value="year">Este año</option>
         </select>
       </div>
@@ -262,30 +262,30 @@ export default function AnalyticsManager() {
              <div className="space-y-2">
                <div className="flex justify-between text-sm">
                  <span className="font-bold text-slate-700 dark:text-slate-300">Búsqueda Orgánica (Google)</span>
-                 <span className="font-bold text-slate-900 dark:text-white">{currentData.traffic.org}%</span>
+                 <span className="font-bold text-slate-900 dark:text-white">{trafficData.org}%</span>
                </div>
                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                 <div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${currentData.traffic.org}%` }}></div>
+                 <div className="bg-emerald-500 h-full transition-all duration-1000 ease-out" style={{ width: `${trafficData.org}%` }}></div>
                </div>
              </div>
              
              <div className="space-y-2">
                <div className="flex justify-between text-sm">
                  <span className="font-bold text-slate-700 dark:text-slate-300">Redes Sociales (Instagram/FB)</span>
-                 <span className="font-bold text-slate-900 dark:text-white">{currentData.traffic.soc}%</span>
+                 <span className="font-bold text-slate-900 dark:text-white">{trafficData.soc}%</span>
                </div>
                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                 <div className="bg-blue-500 h-full transition-all duration-1000 ease-out" style={{ width: `${currentData.traffic.soc}%` }}></div>
+                 <div className="bg-blue-500 h-full transition-all duration-1000 ease-out" style={{ width: `${trafficData.soc}%` }}></div>
                </div>
              </div>
 
              <div className="space-y-2">
                <div className="flex justify-between text-sm">
                  <span className="font-bold text-slate-700 dark:text-slate-300">Directo / Referidos</span>
-                 <span className="font-bold text-slate-900 dark:text-white">{currentData.traffic.dir}%</span>
+                 <span className="font-bold text-slate-900 dark:text-white">{trafficData.dir}%</span>
                </div>
                <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                 <div className="bg-violet-500 h-full transition-all duration-1000 ease-out" style={{ width: `${currentData.traffic.dir}%` }}></div>
+                 <div className="bg-violet-500 h-full transition-all duration-1000 ease-out" style={{ width: `${trafficData.dir}%` }}></div>
                </div>
              </div>
           </div>

@@ -83,6 +83,53 @@ db.exec(`
     items JSON,
     isMobile INTEGER DEFAULT 0
   );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_customers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    doc_id TEXT,
+    phone TEXT,
+    address TEXT,
+    join_date TEXT NOT NULL,
+    status TEXT DEFAULT 'Activo'
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_promotions (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT,
+    code TEXT,
+    type TEXT,
+    value TEXT,
+    usage_limit INTEGER DEFAULT -1,
+    usage_count INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'Activo',
+    created_at TEXT,
+    expires_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_reviews (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT,
+    product_id TEXT,
+    product_name TEXT,
+    customer_id TEXT,
+    customer_name TEXT,
+    rating INTEGER,
+    comment TEXT,
+    reply TEXT,
+    status TEXT DEFAULT 'Pendiente',
+    created_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_tracking (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT,
+    event_type TEXT,
+    source TEXT,
+    created_at TEXT
+  );
 `);
 
 // Migración simple por si la tabla budgets ya existía sin la columna name o maintenance
@@ -141,6 +188,95 @@ try {
 } catch(e) {}
 try {
   db.prepare('ALTER TABLE ecommerce_products ADD COLUMN discount_price REAL DEFAULT 0').run();
+} catch(e) {}
+
+// Migraciones para control de vencimiento y lotes (Farmacias y alimentos)
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN expiration_date TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN batch_number TEXT').run();
+} catch(e) {}
+
+// Migraciones para Agenda/Turnos y Mesas (Barberías, Restaurantes)
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN booking_date TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN booking_time TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN table_number TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN order_type TEXT DEFAULT "delivery"').run(); // "delivery", "pickup", "table"
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN customer_email TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_customers ADD COLUMN favorites JSON DEFAULT "[]"').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_customers ADD COLUMN wishlist JSON DEFAULT "[]"').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_customers ADD COLUMN addresses JSON DEFAULT "[]"').run();
+} catch(e) {}
+
+// Migraciones para Venta de Víveres (Peso y fracciones)
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN unit_type TEXT DEFAULT "unidad"').run(); // "unidad", "kg", "litro"
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN step_size REAL DEFAULT 1').run(); // 1 para unidad, 0.1 o 0.25 para peso
+} catch(e) {}
+
+// Migraciones Multi-Tenant
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN workspace_id TEXT').run();
+  db.prepare("UPDATE ecommerce_products SET workspace_id = 'default_workspace' WHERE workspace_id IS NULL").run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN workspace_id TEXT').run();
+  db.prepare("UPDATE ecommerce_orders_v2 SET workspace_id = 'default_workspace' WHERE workspace_id IS NULL").run();
+} catch (err) {}
+
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN stock_deducted INTEGER DEFAULT 0').run();
+} catch (err) {}
+
+// Migraciones para Logística/Inventario
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN cogs REAL DEFAULT 0').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN min_stock INTEGER DEFAULT 5').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN max_stock INTEGER').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN supplier TEXT').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN stock_vitrina INTEGER DEFAULT 0').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_products ADD COLUMN metadata TEXT DEFAULT \'{}\'').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE workspaces ADD COLUMN store_slug TEXT').run();
+  db.prepare("UPDATE workspaces SET store_slug = 'tienda-ejemplo' WHERE id = 'default_workspace'").run();
+} catch(e) {}
+
+// Migración para Super Admin (Suspensión)
+try {
+  db.prepare('ALTER TABLE workspaces ADD COLUMN status TEXT DEFAULT "Activo"').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN discount_code TEXT').run();
 } catch(e) {}
 
 export default db;

@@ -13,10 +13,11 @@ export default function EcommerceDashboard() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
         const [summaryRes, topRes, salesRes] = await Promise.all([
-          fetch(`http://localhost:3001/api/ecommerce/analytics/summary?range=${timeRange}`),
-          fetch(`http://localhost:3001/api/ecommerce/analytics/top-products?range=${timeRange}`),
-          fetch(`http://localhost:3001/api/ecommerce/analytics/sales-by-date?range=${timeRange}`)
+          fetch(`http://localhost:3001/api/ecommerce/analytics/summary?range=${timeRange}&workspaceId=${workspaceId}`),
+          fetch(`http://localhost:3001/api/ecommerce/analytics/top-products?range=${timeRange}&workspaceId=${workspaceId}`),
+          fetch(`http://localhost:3001/api/ecommerce/analytics/sales-by-date?range=${timeRange}&workspaceId=${workspaceId}`)
         ]);
         
         if (summaryRes.ok) setSummary(await summaryRes.json());

@@ -5,6 +5,10 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './db.js';
+import { OAuth2Client } from 'google-auth-library';
+
+const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,6 +136,7 @@ app.delete('/api/services/:id', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // --- RUTAS DE PRESUPUESTOS (BUDGETS) ---
 
@@ -305,12 +310,30 @@ app.post('/api/workspaces', (req, res) => {
 
 app.put('/api/workspaces/:id/config', (req, res) => {
   const { id } = req.params;
-  const { config } = req.body;
+  const { config, store_slug } = req.body;
   try {
     db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(
       JSON.stringify(config || {}),
       id
     );
+
+    if (store_slug) {
+      db.prepare('UPDATE workspaces SET store_slug = ? WHERE id = ?').run(store_slug, id);
+    }
+
+    // Sembrar categorías por defecto si se pasan en el config
+    if (config && config.categories && Array.isArray(config.categories)) {
+      const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, order_index) VALUES (?, ?)');
+      const currentMax = db.prepare('SELECT MAX(order_index) as maxIdx FROM categories').get();
+      let nextIndex = (currentMax.maxIdx || 0) + 1;
+      
+      db.transaction(() => {
+        for (const catName of config.categories) {
+          insertCategory.run(catName, nextIndex++);
+        }
+      })();
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -329,11 +352,101 @@ app.delete('/api/workspaces/:id', (req, res) => {
   }
 });
 
+app.post('/api/workspaces/merchant/login', (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const workspaces = db.prepare('SELECT id, name, config, store_slug, status FROM workspaces').all();
+    const ws = workspaces.find(w => {
+      try {
+        const cfg = JSON.parse(w.config || '{}');
+        return cfg.adminEmail === email;
+      } catch { return false; }
+    });
+    if (!ws) return res.status(401).json({ error: 'No se encontró una tienda con ese correo' });
+
+    if (ws.status === 'Suspendido') {
+      return res.status(403).json({ error: 'Tu tienda ha sido suspendida por el administrador.' });
+    }
+
+    const cfg = JSON.parse(ws.config || '{}');
+    if (cfg.adminPassword && cfg.adminPassword !== password) {
+      return res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
+
+    res.json({ id: ws.id, name: ws.name, store_slug: ws.store_slug });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/workspaces/store/:slug', (req, res) => {
+  const { slug } = req.params;
+  try {
+    const ws = db.prepare('SELECT id, name, config, store_slug, status FROM workspaces WHERE store_slug = ?').get(slug);
+    if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
+    if (ws.status === 'Suspendido') return res.status(403).json({ error: 'Tienda temporalmente no disponible' });
+    
+    res.json({
+      id: ws.id,
+      name: ws.name,
+      store_slug: ws.store_slug,
+      config: ws.config ? JSON.parse(ws.config) : {}
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/market/stores', (req, res) => {
+  try {
+    const stores = db.prepare("SELECT id, name, config, store_slug FROM workspaces WHERE store_slug IS NOT NULL AND store_slug != '' AND status != 'Suspendido'").all();
+    const formatted = stores.map(ws => {
+      let parsedConfig = {};
+      try {
+        parsedConfig = ws.config ? JSON.parse(ws.config) : {};
+      } catch(e) {}
+      
+      const storefrontConfig = parsedConfig.storefront || parsedConfig;
+      
+      return {
+        id: ws.id,
+        name: ws.name,
+        slug: ws.store_slug,
+        logoUrl: storefrontConfig.logoUrl || null,
+        heroUrl: storefrontConfig.heroUrl || null,
+        description: storefrontConfig.texts?.heroSub || 'Descubre nuestros productos'
+      };
+    });
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- RUTAS DE ECOMMERCE PRODUCTS ---
 
 app.get('/api/ecommerce/products', (req, res) => {
+  const workspaceId = req.query.workspaceId || req.query.workspace_id;
   try {
-    const products = db.prepare('SELECT * FROM ecommerce_products ORDER BY created_at DESC').all();
+    let products;
+    if (workspaceId) {
+      products = db.prepare(`
+        SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
+        FROM ecommerce_products p
+        LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
+        WHERE p.workspace_id = ?
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+      `).all(workspaceId);
+    } else {
+      products = db.prepare(`
+        SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
+        FROM ecommerce_products p
+        LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
+        GROUP BY p.id
+        ORDER BY p.created_at DESC
+      `).all();
+    }
     res.json(products);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -352,14 +465,14 @@ app.get('/api/ecommerce/products/:id', (req, res) => {
 });
 
 app.post('/api/ecommerce/products', (req, res) => {
-  const { name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice } = req.body;
+  const { id: reqId, name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice, expirationDate, batchNumber, unit_type, step_size, workspace_id, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata } = req.body;
   try {
-    const id = Date.now().toString();
+    const id = reqId || Date.now().toString();
     const insert = db.prepare(`
-      INSERT INTO ecommerce_products (id, name, price, category, stock, description, publish_status, image_url, variants, created_at, is_offer, discount_price)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO ecommerce_products (id, name, price, category, stock, description, publish_status, image_url, variants, created_at, is_offer, discount_price, expiration_date, batch_number, unit_type, step_size, workspace_id, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insert.run(id, name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, new Date().toISOString(), isOffer ? 1 : 0, discountPrice || 0);
+    insert.run(id, name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, new Date().toISOString(), isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, workspace_id || 'default_workspace', cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? JSON.stringify(metadata) : '{}');
     res.status(201).json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -368,14 +481,68 @@ app.post('/api/ecommerce/products', (req, res) => {
 
 app.put('/api/ecommerce/products/:id', (req, res) => {
   const { id } = req.params;
-  const { name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice } = req.body;
+  const { name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice, expirationDate, batchNumber, unit_type, step_size, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata } = req.body;
   try {
     const update = db.prepare(`
       UPDATE ecommerce_products
-      SET name = ?, price = ?, category = ?, stock = ?, description = ?, publish_status = ?, image_url = ?, variants = ?, is_offer = ?, discount_price = ?
+      SET name = ?, price = ?, category = ?, stock = ?, description = ?, publish_status = ?, image_url = ?, variants = ?, is_offer = ?, discount_price = ?, expiration_date = ?, batch_number = ?, unit_type = ?, step_size = ?, cogs = ?, min_stock = ?, max_stock = ?, supplier = ?, stock_vitrina = ?, metadata = ?
       WHERE id = ?
     `);
-    update.run(name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, isOffer ? 1 : 0, discountPrice || 0, id);
+    update.run(name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? (typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : '{}', id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/ecommerce/products/:id/offer', (req, res) => {
+  const { id } = req.params;
+  const { isOffer, discountPrice } = req.body;
+  try {
+    const update = db.prepare(`
+      UPDATE ecommerce_products
+      SET is_offer = ?, discount_price = ?
+      WHERE id = ?
+    `);
+    update.run(isOffer ? 1 : 0, discountPrice || 0, id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/ecommerce/products/:id', (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  try {
+    // Definir mapa de campos camelCase a snake_case
+    const fieldMap = {
+      publishStatus: 'publish_status',
+      imageUrl: 'image_url',
+      isOffer: 'is_offer',
+      discountPrice: 'discount_price',
+      expirationDate: 'expiration_date',
+      batchNumber: 'batch_number',
+      workspaceId: 'workspace_id'
+    };
+
+    const keys = [];
+    const values = [];
+
+    Object.keys(updates).forEach(k => {
+      if (k !== 'id') {
+        const mappedKey = fieldMap[k] || k;
+        keys.push(mappedKey);
+        values.push(updates[k]);
+      }
+    });
+
+    if (keys.length === 0) return res.json({ success: true });
+    
+    const setClause = keys.map(k => `${k} = ?`).join(', ');
+    values.push(id);
+    const update = db.prepare(`UPDATE ecommerce_products SET ${setClause} WHERE id = ?`);
+    update.run(...values);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -395,8 +562,29 @@ app.delete('/api/ecommerce/products/:id', (req, res) => {
 // --- RUTAS DE ECOMMERCE PEDIDOS (ORDERS) ---
 
 app.get('/api/ecommerce/orders', (req, res) => {
+  const { workspaceId } = req.query;
   try {
-    const orders = db.prepare('SELECT * FROM ecommerce_orders_v2 ORDER BY date DESC').all();
+    let orders;
+    if (workspaceId) {
+      orders = db.prepare('SELECT * FROM ecommerce_orders_v2 WHERE workspace_id = ? ORDER BY date DESC').all(workspaceId);
+    } else {
+      orders = db.prepare('SELECT * FROM ecommerce_orders_v2 ORDER BY date DESC').all();
+    }
+    const formatted = orders.map(o => ({
+      ...o,
+      paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
+      items: o.items ? JSON.parse(o.items) : []
+    }));
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
+  const { email } = req.params;
+  try {
+    const orders = db.prepare('SELECT * FROM ecommerce_orders_v2 WHERE customer_email = ? ORDER BY date DESC').all(email);
     const formatted = orders.map(o => ({
       ...o,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
@@ -409,16 +597,17 @@ app.get('/api/ecommerce/orders', (req, res) => {
 });
 
 app.post('/api/ecommerce/orders', (req, res) => {
-  const { customer, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile } = req.body;
+  const { customer, customerEmail, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, bookingDate, bookingTime, tableNumber, orderType, workspace_id, discount_code } = req.body;
   try {
     const id = 'ORD-' + Math.floor(1000 + Math.random() * 9000); // Generar ID ej: ORD-1234
     const insert = db.prepare(`
-      INSERT INTO ecommerce_orders_v2 (id, customer, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO ecommerce_orders_v2 (id, customer, customer_email, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, booking_date, booking_time, table_number, order_type, workspace_id, discount_code)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insert.run(
       id,
       customer || 'Cliente Anónimo',
+      customerEmail || null,
       date || new Date().toISOString(),
       total || 0,
       status || 'Pendiente',
@@ -428,8 +617,26 @@ app.post('/api/ecommerce/orders', (req, res) => {
       paymentStatus || 'pending',
       paymentDetails ? JSON.stringify(paymentDetails) : null,
       items ? JSON.stringify(items) : '[]',
-      isMobile ? 1 : 0
+      isMobile ? 1 : 0,
+      bookingDate || null,
+      bookingTime || null,
+      tableNumber || null,
+      orderType || 'delivery',
+      workspace_id || 'default_workspace',
+      discount_code || null
     );
+    
+    // Si usó un código de descuento, sumarle al contador de usos
+    if (discount_code) {
+      db.prepare(`
+        UPDATE ecommerce_promotions 
+        SET usage_count = usage_count + 1 
+        WHERE code = ? AND workspace_id = ?
+      `).run(discount_code.toUpperCase(), workspace_id || 'default_workspace');
+    }
+    
+
+
     res.status(201).json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -438,19 +645,179 @@ app.post('/api/ecommerce/orders', (req, res) => {
 
 app.put('/api/ecommerce/orders/:id', (req, res) => {
   const { id } = req.params;
-  const { status, paymentStatus } = req.body;
+  const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType } = req.body;
   try {
     if (status) {
+      if (status === 'Preparando') {
+        const order = db.prepare('SELECT items, stock_deducted, workspace_id FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+        if (order && !order.stock_deducted) {
+          let items = [];
+          try { items = JSON.parse(order.items || '[]'); } catch(e) {}
+          
+          for (const item of items) {
+             const product = db.prepare('SELECT name, stock_vitrina FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, order.workspace_id);
+             if (!product || (product.stock_vitrina || 0) < item.quantity) {
+                return res.status(400).json({ error: `Sin stock suficiente en vitrina para: ${product ? product.name : item.name}. Quedan ${product ? (product.stock_vitrina || 0) : 0} unidades.` });
+             }
+          }
+          
+          const updateStock = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina - ? WHERE id = ? AND workspace_id = ?');
+          db.transaction(() => {
+             for (const item of items) {
+                updateStock.run(item.quantity, item.id, order.workspace_id);
+             }
+          })();
+          
+          db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?').run(id);
+        }
+      }
       db.prepare('UPDATE ecommerce_orders_v2 SET status = ? WHERE id = ?').run(status, id);
     }
     if (paymentStatus) {
       db.prepare('UPDATE ecommerce_orders_v2 SET paymentStatus = ? WHERE id = ?').run(paymentStatus, id);
     }
+    if (bookingDate !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET booking_date = ? WHERE id = ?').run(bookingDate, id);
+    if (bookingTime !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET booking_time = ? WHERE id = ?').run(bookingTime, id);
+    if (tableNumber !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET table_number = ? WHERE id = ?').run(tableNumber, id);
+    if (orderType !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET order_type = ? WHERE id = ?').run(orderType, id);
+    
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// --- RUTAS DE E-COMMERCE CLIENTES (CUSTOMERS) ---
+
+app.get('/api/ecommerce/customers', (req, res) => {
+  try {
+    const customers = db.prepare('SELECT * FROM ecommerce_customers ORDER BY join_date DESC').all();
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/customers/register', (req, res) => {
+  const { email, password } = req.body;
+  let { name } = req.body;
+  if (!name) name = email.split('@')[0];
+
+  try {
+    const existing = db.prepare('SELECT id FROM ecommerce_customers WHERE email = ?').get(email);
+    if (existing) {
+      return res.status(400).json({ error: 'El correo ya está registrado' });
+    }
+    
+    const id = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
+    const insert = db.prepare(`
+      INSERT INTO ecommerce_customers (id, name, email, password, doc_id, phone, address, join_date, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insert.run(
+      id,
+      name,
+      email,
+      password, // En un sistema real esto debería estar hasheado
+      '',
+      '',
+      '',
+      new Date().toISOString().split('T')[0],
+      'Activo'
+    );
+    
+    const newUser = { id, name, email, docId: '', phone: '', address: '', joinDate: new Date().toISOString().split('T')[0] };
+    res.status(201).json({ success: true, user: newUser });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/customers/login', (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = db.prepare('SELECT * FROM ecommerce_customers WHERE email = ? AND password = ?').get(email, password);
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
+    
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ success: true, user: userWithoutPassword });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/customers/google-login', async (req, res) => {
+  const { credential } = req.body;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    if (!email) {
+      return res.status(400).json({ error: 'No se pudo obtener el email de Google' });
+    }
+
+    let user = db.prepare('SELECT * FROM ecommerce_customers WHERE email = ?').get(email);
+    
+    if (!user) {
+      // Registro automático
+      const id = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
+      const insert = db.prepare(`
+        INSERT INTO ecommerce_customers (id, name, email, password, doc_id, phone, address, join_date, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insert.run(
+        id,
+        name,
+        email,
+        'GOOGLE_AUTH',
+        '',
+        '',
+        '',
+        new Date().toISOString().split('T')[0],
+        'Activo'
+      );
+      user = db.prepare('SELECT * FROM ecommerce_customers WHERE id = ?').get(id);
+    }
+    
+    const { password: _, ...userWithoutPassword } = user;
+    res.json({ success: true, user: userWithoutPassword });
+  } catch (err) {
+    console.error("Error validando token de Google:", err);
+    res.status(401).json({ error: 'Token de Google inválido o expirado' });
+  }
+});
+
+app.put('/api/ecommerce/customers/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, docId, phone, address, favorites, wishlist, addresses } = req.body;
+  try {
+    const update = db.prepare(`
+      UPDATE ecommerce_customers
+      SET name = ?, doc_id = ?, phone = ?, address = ?, favorites = ?, wishlist = ?, addresses = ?
+      WHERE id = ?
+    `);
+    update.run(
+      name, 
+      docId || '', 
+      phone || '', 
+      address || '', 
+      favorites ? JSON.stringify(favorites) : '[]', 
+      wishlist ? JSON.stringify(wishlist) : '[]',
+      addresses ? JSON.stringify(addresses) : '[]',
+      id
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // --- RUTAS DE E-COMMERCE ANALYTICS Y BITACORA ---
 
@@ -509,6 +876,111 @@ app.post('/api/ecommerce/seed', (req, res) => {
   }
 });
 
+// --- RUTAS DE E-COMMERCE RESEÑAS ---
+
+app.get('/api/ecommerce/reviews', (req, res) => {
+  const workspaceId = req.query.workspaceId || 'default_workspace';
+  try {
+    const reviews = db.prepare("SELECT * FROM ecommerce_reviews WHERE workspace_id = ? ORDER BY created_at DESC").all(workspaceId);
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/reviews', (req, res) => {
+  const { workspaceId = 'default_workspace', productId, productName, customerId, customerName, rating, comment } = req.body;
+  const id = 'rev_' + Date.now();
+  try {
+    const insert = db.prepare(`
+      INSERT INTO ecommerce_reviews (id, workspace_id, product_id, product_name, customer_id, customer_name, rating, comment, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente', ?)
+    `);
+    insert.run(id, workspaceId, productId, productName, customerId || null, customerName, rating, comment, new Date().toISOString());
+    res.status(201).json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/ecommerce/reviews/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    if (status === 'Rechazado') {
+      db.prepare("DELETE FROM ecommerce_reviews WHERE id = ?").run(id);
+    } else {
+      db.prepare("UPDATE ecommerce_reviews SET status = ? WHERE id = ?").run(status, id);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/ecommerce/reviews/:id/reply', (req, res) => {
+  const { id } = req.params;
+  const { reply } = req.body;
+  try {
+    db.prepare("UPDATE ecommerce_reviews SET reply = ? WHERE id = ?").run(reply, id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- RUTAS DE E-COMMERCE PROMOCIONES ---
+
+app.get('/api/ecommerce/promotions', (req, res) => {
+  const workspaceId = req.query.workspaceId || 'default_workspace';
+  try {
+    const promotions = db.prepare("SELECT * FROM ecommerce_promotions WHERE workspace_id = ? ORDER BY created_at DESC").all(workspaceId);
+    res.json(promotions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/promotions', (req, res) => {
+  const { workspaceId = 'default_workspace', code, type, value, usageLimit = -1, expiresAt = null } = req.body;
+  const id = 'promo_' + Date.now();
+  try {
+    const check = db.prepare("SELECT id FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?").get(code, workspaceId);
+    if (check) return res.status(400).json({ error: 'El código ya existe' });
+
+    db.prepare(`
+      INSERT INTO ecommerce_promotions (id, workspace_id, code, type, value, usage_limit, created_at, expires_at) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, workspaceId, code.toUpperCase(), type, value, usageLimit, new Date().toISOString(), expiresAt);
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/ecommerce/promotions/:id', (req, res) => {
+  try {
+    db.prepare("DELETE FROM ecommerce_promotions WHERE id = ?").run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/promotions/validate', (req, res) => {
+  const { code, workspaceId = 'default_workspace' } = req.body;
+  try {
+    const promo = db.prepare("SELECT * FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?").get(code.toUpperCase(), workspaceId);
+    if (!promo) return res.status(404).json({ error: 'Cupón no válido' });
+    if (promo.status !== 'Activo') return res.status(400).json({ error: 'Cupón inactivo o expirado' });
+    if (promo.usage_limit > 0 && promo.usage_count >= promo.usage_limit) return res.status(400).json({ error: 'Cupón agotado' });
+    
+    res.json(promo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function getDateFilter(range) {
   const now = new Date();
   let pastDate = new Date();
@@ -531,14 +1003,23 @@ function getDateFilter(range) {
   };
 }
 
-// Resumen de analítica (KPIs)
 app.get('/api/ecommerce/analytics/summary', (req, res) => {
   try {
     const range = req.query.range || '7d';
+    const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const currentSales = db.prepare('SELECT SUM(total) as revenue, COUNT(*) as count FROM ecommerce_sales WHERE created_at >= ?').get(dates.currentStart);
-    const prevSales = db.prepare('SELECT SUM(total) as revenue, COUNT(*) as count FROM ecommerce_sales WHERE created_at >= ? AND created_at < ?').get(dates.previousStart, dates.currentStart);
+    const currentSales = db.prepare(`
+      SELECT SUM(total) as revenue, COUNT(*) as count 
+      FROM ecommerce_orders_v2 
+      WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
+    `).get(dates.currentStart, workspaceId);
+    
+    const prevSales = db.prepare(`
+      SELECT SUM(total) as revenue, COUNT(*) as count 
+      FROM ecommerce_orders_v2 
+      WHERE date >= ? AND date < ? AND workspace_id = ? AND status != 'Cancelado'
+    `).get(dates.previousStart, dates.currentStart, workspaceId);
 
     const currentRevenue = currentSales.revenue || 0;
     const prevRevenue = prevSales.revenue || 0;
@@ -552,8 +1033,7 @@ app.get('/api/ecommerce/analytics/summary', (req, res) => {
     const prevAov = prevOrders === 0 ? 0 : prevRevenue / prevOrders;
     const aovChange = prevAov === 0 ? (currentAov > 0 ? 100 : 0) : ((currentAov - prevAov) / prevAov) * 100;
 
-    const productsCount = db.prepare('SELECT COUNT(*) as count FROM ecommerce_products').get().count || 0;
-    const prevProductsCount = productsCount; // Simplification, hard to know previous without product creation dates tracking easily, assume 0 change
+    const productsCount = db.prepare('SELECT COUNT(*) as count FROM ecommerce_products WHERE workspace_id = ?').get(workspaceId).count || 0;
     const productsChange = 0;
 
     res.json({
@@ -575,18 +1055,31 @@ app.get('/api/ecommerce/analytics/summary', (req, res) => {
 app.get('/api/ecommerce/analytics/top-products', (req, res) => {
   try {
     const range = req.query.range || '7d';
+    const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const top = db.prepare(`
-      SELECT p.id, p.name, SUM(si.quantity) as sales, SUM(si.quantity * si.price) as revenue
-      FROM ecommerce_products p
-      JOIN ecommerce_sale_items si ON p.id = si.product_id
-      JOIN ecommerce_sales s ON si.sale_id = s.id
-      WHERE s.created_at >= ?
-      GROUP BY p.id
-      ORDER BY sales DESC
-      LIMIT 5
-    `).all(dates.currentStart);
+    const orders = db.prepare(`
+      SELECT items 
+      FROM ecommerce_orders_v2 
+      WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
+    `).all(dates.currentStart, workspaceId);
+    
+    const productStats = {};
+    
+    orders.forEach(order => {
+      let items = [];
+      try { items = JSON.parse(order.items || '[]'); } catch(e) {}
+      
+      items.forEach(item => {
+        if (!productStats[item.id]) {
+          productStats[item.id] = { id: item.id, name: item.name, sales: 0, revenue: 0 };
+        }
+        productStats[item.id].sales += Number(item.quantity || 1);
+        productStats[item.id].revenue += Number(item.price || 0) * Number(item.quantity || 1);
+      });
+    });
+
+    const top = Object.values(productStats).sort((a, b) => b.sales - a.sales).slice(0, 5);
     res.json(top);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -597,16 +1090,324 @@ app.get('/api/ecommerce/analytics/top-products', (req, res) => {
 app.get('/api/ecommerce/analytics/sales-by-date', (req, res) => {
   try {
     const range = req.query.range || '7d';
+    const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
     const data = db.prepare(`
-      SELECT substr(created_at, 1, 10) as date, SUM(total) as revenue, COUNT(*) as orders
-      FROM ecommerce_sales
-      WHERE created_at >= ?
-      GROUP BY substr(created_at, 1, 10)
+      SELECT substr(date, 1, 10) as date, SUM(total) as revenue, COUNT(*) as orders
+      FROM ecommerce_orders_v2
+      WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
+      GROUP BY substr(date, 1, 10)
       ORDER BY date ASC
-    `).all(dates.currentStart);
+    `).all(dates.currentStart, workspaceId);
     res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Tracking de Analítica
+app.post('/api/ecommerce/track', (req, res) => {
+  const { workspaceId, eventType, source } = req.body;
+  if (!workspaceId || !eventType) return res.status(400).json({ error: 'Missing data' });
+  try {
+    const id = Date.now().toString();
+    const created_at = new Date().toISOString();
+    db.prepare('INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(id, workspaceId, eventType, source || 'Directo', created_at);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Embudo de Conversión
+app.get('/api/ecommerce/analytics/funnel', (req, res) => {
+  try {
+    const range = req.query.range || '30d';
+    const workspaceId = req.query.workspaceId || 'default_workspace';
+    const dates = getDateFilter(range);
+
+    const trackingData = db.prepare(`
+      SELECT event_type, COUNT(*) as count
+      FROM ecommerce_tracking
+      WHERE created_at >= ? AND workspace_id = ?
+      GROUP BY event_type
+    `).all(dates.currentStart, workspaceId);
+
+    const purchases = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM ecommerce_orders_v2
+      WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
+    `).get(dates.currentStart, workspaceId).count;
+
+    const sourcesData = db.prepare(`
+      SELECT source, COUNT(*) as count
+      FROM ecommerce_tracking
+      WHERE created_at >= ? AND workspace_id = ? AND event_type = 'visit'
+      GROUP BY source
+    `).all(dates.currentStart, workspaceId);
+
+    const funnel = { visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases };
+    trackingData.forEach(row => {
+      if (row.event_type === 'visit') funnel.visitors = row.count;
+      if (row.event_type === 'add_to_cart') funnel.addedToCart = row.count;
+      if (row.event_type === 'checkout_start') funnel.checkoutStarted = row.count;
+    });
+
+    // Calcular tráfico
+    let totalVisits = 0;
+    const traffic = { org: 0, soc: 0, dir: 0 };
+    sourcesData.forEach(row => {
+      totalVisits += row.count;
+      const s = row.source.toLowerCase();
+      if (s.includes('google') || s.includes('bing') || s.includes('yahoo')) traffic.org += row.count;
+      else if (s.includes('instagram') || s.includes('facebook') || s.includes('t.co') || s.includes('twitter') || s.includes('tiktok')) traffic.soc += row.count;
+      else traffic.dir += row.count;
+    });
+
+    if (totalVisits > 0) {
+      traffic.org = Math.round((traffic.org / totalVisits) * 100);
+      traffic.soc = Math.round((traffic.soc / totalVisits) * 100);
+      traffic.dir = Math.round((traffic.dir / totalVisits) * 100);
+    }
+
+    res.json({ funnel, traffic });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Carritos abandonados y Recuperados
+app.get('/api/ecommerce/analytics/abandoned-carts', (req, res) => {
+  try {
+    const workspaceId = req.query.workspaceId || 'default_workspace';
+    
+    const carts = db.prepare(`
+      SELECT * FROM ecommerce_orders_v2 
+      WHERE workspace_id = ? AND status IN ('Pendiente', 'Cancelado', 'Aprobado', 'Completado', 'Procesando', 'Enviado')
+      ORDER BY date DESC LIMIT 100
+    `).all(workspaceId);
+
+    const formatted = carts.map(c => {
+      let displayStatus = 'Pendiente';
+      if (['Aprobado', 'Completado', 'Procesando', 'Enviado'].includes(c.status)) displayStatus = 'Recuperado';
+      else if (c.status === 'Cancelado') displayStatus = 'Perdido';
+      
+      return {
+        id: c.id,
+        user: c.customer_name || 'Anónimo',
+        time: c.date.substring(0, 10),
+        status: displayStatus,
+        total: c.total,
+        dbStatus: c.status
+      };
+    });
+    
+    const displayList = formatted.filter(c => c.status !== 'Perdido').slice(0, 50);
+    res.json(displayList);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Super Admin Routes ---
+const SUPERADMIN_KEY = process.env.VITE_SUPERADMIN_KEY || 'axon2026';
+
+const requireSuperAdmin = (req, res, next) => {
+  const key = req.headers['x-superadmin-key'];
+  if (key === SUPERADMIN_KEY) {
+    next();
+  } else {
+    res.status(401).json({ error: 'No autorizado' });
+  }
+};
+
+app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
+  try {
+    const totalMerchants = db.prepare('SELECT COUNT(*) as count FROM workspaces').get().count;
+    const totalCustomers = db.prepare('SELECT COUNT(*) as count FROM ecommerce_customers').get().count;
+    const totalProducts = db.prepare('SELECT COUNT(*) as count FROM ecommerce_products').get().count;
+    
+    const ordersData = db.prepare('SELECT total, status, paymentMethod FROM ecommerce_orders_v2').all();
+    let totalGMV = 0;
+    let totalOrders = 0;
+    ordersData.forEach(o => {
+      if (o.status !== 'Cancelado' && o.status !== 'Perdido') {
+        totalGMV += Number(o.total || 0);
+        totalOrders++;
+      }
+    });
+
+    const aov = totalOrders > 0 ? totalGMV / totalOrders : 0;
+
+    const pmMap = {};
+    const statusMap = {};
+    ordersData.forEach(o => {
+      // Status
+      const statusLabel = o.status || 'Desconocido';
+      if (!statusMap[statusLabel]) statusMap[statusLabel] = 0;
+      statusMap[statusLabel]++;
+
+      // Payment Method
+      if (statusLabel !== 'Cancelado' && statusLabel !== 'Perdido') {
+        const pmLabel = o.paymentMethod || 'Otro';
+        if (!pmMap[pmLabel]) pmMap[pmLabel] = 0;
+        pmMap[pmLabel]++;
+      }
+    });
+
+    const paymentMethodsChart = Object.keys(pmMap).map(name => ({ name, value: pmMap[name] }));
+    const orderStatusesChart = Object.keys(statusMap).map(name => ({ name, value: statusMap[name] }));
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentOrders = db.prepare('SELECT date, total, status FROM ecommerce_orders_v2 WHERE date >= ?').all(sevenDaysAgo.toISOString());
+    
+    const chartMap = {};
+    for(let i=6; i>=0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      chartMap[d.toISOString().substring(0, 10)] = 0;
+    }
+
+    recentOrders.forEach(o => {
+      if (o.status !== 'Cancelado' && o.status !== 'Perdido') {
+        const dateKey = o.date.substring(0, 10);
+        if (chartMap[dateKey] !== undefined) {
+          chartMap[dateKey] += Number(o.total || 0);
+        }
+      }
+    });
+
+    const salesChartData = Object.keys(chartMap).map(date => ({
+      date,
+      sales: chartMap[date]
+    }));
+
+    const allMerchants = db.prepare('SELECT id, name FROM workspaces').all();
+    const merchantMap = {};
+    allMerchants.forEach(m => merchantMap[m.id] = { name: m.name, sales: 0 });
+
+    const allOrdersWithWorkspace = db.prepare('SELECT workspace_id, total, status FROM ecommerce_orders_v2').all();
+    allOrdersWithWorkspace.forEach(o => {
+      if (o.status !== 'Cancelado' && o.status !== 'Perdido' && o.workspace_id && merchantMap[o.workspace_id]) {
+        merchantMap[o.workspace_id].sales += Number(o.total || 0);
+      }
+    });
+
+    const topMerchants = Object.values(merchantMap)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5);
+
+    const productMap = {};
+    const allOrdersItems = db.prepare("SELECT items FROM ecommerce_orders_v2 WHERE status != 'Cancelado' AND status != 'Perdido'").all();
+    allOrdersItems.forEach(row => {
+      if (row.items) {
+        try {
+          const items = JSON.parse(row.items);
+          items.forEach(item => {
+            if (!productMap[item.name]) productMap[item.name] = 0;
+            productMap[item.name] += Number(item.quantity || 1);
+          });
+        } catch (e) {}
+      }
+    });
+
+    const topProducts = Object.keys(productMap)
+      .map(name => ({ name, qty: productMap[name] }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5);
+
+    res.json({
+      totalMerchants,
+      totalCustomers,
+      totalOrders,
+      totalGMV,
+      aov,
+      totalProducts,
+      salesChartData,
+      topMerchants,
+      topProducts,
+      paymentMethodsChart,
+      orderStatusesChart
+    });
+
+  } catch (err) {
+    console.error("SuperAdmin Stats Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/superadmin/merchants', requireSuperAdmin, (req, res) => {
+  try {
+    const merchants = db.prepare('SELECT id, name, created_at, store_slug, status, config FROM workspaces').all();
+    res.json(merchants);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/superadmin/merchants/:id', requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  try {
+    db.transaction(() => {
+      db.prepare('DELETE FROM ecommerce_products WHERE workspace_id = ?').run(id);
+      db.prepare('DELETE FROM ecommerce_orders_v2 WHERE workspace_id = ?').run(id);
+      db.prepare('DELETE FROM ecommerce_promotions WHERE workspace_id = ?').run(id);
+      db.prepare('DELETE FROM ecommerce_reviews WHERE workspace_id = ?').run(id);
+      db.prepare('DELETE FROM ecommerce_tracking WHERE workspace_id = ?').run(id);
+      db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
+    })();
+    res.json({ message: 'Merchant deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/superadmin/customers', requireSuperAdmin, (req, res) => {
+  try {
+    const customers = db.prepare('SELECT id, name, email, phone, doc_id, join_date FROM ecommerce_customers').all();
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/superadmin/customers/:id', requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare('DELETE FROM ecommerce_customers WHERE id = ?').run(id);
+    res.json({ message: 'Customer deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    if (status !== 'Activo' && status !== 'Suspendido') {
+      return res.status(400).json({ error: 'Status invalido' });
+    }
+    db.prepare('UPDATE workspaces SET status = ? WHERE id = ?').run(status, id);
+    res.json({ success: true, message: `Estado actualizado a ${status}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/superadmin/monitor', requireSuperAdmin, (req, res) => {
+  try {
+    const recentOrders = db.prepare(`
+      SELECT o.id, o.customer, o.date, o.total, o.status, o.workspace_id, w.name as workspace_name
+      FROM ecommerce_orders_v2 o
+      LEFT JOIN workspaces w ON o.workspace_id = w.id
+      ORDER BY o.date DESC
+      LIMIT 20
+    `).all();
+    res.json(recentOrders);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

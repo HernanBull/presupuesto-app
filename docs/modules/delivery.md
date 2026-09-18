@@ -22,3 +22,9 @@
 
 ## ⚠️ Notas Críticas / Gotchas
 - El `telegramEngine` se inicializa a nivel de Router en un `useEffect`. Es vital asegurarse de que `stopTelegramEngine()` limpie correctamente en la función de cleanup del hook para evitar memory leaks o múltiples conexiones al cambiar entre módulos de la plataforma.
+
+## 📜 Historial de Cambios / Auditoría
+
+- **Fecha y Hora:** 2026-09-08 14:50:46
+- **Versión:** 1.0.0
+- **Descripción:** Implementación inicial del MVP del módulo de Delivery. Se crearon las vistas `ActiveDeliveries`, `AgencySettings` y `DeliveryAgencySelection`. Se integró `telegramService.js` para gestionar notificaciones y conexión con bots de Telegram.
