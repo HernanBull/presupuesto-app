@@ -130,6 +130,24 @@ db.exec(`
     source TEXT,
     created_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS ecommerce_notifications (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT,
+    type TEXT,
+    message TEXT,
+    product_id TEXT,
+    customer_id TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS password_resets (
+    email TEXT,
+    code TEXT,
+    user_type TEXT,
+    expires_at TEXT
+  );
 `);
 
 // Migración simple por si la tabla budgets ya existía sin la columna name o maintenance
@@ -277,6 +295,10 @@ try {
 
 try {
   db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN discount_code TEXT').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN delivery_pin TEXT').run();
 } catch(e) {}
 
 export default db;

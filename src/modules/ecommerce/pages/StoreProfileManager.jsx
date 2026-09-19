@@ -43,7 +43,7 @@ export default function StoreProfileManager() {
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/workspaces')
+    fetch('http://localhost:3001/api/workspaces', { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const ws = data.find(w => w.id === workspaceId);
@@ -88,7 +88,7 @@ export default function StoreProfileManager() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch('http://localhost:3001/api/workspaces');
+      const res = await fetch('http://localhost:3001/api/workspaces', { cache: 'no-store' });
       const data = await res.json();
       const ws = data.find(w => w.id === workspaceId) || { config: {} };
       
@@ -383,7 +383,11 @@ export default function StoreProfileManager() {
                       {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(dia => (
                         <button 
                           key={dia}
-                          onClick={() => setWorkDays(prev => ({ ...prev, [dia]: !prev[dia] }))}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setWorkDays(prev => ({ ...prev, [dia]: !prev[dia] }));
+                          }}
                           className={`px-3 py-1 text-xs font-bold rounded-lg border transition-colors ${
                             workDays[dia] 
                             ? 'bg-violet-100 border-violet-200 text-violet-700 dark:bg-violet-900/40 dark:border-violet-700 dark:text-violet-300' 

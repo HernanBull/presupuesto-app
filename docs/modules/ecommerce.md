@@ -165,3 +165,44 @@ Revisar la documentación completa en: [Arquitectura de Submódulos de E-commerc
 - **Descripción:** (Integración O2O - Online to Offline y Geolocalización)
   - Creación de `StoreLocationManager.jsx` dentro del panel de comerciantes, usando `navigator.geolocation` y React-Leaflet (OpenStreetMap) para fijar coordenadas GPS precisas del local sin costos de API.
   - Inserción del botón inteligente "📍 Cómo Llegar" en la vista de cliente (`PublicStore.jsx`). Este enlaza directamente a la URL de navegación de la App Nativa de Google Maps, trazando la ruta desde el dispositivo del cliente hasta la tienda física.
+
+- **Fecha y Hora:** 2026-09-19 12:00:00
+- **Versión:** 9.0.0
+- **Descripción:** (Animación Premium de Carrito y CTA Rediseñado)
+  - Se eliminó el botón genérico de `+` de las tarjetas de producto en la vitrina pública (`PublicStore.jsx`) y se reemplazó por un botón CTA de alta conversión (icono de carrito de compras con gradiente y micro-animación `scale`), adoptando las mejores prácticas de UX de e-commerce.
+  - Se implementó una animación "Flying Cart" premium: al hacer clic en el botón de agregar, una miniatura de la imagen del producto despega visualmente y vuela hacia el ícono del carrito en la barra de navegación.
+  - La animación se integró tanto en la sección de **Novedades** (Home), **Ofertas Especiales** y la vista **Catálogo General**, usando el sistema de referencia de IDs de imagen (`product-img-{id}` y `modal-img-{id}`) para detectar las coordenadas de origen de cada producto.
+
+- **Fecha y Hora:** 2026-09-19 12:30:00
+- **Versión:** 9.1.0
+- **Descripción:** (Sistema de Alertas de Stock B2C + Notificaciones B2B en Tiempo Real)
+  - **B2C - Alerta Visual Premium:** Se eliminó por completo el uso del `window.alert()` nativo del navegador. Se implementó un componente de notificación tipo "Toast" animado (Glassmorphism + Framer Motion) que aparece desde la parte superior de la pantalla cuando un cliente intenta agregar al carrito más unidades de las disponibles en vitrina. Se auto-destruye en 4 segundos. Componente: `stockAlert` state dentro de `PublicStore.jsx`.
+  - **B2B - Tabla de Notificaciones:** Se añadió la tabla `ecommerce_notifications` a `server/db.js` con los campos: `id`, `workspace_id`, `type`, `message`, `product_id`, `customer_id`, `is_read`, `created_at`.
+  - **B2B - Endpoints REST:** Se crearon 3 nuevos endpoints en `server/index.js`:
+    - `GET /api/ecommerce/notifications/:workspaceId` — Lee historial de alertas.
+    - `POST /api/ecommerce/notifications` — Registra nueva alerta (disparado silenciosamente desde `PublicStore.jsx` cada vez que hay una intención de compra fallida por falta de stock).
+    - `PUT /api/ecommerce/notifications/:id/read` — Marca como leída una alerta específica.
+  - **B2B - Campana en Panel:** Se añadió un ícono de campana 🔔 (componente `Bell` de lucide-react) en el header del `EcommerceLayout.jsx`, tanto en la versión de escritorio como en la versión mobile. Incluye un punto rojo pulsante (`animate-pulse`) cuando hay notificaciones sin leer.
+  - **B2B - Polling:** El layout realiza un polling automático cada 15 segundos al endpoint de notificaciones para mantener el contador actualizado sin necesidad de recargar la página.
+  - **B2B - Dropdown de Notificaciones:** Al hacer clic en la campana, se despliega un panel flotante (`dropdown`) con las últimas 50 notificaciones. Cada ítem muestra: tipo (badge coloreado), mensaje, fecha y botón para marcar como leída. Al hacer clic en una alerta con `product_id`, el comerciante es redirigido automáticamente al `ProductStudio` del producto afectado y la alerta se marca como leída.
+
+- **Fecha y Hora:** 2026-09-19 12:33:00
+- **Versión:** 9.2.0
+- **Descripción:** (Módulo Dedicado de Gestión de Notificaciones)
+  - Creación de la página `NotificationsManager.jsx` como módulo completo dentro del panel de administración B2B.
+  - **Ruta:** `/ecommerce/notifications` (registrada en `EcommerceRouter.jsx`).
+  - **Navegación:** Ítem "Notificaciones" añadido al menú lateral (`navItems`) en `EcommerceLayout.jsx` con el ícono `Bell`.
+  - **Funcionalidades:**
+    - Buscador en tiempo real que filtra el historial por contenido del mensaje.
+    - Contador de alertas sin leer (badge rojo).
+    - Lista de todas las notificaciones con badges de tipo (`Falta de Stock` vs `Sistema`), fecha/hora, mensaje completo.
+    - Botón "Marcar Leída" individual por notificación.
+    - Botón "Reponer" que lleva directamente al `ProductStudio` del producto, marcando automáticamente como leída la alerta seleccionada.
+    - Diseño escalable: el nombre del módulo es genérico ("Notificaciones") para poder albergar en el futuro otros tipos de avisos (carritos abandonados, devoluciones, nuevas reseñas, etc.).
+  - **Acceso Rápido:** Se añadió un botón "Ver todas las notificaciones" en la parte inferior del dropdown flotante de la campana, tanto en desktop como en mobile.
+
+- **Fecha y Hora:** 2026-09-19 18:32:00
+- **Versión:** 9.3.0
+- **Descripción:** (Funciones Avanzadas de Inventario por Defecto)
+  - Se eliminó la sección "Módulos de Inventario Avanzado" y "Ajustes finos" en `StoreSettings.jsx`.
+  - Las funciones de control de mermas, auditoría de carga, combos de receta, punto de reorden, alerta sobrestock, transferencia multi-almacén y control de caducidad están habilitadas de forma global y permanente en `InventoryManager.jsx` por defecto para todas las tiendas, sin depender de un estado de configuración (`ecommerce_inventory_settings`).

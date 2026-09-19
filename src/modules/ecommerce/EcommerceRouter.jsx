@@ -8,6 +8,7 @@ import ProductStudio from './pages/ProductStudio';
 import OrdersManager from './pages/OrdersManager';
 import PromotionsManager from './pages/PromotionsManager';
 import OffersManager from './pages/OffersManager';
+import NotificationsManager from './pages/NotificationsManager';
 import StorefrontSettings from './pages/StorefrontSettings';
 import CartSettings from './pages/CartSettings';
 import AnalyticsManager from './pages/AnalyticsManager';
@@ -70,6 +71,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="reviews" element={<ReviewsManager />} />
           <Route path="promotions" element={<PromotionsManager />} />
           <Route path="offers" element={<OffersManager />} />
+          <Route path="notifications" element={<NotificationsManager />} />
           <Route path="storefront" element={<StorefrontSettings />} />
           <Route path="cart-settings" element={<CartSettings />} />
           <Route path="store-profile" element={<StoreProfileManager />} />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio } from 'lucide-react';
+import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -25,6 +25,11 @@ export default function SuperAdminDashboard({ superKey }) {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [confirmText, setConfirmText] = useState('');
   const [isActionLoading, setIsActionLoading] = useState(false);
+
+  // Key Change State
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [newKeyInput, setNewKeyInput] = useState('');
+  const [keyError, setKeyError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -93,7 +98,7 @@ export default function SuperAdminDashboard({ superKey }) {
   };
 
   const confirmDelete = async () => {
-    if (confirmText !== 'ELIMINAR') return;
+    if (confirmText.trim().toUpperCase() !== 'ELIMINAR') return;
     setIsActionLoading(true);
     try {
       const endpoint = itemToDelete.type === 'merchant' 
@@ -105,15 +110,46 @@ export default function SuperAdminDashboard({ superKey }) {
         headers: { 'x-superadmin-key': superKey }
       });
 
+      const data = await res.json().catch(() => ({}));
+
       if (res.ok) {
         setIsConfirmOpen(false);
         fetchData();
       } else {
-        alert('Error al eliminar');
+        alert('Error del servidor: ' + (data.error || 'Desconocido'));
       }
     } catch (e) {
       console.error(e);
-      alert('Error de conexión');
+      alert('Error de conexión con el servidor');
+    }
+    setIsActionLoading(false);
+  };
+
+  const handleChangeKey = async () => {
+    if (!newKeyInput || newKeyInput.length < 4) {
+      setKeyError('La clave debe tener al menos 4 caracteres');
+      return;
+    }
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`http://localhost:3001/api/superadmin/key`, {
+        method: 'PUT',
+        headers: { 
+          'x-superadmin-key': superKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newKey: newKeyInput })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Clave cambiada exitosamente. Por favor, inicia sesión nuevamente.');
+        localStorage.removeItem('superadmin_key');
+        window.location.reload();
+      } else {
+        setKeyError(data.error || 'Error al cambiar la clave');
+      }
+    } catch(e) {
+      setKeyError('Error de conexión');
     }
     setIsActionLoading(false);
   };
@@ -208,12 +244,21 @@ export default function SuperAdminDashboard({ superKey }) {
             <p className="text-xs text-red-400 font-bold tracking-widest uppercase">Centro Analítico y Control</p>
           </div>
         </div>
-        <button 
-          onClick={() => { localStorage.removeItem('superadmin_key'); window.location.reload(); }}
-          className="px-4 py-2 border border-white/10 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
-        >
-          Cerrar Sesión
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => { setIsKeyModalOpen(true); setKeyError(''); setNewKeyInput(''); }}
+            className="p-2 bg-zinc-900 border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+            title="Cambiar Clave Maestra"
+          >
+            <Key size={18} />
+          </button>
+          <button 
+            onClick={() => { localStorage.removeItem('superadmin_key'); window.location.reload(); }}
+            className="px-4 py-2 border border-white/10 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -597,7 +642,7 @@ export default function SuperAdminDashboard({ superKey }) {
 
               <button 
                 onClick={confirmDelete}
-                disabled={confirmText !== 'ELIMINAR' || isActionLoading}
+                disabled={confirmText.trim().toUpperCase() !== 'ELIMINAR' || isActionLoading}
                 className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <><Trash2 size={18} /> Destruir Registro</>}
@@ -606,6 +651,47 @@ export default function SuperAdminDashboard({ superKey }) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Change Key Modal */}
+      <AnimatePresence>
+        {isKeyModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-zinc-950 border border-red-500/30 rounded-3xl p-8 max-w-md w-full relative z-10 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+              <button onClick={() => setIsKeyModalOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X size={24} /></button>
+              
+              <div className="flex justify-center mb-4 text-red-500">
+                <Key size={48} />
+              </div>
+              <h2 className="text-xl font-black text-center text-white uppercase tracking-widest mb-2">Seguridad Maestra</h2>
+              <p className="text-sm text-zinc-400 text-center mb-6">Modifica la clave de acceso al panel SuperAdmin.</p>
+
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Nueva Clave Maestra</label>
+                  <input 
+                    type="text" 
+                    value={newKeyInput}
+                    onChange={(e) => { setNewKeyInput(e.target.value); setKeyError(''); }}
+                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-center text-white tracking-[0.2em] focus:outline-none focus:border-red-500 transition-colors"
+                    placeholder="Escribe la nueva clave..."
+                  />
+                </div>
+                {keyError && <p className="text-red-500 text-xs font-bold text-center uppercase tracking-widest">{keyError}</p>}
+              </div>
+
+              <button 
+                onClick={handleChangeKey}
+                disabled={!newKeyInput || isActionLoading}
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <>Actualizar Clave <ArrowRight size={18}/></>}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Details Modal */}
       <AnimatePresence>
         {isDetailsOpen && selectedDetails && (

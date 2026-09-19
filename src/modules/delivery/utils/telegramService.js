@@ -31,7 +31,7 @@ export const sendDeliveryRequest = async (commerceId, customerData, customOrderI
   if (!chatId) return { success: false, error: "No hay un Grupo de Repartidores configurado en Ajustes." };
   
   const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  const deliveryPin = Math.floor(1000 + Math.random() * 9000).toString();
+  const deliveryPin = customerData.deliveryPin || Math.floor(1000 + Math.random() * 9000).toString();
 
   const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨
 🆔 <b>Pedido:</b> #${orderId}

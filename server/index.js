@@ -400,6 +400,14 @@ app.get('/api/workspaces/store/:slug', (req, res) => {
 app.get('/api/market/stores', (req, res) => {
   try {
     const stores = db.prepare("SELECT id, name, config, store_slug FROM workspaces WHERE store_slug IS NOT NULL AND store_slug != '' AND status != 'Suspendido'").all();
+    
+    const productCategoriesRows = db.prepare("SELECT workspace_id, category FROM ecommerce_products").all();
+    const storeCategoriesMap = {};
+    productCategoriesRows.forEach(row => {
+      if (!storeCategoriesMap[row.workspace_id]) storeCategoriesMap[row.workspace_id] = new Set();
+      if (row.category) storeCategoriesMap[row.workspace_id].add(row.category);
+    });
+
     const formatted = stores.map(ws => {
       let parsedConfig = {};
       try {
@@ -414,7 +422,9 @@ app.get('/api/market/stores', (req, res) => {
         slug: ws.store_slug,
         logoUrl: storefrontConfig.logoUrl || null,
         heroUrl: storefrontConfig.heroUrl || null,
-        description: storefrontConfig.texts?.heroSub || 'Descubre nuestros productos'
+        description: storefrontConfig.texts?.heroSub || 'Descubre nuestros productos',
+        config: parsedConfig,
+        productCategories: Array.from(storeCategoriesMap[ws.id] || [])
       };
     });
     res.json(formatted);
@@ -572,6 +582,7 @@ app.get('/api/ecommerce/orders', (req, res) => {
     }
     const formatted = orders.map(o => ({
       ...o,
+      deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
       items: o.items ? JSON.parse(o.items) : []
     }));
@@ -587,6 +598,7 @@ app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
     const orders = db.prepare('SELECT * FROM ecommerce_orders_v2 WHERE customer_email = ? ORDER BY date DESC').all(email);
     const formatted = orders.map(o => ({
       ...o,
+      deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
       items: o.items ? JSON.parse(o.items) : []
     }));
@@ -599,6 +611,37 @@ app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
 app.post('/api/ecommerce/orders', (req, res) => {
   const { customer, customerEmail, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, bookingDate, bookingTime, tableNumber, orderType, workspace_id, discount_code } = req.body;
   try {
+    const wsId = workspace_id || 'default_workspace';
+
+    // 1. Validar y Reservar Stock Inmediatamente
+    const updateVitrina = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina - ? WHERE id = ? AND workspace_id = ?');
+    const updateBoth = db.prepare('UPDATE ecommerce_products SET stock_vitrina = 0, stock = stock - ? WHERE id = ? AND workspace_id = ?');
+    
+    // Verificar todo el stock primero
+    for (const item of items) {
+      const product = db.prepare('SELECT name, stock_vitrina, stock FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, wsId);
+      if (!product) {
+         return res.status(400).json({ error: `Producto no encontrado: ${item.name}.` });
+      }
+      const globalStock = (product.stock_vitrina || 0) + (product.stock || 0);
+      if (globalStock < item.quantity) {
+         return res.status(400).json({ error: `Lo sentimos, otro cliente acaba de llevarse el producto: ${product.name}. Quedan ${globalStock} unidades.` });
+      }
+    }
+    
+    // Deducir stock si todo está bien
+    db.transaction(() => {
+      for (const item of items) {
+        const product = db.prepare('SELECT stock_vitrina FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, wsId);
+        if ((product.stock_vitrina || 0) >= item.quantity) {
+           updateVitrina.run(item.quantity, item.id, wsId);
+        } else {
+           const diff = item.quantity - (product.stock_vitrina || 0);
+           updateBoth.run(diff, item.id, wsId);
+        }
+      }
+    })();
+
     const id = 'ORD-' + Math.floor(1000 + Math.random() * 9000); // Generar ID ej: ORD-1234
     const insert = db.prepare(`
       INSERT INTO ecommerce_orders_v2 (id, customer, customer_email, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, booking_date, booking_time, table_number, order_type, workspace_id, discount_code)
@@ -622,9 +665,11 @@ app.post('/api/ecommerce/orders', (req, res) => {
       bookingTime || null,
       tableNumber || null,
       orderType || 'delivery',
-      workspace_id || 'default_workspace',
+      wsId,
       discount_code || null
     );
+
+    db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?').run(id);
     
     // Si usó un código de descuento, sumarle al contador de usos
     if (discount_code) {
@@ -632,10 +677,9 @@ app.post('/api/ecommerce/orders', (req, res) => {
         UPDATE ecommerce_promotions 
         SET usage_count = usage_count + 1 
         WHERE code = ? AND workspace_id = ?
-      `).run(discount_code.toUpperCase(), workspace_id || 'default_workspace');
+      `).run(discount_code.toUpperCase(), wsId);
     }
     
-
 
     res.status(201).json({ success: true, id });
   } catch (err) {
@@ -645,30 +689,23 @@ app.post('/api/ecommerce/orders', (req, res) => {
 
 app.put('/api/ecommerce/orders/:id', (req, res) => {
   const { id } = req.params;
-  const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType } = req.body;
+  const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType, deliveryPin } = req.body;
   try {
     if (status) {
-      if (status === 'Preparando') {
+      if (status === 'Cancelado' || status === 'Rechazado') {
         const order = db.prepare('SELECT items, stock_deducted, workspace_id FROM ecommerce_orders_v2 WHERE id = ?').get(id);
-        if (order && !order.stock_deducted) {
+        if (order && order.stock_deducted) {
           let items = [];
           try { items = JSON.parse(order.items || '[]'); } catch(e) {}
           
-          for (const item of items) {
-             const product = db.prepare('SELECT name, stock_vitrina FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, order.workspace_id);
-             if (!product || (product.stock_vitrina || 0) < item.quantity) {
-                return res.status(400).json({ error: `Sin stock suficiente en vitrina para: ${product ? product.name : item.name}. Quedan ${product ? (product.stock_vitrina || 0) : 0} unidades.` });
-             }
-          }
-          
-          const updateStock = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina - ? WHERE id = ? AND workspace_id = ?');
+          const returnStock = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina + ? WHERE id = ? AND workspace_id = ?');
           db.transaction(() => {
              for (const item of items) {
-                updateStock.run(item.quantity, item.id, order.workspace_id);
+                returnStock.run(item.quantity, item.id, order.workspace_id);
              }
           })();
           
-          db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?').run(id);
+          db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 0 WHERE id = ?').run(id);
         }
       }
       db.prepare('UPDATE ecommerce_orders_v2 SET status = ? WHERE id = ?').run(status, id);
@@ -680,6 +717,7 @@ app.put('/api/ecommerce/orders/:id', (req, res) => {
     if (bookingTime !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET booking_time = ? WHERE id = ?').run(bookingTime, id);
     if (tableNumber !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET table_number = ? WHERE id = ?').run(tableNumber, id);
     if (orderType !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET order_type = ? WHERE id = ?').run(orderType, id);
+    if (deliveryPin !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?').run(deliveryPin, id);
     
     res.json({ success: true });
   } catch (err) {
@@ -1212,11 +1250,11 @@ app.get('/api/ecommerce/analytics/abandoned-carts', (req, res) => {
 });
 
 // --- Super Admin Routes ---
-const SUPERADMIN_KEY = process.env.VITE_SUPERADMIN_KEY || 'axon2026';
 
 const requireSuperAdmin = (req, res, next) => {
   const key = req.headers['x-superadmin-key'];
-  if (key === SUPERADMIN_KEY) {
+  const currentKey = process.env.VITE_SUPERADMIN_KEY || 'axon2026';
+  if (key === currentKey) {
     next();
   } else {
     res.status(401).json({ error: 'No autorizado' });
@@ -1348,15 +1386,45 @@ app.get('/api/superadmin/merchants', requireSuperAdmin, (req, res) => {
   }
 });
 
+app.put('/api/superadmin/key', requireSuperAdmin, (req, res) => {
+  const { newKey } = req.body;
+  if (!newKey || newKey.length < 4) {
+    return res.status(400).json({ error: 'La nueva clave debe tener al menos 4 caracteres' });
+  }
+  
+  try {
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+    
+    if (envContent.includes('VITE_SUPERADMIN_KEY=')) {
+      envContent = envContent.replace(/VITE_SUPERADMIN_KEY=.*/g, `VITE_SUPERADMIN_KEY="${newKey}"`);
+    } else {
+      envContent += `\nVITE_SUPERADMIN_KEY="${newKey}"\n`;
+    }
+    
+    fs.writeFileSync(envPath, envContent);
+    process.env.VITE_SUPERADMIN_KEY = newKey;
+    
+    res.json({ success: true, message: 'Clave actualizada correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudo guardar la clave: ' + err.message });
+  }
+});
+
 app.delete('/api/superadmin/merchants/:id', requireSuperAdmin, (req, res) => {
   const { id } = req.params;
   try {
     db.transaction(() => {
-      db.prepare('DELETE FROM ecommerce_products WHERE workspace_id = ?').run(id);
-      db.prepare('DELETE FROM ecommerce_orders_v2 WHERE workspace_id = ?').run(id);
-      db.prepare('DELETE FROM ecommerce_promotions WHERE workspace_id = ?').run(id);
-      db.prepare('DELETE FROM ecommerce_reviews WHERE workspace_id = ?').run(id);
-      db.prepare('DELETE FROM ecommerce_tracking WHERE workspace_id = ?').run(id);
+      try { db.prepare('DELETE FROM ecommerce_products WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM ecommerce_orders_v2 WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM ecommerce_promotions WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM ecommerce_reviews WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM ecommerce_tracking WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM ecommerce_notifications WHERE workspace_id = ?').run(id); } catch(e){}
+      try { db.prepare('DELETE FROM budgets WHERE workspace_id = ?').run(id); } catch(e){}
       db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
     })();
     res.json({ message: 'Merchant deleted successfully' });
@@ -1408,6 +1476,142 @@ app.get('/api/superadmin/monitor', requireSuperAdmin, (req, res) => {
       LIMIT 20
     `).all();
     res.json(recentOrders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- RUTAS DE AUTENTICACION (RECUPERACION DE CONTRASEÑA) ---
+
+app.post('/api/auth/recover-password', (req, res) => {
+  const { email, type } = req.body;
+  try {
+    let exists = false;
+    if (type === 'customer') {
+      exists = db.prepare('SELECT id FROM ecommerce_customers WHERE email = ?').get(email);
+    } else if (type === 'merchant') {
+      const workspaces = db.prepare('SELECT config FROM workspaces').all();
+      exists = workspaces.some(w => {
+        try {
+          const cfg = JSON.parse(w.config || '{}');
+          return cfg.adminEmail === email;
+        } catch { return false; }
+      });
+    }
+
+    if (!exists) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Generar código numérico de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Expiración en 15 minutos
+    const expiresAt = new Date(Date.now() + 15 * 60000).toISOString();
+
+    db.prepare('INSERT INTO password_resets (email, code, user_type, expires_at) VALUES (?, ?, ?, ?)').run(email, code, type, expiresAt);
+
+    // Como es entorno local de pruebas, devolvemos el código en la respuesta para facilitar la prueba (en prod sería por email)
+    console.log(`[RECOVERY CODE] Para ${email} (${type}): ${code}`);
+    res.json({ success: true, message: 'Código generado', _devCode: code });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+  const { email, code, newPassword, type } = req.body;
+  try {
+    const record = db.prepare('SELECT * FROM password_resets WHERE email = ? AND user_type = ? AND code = ? ORDER BY expires_at DESC LIMIT 1').get(email, type, code);
+
+    if (!record) {
+      return res.status(400).json({ error: 'Código incorrecto' });
+    }
+
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'El código ha expirado' });
+    }
+
+    // Cambiar la contraseña
+    if (type === 'customer') {
+      db.prepare('UPDATE ecommerce_customers SET password = ? WHERE email = ?').run(newPassword, email);
+    } else if (type === 'merchant') {
+      const workspaces = db.prepare('SELECT id, config FROM workspaces').all();
+      let updated = false;
+      for (const ws of workspaces) {
+        try {
+          const cfg = JSON.parse(ws.config || '{}');
+          if (cfg.adminEmail === email) {
+            cfg.adminPassword = newPassword;
+            db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(JSON.stringify(cfg), ws.id);
+            updated = true;
+          }
+        } catch (e) {}
+      }
+      if (!updated) {
+        return res.status(404).json({ error: 'Comerciante no encontrado' });
+      }
+    }
+
+    // Eliminar el código usado
+    db.prepare('DELETE FROM password_resets WHERE email = ? AND user_type = ?').run(email, type);
+
+    res.json({ success: true, message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- RUTAS DE NOTIFICACIONES B2B ---
+app.get('/api/ecommerce/notifications/:workspaceId', (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const notifs = db.prepare('SELECT * FROM ecommerce_notifications WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 50').all(workspaceId);
+    res.json(notifs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/notifications', (req, res) => {
+  try {
+    const { workspace_id, type, message, product_id, customer_id } = req.body;
+    
+    // Deduplicación para 'stock_alert' (evitar spam en clics rápidos)
+    if (type === 'stock_alert' && customer_id && product_id) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const duplicate = db.prepare(`
+        SELECT id FROM ecommerce_notifications 
+        WHERE workspace_id = ? 
+          AND type = ? 
+          AND product_id = ? 
+          AND customer_id = ? 
+          AND created_at > ?
+      `).get(workspace_id, type, product_id, customer_id, fiveMinutesAgo);
+
+      if (duplicate) {
+        // Ignorar la notificación para evitar spam
+        return res.json({ success: true, id: duplicate.id, ignored: true });
+      }
+    }
+
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+    const created_at = new Date().toISOString();
+    
+    db.prepare('INSERT INTO ecommerce_notifications (id, workspace_id, type, message, product_id, customer_id, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)')
+      .run(id, workspace_id, type || 'info', message, product_id || null, customer_id || null, created_at);
+      
+    res.json({ success: true, id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/ecommerce/notifications/:id/read', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('UPDATE ecommerce_notifications SET is_read = 1 WHERE id = ?').run(id);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

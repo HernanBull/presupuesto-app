@@ -37,7 +37,8 @@
     "react-pdf": "^10.5.0",
     "react-router-dom": "^7.18.3",
     "recharts": "^3.10.1",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

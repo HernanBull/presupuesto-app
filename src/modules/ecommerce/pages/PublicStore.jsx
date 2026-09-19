@@ -1,9 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import Tesseract from 'tesseract.js';
+
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: iconRetinaUrl,
+  iconUrl: iconUrl,
+  shadowUrl: shadowUrl,
+});
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -27,6 +43,10 @@ export default function PublicStore() {
   
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const [checkoutAddress, setCheckoutAddress] = useState('');
+  const [checkoutLocation, setCheckoutLocation] = useState(null);
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(false);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState('');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [discountError, setDiscountError] = useState('');
@@ -37,6 +57,13 @@ export default function PublicStore() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentBank, setPaymentBank] = useState('');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [ocrStatus, setOcrStatus] = useState('idle');
+  const [ocrMessage, setOcrMessage] = useState('');
+  
+  const cartIconRef = useRef(null);
+  const [flyingItems, setFlyingItems] = useState([]);
+  const [cartBounce, setCartBounce] = useState(false);
+  const [stockAlert, setStockAlert] = useState(null);
 
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
@@ -97,7 +124,11 @@ export default function PublicStore() {
     const openMins = openH * 60 + openM;
     const closeMins = closeH * 60 + closeM;
     
-    if (currentMins < openMins || currentMins > closeMins) return true;
+    if (closeMins < openMins) {
+      if (currentMins < openMins && currentMins > closeMins) return true;
+    } else {
+      if (currentMins < openMins || currentMins > closeMins) return true;
+    }
     
     return false;
   };
@@ -121,6 +152,7 @@ export default function PublicStore() {
       }
       const newUser = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(newUser);
       
       if (!newUser.phone || !newUser.docId || !newUser.address || !newUser.name || newUser.name === newUser.email.split('@')[0] || newUser.name === newUser.email) {
@@ -135,6 +167,31 @@ export default function PublicStore() {
     }
     setAuthLoading(false);
     return false;
+  };
+
+  const getLocationFromGPS = () => {
+    setGpsLoading(true);
+    setGpsError('');
+    if (!navigator.geolocation) {
+      setGpsError('Tu navegador no soporta geolocalización.');
+      setGpsLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCheckoutLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        });
+        setGpsLoading(false);
+      },
+      (err) => {
+        setGpsError('No se pudo obtener la ubicación.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   const handleCheckoutSubmit = async () => {
@@ -189,7 +246,8 @@ export default function PublicStore() {
         address: checkoutAddress
       },
       shippingInfo: {
-         cost: isFreeShipping ? 0 : flatRate
+         cost: isFreeShipping ? 0 : flatRate,
+         location: checkoutLocation
       },
       workspace_id: workspaceId
     };
@@ -201,12 +259,14 @@ export default function PublicStore() {
         body: JSON.stringify(orderData)
       });
       if (res.ok) {
-        alert("¡Pedido realizado con éxito!");
         setCart({});
         setIsCartOpen(false);
         setIsCheckoutMode(false);
         setAppliedDiscount(null);
         setDiscountCode('');
+        
+        // Redirigir a la página de espera (perfil del cliente) para que vea el proceso y el PIN
+        navigate('/ecommerce/live/profile');
       } else {
         alert("Hubo un error al procesar el pedido.");
       }
@@ -221,6 +281,89 @@ export default function PublicStore() {
     const file = e.target.files[0];
     if(!file) return;
     setReceiptFile(file);
+    
+    // Iniciar OCR
+    if (selectedPaymentMethod === 'pago_movil' || selectedPaymentMethod === 'zelle') {
+      setOcrStatus('analyzing');
+      setOcrMessage('Analizando comprobante con IA...');
+      try {
+        const worker = await Tesseract.createWorker('spa');
+        const ret = await worker.recognize(file);
+        let text = ret.data.text;
+        await worker.terminate();
+
+        // Fase 1: Limpieza Inteligente (Pre-procesamiento)
+        // Corregir confusión de OCR entre letras y números comunes si están cerca
+        text = text.replace(/([0-9])[Oo]([0-9])/g, '$10$2')
+                   .replace(/([0-9])[lI]([0-9])/g, '$11$2');
+        
+        let foundRef = null;
+
+        // Fase 2: Búsqueda Basada en Contexto
+        if (selectedPaymentMethod === 'zelle') {
+          // Zelle: Busca palabras clave (Confirmation, Ref, ID)
+          const zelleKeywordRegex = /(?:confirmaci[oó]n|confirmation|ref|referencia|id)\s*[:#\-]?\s*([A-Z0-9]{8,15})/i;
+          const match = text.match(zelleKeywordRegex);
+          if (match && match[1]) foundRef = match[1];
+        } else {
+          // Pago Móvil / Transferencia: Busca palabras clave seguidas de números (ignora espacios intermedios del OCR)
+          const pmKeywordRegex = /(?:ref(?:erencia)?|recibo|operaci[oó]n|comprobante|aprobado)\s*[:#\-]?\s*([\d\s]{4,20})/i;
+          const match = text.match(pmKeywordRegex);
+          if (match && match[1]) {
+            const cleanedNum = match[1].replace(/\s+/g, '');
+            if (cleanedNum.length >= 4 && cleanedNum.length <= 15) {
+              foundRef = cleanedNum;
+            }
+          }
+        }
+
+        // Fase 3: Filtrado de Falsos Positivos (Fallback)
+        if (!foundRef) {
+          const blocks = text.match(/\b[\d\s]{4,20}\b/g) || [];
+          let validCandidates = [];
+          
+          for (let b of blocks) {
+            const numStr = b.replace(/\s+/g, '');
+            // Rango típico: 4 a 15 dígitos (Banesco ~7-9, BDV/Mercantil 12, BNC ~15)
+            if (numStr.length >= 4 && numStr.length <= 15) {
+              // Descarte de Fechas recientes
+              if (numStr.length === 4 && (numStr.startsWith('202') || numStr.startsWith('203'))) continue;
+              // Descarte de Teléfonos venezolanos (ej. 0414, 0424, 0412, o formato +58 omitido)
+              if (numStr.length >= 10 && numStr.length <= 11 && (numStr.startsWith('04') || numStr.startsWith('41') || numStr.startsWith('42') || numStr.startsWith('02'))) continue;
+              // Descarte de montos redondos puros que suelen estar en Bs
+              if (numStr.endsWith('000') && numStr.length < 8) continue;
+              
+              validCandidates.push(numStr);
+            }
+          }
+
+          if (selectedPaymentMethod === 'zelle' && validCandidates.length === 0) {
+            // Zelle Fallback alfanumérico
+            const zBlocks = text.match(/\b[A-Z0-9]{8,15}\b/gi) || [];
+            if (zBlocks.length > 0) validCandidates = zBlocks;
+          }
+
+          if (validCandidates.length > 0) {
+            // Tomamos el número válido más largo (las referencias suelen superar en longitud a las fechas y montos)
+            foundRef = validCandidates.reduce((a, b) => a.length > b.length ? a : b);
+          }
+        }
+        
+        if (foundRef) {
+          setPaymentReference(foundRef);
+          setOcrStatus('success');
+          setOcrMessage(`✅ Referencia detectada: ${foundRef}`);
+        } else {
+          setOcrStatus('error');
+          setOcrMessage('❌ No pudimos leer la referencia de forma segura. Por favor, ingrésala manualmente.');
+        }
+      } catch (err) {
+        console.error("Error en OCR:", err);
+        setOcrStatus('error');
+        setOcrMessage('❌ Error de IA al escanear comprobante.');
+      }
+    }
+
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -255,6 +398,7 @@ export default function PublicStore() {
       }
       const user = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       
       setShowAuthModal(false);
@@ -284,6 +428,7 @@ export default function PublicStore() {
       }
       const user = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       
       setShowAuthModal(false);
@@ -297,15 +442,19 @@ export default function PublicStore() {
   const handleLogout = () => {
     localStorage.removeItem('ecommerce_current_customer');
     setCurrentCustomer(null);
+    setCart({});
     setCurrentPage('home');
   };
 
   const isWishlisted = (productId) => {
     if (!currentCustomer) return false;
-    const wishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (
-      typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []
-    );
-    return wishlist.some(p => p.productId === productId);
+    try {
+      const raw = currentCustomer.wishlist;
+      const wishlist = Array.isArray(raw) ? raw : JSON.parse(raw || '[]');
+      return Array.isArray(wishlist) && wishlist.some(p => p.productId === productId);
+    } catch {
+      return false;
+    }
   };
 
   const toggleWishlist = async (e, p) => {
@@ -371,7 +520,46 @@ export default function PublicStore() {
     return true;
   };
 
-  const addToCart = (productId, stepSize) => {
+  const checkGlobalStock = async (productId, neededQty) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/products/${productId}`);
+      if (!res.ok) return false;
+      const product = await res.json();
+      
+      // Simplemente retornamos si hay suficiente stock global para cubrir lo que falta, sin parchear nada
+      if (product.stock >= neededQty) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("Global stock check error:", e);
+      return false;
+    }
+  };
+
+  const sendStockAlertWithAntiSpam = (product, requestedQty, available) => {
+    const lastAlertKey = `spam_alert_${product.id}`;
+    const lastAlertTime = sessionStorage.getItem(lastAlertKey);
+    const now = Date.now();
+    
+    if (!lastAlertTime || (now - Number(lastAlertTime)) > 900000) { // 15 minutos de bloqueo
+      sessionStorage.setItem(lastAlertKey, now.toString());
+      
+      fetch('http://localhost:3001/api/ecommerce/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace_id: slug,
+          type: 'stock_alert',
+          message: `Intención de compra: Cliente ${currentCustomer?.name || 'Anónimo'} (ID: ${currentCustomer?.id || 'N/A'}) intentó comprar ${requestedQty} u. de '${product.name}' pero el inventario global se agotó. (Disponible en vitrina: ${available})`,
+          product_id: product.id,
+          customer_id: currentCustomer?.id
+        })
+      }).catch(console.error);
+    }
+  };
+
+  const addToCart = async (productId, stepSize) => {
     if (!isProfileComplete(currentCustomer)) {
       setIsWizardOpen(true);
       return;
@@ -381,22 +569,87 @@ export default function PublicStore() {
     
     const currentQty = cart[productId] || 0;
     const addedQty = Number(stepSize || 1);
-    const available = product.stock_vitrina || 0;
+    const requestedQty = currentQty + addedQty;
+    let available = product.stock_vitrina || 0;
     
-    if (currentQty + addedQty > available) {
-      alert(`Solo quedan ${available} unidades disponibles en vitrina.`);
-      return;
+    if (requestedQty > available) {
+      const neededQty = requestedQty - available;
+      const success = await checkGlobalStock(productId, neededQty);
+      
+      if (success) {
+        // Permitimos que lo agregue de forma virtual
+      } else {
+        setStockAlert({
+          title: 'Límite de Inventario',
+          message: `Solo quedan ${available} unidades disponibles en vitrina de "${product.name}".`
+        });
+        setTimeout(() => setStockAlert(null), 4000);
+        
+        sendStockAlertWithAntiSpam(product, requestedQty, available);
+        return;
+      }
     }
 
     setCart(prev => {
       const newCart = {
         ...prev,
-        [productId]: currentQty + addedQty
+        [productId]: requestedQty
       };
       syncGlobalCart(newCart);
       return newCart;
     });
     trackEvent('add_to_cart');
+    
+    triggerFlyingAnimation(productId, `product-img-${productId}`);
+  };
+
+  const triggerFlyingAnimation = (productId, primarySourceId) => {
+    if (!cartIconRef.current) {
+      setCartBounce(true);
+      setTimeout(() => setCartBounce(false), 300);
+      return;
+    }
+    
+    let sourceEl = document.getElementById(primarySourceId);
+    if (!sourceEl) {
+      sourceEl = document.getElementById(`product-card-${productId}`);
+    }
+    
+    if (!sourceEl) {
+      setCartBounce(true);
+      setTimeout(() => setCartBounce(false), 300);
+      return;
+    }
+    
+    const sourceRect = sourceEl.getBoundingClientRect();
+    const targetRect = cartIconRef.current.getBoundingClientRect();
+    const imgUrl = sourceEl.src || null;
+    
+    if (!imgUrl) {
+      setCartBounce(true);
+      setTimeout(() => setCartBounce(false), 300);
+      return;
+    }
+    
+    const newItem = {
+      id: Date.now() + Math.random(),
+      productId,
+      imgUrl,
+      startX: sourceRect.left,
+      startY: sourceRect.top,
+      startWidth: sourceRect.width,
+      startHeight: sourceRect.height,
+      endX: targetRect.left + (targetRect.width / 2) - 15,
+      endY: targetRect.top + (targetRect.height / 2) - 15,
+    };
+    
+    setFlyingItems(prev => [...prev, newItem]);
+    
+    setTimeout(() => {
+      setFlyingItems(prev => prev.filter(item => item.id !== newItem.id));
+      setCartBounce(true);
+      setTimeout(() => setCartBounce(false), 300);
+    }, 800);
   };
 
   const fetchProductReviews = async (productId, currentWorkspace) => {
@@ -449,7 +702,7 @@ export default function PublicStore() {
     setIsSubmittingReview(false);
   };
 
-  const addModalToCart = () => {
+  const addModalToCart = async () => {
     if (!isProfileComplete(currentCustomer)) {
       setIsWizardOpen(true);
       return;
@@ -457,19 +710,36 @@ export default function PublicStore() {
     if (!selectedProduct) return;
     
     const currentQty = cart[selectedProduct.id] || 0;
-    const available = selectedProduct.stock_vitrina || 0;
+    let available = selectedProduct.stock_vitrina || 0;
+    const requestedQty = currentQty + modalQty;
     
-    if (currentQty + modalQty > available) {
-      alert(`Solo quedan ${available} unidades disponibles en vitrina.`);
-      return;
+    if (requestedQty > available) {
+      const neededQty = requestedQty - available;
+      const success = await checkGlobalStock(selectedProduct.id, neededQty);
+      
+      if (success) {
+        // Permitir agregar virtualmente
+      } else {
+        setStockAlert({
+          title: 'Límite de Inventario',
+          message: `Solo quedan ${available} unidades disponibles en vitrina de "${selectedProduct.name}".`
+        });
+        setTimeout(() => setStockAlert(null), 4000);
+        
+        sendStockAlertWithAntiSpam(selectedProduct, requestedQty, available);
+        return;
+      }
     }
 
     setCart(prev => {
-      const newCart = { ...prev, [selectedProduct.id]: currentQty + modalQty };
+      const newCart = { ...prev, [selectedProduct.id]: requestedQty };
       syncGlobalCart(newCart);
       return newCart;
     });
     trackEvent('add_to_cart');
+    
+    triggerFlyingAnimation(selectedProduct.id, `modal-img-${selectedProduct.id}`);
+    
     setSelectedProduct(null);
   };
 
@@ -526,7 +796,7 @@ export default function PublicStore() {
       };
 
       try {
-        const res = await fetch(`http://localhost:3001/api/workspaces/store/${slug || 'tienda-ejemplo'}`);
+        const res = await fetch(`http://localhost:3001/api/workspaces/store/${slug || 'tienda-ejemplo'}`, { cache: 'no-store' });
         if (!res.ok) {
           const savedStr = localStorage.getItem('storefrontConfig');
           if (savedStr) {
@@ -775,6 +1045,68 @@ export default function PublicStore() {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3 bg-zinc-800/40"></div>
       </div>
 
+      {/* Alerta de Stock Premium */}
+      <AnimatePresence>
+        {stockAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 20, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-4 bg-zinc-950/95 backdrop-blur-xl border border-red-500/30 px-6 py-4 rounded-2xl shadow-[0_20px_50px_rgba(239,68,68,0.2)]"
+          >
+            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/30 shrink-0">
+              <span className="text-red-500 font-bold text-xl leading-none">!</span>
+            </div>
+            <div>
+              <p className="text-white text-sm font-bold m-0 leading-tight">
+                {stockAlert.title}
+              </p>
+              <p className="text-zinc-400 text-xs m-0 leading-tight mt-1 max-w-[250px]">
+                {stockAlert.message}
+              </p>
+            </div>
+            <button 
+              onClick={() => setStockAlert(null)}
+              className="ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Animación Flying Cart (Premium) */}
+      {flyingItems.map(item => (
+        <motion.img
+          key={item.id}
+          src={item.imgUrl}
+          className="fixed z-[9999] rounded-2xl object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-none border border-white/10"
+          initial={{
+            top: item.startY,
+            left: item.startX,
+            width: item.startWidth,
+            height: item.startHeight,
+            opacity: 1,
+            scale: 1,
+            rotate: 0
+          }}
+          animate={{
+            top: item.endY,
+            left: item.endX,
+            width: 30,
+            height: 30,
+            opacity: 0.2,
+            scale: 0.3,
+            rotate: 15
+          }}
+          transition={{
+            duration: 0.8,
+            ease: [0.32, 0, 0.67, 0] // Curva para efecto parábola
+          }}
+        />
+      ))}
+
       {showBanner && (
         <div className="w-full text-center text-black font-bold py-2 text-xs uppercase tracking-wider z-50 relative shadow-[0_0_15px_rgba(0,0,0,0.5)]" style={{ backgroundColor: primaryColor }}>
           {texts.banner}
@@ -826,15 +1158,29 @@ export default function PublicStore() {
                  <User size={14} /> Ingresar
                </button>
              ) : (
-               <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-zinc-400 hover:text-white transition-all group">
+               <motion.button 
+                 ref={cartIconRef}
+                 onClick={() => setIsCartOpen(true)} 
+                 className="relative p-2 text-zinc-400 hover:text-white transition-all group z-50"
+                 animate={cartBounce ? { scale: [1, 1.4, 1] } : {}}
+                 transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+               >
                  <div className="absolute inset-0 rounded-full scale-0 group-hover:scale-100 transition-transform blur-md opacity-20" style={{ backgroundColor: primaryColor }}></div>
                  <ShoppingBag size={22} className="relative z-10" />
-                 {totalCartItems > 0 && (
-                   <span className="absolute top-0 right-0 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full border border-zinc-950 z-20 shadow-md" style={{ backgroundColor: primaryColor }}>
-                     {totalCartItems}
-                   </span>
-                 )}
-               </button>
+                 <AnimatePresence>
+                   {totalCartItems > 0 && (
+                     <motion.span 
+                       initial={{ scale: 0 }}
+                       animate={{ scale: 1 }}
+                       exit={{ scale: 0 }}
+                       className="absolute top-0 right-0 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full border border-zinc-950 z-20 shadow-md" 
+                       style={{ backgroundColor: primaryColor }}
+                     >
+                       {totalCartItems}
+                     </motion.span>
+                   )}
+                 </AnimatePresence>
+               </motion.button>
              )}
           </div>
         </div>
@@ -905,6 +1251,7 @@ export default function PublicStore() {
                       {recentProducts.length > 0 ? recentProducts.map((p, i) => (
                         <motion.div 
                           key={p.id}
+                          id={`product-card-${p.id}`}
                           initial={{ opacity: 0, y: 30 }}
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
@@ -916,7 +1263,7 @@ export default function PublicStore() {
                            
                            <div className="w-full aspect-square bg-zinc-950 relative overflow-hidden p-6">
                              {p.image_url ? (
-                               <img src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                               <img id={`product-img-${p.id}`} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                              ) : (
                                <div className="w-full h-full flex items-center justify-center text-zinc-800 transition-transform duration-700 group-hover:scale-110">
                                  <ImageIcon size={64} />
@@ -963,13 +1310,13 @@ export default function PublicStore() {
                                </div>
                                <span className="text-[10px] text-zinc-500 font-bold">({p.review_count || 0})</span>
                              </div>
-                             <div className="mt-auto pt-2 flex items-center justify-between">
-                               <div>
+                             <div className="mt-auto pt-4 flex flex-col gap-3">
+                               <div className="flex items-center justify-between">
                                  {isUserAllowedToSeePrices ? (
                                    p.is_offer && p.discount_price ? (
-                                     <div className="flex items-end gap-2">
-                                       <p className="font-bold text-xl text-amber-400">${Number(p.discount_price).toFixed(2)}</p>
-                                       <p className="text-zinc-500 text-sm line-through">${Number(p.price).toFixed(2)}</p>
+                                     <div className="flex items-center gap-2">
+                                       <p className="font-bold text-xl" style={{ color: primaryColor }}>${Number(p.discount_price).toFixed(2)}</p>
+                                       <p className="text-xs text-zinc-500 line-through">${Number(p.price).toFixed(2)}</p>
                                      </div>
                                    ) : (
                                      <p className="font-bold text-xl" style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
@@ -982,15 +1329,24 @@ export default function PublicStore() {
                                      <Lock size={12} /> Ver Precio
                                    </button>
                                  )}
+                                 
+                                 {isUserAllowedToSeePrices && cart[p.id] > 0 && (
+                                   <div className="flex items-center gap-2 bg-zinc-950 border border-white/10 rounded-full p-1" onClick={(e) => e.stopPropagation()}>
+                                     <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={14}/></button>
+                                     <span className="text-sm font-bold text-white min-w-[20px] text-center">{cart[p.id]}</span>
+                                     <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-7 h-7 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={14}/></button>
+                                   </div>
+                                 )}
                                </div>
-                               {isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
+
+                               {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
                                  <button 
                                    onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
-                                   className={`w-10 h-10 rounded-full flex items-center justify-center text-black transition-all ${storeClosed ? 'bg-zinc-600 opacity-100 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0'}`}
+                                   className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
                                    style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
-                                   title={storeClosed ? 'Tienda Cerrada' : 'Agregar al carrito'}
                                  >
-                                   {storeClosed ? <X size={18} /> : <Plus size={18} />}
+                                   {storeClosed ? <X size={14} /> : <ShoppingBag size={14} />}
+                                   {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
                                  </button>
                                )}
                              </div>
@@ -1044,6 +1400,7 @@ export default function PublicStore() {
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
                   <motion.div 
                     key={p.id}
+                    id={`product-card-${p.id}`}
                     initial={{ opacity: 0, scale: 0.9, y: 30 }} 
                     animate={{ opacity: 1, scale: 1, y: 0 }} 
                     transition={{ duration: 0.5, delay: i * 0.1, type: "spring", stiffness: 100 }}
@@ -1056,7 +1413,7 @@ export default function PublicStore() {
 
                     <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-8 flex items-center justify-center">
                       {p.image_url ? (
-                        <motion.img whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
+                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
                       ) : (
                         <ImageIcon size={80} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                       )}
@@ -1105,31 +1462,43 @@ export default function PublicStore() {
                       </div>
                       <p className="text-xs text-zinc-400 mb-4">Disponibles: <span className="font-bold text-white">{p.stock_vitrina || 0}</span></p>
                       
-                      <div className="mt-auto flex items-end justify-between">
-                        <div className="flex flex-col">
-                          {isUserAllowedToSeePrices ? (
-                            <>
-                              <span className="text-zinc-500 text-sm line-through decoration-white/20 mb-1 font-mono">${Number(p.price).toFixed(2)}</span>
-                              <span className="font-black text-4xl drop-shadow-md" style={{ color: primaryColor }}>
-                                ${Number(p.discount_price || p.price).toFixed(2)}
-                              </span>
-                            </>
-                          ) : (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors border border-white/5 mt-2"
-                            >
-                              <Lock size={14} /> Ver Precio
-                            </button>
+                      <div className="mt-auto pt-4 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            {isUserAllowedToSeePrices ? (
+                              <>
+                                <span className="text-zinc-500 text-sm line-through decoration-white/20 mb-1 font-mono">${Number(p.price).toFixed(2)}</span>
+                                <span className="font-black text-4xl drop-shadow-md" style={{ color: primaryColor }}>
+                                  ${Number(p.discount_price || p.price).toFixed(2)}
+                                </span>
+                              </>
+                            ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors border border-white/5 mt-2"
+                              >
+                                <Lock size={14} /> Ver Precio
+                              </button>
+                            )}
+                          </div>
+                          
+                          {isUserAllowedToSeePrices && cart[p.id] > 0 && (
+                            <div className="flex items-center gap-2 bg-zinc-950 border border-white/10 rounded-full p-2" onClick={(e) => e.stopPropagation()}>
+                              <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={16}/></button>
+                              <span className="text-base font-bold text-white min-w-[24px] text-center">{cart[p.id]}</span>
+                              <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-8 h-8 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={16}/></button>
+                            </div>
                           )}
                         </div>
-                        {isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
+
+                        {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
-                            className={`w-14 h-14 rounded-full flex items-center justify-center text-black transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] ${storeClosed ? 'bg-zinc-600 cursor-not-allowed opacity-80' : 'bg-white hover:scale-110'}`}
-                            title={storeClosed ? 'Tienda Cerrada' : 'Agregar al carrito'}
+                            className={`w-full py-4 rounded-2xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
+                            style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
                           >
-                            {storeClosed ? <X size={22} fill="currentColor" /> : <ShoppingCart size={22} fill="currentColor" />}
+                            {storeClosed ? <X size={16} /> : <ShoppingBag size={16} />}
+                            {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
                           </button>
                         )}
                       </div>
@@ -1186,13 +1555,14 @@ export default function PublicStore() {
                     {catalogProducts.length > 0 ? catalogProducts.map((p, i) => (
                       <motion.div 
                         key={p.id}
+                        id={`product-card-${p.id}`}
                         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: (i % 12) * 0.05 }}
                         onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
                         className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
                           {p.image_url ? (
-                            <img src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                            <img id={`product-img-${p.id}`} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                           ) : (
                             <ImageIcon size={48} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                           )}
@@ -1237,13 +1607,16 @@ export default function PublicStore() {
                             <span className="text-[10px] text-zinc-500 font-bold">({p.review_count || 0})</span>
                           </div>
                           <p className="text-[10px] text-zinc-500 mb-2">Disponibles: <span className="text-zinc-300 font-bold">{p.stock_vitrina || 0}</span></p>
-                          <div className="mt-auto pt-2 flex items-center justify-between">
-                            <div>
+                          <div className="mt-auto pt-4 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
                               {isUserAllowedToSeePrices ? (
                                 p.is_offer ? (
-                                  <p className="font-bold text-lg" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-xl" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                    <p className="text-xs text-zinc-500 line-through">${Number(p.price).toFixed(2)}</p>
+                                  </div>
                                 ) : (
-                                  <p className="font-bold text-lg" style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
+                                  <p className="font-bold text-xl" style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
                                 )
                               ) : (
                                 <button 
@@ -1253,26 +1626,26 @@ export default function PublicStore() {
                                   <Lock size={12} /> Ver Precio
                                 </button>
                               )}
+                              
+                              {isUserAllowedToSeePrices && cart[p.id] > 0 && (
+                                <div className="flex items-center gap-2 bg-zinc-950 border border-white/10 rounded-full p-1" onClick={(e) => e.stopPropagation()}>
+                                  <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={14}/></button>
+                                  <span className="text-sm font-bold text-white min-w-[20px] text-center">{cart[p.id]}</span>
+                                  <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-7 h-7 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={14}/></button>
+                                </div>
+                              )}
                             </div>
-                            
-                            {isUserAllowedToSeePrices && (cart[p.id] > 0 ? (
-                              <div className="flex items-center gap-2 bg-zinc-950 border border-white/10 rounded-full p-1" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400"><Minus size={12}/></button>
-                                <span className="text-xs font-bold text-white min-w-[16px] text-center">{cart[p.id]}</span>
-                                <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black ${storeClosed ? 'cursor-not-allowed' : ''}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={12}/></button>
-                              </div>
-                            ) : (
-                              (p.stock_vitrina || 0) > 0 && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-black transition-all ${storeClosed ? 'bg-zinc-600 opacity-100 cursor-not-allowed' : 'opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0'}`}
-                                  style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
-                                  title={storeClosed ? 'Tienda Cerrada' : 'Agregar al carrito'}
-                                >
-                                  {storeClosed ? <X size={16} /> : <Plus size={16} />}
-                                </button>
-                              )
-                            ))}
+
+                            {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
+                                className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
+                                style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
+                              >
+                                {storeClosed ? <X size={14} /> : <ShoppingBag size={14} />}
+                                {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -1309,7 +1682,7 @@ export default function PublicStore() {
               <div className="md:w-1/2 bg-black relative flex items-center justify-center p-12 overflow-hidden">
                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
                  {selectedProduct.image_url ? (
-                   <img src={`http://localhost:3001${selectedProduct.image_url}`} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
+                   <img id={`modal-img-${selectedProduct.id}`} src={`http://localhost:3001${selectedProduct.image_url}`} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
                  ) : (
                    <ImageIcon size={80} className="text-zinc-800" />
                  )}
@@ -1505,10 +1878,54 @@ export default function PublicStore() {
                      {/* Address Input */}
                      <div className="space-y-3 bg-white/5 p-4 rounded-xl border border-white/10">
                        <label className="text-sm font-bold text-white mb-2 block">Dirección de Envío</label>
-                       <div className="relative">
-                         <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                         <input type="text" value={checkoutAddress} onChange={e => setCheckoutAddress(e.target.value)} placeholder="Ingresa la dirección completa..." className="w-full pl-9 pr-3 py-3 bg-black/50 border border-white/10 rounded-xl text-sm outline-none focus:border-white/30 text-white" />
-                       </div>
+                       
+                       {currentCustomer?.addresses && currentCustomer.addresses.length > 0 && !isAddingNewAddress ? (
+                         <div className="space-y-3">
+                           {currentCustomer.addresses.map(addr => (
+                             <button
+                               key={addr.id}
+                               onClick={() => {
+                                 setCheckoutAddress(addr.address);
+                                 setCheckoutLocation((addr.lat && addr.lng) ? { lat: addr.lat, lng: addr.lng } : null);
+                               }}
+                               className={`w-full text-left p-3 rounded-xl border transition-all ${checkoutAddress === addr.address ? 'border-amber-500 bg-amber-500/10' : 'border-white/10 bg-black/30 hover:bg-white/5'}`}
+                             >
+                               <div className="flex items-center justify-between">
+                                 <span className="font-bold text-sm text-white">{addr.name}</span>
+                                 {(addr.lat && addr.lng) && <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded flex items-center gap-1"><MapPin size={10}/> GPS</span>}
+                               </div>
+                               <p className="text-xs text-zinc-400 mt-1">{addr.address}</p>
+                             </button>
+                           ))}
+                           <button onClick={() => setIsAddingNewAddress(true)} className="w-full py-2 text-xs font-bold text-amber-500 hover:text-amber-400 flex items-center justify-center gap-1">
+                             <Plus size={14} /> Usar otra dirección
+                           </button>
+                         </div>
+                       ) : (
+                         <div className="space-y-3">
+                           <div className="relative">
+                             <MapPin size={14} className="absolute left-3 top-3 text-zinc-400" />
+                             <textarea rows="2" value={checkoutAddress} onChange={e => setCheckoutAddress(e.target.value)} placeholder="Ingresa la dirección completa (Edificio, Casa, etc.)" className="w-full pl-9 pr-3 py-3 bg-black/50 border border-white/10 rounded-xl text-sm outline-none focus:border-white/30 text-white resize-none" />
+                           </div>
+                           
+                           <div className="flex flex-col sm:flex-row gap-2">
+                             <button 
+                               onClick={getLocationFromGPS}
+                               disabled={gpsLoading}
+                               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all ${checkoutLocation ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                             >
+                               {gpsLoading ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                               {checkoutLocation ? '📍 GPS Capturado' : 'Usar mi ubicación GPS'}
+                             </button>
+                             {currentCustomer?.addresses && currentCustomer.addresses.length > 0 && (
+                               <button onClick={() => setIsAddingNewAddress(false)} className="px-4 py-3 bg-zinc-800 text-white rounded-xl text-xs font-bold hover:bg-zinc-700 transition-colors">
+                                 Volver
+                               </button>
+                             )}
+                           </div>
+                           {gpsError && <p className="text-red-400 text-xs font-bold">{gpsError}</p>}
+                         </div>
+                       )}
                      </div>
 
                      {/* Cupón de Descuento */}
@@ -1563,8 +1980,36 @@ export default function PublicStore() {
                               </div>
                               
                               <div className="mt-4 space-y-3">
-                                <input type="text" value={paymentBank} onChange={e => setPaymentBank(e.target.value)} placeholder="Banco desde donde transferiste" className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white" />
-                                <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Pago (Últimos 4 o 6 dígitos)" className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white" />
+                                <select value={paymentBank} onChange={e => setPaymentBank(e.target.value)} className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white">
+                                  <option value="" disabled hidden>Banco desde donde transferiste</option>
+                                  <option value="0102 - Banco de Venezuela">0102 - Banco de Venezuela</option>
+                                  <option value="0104 - Venezolano de Crédito">0104 - Venezolano de Crédito</option>
+                                  <option value="0105 - Mercantil">0105 - Mercantil</option>
+                                  <option value="0108 - Provincial">0108 - Provincial</option>
+                                  <option value="0114 - Bancaribe">0114 - Bancaribe</option>
+                                  <option value="0115 - Exterior">0115 - Exterior</option>
+                                  <option value="0134 - Banesco">0134 - Banesco</option>
+                                  <option value="0137 - Sofitasa">0137 - Sofitasa</option>
+                                  <option value="0138 - Plaza">0138 - Plaza</option>
+                                  <option value="0156 - 100% Banco">0156 - 100% Banco</option>
+                                  <option value="0163 - Banco del Tesoro">0163 - Banco del Tesoro</option>
+                                  <option value="0171 - Banco Activo">0171 - Banco Activo</option>
+                                  <option value="0172 - Bancamiga">0172 - Bancamiga</option>
+                                  <option value="0175 - Bicentenario">0175 - Bicentenario</option>
+                                  <option value="0191 - BNC">0191 - BNC</option>
+                                  <option value="Otro">Otro</option>
+                                </select>
+                                 {ocrStatus === 'idle' || ocrStatus === 'analyzing' || ocrStatus === 'success' ? (
+                                   <div className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 text-white/50 flex items-center justify-between">
+                                     <span className={ocrStatus === 'success' ? 'text-emerald-400 font-bold' : ''}>{ocrStatus === 'analyzing' ? ocrMessage : (ocrStatus === 'success' ? ocrMessage : "Sube el comprobante para extraer la referencia")}</span>
+                                     {ocrStatus === 'analyzing' && <Loader2 size={16} className="animate-spin text-amber-500" />}
+                                   </div>
+                                 ) : (
+                                   <div className="space-y-1">
+                                     <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Pago manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
+                                     <p className="text-xs text-red-400 font-bold">{ocrMessage}</p>
+                                   </div>
+                                 )}
                                 
                                 <div className="relative overflow-hidden mt-3 p-4 border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center gap-2 bg-black/30 hover:bg-white/5 transition-colors cursor-pointer">
                                    <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -1603,7 +2048,17 @@ export default function PublicStore() {
                               </div>
                               
                               <div className="mt-4 space-y-3">
-                                <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Zelle (Opcional)" className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white" />
+                                 {ocrStatus === 'idle' || ocrStatus === 'analyzing' || ocrStatus === 'success' ? (
+                                   <div className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 text-white/50 flex items-center justify-between">
+                                     <span className={ocrStatus === 'success' ? 'text-emerald-400 font-bold' : ''}>{ocrStatus === 'analyzing' ? ocrMessage : (ocrStatus === 'success' ? ocrMessage : "Sube el comprobante para extraer la referencia")}</span>
+                                     {ocrStatus === 'analyzing' && <Loader2 size={16} className="animate-spin text-[#741eed]" />}
+                                   </div>
+                                 ) : (
+                                   <div className="space-y-1">
+                                     <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Zelle manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
+                                     <p className="text-xs text-red-400 font-bold">{ocrMessage}</p>
+                                   </div>
+                                 )}
                                 
                                 <div className="relative overflow-hidden mt-3 p-4 border border-dashed border-[#741eed]/50 rounded-lg flex flex-col items-center justify-center gap-2 bg-[#741eed]/10 hover:bg-[#741eed]/20 transition-colors cursor-pointer">
                                    <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />

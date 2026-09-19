@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Wallet, Zap, MapPin } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Wallet, Zap, MapPin, Bell, CheckCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -11,6 +11,31 @@ function cn(...inputs) {
 export default function EcommerceLayout({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const [storeName, setStoreName] = useState('Tienda');
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const fetchNotifications = () => {
+    const slug = localStorage.getItem('storeSlug');
+    if (!slug) return;
+    fetch(`http://localhost:3001/api/ecommerce/notifications/${slug}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setNotifications(data);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAsRead = (id) => {
+    fetch(`http://localhost:3001/api/ecommerce/notifications/${id}/read`, { method: 'PUT' })
+      .then(() => fetchNotifications())
+      .catch(console.error);
+  };
 
   useEffect(() => {
     const slug = localStorage.getItem('storeSlug');
@@ -42,6 +67,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Reseñas', path: '/ecommerce/reviews', icon: MessageSquare },
     { name: 'Promociones', path: '/ecommerce/promotions', icon: Tag },
     { name: 'Ofertas Flash', path: '/ecommerce/offers', icon: Zap },
+    { name: 'Notificaciones', path: '/ecommerce/notifications', icon: Bell },
     { name: 'Perfil Tienda', path: '/ecommerce/store-profile', icon: Settings },
     { name: 'Ubicación', path: '/ecommerce/location', icon: MapPin },
     { name: 'Ajustes', path: '/ecommerce/settings', icon: Settings },
@@ -115,19 +141,122 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           </div>
           <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate">{storeName}</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative">
+          <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-400 hover:text-amber-500 p-2 relative">
+            <Bell size={18} />
+            {notifications.filter(n => !n.is_read).length > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            )}
+          </button>
           <button onClick={toggleTheme} className="text-slate-400 hover:text-amber-500 p-2">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
           <button onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/ecommerce/live'); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
             <ArrowLeft size={18} />
           </button>
+          
+          {showNotifications && (
+            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+              <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-white">Notificaciones</h3>
+                <span className="text-xs font-bold text-amber-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-slate-500 dark:text-zinc-500 text-sm">No tienes notificaciones.</div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
+                      onClick={() => {
+                        markAsRead(n.id);
+                        if(n.product_id) navigate(`/ecommerce/product-studio/${n.product_id}`);
+                        setShowNotifications(false);
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-amber-600 font-bold'}`}>
+                            {n.type === 'stock_alert' ? '⚠️ Alerta de Stock' : 'Notificación'}
+                          </p>
+                          <p className="text-sm text-slate-700 dark:text-zinc-300 leading-tight">{n.message}</p>
+                          <span className="text-[10px] text-slate-400 mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
+                        </div>
+                        {!n.is_read && (
+                          <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-amber-500" title="Marcar como leída">
+                            <CheckCheck size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+                  </div>
+                  <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
+                    <button onClick={() => { setShowNotifications(false); navigate('/ecommerce/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
+                      Ver todas las notificaciones
+                    </button>
+                  </div>
+                </div>
+              )}
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-black relative">
-        <div className="absolute top-4 right-6 hidden md:block z-50">
+        <div className="absolute top-4 right-6 hidden md:flex items-center gap-3 z-50">
+           <div className="relative">
+             <button onClick={() => setShowNotifications(!showNotifications)} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors relative">
+                <Bell size={18} />
+                {notifications.filter(n => !n.is_read).length > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+             </button>
+             
+             {showNotifications && (
+                <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+                  <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 dark:text-white">Notificaciones</h3>
+                    <span className="text-xs font-bold text-amber-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-slate-500 dark:text-zinc-500 text-sm">No tienes notificaciones.</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
+                          onClick={() => {
+                            markAsRead(n.id);
+                            if(n.product_id) navigate(`/ecommerce/product-studio/${n.product_id}`);
+                            setShowNotifications(false);
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-amber-600 font-bold'}`}>
+                                {n.type === 'stock_alert' ? '⚠️ Alerta de Stock' : 'Notificación'}
+                              </p>
+                              <p className="text-sm text-slate-700 dark:text-zinc-300 leading-tight">{n.message}</p>
+                              <span className="text-[10px] text-slate-400 mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+                            {!n.is_read && (
+                              <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-amber-500" title="Marcar como leída">
+                                <CheckCheck size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
+                    <button onClick={() => { setShowNotifications(false); navigate('/ecommerce/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
+                      Ver todas las notificaciones
+                    </button>
+                  </div>
+                </div>
+              )}
+           </div>
+           
            <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
            </button>

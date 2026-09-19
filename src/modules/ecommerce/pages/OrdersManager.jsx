@@ -49,12 +49,13 @@ export default function OrdersManager() {
     const customerData = {
       name: `${order.customer} ${docId ? `(C.I: ${docId})` : ''}`.trim(),
       phone: phone,
-      address: address,
+      address: `${address}${(order.shippingInfo && order.shippingInfo.location) ? `\n📍 Ubicación GPS: https://maps.google.com/?q=${order.shippingInfo.location.lat},${order.shippingInfo.location.lng}` : ''}`,
       zone: 'E-commerce',
       packageType: 'Paquete E-commerce',
       productList: `Pedido ${order.id} (${order.items ? (typeof order.items === 'string' ? JSON.parse(order.items) : order.items).length : 0} artículos)`,
       weight: 1,
-      quantity: 1
+      quantity: 1,
+      deliveryPin: order.deliveryPin
     };
 
     const res = await sendDeliveryRequest('Tienda Principal', customerData, order.id);
@@ -133,16 +134,24 @@ export default function OrdersManager() {
       if (!orderToMove || orderToMove.status === targetStatus) return;
       const previousStatus = orderToMove.status;
       
+      let newDeliveryPin = orderToMove.deliveryPin;
+      if (!newDeliveryPin && (targetStatus === 'Preparando' || targetStatus === 'Enviado')) {
+        newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+      }
+      
       // Update optimista
       setOrders(orders.map(order => 
-        order.id === draggedOrderId ? { ...order, status: targetStatus } : order
+        order.id === draggedOrderId ? { ...order, status: targetStatus, deliveryPin: newDeliveryPin } : order
       ));
       
       try {
+        const payload = { status: targetStatus };
+        if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
+
         const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${draggedOrderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: targetStatus })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         
@@ -155,7 +164,7 @@ export default function OrdersManager() {
 
         // Integración Telegram Delivery
         if (targetStatus === 'Enviado' && orderToMove.status !== 'Enviado') {
-          handleSendToDelivery(orderToMove);
+          handleSendToDelivery({ ...orderToMove, deliveryPin: newDeliveryPin });
         }
       } catch (err) {
         console.error(err);
@@ -167,20 +176,30 @@ export default function OrdersManager() {
 
   const moveOrder = (id, newStatus) => {
     const orderToMove = orders.find(o => o.id === id);
+    if (!orderToMove) return;
+
+    let newDeliveryPin = orderToMove.deliveryPin;
+    if (!newDeliveryPin && (newStatus === 'Preparando' || newStatus === 'Enviado')) {
+      newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
     setOrders(orders.map(order => 
-      order.id === id ? { ...order, status: newStatus } : order
+      order.id === id ? { ...order, status: newStatus, deliveryPin: newDeliveryPin } : order
     ));
     
+    const payload = { status: newStatus };
+    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
+
     // Update en backend
     fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify(payload)
     }).catch(console.error);
 
     // Integración Telegram Delivery
     if (newStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
-      handleSendToDelivery(orderToMove);
+      handleSendToDelivery({ ...orderToMove, deliveryPin: newDeliveryPin });
     }
   };
 
@@ -193,12 +212,18 @@ export default function OrdersManager() {
     const previousStatus = orderToMove.status;
     const previousPaymentStatus = orderToMove.paymentStatus;
 
+    let newDeliveryPin = orderToMove.deliveryPin;
+    if (isApproved && !newDeliveryPin) {
+      newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
     setOrders(orders.map(order => {
       if (order.id === id) {
         const updatedOrder = { 
           ...order, 
           paymentStatus: newPaymentStatus,
-          ...(newStatus && { status: newStatus })
+          ...(newStatus && { status: newStatus }),
+          ...(newDeliveryPin && { deliveryPin: newDeliveryPin })
         };
         if (selectedOrder && selectedOrder.id === id) {
            setSelectedOrder(updatedOrder);
@@ -210,6 +235,7 @@ export default function OrdersManager() {
 
     const updatePayload = { paymentStatus: newPaymentStatus };
     if (newStatus) updatePayload.status = newStatus;
+    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) updatePayload.deliveryPin = newDeliveryPin;
 
     try {
       const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${id}`, {
@@ -417,6 +443,12 @@ export default function OrdersManager() {
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
                   <span className="font-bold">Dirección / Notas:</span> {selectedOrder.address}
                 </p>
+                
+                {(selectedOrder.shippingInfo && selectedOrder.shippingInfo.location) && (
+                   <a href={`https://maps.google.com/?q=${selectedOrder.shippingInfo.location.lat},${selectedOrder.shippingInfo.location.lng}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 mt-3 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
+                     <MapPin size={14} /> Ver en Google Maps
+                   </a>
+                )}
                 
                 {/* Nuevos campos de E-commerce avanzado */}
                 {(selectedOrder.booking_date || selectedOrder.table_number || selectedOrder.order_type) && (

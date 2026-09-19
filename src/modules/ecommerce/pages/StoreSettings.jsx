@@ -2,43 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Save, Store, CreditCard, Truck, Calculator, Landmark, Smartphone as PhoneIcon, PackageSearch } from 'lucide-react';
 
 export default function StoreSettings() {
-  const [invSettings, setInvSettings] = useState({
-    waste: false,
-    expiration: false,
-    audit: false,
-    transfers: false,
-    combos: false,
-    overstock: false,
-    reorder: false
-  });
-
-  useEffect(() => {
-    const saved = localStorage.getItem('ecommerce_inventory_settings');
-    if (saved) {
-      setInvSettings(JSON.parse(saved));
-    } else {
-      localStorage.setItem('ecommerce_inventory_settings', JSON.stringify(invSettings));
-    }
-  }, []);
-
-  const handleInvToggle = (key) => {
-    const newSettings = { ...invSettings, [key]: !invSettings[key] };
-    setInvSettings(newSettings);
-    localStorage.setItem('ecommerce_inventory_settings', JSON.stringify(newSettings));
-  };
-
-  const applyPreset = (niche) => {
-    let preset = {
-      waste: false, expiration: false, audit: false,
-      transfers: false, combos: false, overstock: false, reorder: false
-    };
-    if (niche === 'fruteria') preset = { ...preset, waste: true, expiration: true, audit: true };
-    if (niche === 'minimarket') preset = { ...preset, reorder: true, transfers: true, overstock: true };
-    if (niche === 'restaurante') preset = { ...preset, combos: true, waste: true };
-    
-    setInvSettings(preset);
-    localStorage.setItem('ecommerce_inventory_settings', JSON.stringify(preset));
-  };
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8 pb-24 md:pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -53,66 +16,6 @@ export default function StoreSettings() {
       </div>
 
       <div className="space-y-6">
-        {/* Inventory Modules */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">
-              <PackageSearch size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Módulos de Inventario Avanzado</h3>
-              <p className="text-xs text-slate-500 mt-1">Configuración rápida por nicho de negocio. Activa las funciones ideales con un clic.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <button onClick={() => applyPreset('fruteria')} className="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800 rounded-xl transition-colors text-emerald-700 dark:text-emerald-400">
-              <span className="text-2xl mb-2">🍅</span>
-              <span className="font-bold text-sm">Frutería / Verdulería</span>
-            </button>
-            <button onClick={() => applyPreset('minimarket')} className="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors text-blue-700 dark:text-blue-400">
-              <span className="text-2xl mb-2">🛒</span>
-              <span className="font-bold text-sm">Minimarket / Víveres</span>
-            </button>
-            <button onClick={() => applyPreset('restaurante')} className="flex flex-col items-center justify-center p-4 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/40 border border-orange-200 dark:border-orange-800 rounded-xl transition-colors text-orange-700 dark:text-orange-400">
-              <span className="text-2xl mb-2">🍔</span>
-              <span className="font-bold text-sm">Comida Rápida / Rest.</span>
-            </button>
-          </div>
-          
-          <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
-            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4">Ajuste Fino (Opcional)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-              { id: 'waste', name: 'Control de Mermas', desc: 'Descuenta mercancía dañada o consumida (Fruterías/Comida).' },
-              { id: 'expiration', name: 'Control de Caducidad', desc: 'Gestión de fechas de vencimiento.' },
-              { id: 'audit', name: 'Auditoría Ciega', desc: 'Ajustes por conteo físico vs sistema.' },
-              { id: 'transfers', name: 'Transferencias Multialmacén', desc: 'Mueve stock entre Depósito y Vitrina (Supermercados).' },
-              { id: 'combos', name: 'Combos / Recetas', desc: 'Descuenta ingredientes al crear combos (Comida Rápida).' },
-              { id: 'overstock', name: 'Alertas de Sobre-Stock', desc: 'Avisa cuando excedes el límite máximo de inventario.' },
-              { id: 'reorder', name: 'Puntos de Reorden', desc: 'Genera listas de compra automáticas.' },
-            ].map((module) => (
-              <div key={module.id} className="flex items-start justify-between p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950/50">
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-white">{module.name}</p>
-                  <p className="text-xs text-slate-500 mt-1">{module.desc}</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
-                  <input 
-                    type="checkbox" 
-                    className="sr-only peer" 
-                    checked={invSettings[module.id] || false}
-                    onChange={() => handleInvToggle(module.id)}
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:peer-focus:ring-violet-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-orange-500"></div>
-                </label>
-              </div>
-            ))}
-            </div>
-          </div>
-        </section>
-
-        {/* General Settings */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-lg">

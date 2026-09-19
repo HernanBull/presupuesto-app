@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert } from 'lucide-react';
+import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import { BUSINESS_TYPES } from '../../../config/businessTypes';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -20,6 +21,8 @@ export default function MarketplaceDirectory() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('register');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
 
   // Merchant Auth State
@@ -89,6 +92,7 @@ export default function MarketplaceDirectory() {
       }
       const newUser = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(newUser);
       setIsAuthModalOpen(false);
       
@@ -117,6 +121,7 @@ export default function MarketplaceDirectory() {
       }
       const user = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
       
@@ -144,6 +149,7 @@ export default function MarketplaceDirectory() {
       }
       const user = { ...data.user, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
       
@@ -211,7 +217,7 @@ export default function MarketplaceDirectory() {
         body: JSON.stringify({ 
           store_slug: generatedSlug,
           config: {
-            business_type: 1,
+            business_type: 'viveres',
             modules: ['orders', 'inventory', 'analytics', 'product_studio'],
             categories: ['General'],
             expediente: {
@@ -244,10 +250,62 @@ export default function MarketplaceDirectory() {
     }
   };
 
+  const handleRecoverPassword = async (e, type) => {
+    e.preventDefault();
+    const email = type === 'customer' ? authForm.email : merchantForm.email;
+    if (!email) return alert('Por favor ingresa tu correo electrónico');
+    try {
+      const res = await fetch('http://localhost:3001/api/auth/recover-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error al solicitar recuperación');
+        return;
+      }
+      alert(data.message + (data._devCode ? `\n\nCódigo de prueba: ${data._devCode}` : ''));
+      if (type === 'customer') setAuthMode('reset');
+      else setMerchantAuthMode('reset');
+    } catch (err) {
+      alert('Error de conexión');
+    }
+  };
+
+  const handleResetPassword = async (e, type) => {
+    e.preventDefault();
+    const email = type === 'customer' ? authForm.email : merchantForm.email;
+    try {
+      const res = await fetch('http://localhost:3001/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type, code: recoveryCode, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Error al restablecer');
+        return;
+      }
+      alert('Contraseña actualizada con éxito');
+      setRecoveryCode('');
+      setNewPassword('');
+      if (type === 'customer') setAuthMode('login');
+      else setMerchantAuthMode('login');
+    } catch (err) {
+      alert('Error de conexión');
+    }
+  };
+
   const isFavorite = (storeSlug) => {
     if (!currentCustomer || !currentCustomer.favorites) return false;
-    const favorites = Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites : (typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
-    return favorites.some(f => f.slug === storeSlug);
+    try {
+      const raw = currentCustomer.favorites;
+      const favorites = Array.isArray(raw) ? raw : JSON.parse(raw || '[]');
+      return Array.isArray(favorites) && favorites.some(f => f.slug === storeSlug);
+    } catch {
+      return false;
+    }
   };
 
   const toggleFavorite = async (e, store) => {
@@ -282,14 +340,27 @@ export default function MarketplaceDirectory() {
   };
 
   const categories = [
-    { name: 'Todas', icon: Store },
-    { name: 'Comida Rápida', icon: Utensils },
-    { name: 'Víveres', icon: ShoppingBasket },
-    { name: 'Fruterías', icon: Apple }
+    { id: 'Todas', name: 'Todas', icon: Store },
+    { id: 'General', name: 'General', icon: Store },
+    { id: 'Víveres', name: 'Víveres', icon: ShoppingBasket },
+    { id: 'Proteínas', name: 'Proteínas', icon: Package },
+    { id: 'Charcutería y Lácteos', name: 'Charcutería', icon: ShoppingBag },
+    { id: 'Frutas y Verduras', name: 'Frutas', icon: Apple },
+    { id: 'Panadería y Dulces', name: 'Panadería', icon: Coffee },
+    { id: 'Bebidas y Licores', name: 'Bebidas', icon: Coffee },
+    { id: 'Snacks y Golosinas', name: 'Snacks', icon: Package },
+    { id: 'Cuidado Personal', name: 'C. Personal', icon: Heart },
+    { id: 'Limpieza del Hogar', name: 'Limpieza', icon: Sparkles },
+    { id: 'Ropa y Calzado', name: 'Ropa', icon: Shirt },
+    { id: 'Repuestos para Carros', name: 'Autos', icon: Car },
+    { id: 'Repuestos para Motos', name: 'Motos', icon: Settings },
+    { id: 'Herramientas y Ferretería', name: 'Ferretería', icon: Wrench },
+    { id: 'Tecnología y Celulares', name: 'Tecnología', icon: Smartphone },
+    { id: 'Hogar y Electrodomésticos', name: 'Hogar', icon: Home }
   ];
 
   const filteredStores = stores.filter(store => 
-    (activeCategory === 'Todas' || true) &&
+    (activeCategory === 'Todas' || (store.productCategories && store.productCategories.includes(activeCategory))) &&
     (store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (store.description && store.description.toLowerCase().includes(searchTerm.toLowerCase())))
   );
@@ -330,7 +401,7 @@ export default function MarketplaceDirectory() {
           </div>
 
           <div className="flex items-center gap-6">
-             <button onClick={() => navigate('/superadmin')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
+             <button onClick={() => window.location.href = '/superadmin'} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
                <ShieldAlert size={14} /> Admin
              </button>
              <button onClick={() => navigate('/ecommerce/pricing')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
@@ -428,15 +499,15 @@ export default function MarketplaceDirectory() {
         <div className="flex items-center gap-4 overflow-x-auto pb-8 scrollbar-hide mb-8 border-b border-white/5">
           {categories.map((cat) => {
              const Icon = cat.icon;
-             const isActive = activeCategory === cat.name;
+             const isActive = activeCategory === cat.id;
              return (
                <button 
-                 key={cat.name}
-                 onClick={() => setActiveCategory(cat.name)}
-                 className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold tracking-wide transition-all flex items-center gap-2 flex-shrink-0 border ${
+                 key={cat.id}
+                 onClick={() => setActiveCategory(cat.id)}
+                 className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold tracking-widest uppercase transition-all whitespace-nowrap shrink-0 border ${
                    isActive 
-                   ? 'bg-amber-500/10 border-amber-500/50 text-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.1)]' 
-                   : 'bg-zinc-900 border-white/5 text-zinc-400 hover:border-white/20 hover:text-white hover:bg-zinc-800'
+                     ? 'bg-amber-500 text-black border-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]' 
+                     : 'bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white'
                  }`}
                >
                  <Icon size={16} /> {cat.name}
@@ -656,7 +727,7 @@ export default function MarketplaceDirectory() {
                     <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
                       <User size={20} className="text-amber-500" />
                     </div>
-                    {authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                    {authMode === 'login' ? 'Iniciar Sesión' : authMode === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
                   </h2>
                 </div>
                 <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
@@ -664,27 +735,64 @@ export default function MarketplaceDirectory() {
                 </button>
               </div>
 
-              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className="p-8 space-y-5">
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                  <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="tu@correo.com" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
-                  <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
-                </div>
-
-                <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-                  {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'}
-                </button>
-
-                <p className="text-center text-sm font-light text-zinc-500 mt-6">
-                  {authMode === 'login' ? '¿Aún no tienes cuenta?' : '¿Ya eres miembro?'}
-                  <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-white font-bold ml-2 hover:text-amber-500 transition-colors focus:outline-none">
-                    {authMode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+              {authMode === 'recover' || authMode === 'reset' ? (
+                <form onSubmit={(e) => authMode === 'recover' ? handleRecoverPassword(e, 'customer') : handleResetPassword(e, 'customer')} className="p-8 space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} disabled={authMode === 'reset'} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="tu@correo.com" />
+                  </div>
+                  {authMode === 'reset' && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos</label>
+                        <input type="text" required value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                      </div>
+                    </>
+                  )}
+                  <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                    {authMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'}
                   </button>
-                </p>
-              </form>
+                  <p className="text-center text-sm font-light text-zinc-500 mt-6">
+                    <button type="button" onClick={() => setAuthMode('login')} className="text-white font-bold hover:text-amber-500 transition-colors focus:outline-none">
+                      Volver al inicio de sesión
+                    </button>
+                  </p>
+                </form>
+              ) : (
+                <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className="p-8 space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="tu@correo.com" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
+                    <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                  </div>
+
+                  {authMode === 'login' && (
+                    <div className="flex justify-end">
+                      <button type="button" onClick={() => setAuthMode('recover')} className="text-xs text-amber-500 hover:text-amber-400 transition-colors">
+                        ¿Olvidaste tu contraseña?
+                      </button>
+                    </div>
+                  )}
+
+                  <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                    {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'}
+                  </button>
+
+                  <p className="text-center text-sm font-light text-zinc-500 mt-6">
+                    {authMode === 'login' ? '¿Aún no tienes cuenta?' : '¿Ya eres miembro?'}
+                    <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-white font-bold ml-2 hover:text-amber-500 transition-colors focus:outline-none">
+                      {authMode === 'login' ? 'Regístrate' : 'Inicia sesión'}
+                    </button>
+                  </p>
+                </form>
+              )}
 
               <div className="px-8 pb-8">
                 <div className="flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest mb-6">
@@ -726,7 +834,7 @@ export default function MarketplaceDirectory() {
                       <Store size={24} className="text-amber-500" />
                     </div>
                     <h2 className="text-3xl font-light text-white tracking-tight">
-                      {merchantAuthMode === 'register' ? 'Inicia tu Imperio' : 'Panel Central'}
+                      {merchantAuthMode === 'register' ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
                   <p className="text-zinc-500 font-light text-sm mt-4">
@@ -755,7 +863,7 @@ export default function MarketplaceDirectory() {
                     type="button"
                     onClick={() => setMerchantAuthMode('login')}
                     className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
-                      merchantAuthMode === 'login'
+                      (merchantAuthMode === 'login' || merchantAuthMode === 'recover' || merchantAuthMode === 'reset')
                         ? 'bg-zinc-800 text-amber-500 shadow-lg border border-white/5'
                         : 'text-zinc-500 hover:text-white'
                     }`}
@@ -765,36 +873,73 @@ export default function MarketplaceDirectory() {
                 </div>
               </div>
 
-              <form onSubmit={merchantAuthMode === 'register' ? handleMerchantRegister : handleMerchantLogin} className="p-8 pt-4 space-y-5">
-                {merchantAuthMode === 'register' && (
+              {merchantAuthMode === 'recover' || merchantAuthMode === 'reset' ? (
+                <form onSubmit={(e) => merchantAuthMode === 'recover' ? handleRecoverPassword(e, 'merchant') : handleResetPassword(e, 'merchant')} className="p-8 pt-4 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
-                    <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" />
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico Administrador</label>
+                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} disabled={merchantAuthMode === 'reset'} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" />
                   </div>
-                )}
-                
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                  <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
-                  <input type="password" required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
-                </div>
-
-                <button 
-                  type="submit" 
-                  disabled={merchantLoading || (merchantAuthMode === 'register' && !merchantForm.businessName) || !merchantForm.email}
-                  className="w-full bg-amber-500 text-black rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                >
-                  {merchantLoading ? (
-                    <><Loader2 className="animate-spin" size={18} /> Procesando...</>
-                  ) : (
-                    <>{merchantAuthMode === 'register' ? 'Inicializar Instancia' : 'Acceder al ERP'} <ArrowRight size={16} /></>
+                  {merchantAuthMode === 'reset' && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos</label>
+                        <input type="text" required value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                      </div>
+                    </>
                   )}
-                </button>
-              </form>
+                  <button type="submit" disabled={merchantLoading || !merchantForm.email} className="w-full bg-amber-500 text-black rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+                    {merchantAuthMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'}
+                  </button>
+                  <div className="flex justify-center mt-4">
+                    <button type="button" onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-amber-500 transition-colors">
+                      Volver al inicio de sesión
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={merchantAuthMode === 'register' ? handleMerchantRegister : handleMerchantLogin} className="p-8 pt-4 space-y-5">
+                  {merchantAuthMode === 'register' && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
+                      <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" />
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
+                    <input type="password" required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                  </div>
+
+                  {merchantAuthMode === 'login' && (
+                    <div className="flex justify-end mt-2">
+                      <button type="button" onClick={() => setMerchantAuthMode('recover')} className="text-[10px] text-amber-500 hover:text-amber-400 font-bold uppercase tracking-wider transition-colors">
+                        ¿Olvidaste tu contraseña?
+                      </button>
+                    </div>
+                  )}
+
+                  <button 
+                    type="submit" 
+                    disabled={merchantLoading || (merchantAuthMode === 'register' && !merchantForm.businessName) || !merchantForm.email}
+                    className="w-full bg-amber-500 text-black rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  >
+                    {merchantLoading ? (
+                      <><Loader2 className="animate-spin" size={18} /> Procesando...</>
+                    ) : (
+                      <>{merchantAuthMode === 'register' ? 'Inicializar Instancia' : 'Acceder al ERP'} <ArrowRight size={16} /></>
+                    )}
+                  </button>
+                </form>
+              )}
             </motion.div>
           </div>
         )}

@@ -10,13 +10,13 @@ export default function InventoryManager() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const [settings, setSettings] = useState({
-    waste: false,
-    expiration: false,
-    audit: false,
-    transfers: false,
-    combos: false,
-    overstock: false,
-    reorder: false
+    waste: true,
+    expiration: true,
+    audit: true,
+    transfers: true,
+    combos: true,
+    overstock: true,
+    reorder: true
   });
 
   const fetchInventory = async () => {
@@ -44,10 +44,6 @@ export default function InventoryManager() {
 
   useEffect(() => {
     fetchInventory();
-    const saved = localStorage.getItem('ecommerce_inventory_settings');
-    if (saved) {
-      setSettings(JSON.parse(saved));
-    }
   }, []);
   
   const [isEditorOpen, setIsEditorOpen] = useState(false);
