@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
+import { HeroShowcase } from '../components/HeroShowcase';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -404,7 +405,7 @@ export default function MarketplaceDirectory() {
              <button onClick={() => window.location.href = '/superadmin'} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
                <ShieldAlert size={14} /> Admin
              </button>
-             <button onClick={() => navigate('/ecommerce/pricing')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
+             <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
                <Store size={16} /> Vender
              </button>
              <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
@@ -450,13 +451,14 @@ export default function MarketplaceDirectory() {
         </div>
       </div>
 
-      {/* Hero Banner Ultra Premium */}
-      <div className="relative overflow-hidden min-h-[500px] flex items-center z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(245,158,11,0.1)_0%,transparent_60%)] pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
+      {/* Hero Banner Minimalista Premium */}
+      <div className="relative overflow-hidden min-h-[550px] flex items-center z-10 bg-gradient-to-b from-zinc-900/50 to-transparent">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.05)_0%,rgba(0,0,0,0)_50%)] pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.02)_0%,transparent_100%)] pointer-events-none"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         
-        <div className="max-w-[1400px] w-full mx-auto px-6 py-20 relative z-10">
-           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="max-w-3xl">
+        <div className="max-w-[1400px] w-full mx-auto px-6 py-20 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
+           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="max-w-2xl flex-1">
              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-amber-500 text-xs font-bold tracking-[0.2em] uppercase mb-8 backdrop-blur-md">
                <Star size={12} fill="currentColor" /> El Ecosistema Gastronómico
              </div>
@@ -482,14 +484,21 @@ export default function MarketplaceDirectory() {
                  </button>
                )}
                <button 
-                 onClick={() => setIsMerchantModalOpen(true)}
-                 className="w-full sm:w-auto px-10 py-4 bg-amber-500 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase shadow-[0_0_40px_rgba(245,158,11,0.2)] hover:shadow-[0_0_60px_rgba(245,158,11,0.4)] transition-all hover:-translate-y-1 flex items-center justify-center gap-3"
+                 onClick={() => {
+                   setMerchantAuthMode('register');
+                   setIsMerchantModalOpen(true);
+                 }}
+                 className="w-full sm:w-auto px-10 py-4 bg-amber-500 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:shadow-[0_0_40px_rgba(245,158,11,0.5)] transition-all hover:-translate-y-1 flex items-center justify-center gap-3"
                >
-                 <Store size={16} /> Vender <Zap size={14} fill="currentColor"/>
+                 <Store size={16} /> Vender <Zap size={14} />
                </button>
              </div>
            </motion.div>
-         </div>
+           
+           <div className="flex-1 w-full hidden lg:block relative -mr-12">
+             <HeroShowcase />
+           </div>
+        </div>
       </div>
 
       {/* Main Content */}

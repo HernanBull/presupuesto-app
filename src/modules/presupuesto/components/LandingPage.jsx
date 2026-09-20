@@ -44,7 +44,7 @@ const SpotlightCard = ({ title, description, icon: Icon, span = 1, delay = 0, on
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative rounded-[2rem] bg-transparent p-8 overflow-hidden cursor-pointer transition-all duration-500 hover:bg-zinc-900/20 ${span === 2 ? 'md:col-span-2' : ''}`}
+      className={`group relative rounded-[2rem] bg-zinc-900/30 backdrop-blur-xl border border-white/5 p-8 overflow-hidden cursor-pointer transition-all duration-500 hover:bg-zinc-900/60 hover:border-white/10 hover:shadow-[0_20px_40px_-20px_rgba(245,158,11,0.15)] ${span === 2 ? 'md:col-span-2' : ''}`}
     >
       <div 
         className="pointer-events-none absolute -inset-px transition-opacity duration-300"

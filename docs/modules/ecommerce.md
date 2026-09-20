@@ -206,3 +206,9 @@ Revisar la documentación completa en: [Arquitectura de Submódulos de E-commerc
 - **Descripción:** (Funciones Avanzadas de Inventario por Defecto)
   - Se eliminó la sección "Módulos de Inventario Avanzado" y "Ajustes finos" en `StoreSettings.jsx`.
   - Las funciones de control de mermas, auditoría de carga, combos de receta, punto de reorden, alerta sobrestock, transferencia multi-almacén y control de caducidad están habilitadas de forma global y permanente en `InventoryManager.jsx` por defecto para todas las tiendas, sin depender de un estado de configuración (`ecommerce_inventory_settings`).
+
+- **Fecha y Hora:** 2026-09-19 19:40:00
+- **Versión:** 9.4.0
+- **Descripción:** (Corrección Arquitectónica de Ruteo Aislado)
+  - **Fallo solucionado:** Navegar al SuperAdmin desde el botón del directorio principal (`MarketplaceDirectory.jsx`) provocaba una "pantalla negra" estática debido a que la función `navigate('/superadmin')` de `react-router-dom` fallaba al buscar la ruta en el contexto aislado del módulo E-commerce.
+  - **Solución implementada:** Se forzó un salto de enrutador raíz (full page load) reemplazando la lógica por `window.location.href = '/superadmin'`, lo que permite a `App.jsx` reevaluar y montar el router principal correcto del SuperAdmin sin bloqueos.
