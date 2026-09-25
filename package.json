@@ -19,7 +19,6 @@
     "@libsql/client": "^0.18.0",
     "@react-oauth/google": "^0.13.5",
     "@supabase/supabase-js": "^2.117.2",
-    "better-sqlite3": "^13.0.3",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
     "dotenv": "^18.0.4",
