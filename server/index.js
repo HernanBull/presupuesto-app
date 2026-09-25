@@ -61,9 +61,9 @@ const storage = multer.diskStorage({
 });
 
 // Limite de 50MB
-const upload = multer({ 
+const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 } 
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 app.use(cors());
@@ -76,7 +76,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
-    
+
     // Devolver datos del archivo guardado
     res.json({
       url: `http://localhost:${PORT}/uploads/${req.file.filename}`,
@@ -100,25 +100,25 @@ app.get('/api/bcv', async (req, res) => {
       }
     });
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
-    
+
     if (!response.ok) {
       throw new Error('Error de conexión con el BCV');
     }
-    
+
     const html = await response.text();
     // Expresión regular para buscar el div con id "dolar" y extraer el texto del strong (que puede tener clases)
     const match = html.match(/<div id="dolar"[\s\S]*?<strong.*?>(.*?)<\/strong>/);
-    
+
     if (match && match[1]) {
       // El valor viene con comas, por ejemplo "853,49930000"
       let rateStr = match[1].trim().replace(',', '.');
       let rate = parseFloat(rateStr);
-      
+
       if (!isNaN(rate)) {
         return res.json({ rate });
       }
     }
-    
+
     throw new Error('No se pudo extraer la tasa del HTML');
   } catch (error) {
     console.error('Error al obtener BCV:', error.message);
@@ -130,20 +130,20 @@ app.get('/api/bcv', async (req, res) => {
 // --- DELIVERY TELEGRAM ENDPOINTS ---
 app.post('/api/delivery/telegram/send', async (req, res) => {
   const { commerceId, customerData, customOrderId } = req.body;
-  
-  const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+
+  const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
   const chatId = setting ? setting.value : null;
 
   if (!chatId) return res.status(400).json({ success: false, error: "No hay un Grupo de Repartidores configurado globalmente." });
-  
+
   const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  
+
   let deliveryPin = customerData.deliveryPin;
   if (!deliveryPin) {
     deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      db.prepare('UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?').run(deliveryPin, orderId);
-    } catch(e) { console.error("Error updating emergency pin in db", e); }
+      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?', args: [deliveryPin, orderId] });
+    } catch (e) {console.error("Error updating emergency pin in db", e);}
   }
 
   const gpsLink = customerData.location ? `\n📍 <b>GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
@@ -152,32 +152,32 @@ app.post('/api/delivery/telegram/send', async (req, res) => {
   const TELEGRAM_BOT_USERNAME = process.env.VITE_TELEGRAM_BOT_USERNAME || 'DeliveryAxonbot';
   const replyMarkup = {
     inline_keyboard: [
-      [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }],
-      [{ text: "🗺️ Ver Mapa de la Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone)}` }]
-    ]
+    [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }],
+    [{ text: "🗺️ Ver Mapa de la Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone)}` }]]
+
   };
 
   try {
     const telegramRes = await sendMessageToChat(chatId, message, replyMarkup);
     if (!telegramRes.ok) throw new Error("Error al enviar a Telegram");
-    
-    // Save to pending
-    db.prepare('INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)').run(
-      orderId, JSON.stringify(customerData), deliveryPin
-    );
 
-    res.json({ success: true, orderId, deliveryPin }); 
+    // Save to pending
+    await db.execute({ sql: 'INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)', args: [
+      orderId, JSON.stringify(customerData), deliveryPin] });
+
+
+    res.json({ success: true, orderId, deliveryPin });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Obtener todos los servicios
-app.get('/api/services', (req, res) => {
+app.get('/api/services', async (req, res) => {
   try {
-    const services = db.prepare('SELECT * FROM services').all();
+    const services = (await db.execute({ sql: 'SELECT * FROM services', args: [] })).rows;
     // Parsear el JSON del logbook
-    const formattedServices = services.map(s => ({
+    const formattedServices = services.map((s) => ({
       ...s,
       logbook: s.logbook ? JSON.parse(s.logbook) : null
     }));
@@ -188,22 +188,22 @@ app.get('/api/services', (req, res) => {
 });
 
 // Crear un servicio
-app.post('/api/services', (req, res) => {
+app.post('/api/services', async (req, res) => {
   const { id, name, description, cost, price, category, logbook } = req.body;
   try {
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO services (id, name, description, cost, price, category, logbook)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    insert.run(
-      id || Date.now().toString(),
-      name,
-      description || '',
+    `, args: [id || Date.now().toString(), name, description || '',
       cost || 0,
       price || 0,
       category || '',
-      JSON.stringify(logbook || {})
-    );
+      JSON.stringify(logbook || {})] });
+
     res.status(201).json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -211,24 +211,24 @@ app.post('/api/services', (req, res) => {
 });
 
 // Actualizar un servicio
-app.put('/api/services/:id', (req, res) => {
+app.put('/api/services/:id', async (req, res) => {
   const { id } = req.params;
   const { name, description, cost, price, category, logbook } = req.body;
   try {
-    const update = db.prepare(`
+
+
+
+
+
+    await db.execute({ sql: `
       UPDATE services
       SET name = ?, description = ?, cost = ?, price = ?, category = ?, logbook = ?
       WHERE id = ?
-    `);
-    update.run(
-      name,
-      description || '',
-      cost || 0,
-      price || 0,
+    `, args: [name, description || '', cost || 0, price || 0,
       category || '',
       JSON.stringify(logbook || {}),
-      id
-    );
+      id] });
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -236,10 +236,10 @@ app.put('/api/services/:id', (req, res) => {
 });
 
 // Eliminar un servicio
-app.delete('/api/services/:id', (req, res) => {
+app.delete('/api/services/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    db.prepare('DELETE FROM services WHERE id = ?').run(id);
+    await db.execute({ sql: 'DELETE FROM services WHERE id = ?', args: [id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -250,16 +250,16 @@ app.delete('/api/services/:id', (req, res) => {
 // --- RUTAS DE PRESUPUESTOS (BUDGETS) ---
 
 // Obtener presupuestos (filtrados por workspace_id si se provee)
-app.get('/api/budgets', (req, res) => {
+app.get('/api/budgets', async (req, res) => {
   const { workspaceId } = req.query;
   try {
     let budgets;
     if (workspaceId) {
-      budgets = db.prepare('SELECT * FROM budgets WHERE workspace_id = ? ORDER BY date DESC').all(workspaceId);
+      budgets = (await db.execute({ sql: 'SELECT * FROM budgets WHERE workspace_id = ? ORDER BY date DESC', args: [workspaceId] })).rows;
     } else {
-      budgets = db.prepare('SELECT * FROM budgets ORDER BY date DESC').all();
+      budgets = (await db.execute({ sql: 'SELECT * FROM budgets ORDER BY date DESC', args: [] })).rows;
     }
-    const formattedBudgets = budgets.map(b => ({
+    const formattedBudgets = budgets.map((b) => ({
       ...b,
       items: b.items ? JSON.parse(b.items) : [],
       maintenance: b.maintenance ? JSON.parse(b.maintenance) : null
@@ -271,24 +271,24 @@ app.get('/api/budgets', (req, res) => {
 });
 
 // Crear un presupuesto nuevo
-app.post('/api/budgets', (req, res) => {
+app.post('/api/budgets', async (req, res) => {
   const { id, name, date, items, totalCost, totalRevenue, approvedRevenue, maintenance, workspace_id } = req.body;
   try {
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO budgets (id, name, date, items, totalCost, totalRevenue, approvedRevenue, maintenance, workspace_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    insert.run(
-      id || Date.now().toString(),
-      name || 'Presupuesto sin nombre',
-      date || new Date().toISOString(),
+    `, args: [id || Date.now().toString(), name || 'Presupuesto sin nombre', date || new Date().toISOString(),
       JSON.stringify(items || []),
       totalCost || 0,
       totalRevenue || 0,
       approvedRevenue || 0,
       maintenance ? JSON.stringify(maintenance) : null,
-      workspace_id || 'default_workspace'
-    );
+      workspace_id || 'default_workspace'] });
+
     res.status(201).json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -296,24 +296,24 @@ app.post('/api/budgets', (req, res) => {
 });
 
 // Actualizar un presupuesto
-app.put('/api/budgets/:id', (req, res) => {
+app.put('/api/budgets/:id', async (req, res) => {
   const { id } = req.params;
   const { name, items, totalCost, totalRevenue, approvedRevenue, maintenance } = req.body;
   try {
-    const update = db.prepare(`
+
+
+
+
+
+    await db.execute({ sql: `
       UPDATE budgets
       SET name = ?, items = ?, totalCost = ?, totalRevenue = ?, approvedRevenue = ?, maintenance = ?
       WHERE id = ?
-    `);
-    update.run(
-      name,
-      JSON.stringify(items || []),
-      totalCost || 0,
-      totalRevenue || 0,
+    `, args: [name, JSON.stringify(items || []), totalCost || 0, totalRevenue || 0,
       approvedRevenue || 0,
       maintenance ? JSON.stringify(maintenance) : null,
-      id
-    );
+      id] });
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -321,10 +321,10 @@ app.put('/api/budgets/:id', (req, res) => {
 });
 
 // Eliminar un presupuesto
-app.delete('/api/budgets/:id', (req, res) => {
+app.delete('/api/budgets/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    db.prepare('DELETE FROM budgets WHERE id = ?').run(id);
+    await db.execute({ sql: 'DELETE FROM budgets WHERE id = ?', args: [id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -333,25 +333,25 @@ app.delete('/api/budgets/:id', (req, res) => {
 
 // --- RUTAS DE CATEGORÍAS ---
 
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
-    const categories = db.prepare('SELECT * FROM categories ORDER BY order_index ASC').all();
+    const categories = (await db.execute({ sql: 'SELECT * FROM categories ORDER BY order_index ASC', args: [] })).rows;
     res.json(categories);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/categories', (req, res) => {
+app.post('/api/categories', async (req, res) => {
   const { name, order_index } = req.body;
   try {
     if (!name) return res.status(400).json({ error: 'Name is required' });
-    
+
     // Check if exists
-    const exists = db.prepare('SELECT name FROM categories WHERE name = ?').get(name);
+    const exists = (await db.execute({ sql: 'SELECT name FROM categories WHERE name = ?', args: [name] })).rows[0];
     if (exists) return res.status(400).json({ error: 'Category already exists' });
 
-    db.prepare('INSERT INTO categories (name, order_index) VALUES (?, ?)').run(name, order_index || 0);
+    await db.execute({ sql: 'INSERT INTO categories (name, order_index) VALUES (?, ?)', args: [name, order_index || 0] });
     res.status(201).json({ success: true, name });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -361,10 +361,10 @@ app.post('/api/categories', (req, res) => {
 app.put('/api/categories', (req, res) => {
   const { categories } = req.body; // Array de {name, order_index}
   try {
-    const update = db.prepare('UPDATE categories SET order_index = ? WHERE name = ?');
-    db.transaction(() => {
+
+    db.transaction(async () => {
       for (const cat of categories) {
-        update.run(cat.order_index, cat.name);
+        await db.execute({ sql: 'UPDATE categories SET order_index = ? WHERE name = ?', args: [cat.order_index, cat.name] });
       }
     })();
     res.json({ success: true });
@@ -373,12 +373,12 @@ app.put('/api/categories', (req, res) => {
   }
 });
 
-app.delete('/api/categories/:name', (req, res) => {
+app.delete('/api/categories/:name', async (req, res) => {
   const { name } = req.params;
   try {
-    db.prepare('DELETE FROM categories WHERE name = ?').run(name);
+    await db.execute({ sql: 'DELETE FROM categories WHERE name = ?', args: [name] });
     // Mover los servicios de esta categoría a vacío o "Sin Asignar"
-    db.prepare('UPDATE services SET category = ? WHERE category = ?').run('', name);
+    await db.execute({ sql: 'UPDATE services SET category = ? WHERE category = ?', args: ['', name] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -387,10 +387,10 @@ app.delete('/api/categories/:name', (req, res) => {
 
 // --- RUTAS DE WORKSPACES ---
 
-app.get('/api/workspaces', (req, res) => {
+app.get('/api/workspaces', async (req, res) => {
   try {
-    const workspaces = db.prepare('SELECT * FROM workspaces ORDER BY created_at ASC').all();
-    const formatted = workspaces.map(w => ({
+    const workspaces = (await db.execute({ sql: 'SELECT * FROM workspaces ORDER BY created_at ASC', args: [] })).rows;
+    const formatted = workspaces.map((w) => ({
       ...w,
       config: w.config ? JSON.parse(w.config) : {}
     }));
@@ -400,45 +400,45 @@ app.get('/api/workspaces', (req, res) => {
   }
 });
 
-app.post('/api/workspaces', (req, res) => {
+app.post('/api/workspaces', async (req, res) => {
   const { name } = req.body;
   try {
     if (!name) return res.status(400).json({ error: 'Name is required' });
     const id = Date.now().toString();
-    db.prepare('INSERT INTO workspaces (id, name, config, created_at) VALUES (?, ?, ?, ?)').run(
+    await db.execute({ sql: 'INSERT INTO workspaces (id, name, config, created_at) VALUES (?, ?, ?, ?)', args: [
       id,
       name,
       '{}',
-      new Date().toISOString()
-    );
+      new Date().toISOString()] });
+
     res.status(201).json({ success: true, id, name, config: {} });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/workspaces/:id/config', (req, res) => {
+app.put('/api/workspaces/:id/config', async (req, res) => {
   const { id } = req.params;
   const { config, store_slug } = req.body;
   try {
-    db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(
+    await db.execute({ sql: 'UPDATE workspaces SET config = ? WHERE id = ?', args: [
       JSON.stringify(config || {}),
-      id
-    );
+      id] });
+
 
     if (store_slug) {
-      db.prepare('UPDATE workspaces SET store_slug = ? WHERE id = ?').run(store_slug, id);
+      await db.execute({ sql: 'UPDATE workspaces SET store_slug = ? WHERE id = ?', args: [store_slug, id] });
     }
 
     // Sembrar categorías por defecto si se pasan en el config
     if (config && config.categories && Array.isArray(config.categories)) {
-      const insertCategory = db.prepare('INSERT OR IGNORE INTO categories (name, order_index) VALUES (?, ?)');
-      const currentMax = db.prepare('SELECT MAX(order_index) as maxIdx FROM categories').get();
+
+      const currentMax = (await db.execute({ sql: 'SELECT MAX(order_index) as maxIdx FROM categories', args: [] })).rows[0];
       let nextIndex = (currentMax.maxIdx || 0) + 1;
-      
-      db.transaction(() => {
+
+      db.transaction(async () => {
         for (const catName of config.categories) {
-          insertCategory.run(catName, nextIndex++);
+          await db.execute({ sql: 'INSERT OR IGNORE INTO categories (name, order_index) VALUES (?, ?)', args: [catName, nextIndex++] });
         }
       })();
     }
@@ -449,28 +449,28 @@ app.put('/api/workspaces/:id/config', (req, res) => {
   }
 });
 
-app.delete('/api/workspaces/:id', (req, res) => {
+app.delete('/api/workspaces/:id', async (req, res) => {
   const { id } = req.params;
   if (id === 'default_workspace') return res.status(400).json({ error: 'Cannot delete default workspace' });
   try {
-    db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
-    db.prepare('DELETE FROM budgets WHERE workspace_id = ?').run(id); // Borrar presupuestos asociados
+    await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [id] });
+    await db.execute({ sql: 'DELETE FROM budgets WHERE workspace_id = ?', args: [id] }); // Borrar presupuestos asociados
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/workspaces/change-password', (req, res) => {
+app.post('/api/workspaces/change-password', async (req, res) => {
   const { workspaceId, currentPassword, newPassword } = req.body;
   try {
-    const ws = db.prepare('SELECT id, config FROM workspaces WHERE id = ?').get(workspaceId);
+    const ws = (await db.execute({ sql: 'SELECT id, config FROM workspaces WHERE id = ?', args: [workspaceId] })).rows[0];
     if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
 
     let cfg = {};
     try {
       cfg = JSON.parse(ws.config || '{}');
-    } catch(e) {}
+    } catch (e) {}
 
     // Validar contraseña actual (si ya había una configurada)
     if (cfg.adminPassword && cfg.adminPassword !== currentPassword) {
@@ -480,10 +480,10 @@ app.post('/api/workspaces/change-password', (req, res) => {
     // Actualizar con la nueva
     cfg.adminPassword = newPassword;
 
-    db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(
+    await db.execute({ sql: 'UPDATE workspaces SET config = ? WHERE id = ?', args: [
       JSON.stringify(cfg),
-      workspaceId
-    );
+      workspaceId] });
+
 
     res.json({ success: true });
   } catch (err) {
@@ -491,15 +491,15 @@ app.post('/api/workspaces/change-password', (req, res) => {
   }
 });
 
-app.post('/api/workspaces/merchant/login', (req, res) => {
+app.post('/api/workspaces/merchant/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const workspaces = db.prepare('SELECT id, name, config, store_slug, status FROM workspaces').all();
-    const ws = workspaces.find(w => {
+    const workspaces = (await db.execute({ sql: 'SELECT id, name, config, store_slug, status FROM workspaces', args: [] })).rows;
+    const ws = workspaces.find((w) => {
       try {
         const cfg = JSON.parse(w.config || '{}');
         return cfg.adminEmail === email;
-      } catch { return false; }
+      } catch {return false;}
     });
     if (!ws) return res.status(401).json({ error: 'No se encontró una tienda con ese correo' });
 
@@ -518,13 +518,13 @@ app.post('/api/workspaces/merchant/login', (req, res) => {
   }
 });
 
-app.get('/api/workspaces/store/:slug', (req, res) => {
+app.get('/api/workspaces/store/:slug', async (req, res) => {
   const { slug } = req.params;
   try {
-    const ws = db.prepare('SELECT id, name, config, store_slug, status FROM workspaces WHERE store_slug = ?').get(slug);
+    const ws = (await db.execute({ sql: 'SELECT id, name, config, store_slug, status FROM workspaces WHERE store_slug = ?', args: [slug] })).rows[0];
     if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
     if (ws.status === 'Suspendido') return res.status(403).json({ error: 'Tienda temporalmente no disponible' });
-    
+
     res.json({
       id: ws.id,
       name: ws.name,
@@ -536,25 +536,25 @@ app.get('/api/workspaces/store/:slug', (req, res) => {
   }
 });
 
-app.get('/api/market/stores', (req, res) => {
+app.get('/api/market/stores', async (req, res) => {
   try {
-    const stores = db.prepare("SELECT id, name, config, store_slug FROM workspaces WHERE store_slug IS NOT NULL AND store_slug != '' AND status != 'Suspendido'").all();
-    
-    const productCategoriesRows = db.prepare("SELECT workspace_id, category FROM ecommerce_products").all();
+    const stores = (await db.execute({ sql: "SELECT id, name, config, store_slug FROM workspaces WHERE store_slug IS NOT NULL AND store_slug != '' AND status != 'Suspendido'", args: [] })).rows;
+
+    const productCategoriesRows = (await db.execute({ sql: "SELECT workspace_id, category FROM ecommerce_products", args: [] })).rows;
     const storeCategoriesMap = {};
-    productCategoriesRows.forEach(row => {
+    productCategoriesRows.forEach((row) => {
       if (!storeCategoriesMap[row.workspace_id]) storeCategoriesMap[row.workspace_id] = new Set();
       if (row.category) storeCategoriesMap[row.workspace_id].add(row.category);
     });
 
-    const formatted = stores.map(ws => {
+    const formatted = stores.map((ws) => {
       let parsedConfig = {};
       try {
         parsedConfig = ws.config ? JSON.parse(ws.config) : {};
-      } catch(e) {}
-      
+      } catch (e) {}
+
       const storefrontConfig = parsedConfig.storefront || parsedConfig;
-      
+
       return {
         id: ws.id,
         name: ws.name,
@@ -574,27 +574,27 @@ app.get('/api/market/stores', (req, res) => {
 
 // --- RUTAS DE ECOMMERCE PRODUCTS ---
 
-app.get('/api/ecommerce/products', (req, res) => {
+app.get('/api/ecommerce/products', async (req, res) => {
   const workspaceId = req.query.workspaceId || req.query.workspace_id;
   try {
     let products;
     if (workspaceId) {
-      products = db.prepare(`
+      products = (await db.execute({ sql: `
         SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
         FROM ecommerce_products p
         LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
         WHERE p.workspace_id = ?
         GROUP BY p.id
         ORDER BY p.created_at DESC
-      `).all(workspaceId);
+      `, args: [workspaceId] })).rows;
     } else {
-      products = db.prepare(`
+      products = (await db.execute({ sql: `
         SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
         FROM ecommerce_products p
         LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
         GROUP BY p.id
         ORDER BY p.created_at DESC
-      `).all();
+      `, args: [] })).rows;
     }
     res.json(products);
   } catch (err) {
@@ -602,10 +602,10 @@ app.get('/api/ecommerce/products', (req, res) => {
   }
 });
 
-app.get('/api/ecommerce/products/:id', (req, res) => {
+app.get('/api/ecommerce/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const product = db.prepare('SELECT * FROM ecommerce_products WHERE id = ?').get(id);
+    const product = (await db.execute({ sql: 'SELECT * FROM ecommerce_products WHERE id = ?', args: [id] })).rows[0];
     if (!product) return res.status(404).json({ error: 'Not found' });
     res.json(product);
   } catch (err) {
@@ -613,54 +613,54 @@ app.get('/api/ecommerce/products/:id', (req, res) => {
   }
 });
 
-app.post('/api/ecommerce/products', (req, res) => {
+app.post('/api/ecommerce/products', async (req, res) => {
   const { id: reqId, name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice, expirationDate, batchNumber, unit_type, step_size, workspace_id, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata } = req.body;
   try {
     const id = reqId || Date.now().toString();
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO ecommerce_products (id, name, price, category, stock, description, publish_status, image_url, variants, created_at, is_offer, discount_price, expiration_date, batch_number, unit_type, step_size, workspace_id, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    insert.run(id, name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, new Date().toISOString(), isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, workspace_id || 'default_workspace', cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? JSON.stringify(metadata) : '{}');
-    res.status(201).json({ success: true, id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    `, args: [id, name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, new Date().toISOString(), isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, workspace_id || 'default_workspace', cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? JSON.stringify(metadata) : '{}'] });res.status(201).json({ success: true, id });} catch (err) {res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/ecommerce/products/:id', (req, res) => {
+app.put('/api/ecommerce/products/:id', async (req, res) => {
   const { id } = req.params;
   const { name, price, category, stock, description, publishStatus, imageUrl, variants, isOffer, discountPrice, expirationDate, batchNumber, unit_type, step_size, cogs, min_stock, max_stock, supplier, stock_vitrina, metadata } = req.body;
   try {
-    const update = db.prepare(`
+
+
+
+
+
+    await db.execute({ sql: `
       UPDATE ecommerce_products
       SET name = ?, price = ?, category = ?, stock = ?, description = ?, publish_status = ?, image_url = ?, variants = ?, is_offer = ?, discount_price = ?, expiration_date = ?, batch_number = ?, unit_type = ?, step_size = ?, cogs = ?, min_stock = ?, max_stock = ?, supplier = ?, stock_vitrina = ?, metadata = ?
       WHERE id = ?
-    `);
-    update.run(name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? (typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : '{}', id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    `, args: [name, price || 0, category || 'Sin Categoría', stock || 0, description || '', publishStatus || 'Borrador', imageUrl || '', variants || 1, isOffer ? 1 : 0, discountPrice || 0, expirationDate || null, batchNumber || null, unit_type || 'unidad', step_size || 1, cogs || 0, min_stock || 5, max_stock || null, supplier || '', stock_vitrina || 0, metadata ? typeof metadata === 'string' ? metadata : JSON.stringify(metadata) : '{}', id] });res.json({ success: true });} catch (err) {res.status(500).json({ error: err.message });}
 });
 
-app.put('/api/ecommerce/products/:id/offer', (req, res) => {
+app.put('/api/ecommerce/products/:id/offer', async (req, res) => {
   const { id } = req.params;
   const { isOffer, discountPrice } = req.body;
   try {
-    const update = db.prepare(`
+
+
+
+
+
+    await db.execute({ sql: `
       UPDATE ecommerce_products
       SET is_offer = ?, discount_price = ?
       WHERE id = ?
-    `);
-    update.run(isOffer ? 1 : 0, discountPrice || 0, id);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+    `, args: [isOffer ? 1 : 0, discountPrice || 0, id] });res.json({ success: true });} catch (err) {res.status(500).json({ error: err.message });}
 });
 
-app.patch('/api/ecommerce/products/:id', (req, res) => {
+app.patch('/api/ecommerce/products/:id', async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
   try {
@@ -678,7 +678,7 @@ app.patch('/api/ecommerce/products/:id', (req, res) => {
     const keys = [];
     const values = [];
 
-    Object.keys(updates).forEach(k => {
+    Object.keys(updates).forEach((k) => {
       if (k !== 'id') {
         const mappedKey = fieldMap[k] || k;
         keys.push(mappedKey);
@@ -687,21 +687,21 @@ app.patch('/api/ecommerce/products/:id', (req, res) => {
     });
 
     if (keys.length === 0) return res.json({ success: true });
-    
-    const setClause = keys.map(k => `${k} = ?`).join(', ');
+
+    const setClause = keys.map((k) => `${k} = ?`).join(', ');
     values.push(id);
-    const update = db.prepare(`UPDATE ecommerce_products SET ${setClause} WHERE id = ?`);
-    update.run(...values);
+
+    await db.execute({ sql: `UPDATE ecommerce_products SET ${setClause} WHERE id = ?`, args: [...values] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/ecommerce/products/:id', (req, res) => {
+app.delete('/api/ecommerce/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    db.prepare('DELETE FROM ecommerce_products WHERE id = ?').run(id);
+    await db.execute({ sql: 'DELETE FROM ecommerce_products WHERE id = ?', args: [id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -710,16 +710,16 @@ app.delete('/api/ecommerce/products/:id', (req, res) => {
 
 // --- RUTAS DE ECOMMERCE PEDIDOS (ORDERS) ---
 
-app.get('/api/ecommerce/orders', (req, res) => {
+app.get('/api/ecommerce/orders', async (req, res) => {
   const { workspaceId } = req.query;
   try {
     let orders;
     if (workspaceId) {
-      orders = db.prepare('SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email WHERE o.workspace_id = ? ORDER BY o.date DESC').all(workspaceId);
+      orders = (await db.execute({ sql: 'SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email WHERE o.workspace_id = ? ORDER BY o.date DESC', args: [workspaceId] })).rows;
     } else {
-      orders = db.prepare('SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email ORDER BY o.date DESC').all();
+      orders = (await db.execute({ sql: 'SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email ORDER BY o.date DESC', args: [] })).rows;
     }
-    const formatted = orders.map(o => ({
+    const formatted = orders.map((o) => ({
       ...o,
       deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
@@ -732,11 +732,11 @@ app.get('/api/ecommerce/orders', (req, res) => {
   }
 });
 
-app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
+app.get('/api/ecommerce/customer-orders/:email', async (req, res) => {
   const { email } = req.params;
   try {
-    const orders = db.prepare('SELECT * FROM ecommerce_orders_v2 WHERE customer_email = ? ORDER BY date DESC').all(email);
-    const formatted = orders.map(o => ({
+    const orders = (await db.execute({ sql: 'SELECT * FROM ecommerce_orders_v2 WHERE customer_email = ? ORDER BY date DESC', args: [email] })).rows;
+    const formatted = orders.map((o) => ({
       ...o,
       deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
@@ -749,49 +749,49 @@ app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
   }
 });
 
-app.post('/api/ecommerce/orders', (req, res) => {
+app.post('/api/ecommerce/orders', async (req, res) => {
   const { customer, customerEmail, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, bookingDate, bookingTime, tableNumber, orderType, workspace_id, discount_code, shippingInfo } = req.body;
   try {
     const wsId = workspace_id || 'default_workspace';
 
     // 1. Validar y Reservar Stock Inmediatamente
-    const updateVitrina = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina - ? WHERE id = ? AND workspace_id = ?');
-    const updateBoth = db.prepare('UPDATE ecommerce_products SET stock_vitrina = 0, stock = stock - ? WHERE id = ? AND workspace_id = ?');
-    
+
+
+
     // Verificar todo el stock primero
     for (const item of items) {
-      const product = db.prepare('SELECT name, stock_vitrina, stock FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, wsId);
+      const product = (await db.execute({ sql: 'SELECT name, stock_vitrina, stock FROM ecommerce_products WHERE id = ? AND workspace_id = ?', args: [item.id, wsId] })).rows[0];
       if (!product) {
-         return res.status(400).json({ error: `Producto no encontrado: ${item.name}.` });
+        return res.status(400).json({ error: `Producto no encontrado: ${item.name}.` });
       }
       const globalStock = (product.stock_vitrina || 0) + (product.stock || 0);
       if (globalStock < item.quantity) {
-         return res.status(400).json({ error: `Lo sentimos, otro cliente acaba de llevarse el producto: ${product.name}. Quedan ${globalStock} unidades.` });
+        return res.status(400).json({ error: `Lo sentimos, otro cliente acaba de llevarse el producto: ${product.name}. Quedan ${globalStock} unidades.` });
       }
     }
-    
+
     // Deducir stock si todo está bien
-    db.transaction(() => {
+    db.transaction(async () => {
       for (const item of items) {
-        const product = db.prepare('SELECT stock_vitrina FROM ecommerce_products WHERE id = ? AND workspace_id = ?').get(item.id, wsId);
+        const product = (await db.execute({ sql: 'SELECT stock_vitrina FROM ecommerce_products WHERE id = ? AND workspace_id = ?', args: [item.id, wsId] })).rows[0];
         if ((product.stock_vitrina || 0) >= item.quantity) {
-           updateVitrina.run(item.quantity, item.id, wsId);
+          await db.execute({ sql: 'UPDATE ecommerce_products SET stock_vitrina = stock_vitrina - ? WHERE id = ? AND workspace_id = ?', args: [item.quantity, item.id, wsId] });
         } else {
-           const diff = item.quantity - (product.stock_vitrina || 0);
-           updateBoth.run(diff, item.id, wsId);
+          const diff = item.quantity - (product.stock_vitrina || 0);
+          await db.execute({ sql: 'UPDATE ecommerce_products SET stock_vitrina = 0, stock = stock - ? WHERE id = ? AND workspace_id = ?', args: [diff, item.id, wsId] });
         }
       }
     })();
 
     const id = 'ORD-' + Math.floor(1000 + Math.random() * 9000); // Generar ID ej: ORD-1234
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO ecommerce_orders_v2 (id, customer, customer_email, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, booking_date, booking_time, table_number, order_type, workspace_id, discount_code, shipping_info)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    insert.run(
-      id,
-      customer || 'Cliente Anónimo',
-      customerEmail || null,
+    `, args: [id, customer || 'Cliente Anónimo', customerEmail || null,
       date || new Date().toISOString(),
       total || 0,
       status || 'Pendiente',
@@ -808,20 +808,20 @@ app.post('/api/ecommerce/orders', (req, res) => {
       orderType || 'delivery',
       wsId,
       discount_code || null,
-      shippingInfo ? JSON.stringify(shippingInfo) : null
-    );
+      shippingInfo ? JSON.stringify(shippingInfo) : null] });
 
-    db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?').run(id);
-    
+
+    await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?', args: [id] });
+
     // Si usó un código de descuento, sumarle al contador de usos
     if (discount_code) {
-      db.prepare(`
+      await db.execute({ sql: `
         UPDATE ecommerce_promotions 
         SET usage_count = usage_count + 1 
         WHERE code = ? AND workspace_id = ?
-      `).run(discount_code.toUpperCase(), wsId);
+      `, args: [discount_code.toUpperCase(), wsId] });
     }
-    
+
 
     res.status(201).json({ success: true, id });
   } catch (err) {
@@ -829,53 +829,53 @@ app.post('/api/ecommerce/orders', (req, res) => {
   }
 });
 
-app.put('/api/ecommerce/orders/:id', (req, res) => {
+app.put('/api/ecommerce/orders/:id', async (req, res) => {
   const { id } = req.params;
   const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType, deliveryPin, customer_confirmed } = req.body;
   try {
     if (status) {
       if (status === 'Cancelado' || status === 'Rechazado') {
-        const order = db.prepare('SELECT items, stock_deducted, workspace_id FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+        const order = (await db.execute({ sql: 'SELECT items, stock_deducted, workspace_id FROM ecommerce_orders_v2 WHERE id = ?', args: [id] })).rows[0];
         if (order && order.stock_deducted) {
           let items = [];
-          try { items = JSON.parse(order.items || '[]'); } catch(e) {}
-          
-          const returnStock = db.prepare('UPDATE ecommerce_products SET stock_vitrina = stock_vitrina + ? WHERE id = ? AND workspace_id = ?');
-          db.transaction(() => {
-             for (const item of items) {
-                returnStock.run(item.quantity, item.id, order.workspace_id);
-             }
+          try {items = JSON.parse(order.items || '[]');} catch (e) {}
+
+
+          db.transaction(async () => {
+            for (const item of items) {
+              await db.execute({ sql: 'UPDATE ecommerce_products SET stock_vitrina = stock_vitrina + ? WHERE id = ? AND workspace_id = ?', args: [item.quantity, item.id, order.workspace_id] });
+            }
           })();
-          
-          db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 0 WHERE id = ?').run(id);
+
+          await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET stock_deducted = 0 WHERE id = ?', args: [id] });
         }
       }
-      db.prepare('UPDATE ecommerce_orders_v2 SET status = ? WHERE id = ?').run(status, id);
+      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET status = ? WHERE id = ?', args: [status, id] });
     }
     if (paymentStatus) {
-      db.prepare('UPDATE ecommerce_orders_v2 SET paymentStatus = ? WHERE id = ?').run(paymentStatus, id);
+      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET paymentStatus = ? WHERE id = ?', args: [paymentStatus, id] });
     }
-    if (bookingDate !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET booking_date = ? WHERE id = ?').run(bookingDate, id);
-    if (bookingTime !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET booking_time = ? WHERE id = ?').run(bookingTime, id);
-    if (tableNumber !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET table_number = ? WHERE id = ?').run(tableNumber, id);
-    if (orderType !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET order_type = ? WHERE id = ?').run(orderType, id);
-    if (deliveryPin !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?').run(deliveryPin, id);
+    if (bookingDate !== undefined) await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET booking_date = ? WHERE id = ?', args: [bookingDate, id] });
+    if (bookingTime !== undefined) await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET booking_time = ? WHERE id = ?', args: [bookingTime, id] });
+    if (tableNumber !== undefined) await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET table_number = ? WHERE id = ?', args: [tableNumber, id] });
+    if (orderType !== undefined) await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET order_type = ? WHERE id = ?', args: [orderType, id] });
+    if (deliveryPin !== undefined) await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?', args: [deliveryPin, id] });
     if (customer_confirmed !== undefined) {
-      db.prepare('UPDATE ecommerce_orders_v2 SET customer_confirmed = ? WHERE id = ?').run(customer_confirmed, id);
-      const order = db.prepare('SELECT driver_confirmed FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET customer_confirmed = ? WHERE id = ?', args: [customer_confirmed, id] });
+      const order = (await db.execute({ sql: 'SELECT driver_confirmed FROM ecommerce_orders_v2 WHERE id = ?', args: [id] })).rows[0];
       if (order && order.driver_confirmed === 1 && customer_confirmed === 1) {
-        db.prepare("UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?").run(id);
+        await db.execute({ sql: "UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?", args: [id] });
         const io = req.app.get('io');
         if (io) io.emit('delivery_completed', { orderId: id });
-        
-        const activeTrip = db.prepare('SELECT driver_id FROM delivery_active_trips WHERE order_id = ?').get(id);
+
+        const activeTrip = (await db.execute({ sql: 'SELECT driver_id FROM delivery_active_trips WHERE order_id = ?', args: [id] })).rows[0];
         if (activeTrip && activeTrip.driver_id) {
           sendMessageToChat(activeTrip.driver_id, `✅ <b>¡Listo!</b> El cliente también ha confirmado de recibido. Pedido <b>#${id}</b> finalizado con éxito. ¡Buen trabajo!`);
-          db.prepare('DELETE FROM delivery_active_trips WHERE order_id = ?').run(id);
+          await db.execute({ sql: 'DELETE FROM delivery_active_trips WHERE order_id = ?', args: [id] });
         }
       }
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -884,43 +884,43 @@ app.put('/api/ecommerce/orders/:id', (req, res) => {
 
 // --- RUTAS DE E-COMMERCE CLIENTES (CUSTOMERS) ---
 
-app.get('/api/ecommerce/customers', (req, res) => {
+app.get('/api/ecommerce/customers', async (req, res) => {
   try {
-    const customers = db.prepare('SELECT * FROM ecommerce_customers ORDER BY join_date DESC').all();
+    const customers = (await db.execute({ sql: 'SELECT * FROM ecommerce_customers ORDER BY join_date DESC', args: [] })).rows;
     res.json(customers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/customers/register', (req, res) => {
+app.post('/api/ecommerce/customers/register', async (req, res) => {
   const { email, password } = req.body;
   let { name } = req.body;
   if (!name) name = email.split('@')[0];
 
   try {
-    const existing = db.prepare('SELECT id FROM ecommerce_customers WHERE email = ?').get(email);
+    const existing = (await db.execute({ sql: 'SELECT id FROM ecommerce_customers WHERE email = ?', args: [email] })).rows[0];
     if (existing) {
       return res.status(400).json({ error: 'El correo ya está registrado' });
     }
-    
+
     const id = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO ecommerce_customers (id, name, email, password, doc_id, phone, address, join_date, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    insert.run(
-      id,
-      name,
-      email,
+    `, args: [id, name, email,
       password, // En un sistema real esto debería estar hasheado
       '',
       '',
       '',
       new Date().toISOString().split('T')[0],
-      'Activo'
-    );
-    
+      'Activo'] });
+
+
     const newUser = { id, name, email, docId: '', phone: '', address: '', joinDate: new Date().toISOString().split('T')[0] };
     res.status(201).json({ success: true, user: newUser });
   } catch (err) {
@@ -928,14 +928,14 @@ app.post('/api/ecommerce/customers/register', (req, res) => {
   }
 });
 
-app.post('/api/ecommerce/customers/login', (req, res) => {
+app.post('/api/ecommerce/customers/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = db.prepare('SELECT * FROM ecommerce_customers WHERE email = ? AND password = ?').get(email, password);
+    const user = (await db.execute({ sql: 'SELECT * FROM ecommerce_customers WHERE email = ? AND password = ?', args: [email, password] })).rows[0];
     if (!user) {
       return res.status(401).json({ error: 'Credenciales incorrectas' });
     }
-    
+
     const { password: _, ...userWithoutPassword } = user;
     res.json({ success: true, user: userWithoutPassword });
   } catch (err) {
@@ -948,7 +948,7 @@ app.post('/api/ecommerce/customers/google-login', async (req, res) => {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: GOOGLE_CLIENT_ID,
+      audience: GOOGLE_CLIENT_ID
     });
     const payload = ticket.getPayload();
     const { email, name } = payload;
@@ -957,29 +957,29 @@ app.post('/api/ecommerce/customers/google-login', async (req, res) => {
       return res.status(400).json({ error: 'No se pudo obtener el email de Google' });
     }
 
-    let user = db.prepare('SELECT * FROM ecommerce_customers WHERE email = ?').get(email);
-    
+    let user = (await db.execute({ sql: 'SELECT * FROM ecommerce_customers WHERE email = ?', args: [email] })).rows[0];
+
     if (!user) {
       // Registro automático
       const id = 'CUST-' + Math.floor(1000 + Math.random() * 9000);
-      const insert = db.prepare(`
+
+
+
+
+      await db.execute({ sql: `
         INSERT INTO ecommerce_customers (id, name, email, password, doc_id, phone, address, join_date, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-      insert.run(
-        id,
-        name,
-        email,
+      `, args: [id, name, email,
         'GOOGLE_AUTH',
         '',
         '',
         '',
         new Date().toISOString().split('T')[0],
-        'Activo'
-      );
-      user = db.prepare('SELECT * FROM ecommerce_customers WHERE id = ?').get(id);
+        'Activo'] });
+
+      user = (await db.execute({ sql: 'SELECT * FROM ecommerce_customers WHERE id = ?', args: [id] })).rows[0];
     }
-    
+
     const { password: _, ...userWithoutPassword } = user;
     res.json({ success: true, user: userWithoutPassword });
   } catch (err) {
@@ -988,25 +988,25 @@ app.post('/api/ecommerce/customers/google-login', async (req, res) => {
   }
 });
 
-app.put('/api/ecommerce/customers/:id', (req, res) => {
+app.put('/api/ecommerce/customers/:id', async (req, res) => {
   const { id } = req.params;
   const { name, docId, phone, address, favorites, wishlist, addresses } = req.body;
   try {
-    const update = db.prepare(`
+
+
+
+
+
+    await db.execute({ sql: `
       UPDATE ecommerce_customers
       SET name = ?, doc_id = ?, phone = ?, address = ?, favorites = ?, wishlist = ?, addresses = ?
       WHERE id = ?
-    `);
-    update.run(
-      name, 
-      docId || '', 
-      phone || '', 
-      address || '', 
-      typeof favorites === 'string' ? favorites : (favorites ? JSON.stringify(favorites) : '[]'),
-      typeof wishlist === 'string' ? wishlist : (wishlist ? JSON.stringify(wishlist) : '[]'),
-      typeof addresses === 'string' ? addresses : (addresses ? JSON.stringify(addresses) : '[]'),
-      id
-    );
+    `, args: [name, docId || '', phone || '', address || '',
+      typeof favorites === 'string' ? favorites : favorites ? JSON.stringify(favorites) : '[]',
+      typeof wishlist === 'string' ? wishlist : wishlist ? JSON.stringify(wishlist) : '[]',
+      typeof addresses === 'string' ? addresses : addresses ? JSON.stringify(addresses) : '[]',
+      id] });
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1017,34 +1017,34 @@ app.put('/api/ecommerce/customers/:id', (req, res) => {
 // --- RUTAS DE E-COMMERCE ANALYTICS Y BITACORA ---
 
 // Endpoint para insertar datos de prueba
-app.post('/api/ecommerce/seed', (req, res) => {
+app.post('/api/ecommerce/seed', async (req, res) => {
   try {
     const products = [
-      { id: 'p1', name: 'Camiseta de Algodón Premium', price: 29.99, category: 'Ropa' },
-      { id: 'p2', name: 'Auriculares Inalámbricos', price: 89.00, category: 'Electrónica' },
-      { id: 'p3', name: 'Mochila de Viaje', price: 65.00, category: 'Accesorios' },
-      { id: 'p4', name: 'Reloj Inteligente', price: 120.00, category: 'Electrónica' }
-    ];
+    { id: 'p1', name: 'Camiseta de Algodón Premium', price: 29.99, category: 'Ropa' },
+    { id: 'p2', name: 'Auriculares Inalámbricos', price: 89.00, category: 'Electrónica' },
+    { id: 'p3', name: 'Mochila de Viaje', price: 65.00, category: 'Accesorios' },
+    { id: 'p4', name: 'Reloj Inteligente', price: 120.00, category: 'Electrónica' }];
 
-    const insertProduct = db.prepare('INSERT OR IGNORE INTO ecommerce_products (id, name, price, category, created_at) VALUES (?, ?, ?, ?, ?)');
+
+
     for (const p of products) {
-      insertProduct.run(p.id, p.name, p.price, p.category, new Date().toISOString());
+      await db.execute({ sql: 'INSERT OR IGNORE INTO ecommerce_products (id, name, price, category, created_at) VALUES (?, ?, ?, ?, ?)', args: [p.id, p.name, p.price, p.category, new Date().toISOString()] });
     }
 
-    const insertSale = db.prepare('INSERT INTO ecommerce_sales (id, customer_email, total, created_at) VALUES (?, ?, ?, ?)');
-    const insertSaleItem = db.prepare('INSERT INTO ecommerce_sale_items (id, sale_id, product_id, quantity, price) VALUES (?, ?, ?, ?, ?)');
+
+
 
     // Generar ventas aleatorias para los últimos 30 días
     const now = new Date();
-    db.transaction(() => {
+    db.transaction(async () => {
       for (let i = 0; i < 50; i++) {
         const saleId = 'sale_' + Date.now() + '_' + i;
         const date = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-        
+
         let total = 0;
         const numItems = Math.floor(Math.random() * 3) + 1;
         const saleItems = [];
-        
+
         for (let j = 0; j < numItems; j++) {
           const product = products[Math.floor(Math.random() * products.length)];
           const qty = Math.floor(Math.random() * 2) + 1;
@@ -1058,9 +1058,9 @@ app.post('/api/ecommerce/seed', (req, res) => {
           });
         }
 
-        insertSale.run(saleId, 'cliente' + i + '@test.com', total, date.toISOString());
+        await db.execute({ sql: 'INSERT INTO ecommerce_sales (id, customer_email, total, created_at) VALUES (?, ?, ?, ?)', args: [saleId, 'cliente' + i + '@test.com', total, date.toISOString()] });
         for (const item of saleItems) {
-          insertSaleItem.run(item.id, item.sale_id, item.product_id, item.quantity, item.price);
+          await db.execute({ sql: 'INSERT INTO ecommerce_sale_items (id, sale_id, product_id, quantity, price) VALUES (?, ?, ?, ?, ?)', args: [item.id, item.sale_id, item.product_id, item.quantity, item.price] });
         }
       }
     })();
@@ -1073,39 +1073,39 @@ app.post('/api/ecommerce/seed', (req, res) => {
 
 // --- RUTAS DE E-COMMERCE RESEÑAS ---
 
-app.get('/api/ecommerce/reviews', (req, res) => {
+app.get('/api/ecommerce/reviews', async (req, res) => {
   const workspaceId = req.query.workspaceId || 'default_workspace';
   try {
-    const reviews = db.prepare("SELECT * FROM ecommerce_reviews WHERE workspace_id = ? ORDER BY created_at DESC").all(workspaceId);
+    const reviews = (await db.execute({ sql: "SELECT * FROM ecommerce_reviews WHERE workspace_id = ? ORDER BY created_at DESC", args: [workspaceId] })).rows;
     res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/reviews', (req, res) => {
+app.post('/api/ecommerce/reviews', async (req, res) => {
   const { workspaceId = 'default_workspace', productId, productName, customerId, customerName, rating, comment } = req.body;
   const id = 'rev_' + Date.now();
   try {
-    const insert = db.prepare(`
+
+
+
+
+    await db.execute({ sql: `
       INSERT INTO ecommerce_reviews (id, workspace_id, product_id, product_name, customer_id, customer_name, rating, comment, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pendiente', ?)
-    `);
-    insert.run(id, workspaceId, productId, productName, customerId || null, customerName, rating, comment, new Date().toISOString());
-    res.status(201).json({ success: true, id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    `, args: [id, workspaceId, productId, productName, customerId || null, customerName, rating, comment, new Date().toISOString()] });res.status(201).json({ success: true, id });} catch (err) {res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/ecommerce/reviews/:id/status', (req, res) => {
+app.put('/api/ecommerce/reviews/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   try {
     if (status === 'Rechazado') {
-      db.prepare("DELETE FROM ecommerce_reviews WHERE id = ?").run(id);
+      await db.execute({ sql: "DELETE FROM ecommerce_reviews WHERE id = ?", args: [id] });
     } else {
-      db.prepare("UPDATE ecommerce_reviews SET status = ? WHERE id = ?").run(status, id);
+      await db.execute({ sql: "UPDATE ecommerce_reviews SET status = ? WHERE id = ?", args: [status, id] });
     }
     res.json({ success: true });
   } catch (err) {
@@ -1113,11 +1113,11 @@ app.put('/api/ecommerce/reviews/:id/status', (req, res) => {
   }
 });
 
-app.put('/api/ecommerce/reviews/:id/reply', (req, res) => {
+app.put('/api/ecommerce/reviews/:id/reply', async (req, res) => {
   const { id } = req.params;
   const { reply } = req.body;
   try {
-    db.prepare("UPDATE ecommerce_reviews SET reply = ? WHERE id = ?").run(reply, id);
+    await db.execute({ sql: "UPDATE ecommerce_reviews SET reply = ? WHERE id = ?", args: [reply, id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1126,50 +1126,50 @@ app.put('/api/ecommerce/reviews/:id/reply', (req, res) => {
 
 // --- RUTAS DE E-COMMERCE PROMOCIONES ---
 
-app.get('/api/ecommerce/promotions', (req, res) => {
+app.get('/api/ecommerce/promotions', async (req, res) => {
   const workspaceId = req.query.workspaceId || 'default_workspace';
   try {
-    const promotions = db.prepare("SELECT * FROM ecommerce_promotions WHERE workspace_id = ? ORDER BY created_at DESC").all(workspaceId);
+    const promotions = (await db.execute({ sql: "SELECT * FROM ecommerce_promotions WHERE workspace_id = ? ORDER BY created_at DESC", args: [workspaceId] })).rows;
     res.json(promotions);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/promotions', (req, res) => {
+app.post('/api/ecommerce/promotions', async (req, res) => {
   const { workspaceId = 'default_workspace', code, type, value, usageLimit = -1, expiresAt = null } = req.body;
   const id = 'promo_' + Date.now();
   try {
-    const check = db.prepare("SELECT id FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?").get(code, workspaceId);
+    const check = (await db.execute({ sql: "SELECT id FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?", args: [code, workspaceId] })).rows[0];
     if (check) return res.status(400).json({ error: 'El código ya existe' });
 
-    db.prepare(`
+    await db.execute({ sql: `
       INSERT INTO ecommerce_promotions (id, workspace_id, code, type, value, usage_limit, created_at, expires_at) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, workspaceId, code.toUpperCase(), type, value, usageLimit, new Date().toISOString(), expiresAt);
+    `, args: [id, workspaceId, code.toUpperCase(), type, value, usageLimit, new Date().toISOString(), expiresAt] });
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/ecommerce/promotions/:id', (req, res) => {
+app.delete('/api/ecommerce/promotions/:id', async (req, res) => {
   try {
-    db.prepare("DELETE FROM ecommerce_promotions WHERE id = ?").run(req.params.id);
+    await db.execute({ sql: "DELETE FROM ecommerce_promotions WHERE id = ?", args: [req.params.id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/promotions/validate', (req, res) => {
+app.post('/api/ecommerce/promotions/validate', async (req, res) => {
   const { code, workspaceId = 'default_workspace' } = req.body;
   try {
-    const promo = db.prepare("SELECT * FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?").get(code.toUpperCase(), workspaceId);
+    const promo = (await db.execute({ sql: "SELECT * FROM ecommerce_promotions WHERE code = ? AND workspace_id = ?", args: [code.toUpperCase(), workspaceId] })).rows[0];
     if (!promo) return res.status(404).json({ error: 'Cupón no válido' });
     if (promo.status !== 'Activo') return res.status(400).json({ error: 'Cupón inactivo o expirado' });
     if (promo.usage_limit > 0 && promo.usage_count >= promo.usage_limit) return res.status(400).json({ error: 'Cupón agotado' });
-    
+
     res.json(promo);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1180,55 +1180,55 @@ function getDateFilter(range) {
   const now = new Date();
   let pastDate = new Date();
   let olderPastDate = new Date();
-  
+
   if (range === '30d') {
     pastDate.setDate(now.getDate() - 30);
     olderPastDate.setDate(pastDate.getDate() - 30);
   } else if (range === 'year') {
     pastDate.setFullYear(now.getFullYear() - 1);
     olderPastDate.setFullYear(pastDate.getFullYear() - 1);
-  } else { // default 7d
+  } else {// default 7d
     pastDate.setDate(now.getDate() - 7);
     olderPastDate.setDate(pastDate.getDate() - 7);
   }
-  
-  return { 
-    currentStart: pastDate.toISOString(), 
+
+  return {
+    currentStart: pastDate.toISOString(),
     previousStart: olderPastDate.toISOString()
   };
 }
 
-app.get('/api/ecommerce/analytics/summary', (req, res) => {
+app.get('/api/ecommerce/analytics/summary', async (req, res) => {
   try {
     const range = req.query.range || '7d';
     const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const currentSales = db.prepare(`
+    const currentSales = (await db.execute({ sql: `
       SELECT SUM(total) as revenue, COUNT(*) as count 
       FROM ecommerce_orders_v2 
       WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
-    `).get(dates.currentStart, workspaceId);
-    
-    const prevSales = db.prepare(`
+    `, args: [dates.currentStart, workspaceId] })).rows[0];
+
+    const prevSales = (await db.execute({ sql: `
       SELECT SUM(total) as revenue, COUNT(*) as count 
       FROM ecommerce_orders_v2 
       WHERE date >= ? AND date < ? AND workspace_id = ? AND status != 'Cancelado'
-    `).get(dates.previousStart, dates.currentStart, workspaceId);
+    `, args: [dates.previousStart, dates.currentStart, workspaceId] })).rows[0];
 
     const currentRevenue = currentSales.revenue || 0;
     const prevRevenue = prevSales.revenue || 0;
-    const revChange = prevRevenue === 0 ? (currentRevenue > 0 ? 100 : 0) : ((currentRevenue - prevRevenue) / prevRevenue) * 100;
+    const revChange = prevRevenue === 0 ? currentRevenue > 0 ? 100 : 0 : (currentRevenue - prevRevenue) / prevRevenue * 100;
 
     const currentOrders = currentSales.count || 0;
     const prevOrders = prevSales.count || 0;
-    const ordersChange = prevOrders === 0 ? (currentOrders > 0 ? 100 : 0) : ((currentOrders - prevOrders) / prevOrders) * 100;
+    const ordersChange = prevOrders === 0 ? currentOrders > 0 ? 100 : 0 : (currentOrders - prevOrders) / prevOrders * 100;
 
     const currentAov = currentOrders === 0 ? 0 : currentRevenue / currentOrders;
     const prevAov = prevOrders === 0 ? 0 : prevRevenue / prevOrders;
-    const aovChange = prevAov === 0 ? (currentAov > 0 ? 100 : 0) : ((currentAov - prevAov) / prevAov) * 100;
+    const aovChange = prevAov === 0 ? currentAov > 0 ? 100 : 0 : (currentAov - prevAov) / prevAov * 100;
 
-    const productsCount = db.prepare('SELECT COUNT(*) as count FROM ecommerce_products WHERE workspace_id = ?').get(workspaceId).count || 0;
+    const productsCount = (await db.execute({ sql: 'SELECT COUNT(*) as count FROM ecommerce_products WHERE workspace_id = ?', args: [workspaceId] })).rows[0].count || 0;
     const productsChange = 0;
 
     res.json({
@@ -1247,25 +1247,25 @@ app.get('/api/ecommerce/analytics/summary', (req, res) => {
 });
 
 // Productos más vendidos
-app.get('/api/ecommerce/analytics/top-products', (req, res) => {
+app.get('/api/ecommerce/analytics/top-products', async (req, res) => {
   try {
     const range = req.query.range || '7d';
     const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const orders = db.prepare(`
+    const orders = (await db.execute({ sql: `
       SELECT items 
       FROM ecommerce_orders_v2 
       WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
-    `).all(dates.currentStart, workspaceId);
-    
+    `, args: [dates.currentStart, workspaceId] })).rows;
+
     const productStats = {};
-    
-    orders.forEach(order => {
+
+    orders.forEach((order) => {
       let items = [];
-      try { items = JSON.parse(order.items || '[]'); } catch(e) {}
-      
-      items.forEach(item => {
+      try {items = JSON.parse(order.items || '[]');} catch (e) {}
+
+      items.forEach((item) => {
         if (!productStats[item.id]) {
           productStats[item.id] = { id: item.id, name: item.name, sales: 0, revenue: 0 };
         }
@@ -1282,32 +1282,32 @@ app.get('/api/ecommerce/analytics/top-products', (req, res) => {
 });
 
 // Financieros avanzados
-app.get('/api/ecommerce/analytics/financials', (req, res) => {
+app.get('/api/ecommerce/analytics/financials', async (req, res) => {
   try {
     const range = req.query.range || '30d';
     const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const orders = db.prepare(`
+    const orders = (await db.execute({ sql: `
       SELECT customer_email, total, items, date
       FROM ecommerce_orders_v2 
       WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
-    `).all(dates.currentStart, workspaceId);
+    `, args: [dates.currentStart, workspaceId] })).rows;
 
-    const products = db.prepare(`SELECT id, cogs FROM ecommerce_products WHERE workspace_id = ?`).all(workspaceId);
+    const products = (await db.execute({ sql: `SELECT id, cogs FROM ecommerce_products WHERE workspace_id = ?`, args: [workspaceId] })).rows;
     const cogsMap = {};
-    products.forEach(p => cogsMap[p.id] = p.cogs || 0);
+    products.forEach((p) => cogsMap[p.id] = p.cogs || 0);
 
     let totalRevenue = 0;
     let totalCogs = 0;
     const uniqueCustomers = new Set();
-    
-    orders.forEach(o => {
+
+    orders.forEach((o) => {
       totalRevenue += o.total;
       if (o.customer_email) uniqueCustomers.add(o.customer_email);
       let items = [];
-      try { items = JSON.parse(o.items || '[]'); } catch(e){}
-      items.forEach(item => {
+      try {items = JSON.parse(o.items || '[]');} catch (e) {}
+      items.forEach((item) => {
         const itemCogs = cogsMap[item.id] || 0;
         totalCogs += itemCogs * (item.quantity || 1);
       });
@@ -1325,19 +1325,19 @@ app.get('/api/ecommerce/analytics/financials', (req, res) => {
 });
 
 // Ventas por fecha (Calendario)
-app.get('/api/ecommerce/analytics/sales-by-date', (req, res) => {
+app.get('/api/ecommerce/analytics/sales-by-date', async (req, res) => {
   try {
     const range = req.query.range || '7d';
     const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const data = db.prepare(`
+    const data = (await db.execute({ sql: `
       SELECT substr(date, 1, 10) as date, SUM(total) as revenue, COUNT(*) as orders
       FROM ecommerce_orders_v2
       WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
       GROUP BY substr(date, 1, 10)
       ORDER BY date ASC
-    `).all(dates.currentStart, workspaceId);
+    `, args: [dates.currentStart, workspaceId] })).rows;
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1345,14 +1345,14 @@ app.get('/api/ecommerce/analytics/sales-by-date', (req, res) => {
 });
 
 // Tracking de Analítica
-app.post('/api/ecommerce/track', (req, res) => {
+app.post('/api/ecommerce/track', async (req, res) => {
   const { workspaceId, eventType, source } = req.body;
   if (!workspaceId || !eventType) return res.status(400).json({ error: 'Missing data' });
   try {
     const id = Date.now().toString();
     const created_at = new Date().toISOString();
-    db.prepare('INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at) VALUES (?, ?, ?, ?, ?)')
-      .run(id, workspaceId, eventType, source || 'Directo', created_at);
+    await db.execute({ sql: 'INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at) VALUES (?, ?, ?, ?, ?)', args: [
+      id, workspaceId, eventType, source || 'Directo', created_at] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1360,21 +1360,21 @@ app.post('/api/ecommerce/track', (req, res) => {
 });
 
 // --- RUTAS DE E-COMMERCE TRACKING ---
-app.post('/api/ecommerce/track', (req, res) => {
+app.post('/api/ecommerce/track', async (req, res) => {
   try {
     const { workspaceId, eventType, source } = req.body;
     if (!workspaceId || !eventType) return res.status(400).json({ error: 'Faltan datos' });
 
-    db.prepare(`
+    await db.execute({ sql: `
       INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(
-      Date.now().toString() + Math.floor(Math.random()*1000),
+    `, args: [
+      Date.now().toString() + Math.floor(Math.random() * 1000),
       workspaceId,
       eventType,
       source || 'Directo',
-      new Date().toISOString()
-    );
+      new Date().toISOString()] });
+
 
     res.json({ success: true });
   } catch (err) {
@@ -1383,34 +1383,34 @@ app.post('/api/ecommerce/track', (req, res) => {
 });
 
 // Embudo de Conversión
-app.get('/api/ecommerce/analytics/funnel', (req, res) => {
+app.get('/api/ecommerce/analytics/funnel', async (req, res) => {
   try {
     const range = req.query.range || '30d';
     const workspaceId = req.query.workspaceId || 'default_workspace';
     const dates = getDateFilter(range);
 
-    const trackingData = db.prepare(`
+    const trackingData = (await db.execute({ sql: `
       SELECT event_type, COUNT(*) as count
       FROM ecommerce_tracking
       WHERE created_at >= ? AND workspace_id = ?
       GROUP BY event_type
-    `).all(dates.currentStart, workspaceId);
+    `, args: [dates.currentStart, workspaceId] })).rows;
 
-    const purchases = db.prepare(`
+    const purchases = (await db.execute({ sql: `
       SELECT COUNT(*) as count
       FROM ecommerce_orders_v2
       WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
-    `).get(dates.currentStart, workspaceId).count;
+    `, args: [dates.currentStart, workspaceId] })).rows[0].count;
 
-    const sourcesData = db.prepare(`
+    const sourcesData = (await db.execute({ sql: `
       SELECT source, COUNT(*) as count
       FROM ecommerce_tracking
       WHERE created_at >= ? AND workspace_id = ? AND event_type = 'visit'
       GROUP BY source
-    `).all(dates.currentStart, workspaceId);
+    `, args: [dates.currentStart, workspaceId] })).rows;
 
     const funnel = { visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases };
-    trackingData.forEach(row => {
+    trackingData.forEach((row) => {
       if (row.event_type === 'visit') funnel.visitors = row.count;
       if (row.event_type === 'add_to_cart') funnel.addedToCart = row.count;
       if (row.event_type === 'checkout_start') funnel.checkoutStarted = row.count;
@@ -1419,18 +1419,18 @@ app.get('/api/ecommerce/analytics/funnel', (req, res) => {
     // Calcular tráfico
     let totalVisits = 0;
     const traffic = { org: 0, soc: 0, dir: 0 };
-    sourcesData.forEach(row => {
+    sourcesData.forEach((row) => {
       totalVisits += row.count;
       const s = row.source.toLowerCase();
-      if (s.includes('google') || s.includes('bing') || s.includes('yahoo')) traffic.org += row.count;
-      else if (s.includes('instagram') || s.includes('facebook') || s.includes('t.co') || s.includes('twitter') || s.includes('tiktok')) traffic.soc += row.count;
-      else traffic.dir += row.count;
+      if (s.includes('google') || s.includes('bing') || s.includes('yahoo')) traffic.org += row.count;else
+      if (s.includes('instagram') || s.includes('facebook') || s.includes('t.co') || s.includes('twitter') || s.includes('tiktok')) traffic.soc += row.count;else
+      traffic.dir += row.count;
     });
 
     if (totalVisits > 0) {
-      traffic.org = Math.round((traffic.org / totalVisits) * 100);
-      traffic.soc = Math.round((traffic.soc / totalVisits) * 100);
-      traffic.dir = Math.round((traffic.dir / totalVisits) * 100);
+      traffic.org = Math.round(traffic.org / totalVisits * 100);
+      traffic.soc = Math.round(traffic.soc / totalVisits * 100);
+      traffic.dir = Math.round(traffic.dir / totalVisits * 100);
     }
 
     res.json({ funnel, traffic });
@@ -1440,21 +1440,21 @@ app.get('/api/ecommerce/analytics/funnel', (req, res) => {
 });
 
 // Carritos abandonados y Recuperados
-app.get('/api/ecommerce/analytics/abandoned-carts', (req, res) => {
+app.get('/api/ecommerce/analytics/abandoned-carts', async (req, res) => {
   try {
     const workspaceId = req.query.workspaceId || 'default_workspace';
-    
-    const carts = db.prepare(`
+
+    const carts = (await db.execute({ sql: `
       SELECT * FROM ecommerce_orders_v2 
       WHERE workspace_id = ? AND status IN ('Pendiente', 'Cancelado', 'Aprobado', 'Completado', 'Procesando', 'Enviado')
       ORDER BY date DESC LIMIT 100
-    `).all(workspaceId);
+    `, args: [workspaceId] })).rows;
 
-    const formatted = carts.map(c => {
+    const formatted = carts.map((c) => {
       let displayStatus = 'Pendiente';
-      if (['Aprobado', 'Completado', 'Procesando', 'Enviado'].includes(c.status)) displayStatus = 'Recuperado';
-      else if (c.status === 'Cancelado') displayStatus = 'Perdido';
-      
+      if (['Aprobado', 'Completado', 'Procesando', 'Enviado'].includes(c.status)) displayStatus = 'Recuperado';else
+      if (c.status === 'Cancelado') displayStatus = 'Perdido';
+
       return {
         id: c.id,
         user: c.customer_name || 'Anónimo',
@@ -1464,8 +1464,8 @@ app.get('/api/ecommerce/analytics/abandoned-carts', (req, res) => {
         dbStatus: c.status
       };
     });
-    
-    const displayList = formatted.filter(c => c.status !== 'Perdido').slice(0, 50);
+
+    const displayList = formatted.filter((c) => c.status !== 'Perdido').slice(0, 50);
     res.json(displayList);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1484,16 +1484,16 @@ const requireSuperAdmin = (req, res, next) => {
   }
 };
 
-app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/stats', requireSuperAdmin, async (req, res) => {
   try {
-    const totalMerchants = db.prepare('SELECT COUNT(*) as count FROM workspaces').get().count;
-    const totalCustomers = db.prepare('SELECT COUNT(*) as count FROM ecommerce_customers').get().count;
-    const totalProducts = db.prepare('SELECT COUNT(*) as count FROM ecommerce_products').get().count;
-    
-    const ordersData = db.prepare('SELECT total, status, paymentMethod FROM ecommerce_orders_v2').all();
+    const totalMerchants = (await db.execute({ sql: 'SELECT COUNT(*) as count FROM workspaces', args: [] })).rows[0].count;
+    const totalCustomers = (await db.execute({ sql: 'SELECT COUNT(*) as count FROM ecommerce_customers', args: [] })).rows[0].count;
+    const totalProducts = (await db.execute({ sql: 'SELECT COUNT(*) as count FROM ecommerce_products', args: [] })).rows[0].count;
+
+    const ordersData = (await db.execute({ sql: 'SELECT total, status, paymentMethod FROM ecommerce_orders_v2', args: [] })).rows;
     let totalGMV = 0;
     let totalOrders = 0;
-    ordersData.forEach(o => {
+    ordersData.forEach((o) => {
       if (o.status !== 'Cancelado' && o.status !== 'Perdido') {
         totalGMV += Number(o.total || 0);
         totalOrders++;
@@ -1504,7 +1504,7 @@ app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
 
     const pmMap = {};
     const statusMap = {};
-    ordersData.forEach(o => {
+    ordersData.forEach((o) => {
       // Status
       const statusLabel = o.status || 'Desconocido';
       if (!statusMap[statusLabel]) statusMap[statusLabel] = 0;
@@ -1518,21 +1518,21 @@ app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
       }
     });
 
-    const paymentMethodsChart = Object.keys(pmMap).map(name => ({ name, value: pmMap[name] }));
-    const orderStatusesChart = Object.keys(statusMap).map(name => ({ name, value: statusMap[name] }));
+    const paymentMethodsChart = Object.keys(pmMap).map((name) => ({ name, value: pmMap[name] }));
+    const orderStatusesChart = Object.keys(statusMap).map((name) => ({ name, value: statusMap[name] }));
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentOrders = db.prepare('SELECT date, total, status FROM ecommerce_orders_v2 WHERE date >= ?').all(sevenDaysAgo.toISOString());
-    
+    const recentOrders = (await db.execute({ sql: 'SELECT date, total, status FROM ecommerce_orders_v2 WHERE date >= ?', args: [sevenDaysAgo.toISOString()] })).rows;
+
     const chartMap = {};
-    for(let i=6; i>=0; i--) {
+    for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       chartMap[d.toISOString().substring(0, 10)] = 0;
     }
 
-    recentOrders.forEach(o => {
+    recentOrders.forEach((o) => {
       if (o.status !== 'Cancelado' && o.status !== 'Perdido') {
         const dateKey = o.date.substring(0, 10);
         if (chartMap[dateKey] !== undefined) {
@@ -1541,33 +1541,33 @@ app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
       }
     });
 
-    const salesChartData = Object.keys(chartMap).map(date => ({
+    const salesChartData = Object.keys(chartMap).map((date) => ({
       date,
       sales: chartMap[date]
     }));
 
-    const allMerchants = db.prepare('SELECT id, name FROM workspaces').all();
+    const allMerchants = (await db.execute({ sql: 'SELECT id, name FROM workspaces', args: [] })).rows;
     const merchantMap = {};
-    allMerchants.forEach(m => merchantMap[m.id] = { name: m.name, sales: 0 });
+    allMerchants.forEach((m) => merchantMap[m.id] = { name: m.name, sales: 0 });
 
-    const allOrdersWithWorkspace = db.prepare('SELECT workspace_id, total, status FROM ecommerce_orders_v2').all();
-    allOrdersWithWorkspace.forEach(o => {
+    const allOrdersWithWorkspace = (await db.execute({ sql: 'SELECT workspace_id, total, status FROM ecommerce_orders_v2', args: [] })).rows;
+    allOrdersWithWorkspace.forEach((o) => {
       if (o.status !== 'Cancelado' && o.status !== 'Perdido' && o.workspace_id && merchantMap[o.workspace_id]) {
         merchantMap[o.workspace_id].sales += Number(o.total || 0);
       }
     });
 
-    const topMerchants = Object.values(merchantMap)
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5);
+    const topMerchants = Object.values(merchantMap).
+    sort((a, b) => b.sales - a.sales).
+    slice(0, 5);
 
     const productMap = {};
-    const allOrdersItems = db.prepare("SELECT items FROM ecommerce_orders_v2 WHERE status != 'Cancelado' AND status != 'Perdido'").all();
-    allOrdersItems.forEach(row => {
+    const allOrdersItems = (await db.execute({ sql: "SELECT items FROM ecommerce_orders_v2 WHERE status != 'Cancelado' AND status != 'Perdido'", args: [] })).rows;
+    allOrdersItems.forEach((row) => {
       if (row.items) {
         try {
           const items = JSON.parse(row.items);
-          items.forEach(item => {
+          items.forEach((item) => {
             if (!productMap[item.name]) productMap[item.name] = 0;
             productMap[item.name] += Number(item.quantity || 1);
           });
@@ -1575,10 +1575,10 @@ app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
       }
     });
 
-    const topProducts = Object.keys(productMap)
-      .map(name => ({ name, qty: productMap[name] }))
-      .sort((a, b) => b.qty - a.qty)
-      .slice(0, 5);
+    const topProducts = Object.keys(productMap).
+    map((name) => ({ name, qty: productMap[name] })).
+    sort((a, b) => b.qty - a.qty).
+    slice(0, 5);
 
     res.json({
       totalMerchants,
@@ -1600,9 +1600,9 @@ app.get('/api/superadmin/stats', requireSuperAdmin, (req, res) => {
   }
 });
 
-app.get('/api/superadmin/merchants', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/merchants', requireSuperAdmin, async (req, res) => {
   try {
-    const merchants = db.prepare('SELECT id, name, created_at, store_slug, status, config FROM workspaces').all();
+    const merchants = (await db.execute({ sql: 'SELECT id, name, created_at, store_slug, status, config FROM workspaces', args: [] })).rows;
     res.json(merchants);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1614,23 +1614,23 @@ app.put('/api/superadmin/key', requireSuperAdmin, (req, res) => {
   if (!newKey || newKey.length < 4) {
     return res.status(400).json({ error: 'La nueva clave debe tener al menos 4 caracteres' });
   }
-  
+
   try {
     const envPath = path.join(__dirname, '..', '.env');
     let envContent = '';
     if (fs.existsSync(envPath)) {
       envContent = fs.readFileSync(envPath, 'utf8');
     }
-    
+
     if (envContent.includes('VITE_SUPERADMIN_KEY=')) {
       envContent = envContent.replace(/VITE_SUPERADMIN_KEY=.*/g, `VITE_SUPERADMIN_KEY="${newKey}"`);
     } else {
       envContent += `\nVITE_SUPERADMIN_KEY="${newKey}"\n`;
     }
-    
+
     fs.writeFileSync(envPath, envContent);
     process.env.VITE_SUPERADMIN_KEY = newKey;
-    
+
     res.json({ success: true, message: 'Clave actualizada correctamente' });
   } catch (err) {
     res.status(500).json({ error: 'No se pudo guardar la clave: ' + err.message });
@@ -1640,15 +1640,15 @@ app.put('/api/superadmin/key', requireSuperAdmin, (req, res) => {
 app.delete('/api/superadmin/merchants/:id', requireSuperAdmin, (req, res) => {
   const { id } = req.params;
   try {
-    db.transaction(() => {
-      try { db.prepare('DELETE FROM ecommerce_products WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM ecommerce_orders_v2 WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM ecommerce_promotions WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM ecommerce_reviews WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM ecommerce_tracking WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM ecommerce_notifications WHERE workspace_id = ?').run(id); } catch(e){}
-      try { db.prepare('DELETE FROM budgets WHERE workspace_id = ?').run(id); } catch(e){}
-      db.prepare('DELETE FROM workspaces WHERE id = ?').run(id);
+    db.transaction(async () => {
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_products WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_orders_v2 WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_promotions WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_reviews WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_tracking WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM ecommerce_notifications WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      try {await db.execute({ sql: 'DELETE FROM budgets WHERE workspace_id = ?', args: [id] });} catch (e) {}
+      await db.execute({ sql: 'DELETE FROM workspaces WHERE id = ?', args: [id] });
     })();
     res.json({ message: 'Merchant deleted successfully' });
   } catch (err) {
@@ -1656,33 +1656,33 @@ app.delete('/api/superadmin/merchants/:id', requireSuperAdmin, (req, res) => {
   }
 });
 
-app.get('/api/superadmin/customers', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/customers', requireSuperAdmin, async (req, res) => {
   try {
-    const customers = db.prepare('SELECT id, name, email, phone, doc_id, join_date FROM ecommerce_customers').all();
+    const customers = (await db.execute({ sql: 'SELECT id, name, email, phone, doc_id, join_date FROM ecommerce_customers', args: [] })).rows;
     res.json(customers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/superadmin/customers/:id', requireSuperAdmin, (req, res) => {
+app.delete('/api/superadmin/customers/:id', requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    db.prepare('DELETE FROM ecommerce_customers WHERE id = ?').run(id);
+    await db.execute({ sql: 'DELETE FROM ecommerce_customers WHERE id = ?', args: [id] });
     res.json({ message: 'Customer deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, (req, res) => {
+app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   try {
     if (status !== 'Activo' && status !== 'Suspendido') {
       return res.status(400).json({ error: 'Status invalido' });
     }
-    db.prepare('UPDATE workspaces SET status = ? WHERE id = ?').run(status, id);
+    await db.execute({ sql: 'UPDATE workspaces SET status = ? WHERE id = ?', args: [status, id] });
     res.json({ success: true, message: `Estado actualizado a ${status}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1690,64 +1690,64 @@ app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, (req, res) =>
 });
 
 // --- SUPERADMIN DELIVERY SETTINGS ---
-app.get('/api/superadmin/settings', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/settings', requireSuperAdmin, async (req, res) => {
   try {
-    const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+    const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
     res.json({ delivery_master_group_id: setting ? setting.value : '' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/superadmin/settings', requireSuperAdmin, (req, res) => {
+app.put('/api/superadmin/settings', requireSuperAdmin, async (req, res) => {
   const { delivery_master_group_id } = req.body;
   try {
-    db.prepare("INSERT INTO platform_settings (key, value) VALUES ('delivery_master_group_id', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(delivery_master_group_id);
+    await db.execute({ sql: "INSERT INTO platform_settings (key, value) VALUES ('delivery_master_group_id', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", args: [delivery_master_group_id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/superadmin/drivers', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/drivers', requireSuperAdmin, async (req, res) => {
   try {
-    const drivers = db.prepare("SELECT * FROM delivery_drivers").all();
+    const drivers = (await db.execute({ sql: "SELECT * FROM delivery_drivers", args: [] })).rows;
     res.json(drivers);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/superadmin/drivers/:id/status', requireSuperAdmin, (req, res) => {
+app.put('/api/superadmin/drivers/:id/status', requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   const { isBanned } = req.body;
   try {
-    db.prepare("UPDATE delivery_drivers SET banned = ? WHERE id = ?").run(isBanned ? 1 : 0, id);
+    await db.execute({ sql: "UPDATE delivery_drivers SET banned = ? WHERE id = ?", args: [isBanned ? 1 : 0, id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/superadmin/drivers/:id', requireSuperAdmin, (req, res) => {
+app.delete('/api/superadmin/drivers/:id', requireSuperAdmin, async (req, res) => {
   const { id } = req.params;
   try {
-    db.prepare("DELETE FROM delivery_drivers WHERE id = ?").run(id);
+    await db.execute({ sql: "DELETE FROM delivery_drivers WHERE id = ?", args: [id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/superadmin/monitor', requireSuperAdmin, (req, res) => {
+app.get('/api/superadmin/monitor', requireSuperAdmin, async (req, res) => {
   try {
-    const recentOrders = db.prepare(`
+    const recentOrders = (await db.execute({ sql: `
       SELECT o.id, o.customer, o.date, o.total, o.status, o.workspace_id, w.name as workspace_name
       FROM ecommerce_orders_v2 o
       LEFT JOIN workspaces w ON o.workspace_id = w.id
       ORDER BY o.date DESC
       LIMIT 20
-    `).all();
+    `, args: [] })).rows;
     res.json(recentOrders);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1756,19 +1756,19 @@ app.get('/api/superadmin/monitor', requireSuperAdmin, (req, res) => {
 
 // --- RUTAS DE AUTENTICACION (RECUPERACION DE CONTRASEÑA) ---
 
-app.post('/api/auth/recover-password', (req, res) => {
+app.post('/api/auth/recover-password', async (req, res) => {
   const { email, type } = req.body;
   try {
     let exists = false;
     if (type === 'customer') {
-      exists = db.prepare('SELECT id FROM ecommerce_customers WHERE email = ?').get(email);
+      exists = (await db.execute({ sql: 'SELECT id FROM ecommerce_customers WHERE email = ?', args: [email] })).rows[0];
     } else if (type === 'merchant') {
-      const workspaces = db.prepare('SELECT config FROM workspaces').all();
-      exists = workspaces.some(w => {
+      const workspaces = (await db.execute({ sql: 'SELECT config FROM workspaces', args: [] })).rows;
+      exists = workspaces.some((w) => {
         try {
           const cfg = JSON.parse(w.config || '{}');
           return cfg.adminEmail === email;
-        } catch { return false; }
+        } catch {return false;}
       });
     }
 
@@ -1781,7 +1781,7 @@ app.post('/api/auth/recover-password', (req, res) => {
     // Expiración en 15 minutos
     const expiresAt = new Date(Date.now() + 15 * 60000).toISOString();
 
-    db.prepare('INSERT INTO password_resets (email, code, user_type, expires_at) VALUES (?, ?, ?, ?)').run(email, code, type, expiresAt);
+    await db.execute({ sql: 'INSERT INTO password_resets (email, code, user_type, expires_at) VALUES (?, ?, ?, ?)', args: [email, code, type, expiresAt] });
 
     // Como es entorno local de pruebas, devolvemos el código en la respuesta para facilitar la prueba (en prod sería por email)
     console.log(`[RECOVERY CODE] Para ${email} (${type}): ${code}`);
@@ -1792,10 +1792,10 @@ app.post('/api/auth/recover-password', (req, res) => {
   }
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   const { email, code, newPassword, type } = req.body;
   try {
-    const record = db.prepare('SELECT * FROM password_resets WHERE email = ? AND user_type = ? AND code = ? ORDER BY expires_at DESC LIMIT 1').get(email, type, code);
+    const record = (await db.execute({ sql: 'SELECT * FROM password_resets WHERE email = ? AND user_type = ? AND code = ? ORDER BY expires_at DESC LIMIT 1', args: [email, type, code] })).rows[0];
 
     if (!record) {
       return res.status(400).json({ error: 'Código incorrecto' });
@@ -1807,16 +1807,16 @@ app.post('/api/auth/reset-password', (req, res) => {
 
     // Cambiar la contraseña
     if (type === 'customer') {
-      db.prepare('UPDATE ecommerce_customers SET password = ? WHERE email = ?').run(newPassword, email);
+      await db.execute({ sql: 'UPDATE ecommerce_customers SET password = ? WHERE email = ?', args: [newPassword, email] });
     } else if (type === 'merchant') {
-      const workspaces = db.prepare('SELECT id, config FROM workspaces').all();
+      const workspaces = (await db.execute({ sql: 'SELECT id, config FROM workspaces', args: [] })).rows;
       let updated = false;
       for (const ws of workspaces) {
         try {
           const cfg = JSON.parse(ws.config || '{}');
           if (cfg.adminEmail === email) {
             cfg.adminPassword = newPassword;
-            db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(JSON.stringify(cfg), ws.id);
+            await db.execute({ sql: 'UPDATE workspaces SET config = ? WHERE id = ?', args: [JSON.stringify(cfg), ws.id] });
             updated = true;
           }
         } catch (e) {}
@@ -1827,7 +1827,7 @@ app.post('/api/auth/reset-password', (req, res) => {
     }
 
     // Eliminar el código usado
-    db.prepare('DELETE FROM password_resets WHERE email = ? AND user_type = ?').run(email, type);
+    await db.execute({ sql: 'DELETE FROM password_resets WHERE email = ? AND user_type = ?', args: [email, type] });
 
     res.json({ success: true, message: 'Contraseña actualizada correctamente' });
   } catch (err) {
@@ -1836,31 +1836,31 @@ app.post('/api/auth/reset-password', (req, res) => {
 });
 
 // --- RUTAS DE NOTIFICACIONES B2B ---
-app.get('/api/ecommerce/notifications/:workspaceId', (req, res) => {
+app.get('/api/ecommerce/notifications/:workspaceId', async (req, res) => {
   try {
     const { workspaceId } = req.params;
-    const notifs = db.prepare('SELECT * FROM ecommerce_notifications WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 50').all(workspaceId);
+    const notifs = (await db.execute({ sql: 'SELECT * FROM ecommerce_notifications WHERE workspace_id = ? ORDER BY created_at DESC LIMIT 50', args: [workspaceId] })).rows;
     res.json(notifs);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/notifications', (req, res) => {
+app.post('/api/ecommerce/notifications', async (req, res) => {
   try {
     const { workspace_id, type, message, product_id, customer_id } = req.body;
-    
+
     // Deduplicación para 'stock_alert' (evitar spam en clics rápidos)
     if (type === 'stock_alert' && customer_id && product_id) {
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const duplicate = db.prepare(`
+      const duplicate = (await db.execute({ sql: `
         SELECT id FROM ecommerce_notifications 
         WHERE workspace_id = ? 
           AND type = ? 
           AND product_id = ? 
           AND customer_id = ? 
           AND created_at > ?
-      `).get(workspace_id, type, product_id, customer_id, fiveMinutesAgo);
+      `, args: [workspace_id, type, product_id, customer_id, fiveMinutesAgo] })).rows[0];
 
       if (duplicate) {
         // Ignorar la notificación para evitar spam
@@ -1870,20 +1870,20 @@ app.post('/api/ecommerce/notifications', (req, res) => {
 
     const id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
     const created_at = new Date().toISOString();
-    
-    db.prepare('INSERT INTO ecommerce_notifications (id, workspace_id, type, message, product_id, customer_id, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)')
-      .run(id, workspace_id, type || 'info', message, product_id || null, customer_id || null, created_at);
-      
+
+    await db.execute({ sql: 'INSERT INTO ecommerce_notifications (id, workspace_id, type, message, product_id, customer_id, is_read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)', args: [
+      id, workspace_id, type || 'info', message, product_id || null, customer_id || null, created_at] });
+
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/ecommerce/notifications/:id/read', (req, res) => {
+app.put('/api/ecommerce/notifications/:id/read', async (req, res) => {
   try {
     const { id } = req.params;
-    db.prepare('UPDATE ecommerce_notifications SET is_read = 1 WHERE id = ?').run(id);
+    await db.execute({ sql: 'UPDATE ecommerce_notifications SET is_read = 1 WHERE id = ?', args: [id] });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1893,40 +1893,40 @@ app.put('/api/ecommerce/notifications/:id/read', (req, res) => {
 
 // --- CHAT ENDPOINTS (WEBSOCKET INTEGRATED) ---
 
-app.get('/api/ecommerce/orders/:id/chat', (req, res) => {
+app.get('/api/ecommerce/orders/:id/chat', async (req, res) => {
   const { id } = req.params;
   try {
-    const order = db.prepare('SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    const order = (await db.execute({ sql: 'SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?', args: [id] })).rows[0];
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    
+
     let history = [];
     try {
-      history = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []);
-    } catch(e) {}
-    
+      history = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : order.chat_history || [];
+    } catch (e) {}
+
     res.json(history);
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/ecommerce/orders/:id/chat', (req, res) => {
+app.post('/api/ecommerce/orders/:id/chat', async (req, res) => {
   const { id } = req.params;
   const { sender, text, imageUrl, id: reqId } = req.body;
-  
-  if (!sender || (!text && !imageUrl)) {
+
+  if (!sender || !text && !imageUrl) {
     return res.status(400).json({ error: 'Sender and text/imageUrl are required' });
   }
 
   try {
-    const order = db.prepare('SELECT chat_history, workspace_id FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    const order = (await db.execute({ sql: 'SELECT chat_history, workspace_id FROM ecommerce_orders_v2 WHERE id = ?', args: [id] })).rows[0];
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    
+
     let chatHistory = [];
     try {
-      chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []);
-    } catch(e) {}
-    
+      chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : order.chat_history || [];
+    } catch (e) {}
+
     const newMessage = {
       id: reqId || Date.now().toString(),
       sender,
@@ -1935,35 +1935,35 @@ app.post('/api/ecommerce/orders/:id/chat', (req, res) => {
       timestamp: new Date().toISOString(),
       read: false
     };
-    
+
     chatHistory.push(newMessage);
-    
-    db.prepare('UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?').run(JSON.stringify(chatHistory), id);
-    
+
+    await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?', args: [JSON.stringify(chatHistory), id] });
+
     // Emitir mensaje por WebSockets
     const io = req.app.get('io');
     io.to(`chat_${id}`).emit('new_message', newMessage);
     if (order.workspace_id) {
       io.to(`workspace_${order.workspace_id}`).emit('order_updated');
     }
-    
+
     res.status(201).json({ success: true, message: newMessage });
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/ecommerce/orders/:id/chat/read', (req, res) => {
+app.put('/api/ecommerce/orders/:id/chat/read', async (req, res) => {
   const { id } = req.params;
   const { reader } = req.body;
   try {
-    const order = db.prepare('SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    const order = (await db.execute({ sql: 'SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?', args: [id] })).rows[0];
     if (!order) return res.status(404).json({ error: 'Order not found' });
     let chatHistory = [];
-    try { chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []); } catch(e){}
-    
+    try {chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : order.chat_history || [];} catch (e) {}
+
     let updated = false;
-    chatHistory.forEach(msg => {
+    chatHistory.forEach((msg) => {
       if (msg.sender !== reader && !msg.read) {
         msg.read = true;
         updated = true;
@@ -1971,12 +1971,12 @@ app.put('/api/ecommerce/orders/:id/chat/read', (req, res) => {
     });
 
     if (updated) {
-      db.prepare('UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?').run(JSON.stringify(chatHistory), id);
+      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?', args: [JSON.stringify(chatHistory), id] });
       const io = req.app.get('io');
       io.to(`chat_${id}`).emit('messages_read', { reader });
     }
     res.json({ success: true });
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -1996,12 +1996,12 @@ const transporter = nodemailer.createTransport({
 app.post('/api/workspaces/recover-pin', async (req, res) => {
   const { workspaceId } = req.body;
   try {
-    const ws = db.prepare('SELECT config, name FROM workspaces WHERE id = ?').get(workspaceId);
+    const ws = (await db.execute({ sql: 'SELECT config, name FROM workspaces WHERE id = ?', args: [workspaceId] })).rows[0];
     if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
-    
+
     let config = {};
-    try { config = JSON.parse(ws.config || '{}'); } catch(e){}
-    
+    try {config = JSON.parse(ws.config || '{}');} catch (e) {}
+
     if (!config.adminEmail) {
       return res.status(400).json({ error: 'La tienda no tiene un correo de administrador configurado' });
     }
@@ -2022,7 +2022,7 @@ app.post('/api/workspaces/recover-pin', async (req, res) => {
       console.log('Simulando envío de correo (Faltan variables SMTP_EMAIL y SMTP_PASSWORD en .env):');
       console.log(mailOptions);
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error('Error enviando correo de recuperación:', err);
@@ -2033,12 +2033,12 @@ app.post('/api/workspaces/recover-pin', async (req, res) => {
 app.post('/api/workspaces/notify-pin-login', async (req, res) => {
   const { workspaceId } = req.body;
   try {
-    const ws = db.prepare('SELECT config, name FROM workspaces WHERE id = ?').get(workspaceId);
+    const ws = (await db.execute({ sql: 'SELECT config, name FROM workspaces WHERE id = ?', args: [workspaceId] })).rows[0];
     if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
-    
+
     let config = {};
-    try { config = JSON.parse(ws.config || '{}'); } catch(e){}
-    
+    try {config = JSON.parse(ws.config || '{}');} catch (e) {}
+
     if (config.adminEmail) {
       const mailOptions = {
         from: process.env.SMTP_EMAIL || '"Alerta de Seguridad" <no-reply@mitienda.com>',
@@ -2049,13 +2049,13 @@ app.post('/api/workspaces/notify-pin-login', async (req, res) => {
 
       if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
         // Enviar en background sin esperar a que termine para no bloquear
-        transporter.sendMail(mailOptions).catch(err => console.error('Error enviando alerta:', err));
+        transporter.sendMail(mailOptions).catch((err) => console.error('Error enviando alerta:', err));
       } else {
         console.log('Simulando alerta de login (Faltan variables SMTP):');
         console.log(mailOptions);
       }
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error('Error notificando login:', err);

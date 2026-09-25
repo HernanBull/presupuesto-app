@@ -2,7 +2,7 @@ import fetch from 'node-fetch'; // Polyfill or use global fetch if Node 18+
 
 let globalOffset = 0;
 let isEngineRunning = false;
-const botState = {}; 
+const botState = {};
 
 const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN || '8931657407:AAHJtYXikKfBtYowHHB0HBKhaRUskhyyfHo';
 const TELEGRAM_BOT_USERNAME = process.env.VITE_TELEGRAM_BOT_USERNAME || 'DeliveryAxonbot';
@@ -15,8 +15,8 @@ export const sendMessageToChat = async (chatId, text, replyMarkup = undefined) =
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup })
     });
     return await res.json();
-  } catch (e) { 
-    console.error("Error enviando mensaje Telegram:", e); 
+  } catch (e) {
+    console.error("Error enviando mensaje Telegram:", e);
     return { ok: false };
   }
 };
@@ -46,7 +46,7 @@ export const startTelegramEngine = (db, io) => {
     try {
       const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${globalOffset}&timeout=20`);
       const data = await res.json();
-      
+
       if (data.ok && data.result.length > 0) {
         for (const update of data.result) {
           globalOffset = update.update_id + 1;
@@ -61,7 +61,7 @@ export const startTelegramEngine = (db, io) => {
           // --- BARRERA DE SEGURIDAD: Validación de Membresía (Whitelist) ---
           // Si es un chat privado, verificamos que el usuario esté en el grupo maestro
           if (userId && !chatId.startsWith('-')) {
-            const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
             const masterGroupId = setting ? setting.value : null;
 
             if (masterGroupId) {
@@ -76,7 +76,7 @@ export const startTelegramEngine = (db, io) => {
           }
 
           // Driver from DB
-          let driverData = db.prepare('SELECT * FROM delivery_drivers WHERE id = ?').get(chatId);
+          let driverData = (await db.execute({ sql: 'SELECT * FROM delivery_drivers WHERE id = ?', args: [chatId] })).rows[0];
 
           if (driverData && driverData.banned) {
             if (text.startsWith('/')) {
@@ -93,7 +93,7 @@ export const startTelegramEngine = (db, io) => {
           // --- BARRERA DE SEGURIDAD: Grupos no autorizados ---
           // Si el bot está en un grupo (chatId negativo) que no es el oficial configurado, ignorar comandos.
           if (chatId.startsWith('-')) {
-            const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
             if (!setting || setting.value !== chatId) {
               continue; // Ignora silenciosamente para evitar que el bot responda a intrusos en grupos al azar
             }
@@ -110,7 +110,7 @@ export const startTelegramEngine = (db, io) => {
               await sendMessageToChat(chatId, "⚠️ Aún no estás registrado. Escribe /registrar para comenzar.");
               continue;
             }
-            
+
             // Mis viajes (Orders where status = Entregado and driver is this one)
             // But we don't have driver_id in ecommerce_orders_v2, so let's just show 0 or query active trips
             const completedCount = 0; // Se puede mejorar si se guarda el driver_id en orders
@@ -127,45 +127,45 @@ export const startTelegramEngine = (db, io) => {
               botState[chatId] = { step: 'WAITING_NAME' };
               await sendMessageToChat(chatId, "¡Hola! Bienvenido al proceso de registro de repartidores. 🛵\n\nPor favor, ingresa tu <b>Nombre Completo</b>:");
             }
-          }
-          else if (botState[chatId] && !text.startsWith('/start')) {
+          } else
+          if (botState[chatId] && !text.startsWith('/start')) {
             const state = botState[chatId];
             if (state.step === 'WAITING_NAME') {
-              state.fullName = text; state.step = 'WAITING_PHONE';
+              state.fullName = text;state.step = 'WAITING_PHONE';
               await sendMessageToChat(chatId, `Perfecto, ${text}. Ahora, por favor ingresa tu <b>Número de Teléfono</b> (Ej. 0414-1234567):`);
-            }
-            else if (state.step === 'WAITING_PHONE') {
-              state.telefono = text; state.step = 'WAITING_MOTO';
+            } else
+            if (state.step === 'WAITING_PHONE') {
+              state.telefono = text;state.step = 'WAITING_MOTO';
               await sendMessageToChat(chatId, "¡Entendido! Ahora dime, ¿Qué <b>Modelo de Vehículo</b> conduces? (Ej. Bera SBR)");
-            }
-            else if (state.step === 'WAITING_MOTO') {
-              state.moto = text; state.step = 'WAITING_AGENCY';
+            } else
+            if (state.step === 'WAITING_MOTO') {
+              state.moto = text;state.step = 'WAITING_AGENCY';
               await sendMessageToChat(chatId, "Excelente. Por último, ¿A qué <b>Agencia de Delivery</b> perteneces? (Ej. MotoYa, Independiente, etc):");
-            }
-            else if (state.step === 'WAITING_AGENCY') {
+            } else
+            if (state.step === 'WAITING_AGENCY') {
               state.agencia = text;
               const driverCode = 'REP-' + Math.floor(1000 + Math.random() * 9000);
-              
+
               if (!driverData) {
-                db.prepare(`INSERT INTO delivery_drivers (id, driver_code, name, cedula, telefono, age, moto, placa, agencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
-                  chatId, driverCode, state.fullName, '', state.telefono, '', state.moto, '', state.agencia
-                );
+                await db.execute({ sql: `INSERT INTO delivery_drivers (id, driver_code, name, cedula, telefono, age, moto, placa, agencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [
+                  chatId, driverCode, state.fullName, '', state.telefono, '', state.moto, '', state.agencia] });
+
               } else {
-                db.prepare(`UPDATE delivery_drivers SET driver_code=?, name=?, telefono=?, moto=?, agencia=? WHERE id=?`).run(
-                  driverCode, state.fullName, state.telefono, state.moto, state.agencia, chatId
-                );
+                await db.execute({ sql: `UPDATE delivery_drivers SET driver_code=?, name=?, telefono=?, moto=?, agencia=? WHERE id=?`, args: [
+                  driverCode, state.fullName, state.telefono, state.moto, state.agencia, chatId] });
+
               }
               delete botState[chatId];
               await sendMessageToChat(chatId, `✅ <b>¡Felicidades!</b> Tus datos han sido registrados exitosamente. Ya puedes empezar a aceptar viajes.\n\nTu ID único de repartidor es: <b>${driverCode}</b>`);
             }
-          }
-          else if (text === '/start') {
+          } else
+          if (text === '/start') {
             await sendMessageToChat(chatId, "👋 ¡Hola! Bienvenido al bot de Delivery. Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones. Si eres nuevo, escribe /registrar para comenzar.");
-          }
-          else if (text.startsWith('/start accept_')) {
+          } else
+          if (text.startsWith('/start accept_')) {
             const orderId = text.replace('/start accept_', '');
-            const pendingOrder = db.prepare('SELECT * FROM delivery_pending_trips WHERE order_id = ?').get(orderId);
-            
+            const pendingOrder = (await db.execute({ sql: 'SELECT * FROM delivery_pending_trips WHERE order_id = ?', args: [orderId] })).rows[0];
+
             if (!pendingOrder) {
               await sendMessageToChat(chatId, "❌ Este viaje ya no está disponible o ya fue tomado.");
               continue;
@@ -177,83 +177,83 @@ export const startTelegramEngine = (db, io) => {
             }
 
             const customerData = JSON.parse(pendingOrder.customer_data);
-            
+
             // Move to active
-            db.prepare('DELETE FROM delivery_pending_trips WHERE order_id = ?').run(orderId);
-            db.prepare('INSERT INTO delivery_active_trips (order_id, driver_id, pin, customer_name, customer_data, start_time) VALUES (?, ?, ?, ?, ?, ?)').run(
-              orderId, chatId, pendingOrder.delivery_pin, customerData.name, pendingOrder.customer_data, new Date().toISOString()
-            );
+            await db.execute({ sql: 'DELETE FROM delivery_pending_trips WHERE order_id = ?', args: [orderId] });
+            await db.execute({ sql: 'INSERT INTO delivery_active_trips (order_id, driver_id, pin, customer_name, customer_data, start_time) VALUES (?, ?, ?, ?, ?, ?)', args: [
+              orderId, chatId, pendingOrder.delivery_pin, customerData.name, pendingOrder.customer_data, new Date().toISOString()] });
+
 
             const gpsLink = customerData.location ? `\n📍 <b>Mapa GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
             const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅\nAquí tienes los datos privados del cliente:\n\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente)</i>`;
-            const replyMarkup = { 
+            const replyMarkup = {
               inline_keyboard: [
-                [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }],
-                [{ text: "🚨 Abortar Viaje (Emergencia)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=cancel_${orderId}` }]
-              ] 
+              [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }],
+              [{ text: "🚨 Abortar Viaje (Emergencia)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=cancel_${orderId}` }]]
+
             };
             await sendMessageToChat(chatId, privateMessage, replyMarkup);
 
             // Avisar al grupo maestro
-            const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
             const masterChatId = setting ? setting.value : null;
             if (masterChatId) {
               await sendMessageToChat(masterChatId, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b>.`);
             }
-            
+
             io.emit('delivery_accepted', { orderId, driver: driverData });
-          }
-          else if (text.startsWith('/start complete_')) {
+          } else
+          if (text.startsWith('/start complete_')) {
             const orderId = text.replace('/start complete_', '');
-            
+
             // Mark driver confirmed
             try {
-               db.prepare('UPDATE ecommerce_orders_v2 SET driver_confirmed = 1 WHERE id = ?').run(orderId);
-            } catch(e) {}
-            
+              await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET driver_confirmed = 1 WHERE id = ?', args: [orderId] });
+            } catch (e) {}
+
             // Check if customer already confirmed
-            const order = db.prepare('SELECT customer_confirmed FROM ecommerce_orders_v2 WHERE id = ?').get(orderId);
+            const order = (await db.execute({ sql: 'SELECT customer_confirmed FROM ecommerce_orders_v2 WHERE id = ?', args: [orderId] })).rows[0];
             if (order && order.customer_confirmed === 1) {
-              db.prepare('DELETE FROM delivery_active_trips WHERE order_id = ?').run(orderId);
+              await db.execute({ sql: 'DELETE FROM delivery_active_trips WHERE order_id = ?', args: [orderId] });
               await sendMessageToChat(chatId, `✅ <b>¡Listo!</b> El cliente también ha confirmado de recibido. Pedido <b>#${orderId}</b> finalizado con éxito. ¡Buen trabajo!`);
-              
-              const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+
+              const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
               if (setting && setting.value) {
                 await sendMessageToChat(setting.value, `✅ El pedido <b>#${orderId}</b> ha sido entregado exitosamente por <b>${driverName}</b> y el cliente ha confirmado.`);
               }
-              
+
               // Update the main ecommerce order
-              db.prepare("UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?").run(orderId);
+              await db.execute({ sql: "UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?", args: [orderId] });
               io.emit('delivery_completed', { orderId });
             } else {
               await sendMessageToChat(chatId, `⏳ <b>¡Buen trabajo!</b> Ya entregaste el pedido <b>#${orderId}</b>. Ahora estamos esperando que el cliente confirme de recibido en la app.`);
             }
-          }
-          else if (text.startsWith('/start cancel_')) {
+          } else
+          if (text.startsWith('/start cancel_')) {
             const orderId = text.replace('/start cancel_', '');
-            const active = db.prepare('SELECT * FROM delivery_active_trips WHERE order_id = ?').get(orderId);
-            
+            const active = (await db.execute({ sql: 'SELECT * FROM delivery_active_trips WHERE order_id = ?', args: [orderId] })).rows[0];
+
             if (!active) {
               await sendMessageToChat(chatId, "❌ Este viaje ya no está en curso o ya fue cancelado.");
               continue;
             }
 
             await sendMessageToChat(chatId, `🚨 <b>VIAJE ABORTADO</b> 🚨\n\nHas cancelado el pedido <b>#${orderId}</b>. Será asignado a otro compañero.`);
-            
-            db.prepare('DELETE FROM delivery_active_trips WHERE order_id = ?').run(orderId);
-            
-            // Re-add to pending
-            db.prepare('INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)').run(
-              active.order_id, active.customer_data, active.pin
-            );
 
-            const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+            await db.execute({ sql: 'DELETE FROM delivery_active_trips WHERE order_id = ?', args: [orderId] });
+
+            // Re-add to pending
+            await db.execute({ sql: 'INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)', args: [
+              active.order_id, active.customer_data, active.pin] });
+
+
+            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
             if (setting && setting.value) {
               const retryMessage = `🚨 <b>¡VIAJE ABANDONADO - ALTA PRIORIDAD!</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\nEl conductor <b>${driverName}</b> ha tenido un inconveniente y abortó el viaje.\n¡Necesitamos a alguien más de inmediato!\n\n<i>(Presiona el botón para tomar este viaje de emergencia)</i>`;
               const replyMarkup = {
                 inline_keyboard: [
-                  [{ text: "🚗 Aceptar Viaje Urgente", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]
-                ]
+                [{ text: "🚗 Aceptar Viaje Urgente", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]]
+
               };
               await sendMessageToChat(setting.value, retryMessage, replyMarkup);
             }
@@ -262,10 +262,10 @@ export const startTelegramEngine = (db, io) => {
           }
         }
       }
-    } catch(e) { 
+    } catch (e) {
+
       // Silenciar timeout normal
     }
-    
     if (isEngineRunning) {
       setTimeout(poll, 2000);
     }
