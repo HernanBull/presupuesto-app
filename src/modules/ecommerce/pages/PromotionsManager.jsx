@@ -14,7 +14,7 @@ export default function PromotionsManager() {
 
   const fetchPromotions = async () => {
     try {
-      const res = await fetch(`http://localhost:3001/api/ecommerce/promotions?workspaceId=${workspaceId}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         const formatted = data.map(p => {
@@ -65,7 +65,7 @@ export default function PromotionsManager() {
     }
 
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/promotions', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/promotions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,7 +96,7 @@ export default function PromotionsManager() {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este cupón?')) {
       try {
-        const res = await fetch(`http://localhost:3001/api/ecommerce/promotions/${id}`, { method: 'DELETE' });
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions/${id}`, { method: 'DELETE' });
         if (res.ok) {
           fetchPromotions();
         }

@@ -200,7 +200,7 @@ export default function MarketplaceDirectory() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/customers/google-login', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/customers/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: credentialResponse.credential })
@@ -492,7 +492,7 @@ export default function MarketplaceDirectory() {
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedUser));
 
     try {
-      await fetch(`http://localhost:3001/api/ecommerce/customers/${currentCustomer.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...updatedUser })
@@ -732,7 +732,7 @@ export default function MarketplaceDirectory() {
                   {/* Store Banner */}
                   <div className="h-56 w-full relative bg-zinc-950 overflow-hidden">
                     {store.heroUrl ? (
-                      <img src={`http://localhost:3001${store.heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
+                      <img src={`https://axonmarket-api.onrender.com${store.heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
                         <Store size={40} className="text-zinc-700" />
@@ -760,7 +760,7 @@ export default function MarketplaceDirectory() {
                     <div className="relative -mt-12 mb-6 w-24 h-24 bg-zinc-950 rounded-[1.5rem] shadow-2xl border border-white/10 p-1 flex items-center justify-center overflow-hidden group-hover:border-amber-500/30 transition-colors duration-500">
                       <div className="w-full h-full bg-zinc-900 rounded-[1.2rem] flex items-center justify-center overflow-hidden">
                         {store.logoUrl ? (
-                          <img src={`http://localhost:3001${store.logoUrl}`} alt={store.name} className="w-full h-full object-contain" />
+                          <img src={`https://axonmarket-api.onrender.com${store.logoUrl}`} alt={store.name} className="w-full h-full object-contain" />
                         ) : (
                           <span className="text-3xl font-black text-amber-500 uppercase">{store.name.charAt(0)}</span>
                         )}
@@ -865,7 +865,7 @@ export default function MarketplaceDirectory() {
                             <div key={item.id} className="flex gap-4">
                               <div className="w-16 h-16 bg-zinc-950 rounded-2xl border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
                                 {item.imageUrl ? (
-                                  <img src={`http://localhost:3001${item.imageUrl}`} alt={item.name} className="w-full h-full object-cover" />
+                                  <img src={`https://axonmarket-api.onrender.com${item.imageUrl}`} alt={item.name} className="w-full h-full object-cover" />
                                 ) : (
                                   <Package size={20} className="text-zinc-600" />
                                 )}

@@ -34,11 +34,11 @@ export default function AnalyticsManager() {
     setLoading(true);
     try {
       const [salesRes, funnelRes, cartsRes, topRes, finRes] = await Promise.all([
-        fetch(`http://localhost:3001/api/ecommerce/analytics/sales-by-date?workspaceId=${workspaceId}&range=${timeRange}`),
-        fetch(`http://localhost:3001/api/ecommerce/analytics/funnel?workspaceId=${workspaceId}&range=${timeRange}`),
-        fetch(`http://localhost:3001/api/ecommerce/analytics/abandoned-carts?workspaceId=${workspaceId}`),
-        fetch(`http://localhost:3001/api/ecommerce/analytics/top-products?workspaceId=${workspaceId}&range=${timeRange}`),
-        fetch(`http://localhost:3001/api/ecommerce/analytics/financials?workspaceId=${workspaceId}&range=${timeRange}`)
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/sales-by-date?workspaceId=${workspaceId}&range=${timeRange}`),
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/funnel?workspaceId=${workspaceId}&range=${timeRange}`),
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/abandoned-carts?workspaceId=${workspaceId}`),
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/top-products?workspaceId=${workspaceId}&range=${timeRange}`),
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/financials?workspaceId=${workspaceId}&range=${timeRange}`)
       ]);
       
       if (salesRes.ok) setSalesData(await salesRes.json());

@@ -14,7 +14,7 @@ export default function OffersManager() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=${workspaceId}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         // Solo productos publicados o en borrador, pero que existan.
@@ -35,7 +35,7 @@ export default function OffersManager() {
     if (product.is_offer) {
       // Apagar oferta
       try {
-        const res = await fetch(`http://localhost:3001/api/ecommerce/products/${product.id}/offer`, {
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${product.id}/offer`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isOffer: false, discountPrice: 0 })
@@ -62,7 +62,7 @@ export default function OffersManager() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3001/api/ecommerce/products/${editingProduct.id}/offer`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${editingProduct.id}/offer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isOffer: true, discountPrice: priceNum })
@@ -121,7 +121,7 @@ export default function OffersManager() {
                 <div className="flex gap-3 mb-3 relative z-10">
                   <div className="w-16 h-16 bg-white dark:bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-amber-100 dark:border-amber-500/20 shrink-0">
                     {p.image_url ? (
-                      <img src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-cover" />
+                      <img src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-cover" />
                     ) : (
                       <Tag size={24} className="text-amber-300" />
                     )}
@@ -159,7 +159,7 @@ export default function OffersManager() {
               <div className="flex gap-3 mb-3">
                 <div className="w-12 h-12 bg-slate-50 dark:bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center border border-slate-100 dark:border-slate-800 shrink-0">
                   {p.image_url ? (
-                    <img src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-cover" />
+                    <img src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-cover" />
                   ) : (
                     <Tag size={20} className="text-slate-300" />
                   )}

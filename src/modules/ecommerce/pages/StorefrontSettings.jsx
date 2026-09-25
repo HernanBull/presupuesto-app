@@ -57,7 +57,7 @@ export default function StorefrontSettings() {
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=${wsId}`)
+      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${wsId}`)
         .then(res => res.json())
         .then(data => setProducts(data))
         .catch(err => console.error("Error fetching products for preview:", err));

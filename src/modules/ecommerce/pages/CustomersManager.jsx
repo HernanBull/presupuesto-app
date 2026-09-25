@@ -5,7 +5,7 @@ export default function CustomersManager() {
   const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/ecommerce/customers')
+    fetch('https://axonmarket-api.onrender.com/api/ecommerce/customers')
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {

@@ -49,7 +49,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       // Guardar
       setIsSubmitting(true);
       try {
-        const res = await fetch(`http://localhost:3001/api/ecommerce/customers/${customer.id}`, {
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${customer.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -86,7 +86,7 @@ export default function PublicStore() {
     try {
       const activeWId = wid || workspaceId;
       if (!activeWId) return;
-      await fetch('http://localhost:3001/api/ecommerce/track', {
+      await fetch('https://axonmarket-api.onrender.com/api/ecommerce/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -152,7 +152,7 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/customers/register', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/customers/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(authForm)
@@ -266,7 +266,7 @@ export default function PublicStore() {
     };
 
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/orders', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -380,7 +380,7 @@ export default function PublicStore() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('http://localhost:3001/api/upload', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/upload', {
         method: 'POST',
         body: formData
       });
@@ -398,7 +398,7 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/customers/login', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/customers/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: authForm.email, password: authForm.password })
@@ -428,7 +428,7 @@ export default function PublicStore() {
   const handleGoogleSuccess = async (credentialResponse) => {
     setAuthLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/ecommerce/customers/google-login', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/customers/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: credentialResponse.credential })
@@ -493,7 +493,7 @@ export default function PublicStore() {
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedUser));
 
     try {
-      await fetch(`http://localhost:3001/api/ecommerce/customers/${currentCustomer.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedUser)
@@ -532,7 +532,7 @@ export default function PublicStore() {
 
   const checkGlobalStock = async (productId, neededQty) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/ecommerce/products/${productId}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${productId}`);
       if (!res.ok) return false;
       const product = await res.json();
       
@@ -555,7 +555,7 @@ export default function PublicStore() {
     if (!lastAlertTime || (now - Number(lastAlertTime)) > 900000) { // 15 minutos de bloqueo
       sessionStorage.setItem(lastAlertKey, now.toString());
       
-      fetch('http://localhost:3001/api/ecommerce/notifications', {
+      fetch('https://axonmarket-api.onrender.com/api/ecommerce/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -664,7 +664,7 @@ export default function PublicStore() {
 
   const fetchProductReviews = async (productId, currentWorkspace) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/ecommerce/reviews?workspaceId=${currentWorkspace}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews?workspaceId=${currentWorkspace}`);
       if (res.ok) {
         const data = await res.json();
         setProductReviews(data.filter(r => r.product_id === productId && r.status === 'Aprobado'));
@@ -697,7 +697,7 @@ export default function PublicStore() {
         rating: reviewRating,
         comment: reviewComment
       };
-      const res = await fetch('http://localhost:3001/api/ecommerce/reviews', {
+      const res = await fetch('https://axonmarket-api.onrender.com/api/ecommerce/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -758,7 +758,7 @@ export default function PublicStore() {
     setIsValidatingDiscount(true);
     setDiscountError('');
     try {
-      const res = await fetch(`http://localhost:3001/api/ecommerce/promotions/validate`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: discountCode, workspaceId })
@@ -806,7 +806,7 @@ export default function PublicStore() {
       };
 
       try {
-        const res = await fetch(`http://localhost:3001/api/workspaces/store/${slug || 'tienda-ejemplo'}`, { cache: 'no-store' });
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/store/${slug || 'tienda-ejemplo'}`, { cache: 'no-store' });
         if (!res.ok) {
           const savedStr = localStorage.getItem('storefrontConfig');
           if (savedStr) {
@@ -814,7 +814,7 @@ export default function PublicStore() {
              saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
              setConfig(saved);
              setWorkspaceId('default_workspace');
-             const pRes = await fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=default_workspace`);
+             const pRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=default_workspace`);
              if (pRes.ok) {
                const pData = await pRes.json();
                const published = pData
@@ -862,7 +862,7 @@ export default function PublicStore() {
         setConfig(saved);
         trackEvent('visit', storeData.id);
 
-        const pRes = await fetch(`http://localhost:3001/api/ecommerce/products?workspaceId=${storeData.id}`);
+        const pRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${storeData.id}`);
         if (pRes.ok) {
           const pData = await pRes.json();
           const published = pData
@@ -1131,7 +1131,7 @@ export default function PublicStore() {
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setCurrentPage('home')}>
             {logoUrl ? (
               <div className="h-10 w-auto bg-white/5 rounded-xl border border-white/10 p-1 backdrop-blur-md">
-                 <img src={`http://localhost:3001${logoUrl}`} alt="Logo" className="h-full w-auto object-contain rounded-lg" />
+                 <img src={`https://axonmarket-api.onrender.com${logoUrl}`} alt="Logo" className="h-full w-auto object-contain rounded-lg" />
               </div>
             ) : (
               <span className={`text-2xl font-black tracking-tight text-white`}>
@@ -1218,7 +1218,7 @@ export default function PublicStore() {
                   <div key={section.id} className="relative overflow-hidden min-h-[500px] md:min-h-[700px] flex items-center justify-center text-center px-6">
                     {heroUrl ? (
                       <div className="absolute inset-0 z-0">
-                        <img src={`http://localhost:3001${heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-40 scale-105" />
+                        <img src={`https://axonmarket-api.onrender.com${heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-40 scale-105" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                       </div>
                     ) : (
@@ -1283,7 +1283,7 @@ export default function PublicStore() {
                            
                            <div className="w-full aspect-square bg-zinc-950 relative overflow-hidden p-6">
                              {p.image_url ? (
-                               <img id={`product-img-${p.id}`} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                               <img id={`product-img-${p.id}`} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                              ) : (
                                <div className="w-full h-full flex items-center justify-center text-zinc-800 transition-transform duration-700 group-hover:scale-110">
                                  <ImageIcon size={64} />
@@ -1433,7 +1433,7 @@ export default function PublicStore() {
 
                     <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-8 flex items-center justify-center">
                       {p.image_url ? (
-                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
+                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
                       ) : (
                         <ImageIcon size={80} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                       )}
@@ -1582,7 +1582,7 @@ export default function PublicStore() {
                       >
                         <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
                           {p.image_url ? (
-                            <img id={`product-img-${p.id}`} src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                            <img id={`product-img-${p.id}`} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                           ) : (
                             <ImageIcon size={48} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                           )}
@@ -1683,7 +1683,7 @@ export default function PublicStore() {
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-             {logoUrl && <img src={`http://localhost:3001${logoUrl}`} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
+             {logoUrl && <img src={`https://axonmarket-api.onrender.com${logoUrl}`} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
              <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">{config.business_name || 'MI TIENDA'}</span>
            </div>
            <p className="text-zinc-600 font-light text-xs tracking-wider uppercase">{texts.footerText}</p>
@@ -1702,7 +1702,7 @@ export default function PublicStore() {
               <div className="md:w-1/2 bg-black relative flex items-center justify-center p-12 overflow-hidden">
                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
                  {selectedProduct.image_url ? (
-                   <img id={`modal-img-${selectedProduct.id}`} src={`http://localhost:3001${selectedProduct.image_url}`} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
+                   <img id={`modal-img-${selectedProduct.id}`} src={`https://axonmarket-api.onrender.com${selectedProduct.image_url}`} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
                  ) : (
                    <ImageIcon size={80} className="text-zinc-800" />
                  )}
@@ -2143,7 +2143,7 @@ export default function PublicStore() {
                         >
                           <div className="w-24 h-24 bg-black rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-white/5 relative shadow-inner">
                             {p.image_url ? (
-                              <img src={`http://localhost:3001${p.image_url}`} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-110 duration-500" />
+                              <img src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-110 duration-500" />
                             ) : (
                               <Package size={32} className="text-zinc-700" />
                             )}

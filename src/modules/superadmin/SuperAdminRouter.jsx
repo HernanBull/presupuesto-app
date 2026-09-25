@@ -15,7 +15,7 @@ export default function SuperAdminRouter() {
     const savedKey = localStorage.getItem('superadmin_key');
     if (savedKey) {
       setKey(savedKey);
-      fetch('http://localhost:3001/api/superadmin/merchants', { headers: { 'x-superadmin-key': savedKey } })
+      fetch('https://axonmarket-api.onrender.com/api/superadmin/merchants', { headers: { 'x-superadmin-key': savedKey } })
         .then(res => {
           if (res.ok) setIsAuthenticated(true);
           else localStorage.removeItem('superadmin_key');
@@ -40,7 +40,7 @@ export default function SuperAdminRouter() {
     if (lockout) localStorage.removeItem('admin_lockout');
 
     setIsLoading(true);
-    fetch('http://localhost:3001/api/superadmin/merchants', {
+    fetch('https://axonmarket-api.onrender.com/api/superadmin/merchants', {
       headers: { 'x-superadmin-key': key }
     })
     .then(res => {
