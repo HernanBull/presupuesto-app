@@ -29,6 +29,16 @@ export default function SuperAdminRouter() {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    
+    // Rate limit check
+    const lockout = localStorage.getItem('admin_lockout');
+    if (lockout && new Date().getTime() < parseInt(lockout)) {
+      const minutesLeft = Math.ceil((parseInt(lockout) - new Date().getTime()) / 60000);
+      setError(`Demasiados intentos. Intenta en ${minutesLeft} minutos.`);
+      return;
+    }
+    if (lockout) localStorage.removeItem('admin_lockout');
+
     setIsLoading(true);
     fetch('http://localhost:3001/api/superadmin/merchants', {
       headers: { 'x-superadmin-key': key }
@@ -38,8 +48,17 @@ export default function SuperAdminRouter() {
       if (res.ok) {
         setIsAuthenticated(true);
         localStorage.setItem('superadmin_key', key);
+        localStorage.removeItem('admin_attempts');
       } else {
-        setError('Clave maestra incorrecta');
+        const attempts = parseInt(localStorage.getItem('admin_attempts') || '0') + 1;
+        if (attempts >= 3) {
+          localStorage.setItem('admin_lockout', (new Date().getTime() + 5 * 60000).toString());
+          localStorage.removeItem('admin_attempts');
+          setError('Sistema bloqueado por 5 minutos.');
+        } else {
+          localStorage.setItem('admin_attempts', attempts.toString());
+          setError(`Clave incorrecta. Intentos restantes: ${3 - attempts}`);
+        }
       }
     })
     .catch(() => {

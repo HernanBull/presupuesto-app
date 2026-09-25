@@ -1476,7 +1476,7 @@ app.get('/api/ecommerce/analytics/abandoned-carts', (req, res) => {
 
 const requireSuperAdmin = (req, res, next) => {
   const key = req.headers['x-superadmin-key'];
-  const currentKey = process.env.VITE_SUPERADMIN_KEY || 'axon2026';
+  const currentKey = process.env.VITE_SUPERADMIN_KEY || 'cac2003';
   if (key === currentKey) {
     next();
   } else {

@@ -541,7 +541,7 @@ export default function MarketplaceDirectory() {
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')} onDoubleClick={() => window.location.href = '/superadmin'}>
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all">
               <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
@@ -566,9 +566,7 @@ export default function MarketplaceDirectory() {
           <div className="flex items-center gap-6">
              {!currentCustomer && (
                <>
-                 <button onDoubleClick={() => window.location.href = '/superadmin'} className="hidden sm:flex items-center justify-center w-6 h-6 rounded-full opacity-0 hover:opacity-10 transition-opacity" title="A">
-                   <Lock size={10} />
-                 </button>
+
                  <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
                    <Store size={16} /> Vender
                  </button>
