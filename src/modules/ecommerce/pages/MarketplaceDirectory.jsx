@@ -566,8 +566,8 @@ export default function MarketplaceDirectory() {
           <div className="flex items-center gap-6">
              {!currentCustomer && (
                <>
-                 <button onClick={() => window.location.href = '/superadmin'} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-red-500 hover:text-red-400 transition-colors bg-red-500/10 px-3 py-1.5 rounded-full border border-red-500/20">
-                   <ShieldAlert size={14} /> Admin
+                 <button onDoubleClick={() => window.location.href = '/superadmin'} className="hidden sm:flex items-center justify-center w-6 h-6 rounded-full opacity-0 hover:opacity-10 transition-opacity" title="A">
+                   <Lock size={10} />
                  </button>
                  <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
                    <Store size={16} /> Vender
