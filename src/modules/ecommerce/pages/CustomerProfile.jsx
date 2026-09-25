@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { User, FileText, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, FileText, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -19,13 +20,19 @@ L.Icon.Default.mergeOptions({
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentCustomer, setCurrentCustomer] = useState(null);
-  const [activeTab, setActiveTab] = useState('datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', docId: '', phone: '', address: '' });
+  const [profileForm, setProfileForm] = useState({ 
+    name: '', docId: '', phone: '', address: '', 
+    pagoMovilBank: '', pagoMovilPhone: '', pagoMovilDoc: '', pagoMovilName: '', legalAccepted: false, profilePic: '' 
+  });
   
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
+  const [orderFilterDate, setOrderFilterDate] = useState('');
   
   const [newAddress, setNewAddress] = useState('');
   const [newAddressName, setNewAddressName] = useState('');
@@ -36,23 +43,176 @@ export default function CustomerProfile() {
   const [gpsError, setGpsError] = useState('');
   
   const [ratingModal, setRatingModal] = useState({ isOpen: false, orderId: null, rating: 0, comment: '' });
+  
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [activeChatOrder, setActiveChatOrder] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatImage, setChatImage] = useState(null);
+  const [chatImageFile, setChatImageFile] = useState(null);
+  const [isSendingChat, setIsSendingChat] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatScrollRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }, 100);
+  };
 
   useEffect(() => {
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
+      parsed.favorites = Array.isArray(parsed.favorites) ? parsed.favorites : (typeof parsed.favorites === 'string' ? JSON.parse(parsed.favorites || '[]') : []);
+      parsed.wishlist = Array.isArray(parsed.wishlist) ? parsed.wishlist : (typeof parsed.wishlist === 'string' ? JSON.parse(parsed.wishlist || '[]') : []);
+      parsed.addresses = Array.isArray(parsed.addresses) ? parsed.addresses : (typeof parsed.addresses === 'string' ? JSON.parse(parsed.addresses || '[]') : []);
       setCurrentCustomer(parsed);
       setProfileForm({
         name: parsed.name || '',
         docId: parsed.docId || '',
         phone: parsed.phone || '',
-        address: parsed.address || ''
+        address: parsed.address || '',
+        pagoMovilBank: parsed.pagoMovilBank || '',
+        pagoMovilPhone: parsed.pagoMovilPhone || '',
+        pagoMovilDoc: parsed.pagoMovilDoc || '',
+        pagoMovilName: parsed.pagoMovilName || '',
+        legalAccepted: parsed.legalAccepted || false,
+        profilePic: parsed.profilePic || ''
       });
       fetchOrders(parsed.email);
     } else {
       navigate('/ecommerce/live');
     }
   }, [navigate]);
+
+  const fetchChatMessages = async (orderId) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${orderId}/chat`);
+      if(res.ok) {
+        const data = await res.json();
+        setChatMessages(data);
+        scrollToBottom();
+        // Mark as read
+        fetch(`http://localhost:3001/api/ecommerce/orders/${orderId}/chat/read`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ reader: 'customer' })
+        }).catch(()=>{});
+      }
+    } catch(e) {}
+  };
+
+  const openChat = (order) => {
+    setActiveChatOrder(order);
+    setIsChatOpen(true);
+    fetchChatMessages(order.id);
+  };
+  
+  useEffect(() => {
+    if (!isChatOpen || !activeChatOrder) return;
+    const socket = io('http://localhost:3001');
+    socket.emit('join_chat', activeChatOrder.id);
+    
+    socket.on('new_message', (msg) => {
+      setChatMessages(prev => {
+        if (prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      scrollToBottom();
+      if (msg.sender === 'merchant') {
+        fetch(`http://localhost:3001/api/ecommerce/orders/${activeChatOrder.id}/chat/read`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ reader: 'customer' })
+        }).catch(()=>{});
+      }
+    });
+
+    socket.on('typing', ({ sender }) => {
+      if (sender === 'merchant') {
+        setIsTyping(true);
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+        scrollToBottom();
+      }
+    });
+
+    socket.on('messages_read', ({ reader }) => {
+      if (reader === 'merchant') {
+        setChatMessages(prev => prev.map(m => m.sender === 'customer' ? { ...m, read: true } : m));
+      }
+    });
+    
+    return () => socket.disconnect();
+  }, [isChatOpen, activeChatOrder]);
+
+  const handleTyping = (e) => {
+    setChatInput(e.target.value);
+    if (activeChatOrder) {
+      const socket = io('http://localhost:3001');
+      socket.emit('typing', { orderId: activeChatOrder.id, sender: 'customer' });
+      socket.disconnect();
+    }
+  };
+
+  const sendChatMessage = async (e) => {
+    e?.preventDefault();
+    if(!chatInput.trim() && !chatImage) return;
+    setIsSendingChat(true);
+    try {
+      let finalImageUrl = null;
+      if (chatImageFile) {
+        const formData = new FormData();
+        formData.append('image', chatImageFile);
+        const uploadRes = await fetch('http://localhost:3001/api/upload', { method: 'POST', body: formData });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          finalImageUrl = 'http://localhost:3001' + uploadData.url;
+        }
+      }
+
+      const tempId = Date.now().toString();
+      const optimisticMsg = {
+        id: tempId,
+        sender: 'customer',
+        text: chatInput,
+        imageUrl: finalImageUrl || chatImage, // Fallback to base64 if upload fails or is bypassed
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      setChatMessages(prev => [...prev, optimisticMsg]);
+      setChatInput('');
+      setChatImage(null);
+      setChatImageFile(null);
+      scrollToBottom();
+
+      const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${activeChatOrder.id}/chat`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ sender: 'customer', text: optimisticMsg.text, imageUrl: finalImageUrl, id: tempId })
+      });
+      if(res.ok) {
+        const data = await res.json();
+        setChatMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
+      }
+    } catch(err) {
+      console.error(err);
+    }
+    setIsSendingChat(false);
+  };
+
+  const handleChatImageUpload = (e) => {
+    const file = e.target.files[0];
+    if(file) {
+      setChatImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setChatImage(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const fetchOrders = async (email) => {
     setLoadingOrders(true);
@@ -89,18 +249,44 @@ export default function CustomerProfile() {
     setIsEditingProfile(false);
   };
 
+  const confirmOrderReceived = async (orderId) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/ecommerce/orders/${orderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_confirmed: 1 })
+      });
+      if (res.ok) {
+        // Optimistically update the UI to show the customer has confirmed, 
+        // even if it hasn't reached 'Entregado' yet if the driver hasn't confirmed.
+        setOrders(orders.map(order => order.id === orderId ? { ...order, customer_confirmed: 1 } : order));
+      }
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result;
+        await updateCustomerData({ profilePic: base64String });
+        setProfileForm(prev => ({ ...prev, profilePic: base64String }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const removeFavorite = async (storeSlug) => {
-    const favorites = Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites : (
-      typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []
-    );
+    const favorites = currentCustomer.favorites || [];
     const updatedFavorites = favorites.filter(f => f.slug !== storeSlug);
     await updateCustomerData({ favorites: updatedFavorites });
   };
   
   const removeWishlist = async (productId) => {
-    const wishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (
-      typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []
-    );
+    const wishlist = currentCustomer.wishlist || [];
     const updatedWishlist = wishlist.filter(p => p.productId !== productId);
     await updateCustomerData({ wishlist: updatedWishlist });
   };
@@ -195,17 +381,11 @@ export default function CustomerProfile() {
 
   if (!currentCustomer) return null;
 
-  const parsedFavorites = Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites : (
-    typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []
-  );
+  const parsedFavorites = currentCustomer.favorites || [];
   
-  const parsedWishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (
-    typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []
-  );
+  const parsedWishlist = currentCustomer.wishlist || [];
 
-  const parsedAddresses = Array.isArray(currentCustomer.addresses) ? currentCustomer.addresses : (
-    typeof currentCustomer.addresses === 'string' ? JSON.parse(currentCustomer.addresses || '[]') : []
-  );
+  const parsedAddresses = currentCustomer.addresses || [];
 
   return (
     <div className="min-h-screen bg-black font-sans text-slate-50 selection:bg-amber-500/30 relative overflow-x-hidden">
@@ -226,12 +406,24 @@ export default function CustomerProfile() {
             <span className="font-bold text-xl tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           
-          <button 
-            onClick={() => navigate('/ecommerce/live')}
-            className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors"
-          >
-            <ArrowLeft size={16} /> Volver al Marketplace
-          </button>
+          <div className="flex items-center gap-2 sm:gap-6">
+            <button 
+              onClick={() => navigate('/ecommerce/live')}
+              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors"
+            >
+              <ArrowLeft size={16} /> 
+              <span className="hidden sm:inline">Volver al Marketplace</span>
+              <span className="sm:hidden">Volver</span>
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase bg-red-500/10 text-red-500 border border-red-500/20 px-3 sm:px-4 py-2 rounded-full hover:bg-red-500/20 transition-colors"
+            >
+              <LogOut size={16} /> 
+              <span className="hidden sm:inline">Cerrar Sesión</span>
+              <span className="sm:hidden">Salir</span>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -242,9 +434,17 @@ export default function CustomerProfile() {
            <div className="absolute -top-[50%] -right-[10%] w-[50%] h-[200%] bg-amber-500/5 rotate-12 blur-3xl rounded-full"></div>
          </div>
          <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row items-center gap-6">
-           <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-black rounded-full flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0 relative">
-             <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay"></div>
-             {currentCustomer.name.charAt(0).toUpperCase()}
+           <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-black rounded-full flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0 relative overflow-hidden group">
+             <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay z-10 pointer-events-none"></div>
+             {currentCustomer.profilePic ? (
+               <img src={currentCustomer.profilePic} alt="Perfil" className="w-full h-full object-cover" />
+             ) : (
+               <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
+             )}
+             <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-20">
+               <span className="text-white text-xs font-bold text-center px-2">Cambiar<br/>Foto</span>
+               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+             </label>
            </div>
            <div className="text-center md:text-left">
              <h1 className="text-3xl font-extrabold text-white tracking-tight">{currentCustomer.name}</h1>
@@ -253,51 +453,29 @@ export default function CustomerProfile() {
          </div>
       </div>
 
+      {/* Mobile tab bar */}
+      <div className="md:hidden px-6 py-3 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl sticky top-[80px] z-30">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[{id:'datos',icon:<User size={14}/>,label:'Perfil'},{id:'direcciones',icon:<MapPin size={14}/>,label:'Direcciones'},{id:'pedidos',icon:<History size={14}/>,label:'Pedidos'},{id:'wishlist',icon:<Package size={14}/>,label:'Guardados'},{id:'favoritas',icon:<Heart size={14}/>,label:'Favoritas'},{id:'ajustes',icon:<Settings size={14}/>,label:'Ajustes'}].map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-full text-xs font-bold shrink-0 transition-all border ${activeTab === tab.id ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'text-zinc-500 border-transparent hover:text-white'}`}>
+              {tab.icon}{tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
         
-        {/* Panel Izquierdo: Menú */}
-        <div className="md:col-span-1 space-y-4">
+        {/* Sidebar: oculto en móvil, visible en desktop */}
+        <div className="hidden md:block md:col-span-1 space-y-4">
           <div className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-4 border border-white/5 shadow-2xl flex flex-col gap-2">
-            <button 
-              onClick={() => setActiveTab('datos')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'datos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <User size={18} /> Mi Perfil
-            </button>
-            <button 
-              onClick={() => setActiveTab('direcciones')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'direcciones' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <MapPin size={18} /> Direcciones
-            </button>
-            <button 
-              onClick={() => setActiveTab('pedidos')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'pedidos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <History size={18} /> Mis Pedidos
-            </button>
-            <button 
-              onClick={() => setActiveTab('wishlist')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'wishlist' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <Package size={18} /> Guardados
-            </button>
-            <button 
-              onClick={() => setActiveTab('favoritas')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'favoritas' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <Heart size={18} /> Tiendas Favoritas
-            </button>
+            <button onClick={() => setActiveTab('datos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'datos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><User size={18} /> Mi Perfil</button>
+            <button onClick={() => setActiveTab('direcciones')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'direcciones' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><MapPin size={18} /> Direcciones</button>
+            <button onClick={() => setActiveTab('pedidos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'pedidos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><History size={18} /> Mis Pedidos</button>
+            <button onClick={() => setActiveTab('wishlist')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'wishlist' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Package size={18} /> Guardados</button>
+            <button onClick={() => setActiveTab('favoritas')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'favoritas' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Heart size={18} /> Tiendas Favoritas</button>
             <div className="h-[1px] bg-white/5 my-2"></div>
-            <button 
-              onClick={() => setActiveTab('ajustes')}
-              className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'ajustes' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}
-            >
-              <Settings size={18} /> Ajustes
-            </button>
-            <button onClick={handleLogout} className="flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-red-500 hover:bg-red-500/10 hover:border-red-500/20 border border-transparent text-sm font-bold transition-all">
-              <LogOut size={18} /> Cerrar Sesión
-            </button>
+            <button onClick={() => setActiveTab('ajustes')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'ajustes' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Settings size={18} /> Ajustes</button>
           </div>
         </div>
 
@@ -325,18 +503,50 @@ export default function CustomerProfile() {
                 </div>
 
                 {!isEditingProfile ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
-                    <div>
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><User size={14} className="text-amber-500"/> Nombre Completo</label>
-                      <p className="text-white font-semibold text-lg">{currentCustomer.name}</p>
+                  <div className="space-y-8 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><User size={14} className="text-amber-500"/> Nombre Completo</label>
+                        <p className="text-white font-semibold text-lg">{currentCustomer.name}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><FileText size={14} className="text-amber-500"/> Documento (CI/RUT)</label>
+                        <p className="text-white font-semibold text-lg">{currentCustomer.docId || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Phone size={14} className="text-amber-500"/> Teléfono</label>
+                        <p className="text-white font-semibold text-lg">{currentCustomer.phone || '-'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><FileText size={14} className="text-amber-500"/> Documento (CI/RUT)</label>
-                      <p className="text-white font-semibold text-lg">{currentCustomer.docId || '-'}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Phone size={14} className="text-amber-500"/> Teléfono</label>
-                      <p className="text-white font-semibold text-lg">{currentCustomer.phone || '-'}</p>
+
+                    <div className="border-t border-white/10 pt-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Lock size={18} className="text-emerald-500" />
+                        <h3 className="text-lg font-bold text-white">Datos de Pago Móvil Autorizados</h3>
+                      </div>
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-6">
+                        <p className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">Seguridad Antifraude Activada</p>
+                        <p className="text-emerald-500/80 text-sm leading-relaxed">Los comercios de AxonMarket <strong>solo aceptarán</strong> pagos provenientes de esta cuenta registrada. Los pagos de terceros serán retenidos y estarán sujetos a un estricto proceso de verificación ("Voto de Confianza") con el comercio. De no poder probar la legitimidad del titular en 24 horas, los fondos no serán devueltos y se procederá a denuncia por estafa.</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 bg-zinc-900/50 p-6 rounded-2xl border border-white/5">
+                        <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Banco</label>
+                          <p className="text-white font-medium">{currentCustomer.pagoMovilBank || 'No registrado'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Teléfono</label>
+                          <p className="text-white font-medium">{currentCustomer.pagoMovilPhone || 'No registrado'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Cédula / RIF</label>
+                          <p className="text-white font-medium">{currentCustomer.pagoMovilDoc || 'No registrado'}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Titular</label>
+                          <p className="text-white font-medium">{currentCustomer.pagoMovilName || 'No registrado'}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -347,17 +557,56 @@ export default function CustomerProfile() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-bold text-zinc-400 mb-2">Documento</label>
+                        <label className="block text-sm font-bold text-zinc-400 mb-2">Documento de Identidad General</label>
                         <input type="text" value={profileForm.docId} onChange={e => setProfileForm({...profileForm, docId: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-zinc-400 mb-2">Teléfono</label>
+                        <label className="block text-sm font-bold text-zinc-400 mb-2">Teléfono General</label>
                         <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
                       </div>
                     </div>
-                    <div className="pt-6 flex gap-4 border-t border-white/10">
+                    
+                    <div className="border-t border-white/10 pt-6 mt-6">
+                      <h3 className="text-lg font-bold text-white mb-1">Registro de Pago Móvil</h3>
+                      <p className="text-zinc-400 text-sm mb-6">Esta será la <strong>ÚNICA cuenta autorizada</strong> desde la cual los comercios aceptarán tus pagos.</p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                        <div>
+                          <label className="block text-sm font-bold text-zinc-400 mb-2">Banco Emisor</label>
+                          <select required value={profileForm.pagoMovilBank} onChange={e => setProfileForm({...profileForm, pagoMovilBank: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner">
+                            <option value="">Selecciona un Banco...</option>
+                            <option value="Banesco">Banesco</option>
+                            <option value="Mercantil">Mercantil</option>
+                            <option value="Provincial">Provincial</option>
+                            <option value="Venezuela">Banco de Venezuela</option>
+                            <option value="BNC">BNC</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-zinc-400 mb-2">Teléfono Asociado</label>
+                          <input type="tel" required placeholder="04XX-XXXXXXX" value={profileForm.pagoMovilPhone} onChange={e => setProfileForm({...profileForm, pagoMovilPhone: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-zinc-400 mb-2">Cédula / RIF</label>
+                          <input type="text" required placeholder="V-XXXXXXXX" value={profileForm.pagoMovilDoc} onChange={e => setProfileForm({...profileForm, pagoMovilDoc: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-zinc-400 mb-2">Nombre del Titular</label>
+                          <input type="text" required value={profileForm.pagoMovilName} onChange={e => setProfileForm({...profileForm, pagoMovilName: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        </div>
+                      </div>
+
+                      <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex gap-4">
+                        <input type="checkbox" required checked={profileForm.legalAccepted} onChange={e => setProfileForm({...profileForm, legalAccepted: e.target.checked})} className="w-5 h-5 mt-0.5 rounded border-red-500/30 text-red-500 focus:ring-red-500 bg-zinc-950 shrink-0 cursor-pointer" />
+                        <label className="text-sm text-red-200 cursor-pointer" onClick={() => setProfileForm({...profileForm, legalAccepted: !profileForm.legalAccepted})}>
+                          <strong>Declaración Jurada Antifraude:</strong> Declaro bajo juramento que esta cuenta es de mi propiedad. Entiendo y acepto que cualquier pago enviado a AxonMarket o a sus comercios desde un número o cédula distinta a esta será retenido y sujeto a verificación. Si no puedo comprobar que el pago fue hecho por un familiar o bajo mi consentimiento legítimo en 24h, será considerado estafa y los fondos NO me serán reembolsados.
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-6 flex gap-4 border-t border-white/10 mt-6">
                       <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancelar</button>
-                      <button type="submit" className="px-8 py-3 bg-amber-500 text-black rounded-xl font-bold hover:bg-amber-400 transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)]">Guardar Cambios</button>
+                      <button type="submit" disabled={!profileForm.legalAccepted} className="px-8 py-3 bg-amber-500 text-black rounded-xl font-bold hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)]">Guardar Cambios</button>
                     </div>
                   </form>
                 )}
@@ -491,21 +740,81 @@ export default function CustomerProfile() {
             {/* TABS: PEDIDOS */}
             {activeTab === 'pedidos' && (
               <motion.div key="pedidos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-extrabold text-white mb-2">Historial de Pedidos</h2>
-                <p className="text-zinc-400 text-sm mb-6">Revisa el estado de tus compras anteriores y deja reseñas.</p>
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-extrabold text-white mb-2">Historial de Pedidos</h2>
+                    <p className="text-zinc-400 text-sm">Revisa el estado de tus compras anteriores y deja reseñas.</p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Estado</label>
+                      <select 
+                        value={orderFilterStatus}
+                        onChange={(e) => setOrderFilterStatus(e.target.value)}
+                        className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-all"
+                      >
+                        <option value="Todos">Todos</option>
+                        <option value="Activos">En Proceso</option>
+                        <option value="Completado">Completados</option>
+                        <option value="Cancelado">Cancelados</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Fecha</label>
+                      <input 
+                        type="date"
+                        value={orderFilterDate}
+                        onChange={(e) => setOrderFilterDate(e.target.value)}
+                        className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-all [color-scheme:dark]"
+                      />
+                    </div>
+                    {orderFilterDate && (
+                      <button 
+                        onClick={() => setOrderFilterDate('')}
+                        className="self-end h-[38px] px-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl flex items-center justify-center hover:bg-red-500/20 transition-all"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
                 
                 {loadingOrders ? (
                   <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>
-                ) : orders.length === 0 ? (
-                  <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
-                    <Package size={48} className="mx-auto text-zinc-600 mb-4" />
-                    <h3 className="text-lg font-bold text-white">No tienes pedidos</h3>
-                    <p className="text-zinc-500 text-sm mt-2">Tus futuras compras aparecerán aquí.</p>
-                    <button onClick={() => navigate('/ecommerce/live')} className="mt-6 px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all">Explorar Marketplace</button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map(order => (
+                ) : (() => {
+                  const filteredOrders = orders.filter(o => {
+                    let matchesStatus = true;
+                    if (orderFilterStatus === 'Activos') matchesStatus = o.status !== 'Completado' && o.status !== 'Cancelado';
+                    else if (orderFilterStatus !== 'Todos') matchesStatus = o.status === orderFilterStatus;
+                    
+                    let matchesDate = true;
+                    if (orderFilterDate) {
+                      const [year, month, day] = orderFilterDate.split('-');
+                      const m = parseInt(month, 10).toString();
+                      const d = parseInt(day, 10).toString();
+                      const matchesF1 = o.date?.includes(`${d}/${m}/${year}`);
+                      const matchesF2 = o.date?.includes(`${m}/${d}/${year}`);
+                      const matchesF3 = o.date?.includes(`${year}-${month}-${day}`);
+                      const matchesF4 = o.date?.includes(`${day}/${month}/${year}`);
+                      matchesDate = matchesF1 || matchesF2 || matchesF3 || matchesF4;
+                    }
+                    return matchesStatus && matchesDate;
+                  });
+
+                  if (filteredOrders.length === 0) {
+                    return (
+                      <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
+                        <Package size={48} className="mx-auto text-zinc-600 mb-4" />
+                        <h3 className="text-lg font-bold text-white">{orders.length > 0 ? "No hay pedidos con estos filtros" : "No tienes pedidos"}</h3>
+                        <p className="text-zinc-500 text-sm mt-2">{orders.length > 0 ? "Prueba cambiando el estado o la fecha." : "Tus futuras compras aparecerán aquí."}</p>
+                        {orders.length === 0 && <button onClick={() => navigate('/ecommerce/live')} className="mt-6 px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {filteredOrders.map(order => (
                       <div key={order.id} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-4">
@@ -526,6 +835,31 @@ export default function CustomerProfile() {
                               </div>
                             ))}
                           </div>
+
+                          {order.paymentStatus === 'review' && (
+                            <div className="mt-6 border border-orange-500/30 bg-orange-500/10 rounded-xl p-4 flex gap-4 items-start">
+                              <AlertCircle size={24} className="text-orange-500 shrink-0" />
+                              <div>
+                                <h4 className="font-bold text-orange-400 mb-1">Pago En Revisión por Tercero</h4>
+                                <p className="text-sm text-orange-500/80 mb-3">El comercio ha detectado que el pago proviene de una cuenta no autorizada en tu perfil. Su orden está congelada.</p>
+                                <div className="text-xs text-orange-300 font-medium p-3 bg-orange-950/50 rounded-lg">
+                                  <strong>ACCIÓN REQUERIDA:</strong> Tienes 24 horas para comunicarte directamente con el comercio y proveer <strong>pruebas verificables</strong> (Cédula del titular, parentesco) de que el pago es legítimo. De lo contrario, los fondos no serán devueltos y se denunciará fraude.
+                                </div>
+                                <button onClick={() => openChat(order)} className="mt-4 bg-orange-500 hover:bg-orange-600 text-black px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+                                  <MessageSquare size={16} /> Contactar Soporte / Enviar Pruebas
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {order.paymentStatus === 'fraud' && (
+                            <div className="mt-6 border border-red-500/30 bg-red-500/10 rounded-xl p-4 flex gap-4 items-start">
+                              <AlertCircle size={24} className="text-red-500 shrink-0" />
+                              <div>
+                                <h4 className="font-bold text-red-400 mb-1">Orden Cancelada - Fraude Reportado</h4>
+                                <p className="text-sm text-red-500/80 mb-3">No se pudo verificar la procedencia del pago. Se ha emitido un reporte de fraude a la plataforma y no hay derecho a reembolso.</p>
+                              </div>
+                            </div>
+                          )}
                           
                           {/* Seguridad: PIN del Delivery */}
                           <div className="mt-6 border-t border-white/5 pt-4">
@@ -559,6 +893,20 @@ export default function CustomerProfile() {
                             <button className="w-full py-2.5 bg-zinc-800 border border-transparent text-white rounded-xl text-sm font-bold hover:border-amber-500/50 hover:text-amber-500 transition-colors flex items-center justify-center gap-2">
                               Ver Tienda <ChevronRight size={16} />
                             </button>
+                            {order.status === 'Enviado' && (
+                              order.customer_confirmed ? (
+                                <div className="w-full py-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-500/30 flex items-center justify-center gap-2 text-center px-2">
+                                  <Clock size={16} /> Esperando al repartidor
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => confirmOrderReceived(order.id)}
+                                  className="w-full py-2.5 bg-emerald-500 text-black rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:bg-emerald-400 transition-all flex items-center justify-center gap-2"
+                                >
+                                  <CheckCircle size={16} /> Confirmar Recibido
+                                </button>
+                              )
+                            )}
                             {(order.status === 'Completado' || order.status === 'Entregado') && (
                               <button 
                                 onClick={() => setRatingModal({ isOpen: true, orderId: order.id, rating: 0, comment: '' })}
@@ -572,7 +920,8 @@ export default function CustomerProfile() {
                       </div>
                     ))}
                   </div>
-                )}
+                );
+                })()}
               </motion.div>
             )}
 
@@ -704,6 +1053,82 @@ export default function CustomerProfile() {
         </div>
       </div>
       
+      {/* Modal de Chat de Resolución */}
+      {isChatOpen && activeChatOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsChatOpen(false)} />
+          <div className="bg-zinc-950 rounded-3xl w-full max-w-md shadow-2xl relative z-10 flex flex-col h-[80vh] overflow-hidden border border-white/10">
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-zinc-900/50">
+              <div>
+                <h3 className="font-bold text-white flex items-center gap-2"><MessageSquare size={18} className="text-amber-500" /> Resolución de Disputa</h3>
+                <p className="text-xs font-mono text-zinc-500 mt-1">Orden: {activeChatOrder.id}</p>
+              </div>
+              <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/40">
+              {chatMessages.length === 0 ? (
+                <div className="text-center text-zinc-500 text-sm py-10 italic">Cargando chat... o aún no hay mensajes.</div>
+              ) : (
+                chatMessages.map(msg => (
+                  <div key={msg.id} className={`flex flex-col max-w-[85%] ${msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
+                    <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.sender === 'customer' ? 'bg-amber-500 text-black rounded-tr-none font-medium' : 'bg-zinc-800 text-zinc-200 border border-white/5 rounded-tl-none'}`}>
+                      {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
+                      {msg.imageUrl && (
+                        <img src={msg.imageUrl} alt="Evidencia" className="mt-2 rounded-xl max-w-full h-auto max-h-64 object-cover cursor-pointer border border-black/20" onClick={() => window.open(msg.imageUrl, '_blank')} />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 mx-1">
+                      <span className="text-[10px] text-zinc-500">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      {msg.sender === 'customer' && (
+                        <CheckCheck size={12} className={msg.read ? 'text-blue-500' : 'text-zinc-500'} />
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+              {isTyping && (
+                <div className="mr-auto flex items-center gap-2 p-3 bg-zinc-800 text-zinc-400 rounded-2xl rounded-tl-none text-sm w-fit">
+                  <div className="flex gap-1">
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-zinc-900 border-t border-white/10">
+              {chatImage && (
+                 <div className="relative inline-block mb-3">
+                   <img src={chatImage} alt="Preview" className="h-16 rounded-lg border border-white/20" />
+                   <button onClick={() => setChatImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={12}/></button>
+                 </div>
+              )}
+              <form onSubmit={sendChatMessage} className="flex gap-2 items-end">
+                <label className="p-3 bg-zinc-800 text-zinc-400 hover:text-amber-500 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-amber-500/30">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleChatImageUpload} />
+                  <ImageIcon size={20} />
+                </label>
+                <textarea 
+                  value={chatInput} 
+                  onChange={handleTyping} 
+                  placeholder="Escribe al comercio..." 
+                  className="flex-1 max-h-32 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 resize-none text-white"
+                  rows="1"
+                  onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
+                />
+                <button type="submit" disabled={isSendingChat || (!chatInput.trim() && !chatImage) || activeChatOrder?.paymentStatus === 'approved' || activeChatOrder?.paymentStatus === 'fraud'} className="p-3 bg-amber-500 text-black rounded-xl hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-amber-500/20">
+                  {isSendingChat ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* RATING MODAL */}
       {ratingModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xl">

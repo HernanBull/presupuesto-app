@@ -184,8 +184,18 @@ export default function ProductsManager() {
                       </span>
                     </div>
 
-                    {/* Quick Actions Hover overlay */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    {/* Botones rápidos: hover en desktop, siempre visibles en móvil */}
+                    <div className="absolute bottom-2 right-2 flex gap-1.5 sm:hidden">
+                      <button onClick={(e) => { e.stopPropagation(); openEditor(product); }} className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
+                        <Edit2 size={14} />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-8 h-8 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-md">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+
+                    {/* Quick Actions Hover overlay — solo desktop */}
+                    <div className="hidden sm:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center gap-3">
                        <button onClick={(e) => { e.stopPropagation(); openEditor(product); }} className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                          <Edit2 size={18} />
                        </button>

@@ -1,12 +1,15 @@
 import express from 'express';
+import nodemailer from 'nodemailer';
 import cors from 'cors';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db from './db.js';
+import { startTelegramEngine, sendMessageToChat } from './telegramBot.js';
 import { OAuth2Client } from 'google-auth-library';
-
+import http from 'http';
+import { Server } from 'socket.io';
 const GOOGLE_CLIENT_ID = process.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
@@ -14,7 +17,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+io.on('connection', (socket) => {
+  socket.on('join_chat', (orderId) => {
+    socket.join(`chat_${orderId}`);
+  });
+  socket.on('join_workspace', (workspaceId) => {
+    socket.join(`workspace_${workspaceId}`);
+  });
+  socket.on('typing', ({ orderId, sender }) => {
+    socket.to(`chat_${orderId}`).emit('typing', { sender });
+  });
+});
+
+app.set('io', io);
 const PORT = 3001;
+
+startTelegramEngine(db, io);
 
 // Asegurar que exista la carpeta uploads
 const uploadDir = path.join(__dirname, 'uploads');
@@ -60,6 +86,89 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- BCV API ENDPOINT ---
+app.get('/api/bcv', async (req, res) => {
+  try {
+    // Intentamos hacer scraping simple a la página del BCV
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    const response = await fetch('https://www.bcv.org.ve/', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+      }
+    });
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+    
+    if (!response.ok) {
+      throw new Error('Error de conexión con el BCV');
+    }
+    
+    const html = await response.text();
+    // Expresión regular para buscar el div con id "dolar" y extraer el texto del strong (que puede tener clases)
+    const match = html.match(/<div id="dolar"[\s\S]*?<strong.*?>(.*?)<\/strong>/);
+    
+    if (match && match[1]) {
+      // El valor viene con comas, por ejemplo "853,49930000"
+      let rateStr = match[1].trim().replace(',', '.');
+      let rate = parseFloat(rateStr);
+      
+      if (!isNaN(rate)) {
+        return res.json({ rate });
+      }
+    }
+    
+    throw new Error('No se pudo extraer la tasa del HTML');
+  } catch (error) {
+    console.error('Error al obtener BCV:', error.message);
+    // Si falla, retornamos un valor de fallback o error
+    res.status(500).json({ error: error.message, fallbackRate: 36.50 });
+  }
+});
+
+// --- DELIVERY TELEGRAM ENDPOINTS ---
+app.post('/api/delivery/telegram/send', async (req, res) => {
+  const { commerceId, customerData, customOrderId } = req.body;
+  
+  const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+  const chatId = setting ? setting.value : null;
+
+  if (!chatId) return res.status(400).json({ success: false, error: "No hay un Grupo de Repartidores configurado globalmente." });
+  
+  const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+  
+  let deliveryPin = customerData.deliveryPin;
+  if (!deliveryPin) {
+    deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+    try {
+      db.prepare('UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?').run(deliveryPin, orderId);
+    } catch(e) { console.error("Error updating emergency pin in db", e); }
+  }
+
+  const gpsLink = customerData.location ? `\n📍 <b>GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
+  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n🏪 <b>Comercio:</b> ${commerceId}\n\n📍 <b>ZONA DE ENTREGA</b>\n<code>${customerData.zone}</code>${gpsLink}\n\n📦 <b>DETALLES DEL PAQUETE</b>\n<b>Tipo:</b> ${customerData.packageType}\n<b>Productos:</b> \n<code>${customerData.productList}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}\n${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}\n\n<i>(El teléfono y dirección exacta se enviarán por privado al aceptar el viaje por seguridad)</i>`;
+
+  const TELEGRAM_BOT_USERNAME = process.env.VITE_TELEGRAM_BOT_USERNAME || 'DeliveryAxonbot';
+  const replyMarkup = {
+    inline_keyboard: [
+      [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }],
+      [{ text: "🗺️ Ver Mapa de la Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone)}` }]
+    ]
+  };
+
+  try {
+    const telegramRes = await sendMessageToChat(chatId, message, replyMarkup);
+    if (!telegramRes.ok) throw new Error("Error al enviar a Telegram");
+    
+    // Save to pending
+    db.prepare('INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)').run(
+      orderId, JSON.stringify(customerData), deliveryPin
+    );
+
+    res.json({ success: true, orderId, deliveryPin }); 
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -352,6 +461,36 @@ app.delete('/api/workspaces/:id', (req, res) => {
   }
 });
 
+app.post('/api/workspaces/change-password', (req, res) => {
+  const { workspaceId, currentPassword, newPassword } = req.body;
+  try {
+    const ws = db.prepare('SELECT id, config FROM workspaces WHERE id = ?').get(workspaceId);
+    if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
+
+    let cfg = {};
+    try {
+      cfg = JSON.parse(ws.config || '{}');
+    } catch(e) {}
+
+    // Validar contraseña actual (si ya había una configurada)
+    if (cfg.adminPassword && cfg.adminPassword !== currentPassword) {
+      return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+    }
+
+    // Actualizar con la nueva
+    cfg.adminPassword = newPassword;
+
+    db.prepare('UPDATE workspaces SET config = ? WHERE id = ?').run(
+      JSON.stringify(cfg),
+      workspaceId
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/workspaces/merchant/login', (req, res) => {
   const { email, password } = req.body;
   try {
@@ -576,15 +715,16 @@ app.get('/api/ecommerce/orders', (req, res) => {
   try {
     let orders;
     if (workspaceId) {
-      orders = db.prepare('SELECT * FROM ecommerce_orders_v2 WHERE workspace_id = ? ORDER BY date DESC').all(workspaceId);
+      orders = db.prepare('SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email WHERE o.workspace_id = ? ORDER BY o.date DESC').all(workspaceId);
     } else {
-      orders = db.prepare('SELECT * FROM ecommerce_orders_v2 ORDER BY date DESC').all();
+      orders = db.prepare('SELECT o.*, c.phone as customer_phone FROM ecommerce_orders_v2 o LEFT JOIN ecommerce_customers c ON o.customer_email = c.email ORDER BY o.date DESC').all();
     }
     const formatted = orders.map(o => ({
       ...o,
       deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
-      items: o.items ? JSON.parse(o.items) : []
+      items: o.items ? JSON.parse(o.items) : [],
+      shipping_info: o.shipping_info ? JSON.parse(o.shipping_info) : null
     }));
     res.json(formatted);
   } catch (err) {
@@ -600,7 +740,8 @@ app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
       ...o,
       deliveryPin: o.delivery_pin,
       paymentDetails: o.paymentDetails ? JSON.parse(o.paymentDetails) : null,
-      items: o.items ? JSON.parse(o.items) : []
+      items: o.items ? JSON.parse(o.items) : [],
+      shipping_info: o.shipping_info ? JSON.parse(o.shipping_info) : null
     }));
     res.json(formatted);
   } catch (err) {
@@ -609,7 +750,7 @@ app.get('/api/ecommerce/customer-orders/:email', (req, res) => {
 });
 
 app.post('/api/ecommerce/orders', (req, res) => {
-  const { customer, customerEmail, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, bookingDate, bookingTime, tableNumber, orderType, workspace_id, discount_code } = req.body;
+  const { customer, customerEmail, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, bookingDate, bookingTime, tableNumber, orderType, workspace_id, discount_code, shippingInfo } = req.body;
   try {
     const wsId = workspace_id || 'default_workspace';
 
@@ -644,8 +785,8 @@ app.post('/api/ecommerce/orders', (req, res) => {
 
     const id = 'ORD-' + Math.floor(1000 + Math.random() * 9000); // Generar ID ej: ORD-1234
     const insert = db.prepare(`
-      INSERT INTO ecommerce_orders_v2 (id, customer, customer_email, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, booking_date, booking_time, table_number, order_type, workspace_id, discount_code)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO ecommerce_orders_v2 (id, customer, customer_email, date, total, status, priority, address, paymentMethod, paymentStatus, paymentDetails, items, isMobile, booking_date, booking_time, table_number, order_type, workspace_id, discount_code, shipping_info)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insert.run(
       id,
@@ -666,7 +807,8 @@ app.post('/api/ecommerce/orders', (req, res) => {
       tableNumber || null,
       orderType || 'delivery',
       wsId,
-      discount_code || null
+      discount_code || null,
+      shippingInfo ? JSON.stringify(shippingInfo) : null
     );
 
     db.prepare('UPDATE ecommerce_orders_v2 SET stock_deducted = 1 WHERE id = ?').run(id);
@@ -689,7 +831,7 @@ app.post('/api/ecommerce/orders', (req, res) => {
 
 app.put('/api/ecommerce/orders/:id', (req, res) => {
   const { id } = req.params;
-  const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType, deliveryPin } = req.body;
+  const { status, paymentStatus, bookingDate, bookingTime, tableNumber, orderType, deliveryPin, customer_confirmed } = req.body;
   try {
     if (status) {
       if (status === 'Cancelado' || status === 'Rechazado') {
@@ -718,6 +860,21 @@ app.put('/api/ecommerce/orders/:id', (req, res) => {
     if (tableNumber !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET table_number = ? WHERE id = ?').run(tableNumber, id);
     if (orderType !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET order_type = ? WHERE id = ?').run(orderType, id);
     if (deliveryPin !== undefined) db.prepare('UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?').run(deliveryPin, id);
+    if (customer_confirmed !== undefined) {
+      db.prepare('UPDATE ecommerce_orders_v2 SET customer_confirmed = ? WHERE id = ?').run(customer_confirmed, id);
+      const order = db.prepare('SELECT driver_confirmed FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+      if (order && order.driver_confirmed === 1 && customer_confirmed === 1) {
+        db.prepare("UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?").run(id);
+        const io = req.app.get('io');
+        if (io) io.emit('delivery_completed', { orderId: id });
+        
+        const activeTrip = db.prepare('SELECT driver_id FROM delivery_active_trips WHERE order_id = ?').get(id);
+        if (activeTrip && activeTrip.driver_id) {
+          sendMessageToChat(activeTrip.driver_id, `✅ <b>¡Listo!</b> El cliente también ha confirmado de recibido. Pedido <b>#${id}</b> finalizado con éxito. ¡Buen trabajo!`);
+          db.prepare('DELETE FROM delivery_active_trips WHERE order_id = ?').run(id);
+        }
+      }
+    }
     
     res.json({ success: true });
   } catch (err) {
@@ -845,9 +1002,9 @@ app.put('/api/ecommerce/customers/:id', (req, res) => {
       docId || '', 
       phone || '', 
       address || '', 
-      favorites ? JSON.stringify(favorites) : '[]', 
-      wishlist ? JSON.stringify(wishlist) : '[]',
-      addresses ? JSON.stringify(addresses) : '[]',
+      typeof favorites === 'string' ? favorites : (favorites ? JSON.stringify(favorites) : '[]'),
+      typeof wishlist === 'string' ? wishlist : (wishlist ? JSON.stringify(wishlist) : '[]'),
+      typeof addresses === 'string' ? addresses : (addresses ? JSON.stringify(addresses) : '[]'),
       id
     );
     res.json({ success: true });
@@ -1124,6 +1281,49 @@ app.get('/api/ecommerce/analytics/top-products', (req, res) => {
   }
 });
 
+// Financieros avanzados
+app.get('/api/ecommerce/analytics/financials', (req, res) => {
+  try {
+    const range = req.query.range || '30d';
+    const workspaceId = req.query.workspaceId || 'default_workspace';
+    const dates = getDateFilter(range);
+
+    const orders = db.prepare(`
+      SELECT customer_email, total, items, date
+      FROM ecommerce_orders_v2 
+      WHERE date >= ? AND workspace_id = ? AND status != 'Cancelado'
+    `).all(dates.currentStart, workspaceId);
+
+    const products = db.prepare(`SELECT id, cogs FROM ecommerce_products WHERE workspace_id = ?`).all(workspaceId);
+    const cogsMap = {};
+    products.forEach(p => cogsMap[p.id] = p.cogs || 0);
+
+    let totalRevenue = 0;
+    let totalCogs = 0;
+    const uniqueCustomers = new Set();
+    
+    orders.forEach(o => {
+      totalRevenue += o.total;
+      if (o.customer_email) uniqueCustomers.add(o.customer_email);
+      let items = [];
+      try { items = JSON.parse(o.items || '[]'); } catch(e){}
+      items.forEach(item => {
+        const itemCogs = cogsMap[item.id] || 0;
+        totalCogs += itemCogs * (item.quantity || 1);
+      });
+    });
+
+    res.json({
+      revenue: totalRevenue,
+      cogs: totalCogs,
+      ordersCount: orders.length,
+      customersCount: uniqueCustomers.size
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Ventas por fecha (Calendario)
 app.get('/api/ecommerce/analytics/sales-by-date', (req, res) => {
   try {
@@ -1153,6 +1353,29 @@ app.post('/api/ecommerce/track', (req, res) => {
     const created_at = new Date().toISOString();
     db.prepare('INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(id, workspaceId, eventType, source || 'Directo', created_at);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- RUTAS DE E-COMMERCE TRACKING ---
+app.post('/api/ecommerce/track', (req, res) => {
+  try {
+    const { workspaceId, eventType, source } = req.body;
+    if (!workspaceId || !eventType) return res.status(400).json({ error: 'Faltan datos' });
+
+    db.prepare(`
+      INSERT INTO ecommerce_tracking (id, workspace_id, event_type, source, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(
+      Date.now().toString() + Math.floor(Math.random()*1000),
+      workspaceId,
+      eventType,
+      source || 'Directo',
+      new Date().toISOString()
+    );
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1466,6 +1689,56 @@ app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, (req, res) =>
   }
 });
 
+// --- SUPERADMIN DELIVERY SETTINGS ---
+app.get('/api/superadmin/settings', requireSuperAdmin, (req, res) => {
+  try {
+    const setting = db.prepare("SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'").get();
+    res.json({ delivery_master_group_id: setting ? setting.value : '' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/superadmin/settings', requireSuperAdmin, (req, res) => {
+  const { delivery_master_group_id } = req.body;
+  try {
+    db.prepare("INSERT INTO platform_settings (key, value) VALUES ('delivery_master_group_id', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(delivery_master_group_id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/superadmin/drivers', requireSuperAdmin, (req, res) => {
+  try {
+    const drivers = db.prepare("SELECT * FROM delivery_drivers").all();
+    res.json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/superadmin/drivers/:id/status', requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  const { isBanned } = req.body;
+  try {
+    db.prepare("UPDATE delivery_drivers SET banned = ? WHERE id = ?").run(isBanned ? 1 : 0, id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/superadmin/drivers/:id', requireSuperAdmin, (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare("DELETE FROM delivery_drivers WHERE id = ?").run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/superadmin/monitor', requireSuperAdmin, (req, res) => {
   try {
     const recentOrders = db.prepare(`
@@ -1617,7 +1890,180 @@ app.put('/api/ecommerce/notifications/:id/read', (req, res) => {
   }
 });
 
+
+// --- CHAT ENDPOINTS (WEBSOCKET INTEGRATED) ---
+
+app.get('/api/ecommerce/orders/:id/chat', (req, res) => {
+  const { id } = req.params;
+  try {
+    const order = db.prepare('SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
+    let history = [];
+    try {
+      history = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []);
+    } catch(e) {}
+    
+    res.json(history);
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/ecommerce/orders/:id/chat', (req, res) => {
+  const { id } = req.params;
+  const { sender, text, imageUrl, id: reqId } = req.body;
+  
+  if (!sender || (!text && !imageUrl)) {
+    return res.status(400).json({ error: 'Sender and text/imageUrl are required' });
+  }
+
+  try {
+    const order = db.prepare('SELECT chat_history, workspace_id FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
+    let chatHistory = [];
+    try {
+      chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []);
+    } catch(e) {}
+    
+    const newMessage = {
+      id: reqId || Date.now().toString(),
+      sender,
+      text: text || '',
+      imageUrl: imageUrl || null,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+    
+    chatHistory.push(newMessage);
+    
+    db.prepare('UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?').run(JSON.stringify(chatHistory), id);
+    
+    // Emitir mensaje por WebSockets
+    const io = req.app.get('io');
+    io.to(`chat_${id}`).emit('new_message', newMessage);
+    if (order.workspace_id) {
+      io.to(`workspace_${order.workspace_id}`).emit('order_updated');
+    }
+    
+    res.status(201).json({ success: true, message: newMessage });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/ecommerce/orders/:id/chat/read', (req, res) => {
+  const { id } = req.params;
+  const { reader } = req.body;
+  try {
+    const order = db.prepare('SELECT chat_history FROM ecommerce_orders_v2 WHERE id = ?').get(id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    let chatHistory = [];
+    try { chatHistory = typeof order.chat_history === 'string' ? JSON.parse(order.chat_history || '[]') : (order.chat_history || []); } catch(e){}
+    
+    let updated = false;
+    chatHistory.forEach(msg => {
+      if (msg.sender !== reader && !msg.read) {
+        msg.read = true;
+        updated = true;
+      }
+    });
+
+    if (updated) {
+      db.prepare('UPDATE ecommerce_orders_v2 SET chat_history = ? WHERE id = ?').run(JSON.stringify(chatHistory), id);
+      const io = req.app.get('io');
+      io.to(`chat_${id}`).emit('messages_read', { reader });
+    }
+    res.json({ success: true });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Configuración de Nodemailer
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  port: process.env.SMTP_PORT || 587,
+  auth: {
+    user: process.env.SMTP_EMAIL, // ej: mi-correo@gmail.com
+    pass: process.env.SMTP_PASSWORD // ej: password de aplicación
+  }
+});
+
+// --- SEGURIDAD Y ACCESO (PIN) ENDPOINTS ---
+
+app.post('/api/workspaces/recover-pin', async (req, res) => {
+  const { workspaceId } = req.body;
+  try {
+    const ws = db.prepare('SELECT config, name FROM workspaces WHERE id = ?').get(workspaceId);
+    if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
+    
+    let config = {};
+    try { config = JSON.parse(ws.config || '{}'); } catch(e){}
+    
+    if (!config.adminEmail) {
+      return res.status(400).json({ error: 'La tienda no tiene un correo de administrador configurado' });
+    }
+    if (!config.adminPin) {
+      return res.status(400).json({ error: 'No hay un PIN configurado en esta tienda' });
+    }
+
+    const mailOptions = {
+      from: process.env.SMTP_EMAIL || '"Soporte Tienda" <no-reply@mitienda.com>',
+      to: config.adminEmail,
+      subject: `Recuperación de PIN Administrativo - ${ws.name}`,
+      text: `Hola,\n\nHas solicitado recuperar el PIN administrativo de tu tienda "${ws.name}".\n\nTu PIN actual es: ${config.adminPin}\n\nSi no fuiste tú quien lo solicitó, por favor cambia el PIN inmediatamente y asegúrate de que tu cuenta esté segura.\n\nSaludos,\nEl equipo de Soporte.`
+    };
+
+    if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+      await transporter.sendMail(mailOptions);
+    } else {
+      console.log('Simulando envío de correo (Faltan variables SMTP_EMAIL y SMTP_PASSWORD en .env):');
+      console.log(mailOptions);
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error enviando correo de recuperación:', err);
+    res.status(500).json({ error: 'Error interno del servidor al enviar el correo' });
+  }
+});
+
+app.post('/api/workspaces/notify-pin-login', async (req, res) => {
+  const { workspaceId } = req.body;
+  try {
+    const ws = db.prepare('SELECT config, name FROM workspaces WHERE id = ?').get(workspaceId);
+    if (!ws) return res.status(404).json({ error: 'Tienda no encontrada' });
+    
+    let config = {};
+    try { config = JSON.parse(ws.config || '{}'); } catch(e){}
+    
+    if (config.adminEmail) {
+      const mailOptions = {
+        from: process.env.SMTP_EMAIL || '"Alerta de Seguridad" <no-reply@mitienda.com>',
+        to: config.adminEmail,
+        subject: `Alerta de Acceso: Perfil de Tienda - ${ws.name}`,
+        text: `Hola,\n\nQueríamos informarte que recientemente alguien ha accedido exitosamente a la sección protegida por PIN de tu tienda "${ws.name}".\n\nFecha y hora: ${new Date().toLocaleString()}\n\nSi fuiste tú o tu personal autorizado, puedes ignorar este mensaje. Si no reconoces esta actividad, te recomendamos cambiar tu PIN inmediatamente.\n\nSaludos,\nEl equipo de Seguridad.`
+      };
+
+      if (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD) {
+        // Enviar en background sin esperar a que termine para no bloquear
+        transporter.sendMail(mailOptions).catch(err => console.error('Error enviando alerta:', err));
+      } else {
+        console.log('Simulando alerta de login (Faltan variables SMTP):');
+        console.log(mailOptions);
+      }
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error notificando login:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // Inicializar el servidor
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });

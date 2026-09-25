@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -40,6 +40,7 @@ export default function PublicStore() {
   const [bcvRate, setBcvRate] = useState(36.50);
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const [checkoutAddress, setCheckoutAddress] = useState('');
@@ -102,16 +103,16 @@ export default function PublicStore() {
     if (savedCustomer) setCurrentCustomer(JSON.parse(savedCustomer));
   }, []);
 
-  const isStoreClosed = () => {
-    if (!config?.scheduleProfile?.scheduleActive) return false;
-    const { workDays, openTime, closeTime } = config.scheduleProfile;
-    if (!workDays || !openTime || !closeTime) return false;
+  const getStoreScheduleStatus = () => {
+    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Abierto 24/7' };
+    const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
+    if (!workDays || !openTime || !closeTime) return { status: 'open', message: 'Abierto' };
     
     const currentDayIdx = new Date().getDay();
     const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
     const currentDayName = daysMap[currentDayIdx];
     
-    if (!workDays[currentDayName]) return true;
+    if (!workDays[currentDayName]) return { status: 'closed', message: `Cerrado (Hoy ${currentDayName} no laborable)` };
     
     const now = new Date();
     const currentHour = now.getHours();
@@ -124,16 +125,28 @@ export default function PublicStore() {
     const openMins = openH * 60 + openM;
     const closeMins = closeH * 60 + closeM;
     
+    let isClosed = false;
+    let minsToClose = 0;
+
     if (closeMins < openMins) {
-      if (currentMins < openMins && currentMins > closeMins) return true;
+      if (currentMins < openMins && currentMins >= closeMins) isClosed = true;
+      else {
+        minsToClose = (currentMins >= openMins) ? ((1440 - currentMins) + closeMins) : (closeMins - currentMins);
+      }
     } else {
-      if (currentMins < openMins || currentMins > closeMins) return true;
+      if (currentMins < openMins || currentMins >= closeMins) isClosed = true;
+      else {
+        minsToClose = closeMins - currentMins;
+      }
     }
     
-    return false;
+    if (isClosed) return { status: 'closed', message: `Cerrado (Abre a las ${openTime})` };
+    if (minsToClose <= closeWarningMinutes) return { status: 'closing', message: `Cierra en ${minsToClose} min` };
+    return { status: 'open', message: `Abierto (Cierra a las ${closeTime})` };
   };
 
-  const storeClosed = isStoreClosed();
+  const storeSchedule = getStoreScheduleStatus();
+  const storeClosed = storeSchedule.status === 'closed' || storeSchedule.status === 'closing';
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -265,8 +278,8 @@ export default function PublicStore() {
         setAppliedDiscount(null);
         setDiscountCode('');
         
-        // Redirigir a la página de espera (perfil del cliente) para que vea el proceso y el PIN
-        navigate('/ecommerce/live/profile');
+        // Mostrar modal de éxito en lugar de redireccionar
+        setShowSuccessModal(true);
       } else {
         alert("Hubo un error al procesar el pedido.");
       }
@@ -449,8 +462,7 @@ export default function PublicStore() {
   const isWishlisted = (productId) => {
     if (!currentCustomer) return false;
     try {
-      const raw = currentCustomer.wishlist;
-      const wishlist = Array.isArray(raw) ? raw : JSON.parse(raw || '[]');
+      const wishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []);
       return Array.isArray(wishlist) && wishlist.some(p => p.productId === productId);
     } catch {
       return false;
@@ -461,9 +473,7 @@ export default function PublicStore() {
     e.stopPropagation();
     if (!currentCustomer) return;
     
-    let wishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (
-      typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []
-    );
+    let wishlist = Array.isArray(currentCustomer.wishlist) ? currentCustomer.wishlist : (typeof currentCustomer.wishlist === 'string' ? JSON.parse(currentCustomer.wishlist || '[]') : []);
     
     if (wishlist.some(item => item.productId === p.id)) {
       wishlist = wishlist.filter(item => item.productId !== p.id);
@@ -1131,11 +1141,21 @@ export default function PublicStore() {
             
             {/* Store Status Indicator */}
             {config?.scheduleProfile?.scheduleActive && (
-              <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border ${storeClosed ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-                <div className={`w-2 h-2 rounded-full ${storeClosed ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></div>
+              <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                storeSchedule.status === 'open' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
+                storeSchedule.status === 'closing' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                'bg-red-500/10 border-red-500/20 text-red-400'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  storeSchedule.status === 'open' ? 'bg-emerald-500 animate-pulse' : 
+                  storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' :
+                  'bg-red-500'
+                }`}></div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold leading-none uppercase tracking-wider">{storeClosed ? 'Cerrado' : 'Abierto'}</span>
-                  <span className="text-[8px] opacity-70 leading-none mt-0.5">{config.scheduleProfile.openTime} - {config.scheduleProfile.closeTime}</span>
+                  <span className="text-[10px] font-bold leading-none uppercase tracking-wider">
+                    {storeSchedule.status === 'open' ? 'Abierto' : storeSchedule.status === 'closing' ? 'Próximo a Cerrar' : 'Cerrado'}
+                  </span>
+                  <span className="text-[8px] opacity-70 leading-none mt-0.5">{storeSchedule.message}</span>
                 </div>
               </div>
             )}
@@ -1346,7 +1366,7 @@ export default function PublicStore() {
                                    style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
                                  >
                                    {storeClosed ? <X size={14} /> : <ShoppingBag size={14} />}
-                                   {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
+                                   {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
                                  </button>
                                )}
                              </div>
@@ -1498,7 +1518,7 @@ export default function PublicStore() {
                             style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
                           >
                             {storeClosed ? <X size={16} /> : <ShoppingBag size={16} />}
-                            {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
+                            {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
                           </button>
                         )}
                       </div>
@@ -1643,7 +1663,7 @@ export default function PublicStore() {
                                 style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
                               >
                                 {storeClosed ? <X size={14} /> : <ShoppingBag size={14} />}
-                                {storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
+                                {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Cerrado' : 'Añadir al Carrito'}
                               </button>
                             )}
                           </div>
@@ -1817,7 +1837,7 @@ export default function PublicStore() {
                          style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
                        >
                          {storeClosed ? <X size={18} /> : <ShoppingBag size={18} />} 
-                         {storeClosed ? 'Tienda Cerrada' : 'Agregar al Carrito'}
+                         {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Tienda Cerrada' : 'Agregar al Carrito'}
                        </button>
                      </>
                    ) : (
@@ -2166,8 +2186,8 @@ export default function PublicStore() {
                   </div>
                   
                   {storeClosed ? (
-                    <div className="w-full py-5 bg-red-500/20 text-red-400 rounded-xl text-center text-sm font-bold border border-red-500/30">
-                      Tienda Cerrada. Horario: {config.scheduleProfile.openTime} - {config.scheduleProfile.closeTime}
+                    <div className={`w-full py-5 rounded-xl text-center text-sm font-bold border ${storeSchedule.status === 'closing' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                      {storeSchedule.status === 'closing' ? `No se aceptan pedidos. ${storeSchedule.message}` : `Tienda Cerrada. Horario: ${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}`}
                     </div>
                   ) : isCheckoutMode ? (
                     <button 
@@ -2189,13 +2209,14 @@ export default function PublicStore() {
                            setIsWizardOpen(true);
                          } else {
                            setIsCheckoutMode(true);
+                           trackEvent('checkout_start');
                          }
                       }} 
                       className="w-full py-5 text-black rounded-full text-xs font-bold tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-2xl relative overflow-hidden group"
                       style={{ backgroundColor: primaryColor }}
                     >
                       <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
-                      <span className="relative z-10 flex items-center gap-2">Check Out <ArrowRight size={18} /></span>
+                      <span className="relative z-10 flex items-center gap-2">Finalizar Compra <ArrowRight size={18} /></span>
                     </button>
                   )}
                 </motion.div>
@@ -2221,10 +2242,88 @@ export default function PublicStore() {
           // Si el carrito estaba abierto y quería hacer checkout, lo habilitamos
           if (isCartOpen && totalCartItems > 0) {
             setIsCheckoutMode(true);
+            trackEvent('checkout_start');
           }
         }} 
       />
-    </div>
-    </GoogleOAuthProvider>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSuccessModal(false)}></div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 text-center border border-slate-200 dark:border-slate-800"
+            >
+              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle2 className="text-emerald-500" size={40} />
+              </div>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Pedido Exitoso!</h2>
+              <p className="text-slate-600 dark:text-slate-400 mb-8">Tu orden ha sido recibida y está siendo procesada.</p>
+              
+              <div className="space-y-3">
+                <button 
+                  onClick={() => navigate('/ecommerce/live/profile', { state: { tab: 'pedidos' } })}
+                  className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
+                >
+                  Ver estado de mi pedido <ArrowRight size={18} />
+                </button>
+                <button 
+                  onClick={() => setShowSuccessModal(false)}
+                  className="w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors"
+                >
+                  Seguir comprando
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/95 backdrop-blur-2xl border-t border-white/5 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="grid grid-cols-4 h-16">
+          <button
+            onClick={() => setCurrentPage('home')}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'home' ? 'text-amber-500' : 'text-zinc-500'}`}
+          >
+            <Store size={20} />
+            {texts?.nav1 || 'Inicio'}
+          </button>
+          <button
+            onClick={() => setCurrentPage('catalog')}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'catalog' ? 'text-amber-500' : 'text-zinc-500'}`}
+          >
+            <Package size={20} />
+            {texts?.nav2 || 'Catálogo'}
+          </button>
+          <button
+            onClick={() => setCurrentPage('offers')}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'offers' ? 'text-amber-500' : 'text-zinc-500'}`}
+          >
+            <Tag size={20} />
+            {texts?.nav3 || 'Ofertas'}
+          </button>
+          <button
+            onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? 'text-amber-500' : 'text-zinc-500'}`}
+          >
+            <div className="relative">
+              <ShoppingBag size={20} />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 bg-amber-500 text-black text-[9px] font-black flex items-center justify-center rounded-full">{totalCartItems}</span>
+              )}
+            </div>
+            Carrito
+          </button>
+        </div>
+      </nav>
+
+      {/* Spacer for mobile bottom nav */}
+      <div className="md:hidden h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
+  </div>
+  </GoogleOAuthProvider>
   );
 }

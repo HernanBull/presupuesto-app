@@ -29,6 +29,7 @@ export default function OrdersManager() {
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('Pendiente'); // Para vista móvil
 
   // Drag and Drop State
   const [draggedOrderId, setDraggedOrderId] = useState(null);
@@ -203,9 +204,22 @@ export default function OrdersManager() {
     }
   };
 
-  const verifyPayment = async (id, isApproved) => {
-    const newPaymentStatus = isApproved ? 'approved' : 'rejected';
-    const newStatus = isApproved ? 'Preparando' : undefined;
+  const verifyPayment = async (id, action) => {
+    let newPaymentStatus;
+    let newStatus = undefined;
+    
+    if (action === 'approve') {
+      newPaymentStatus = 'approved';
+      newStatus = 'Preparando';
+    } else if (action === 'reject') {
+      newPaymentStatus = 'rejected';
+    } else if (action === 'review') {
+      newPaymentStatus = 'review';
+    } else if (action === 'fraud') {
+      newPaymentStatus = 'fraud';
+      newStatus = 'Pendiente'; // stays here, but marked fraud
+    }
+
     const orderToMove = orders.find(o => o.id === id);
     if (!orderToMove) return;
 
@@ -213,7 +227,7 @@ export default function OrdersManager() {
     const previousPaymentStatus = orderToMove.paymentStatus;
 
     let newDeliveryPin = orderToMove.deliveryPin;
-    if (isApproved && !newDeliveryPin) {
+    if (action === 'approve' && !newDeliveryPin) {
       newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     }
 
@@ -294,10 +308,38 @@ export default function OrdersManager() {
           
           <button 
             onClick={() => setShowQrModal(true)}
-            className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-sm"
           >
             <QrCode size={16} /> App de Picking
           </button>
+        </div>
+      </div>
+
+      {/* TABS MÓVIL — selector de columna */}
+      <div className="md:hidden -mx-0 mb-4">
+        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
+          {columns.map(col => {
+            const count = filteredOrders.filter(o => o.status === col.id).length;
+            return (
+              <button
+                key={col.id}
+                onClick={() => setActiveTab(col.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap shrink-0 transition-all ${
+                  activeTab === col.id
+                    ? `${col.bg} ${col.color} border ${col.border} shadow-sm`
+                    : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <col.icon size={15} />
+                {col.title}
+                <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${
+                  activeTab === col.id ? 'bg-white/50 dark:bg-black/20' : 'bg-slate-100 dark:bg-slate-800'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -305,11 +347,15 @@ export default function OrdersManager() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
         {columns.map(col => {
           const colOrders = filteredOrders.filter(o => o.status === col.id);
+          // En móvil, solo mostrar la columna activa
+          const isHiddenOnMobile = col.id !== activeTab;
           
           return (
             <div 
               key={col.id} 
-              className={`bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border ${col.border} flex flex-col h-full min-h-[600px]`}
+              className={`bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border ${col.border} flex flex-col h-full min-h-[600px] ${
+                isHiddenOnMobile ? 'hidden md:flex' : 'flex'
+              }`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
             >
@@ -342,11 +388,16 @@ export default function OrdersManager() {
                     </p>
                     <p className="text-xs text-slate-500 mb-4">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
                     
-                    {order.paymentMethod === 'pago_movil' && order.paymentStatus === 'pending' && (
-                      <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl flex flex-col gap-2">
+                    {order.paymentMethod === 'pago_movil' && (order.paymentStatus === 'pending' || order.paymentStatus === 'review' || order.paymentStatus === 'fraud') && (
+                      <div className={`mb-3 p-3 border rounded-xl flex flex-col gap-2 ${order.paymentStatus === 'review' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50' : order.paymentStatus === 'fraud' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700'}`}>
                         <div className="flex items-center gap-1.5 mb-1">
-                          <AlertCircle size={14} className="text-amber-600 dark:text-amber-400" />
-                          <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Pago por verificar</span>
+                          {order.paymentStatus === 'review' ? (
+                            <><AlertCircle size={14} className="text-orange-600 dark:text-orange-400" /><span className="text-xs font-bold text-orange-700 dark:text-orange-400">En Revisión (Tercero)</span></>
+                          ) : order.paymentStatus === 'fraud' ? (
+                            <><AlertCircle size={14} className="text-red-600 dark:text-red-400" /><span className="text-xs font-bold text-red-700 dark:text-red-400">Fraude Denunciado</span></>
+                          ) : (
+                            <><Clock size={14} className="text-amber-600 dark:text-amber-400" /><span className="text-xs font-bold text-amber-700 dark:text-amber-400">Pago por verificar</span></>
+                          )}
                         </div>
                         
                         <div className="flex justify-between items-start gap-2">
@@ -368,14 +419,26 @@ export default function OrdersManager() {
                           )}
                         </div>
 
-                        <div className="flex gap-1.5 mt-2">
-                           <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, true); }} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors">
-                             <Check size={14} /> Aprobar
-                           </button>
-                           <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, false); }} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors">
-                             <X size={14} /> Rechazar
-                           </button>
-                        </div>
+                        {order.paymentStatus === 'pending' && (
+                          <div className="flex gap-1.5 mt-2">
+                             <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, 'approve'); }} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
+                               <Check size={12} /> Aprobar
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, 'review'); }} className="flex-1 bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 py-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center transition-colors leading-none text-center" title="Marcar como dudoso/tercero">
+                               <span>Revisión</span><span className="opacity-70">(Tercero)</span>
+                             </button>
+                          </div>
+                        )}
+                        {order.paymentStatus === 'review' && (
+                          <div className="flex gap-1.5 mt-2">
+                             <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, 'approve'); }} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors">
+                               <Check size={12} /> Válido
+                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); verifyPayment(order.id, 'fraud'); }} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors text-center" title="Denunciar Fraude">
+                               <AlertCircle size={12} /> Fraude
+                             </button>
+                          </div>
+                        )}
                       </div>
                     )}
                     
@@ -418,10 +481,10 @@ export default function OrdersManager() {
 
       {/* Modal Detalles del Pedido */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-0 md:px-4">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedOrder(null)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl relative z-10 border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+          <div className="bg-white dark:bg-slate-900 w-full md:max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl relative z-10 border-t md:border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[90dvh]">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-950/50">
               <div>
                 <h3 className="font-black text-lg text-slate-800 dark:text-white">Pedido {selectedOrder.id}</h3>
                 <p className="text-xs text-slate-500">{selectedOrder.date}</p>
@@ -433,7 +496,7 @@ export default function OrdersManager() {
               </span>
             </div>
             
-            <div className="p-6 space-y-6">
+            <div className="p-5 md:p-6 space-y-5 overflow-y-auto">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cliente y Entrega</h4>
                 <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1">
@@ -492,6 +555,10 @@ export default function OrdersManager() {
                           <span className="text-slate-500 dark:text-slate-400">Estado:</span>
                           {selectedOrder.paymentStatus === 'pending' ? (
                             <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
+                          ) : selectedOrder.paymentStatus === 'review' ? (
+                            <span className="text-orange-600 dark:text-orange-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> En Revisión</span>
+                          ) : selectedOrder.paymentStatus === 'fraud' ? (
+                            <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> Fraude</span>
                           ) : selectedOrder.paymentStatus === 'approved' ? (
                             <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
                           ) : (
@@ -510,11 +577,24 @@ export default function OrdersManager() {
                   </div>
                   {selectedOrder.paymentStatus === 'pending' && (
                     <div className="mt-3 flex gap-2">
-                       <button onClick={() => verifyPayment(selectedOrder.id, true)} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                       <button onClick={() => openChat(selectedOrder)} className="flex-1 bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:hover:bg-violet-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <MessageSquare size={16} /> Abrir Chat de Resolución
+                       </button>
+                       <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
                          <Check size={16} /> Confirmar Pago
                        </button>
-                       <button onClick={() => verifyPayment(selectedOrder.id, false)} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <X size={16} /> Rechazar
+                       <button onClick={() => verifyPayment(selectedOrder.id, 'review')} className="flex-1 bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <AlertCircle size={16} /> Revisión (Tercero)
+                       </button>
+                    </div>
+                  )}
+                  {selectedOrder.paymentStatus === 'review' && (
+                    <div className="mt-3 flex gap-2">
+                       <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <Check size={16} /> Marcar Válido
+                       </button>
+                       <button onClick={() => verifyPayment(selectedOrder.id, 'fraud')} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
+                         <AlertCircle size={16} /> Denunciar Fraude
                        </button>
                     </div>
                   )}
@@ -568,9 +648,9 @@ export default function OrdersManager() {
 
       {/* Modal QR Code */}
       {showQrModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center px-0 md:px-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowQrModal(false)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl relative z-10 p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 w-full md:max-w-sm rounded-t-3xl md:rounded-3xl shadow-2xl relative z-10 p-8 flex flex-col items-center text-center animate-in slide-in-from-bottom md:zoom-in-95 duration-300 border-t md:border border-slate-200 dark:border-slate-800">
              <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400 mb-4 shadow-inner">
                <Smartphone size={32} />
              </div>

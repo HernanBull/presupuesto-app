@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Wallet, Zap, MapPin, Bell, CheckCheck } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -13,6 +13,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [storeName, setStoreName] = useState('Tienda');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMoreDrawer, setShowMoreDrawer] = useState(false);
 
   const fetchNotifications = () => {
     const slug = localStorage.getItem('storeSlug');
@@ -63,6 +64,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Productos', path: '/ecommerce/products', icon: ShoppingBag },
     { name: 'Inventario', path: '/ecommerce/inventory', icon: PackageSearch },
     { name: 'Pedidos', path: '/ecommerce/orders', icon: ShoppingCart },
+    { name: 'Soporte', path: '/ecommerce/support', icon: LifeBuoy },
     { name: 'Preparación', path: '/ecommerce/preparation', icon: Box },
     { name: 'Reseñas', path: '/ecommerce/reviews', icon: MessageSquare },
     { name: 'Promociones', path: '/ecommerce/promotions', icon: Tag },
@@ -70,8 +72,17 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Notificaciones', path: '/ecommerce/notifications', icon: Bell },
     { name: 'Perfil Tienda', path: '/ecommerce/store-profile', icon: Settings },
     { name: 'Ubicación', path: '/ecommerce/location', icon: MapPin },
-    { name: 'Ajustes', path: '/ecommerce/settings', icon: Settings },
+
   ];
+
+  // Navegación móvil: 4 ítems primarios + botón "Más"
+  const primaryNavItems = [
+    navItems[0], // Dashboard
+    navItems[4], // Pedidos
+    navItems[2], // Productos
+    navItems[3], // Inventario
+  ];
+  const secondaryNavItems = navItems.filter((_, i) => ![0, 4, 2, 3].includes(i));
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
@@ -265,39 +276,137 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 z-30 px-2 pt-2 pb-6 flex items-center justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.04)] shrink-0">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.path}
-            end={item.exact}
-            className={({ isActive }) => cn(
-              "relative flex flex-col items-center justify-center p-2 transition-all w-20 group",
-            )}
+      {/* Mobile Bottom Nav — 4 primary + "Más" */}
+      <nav
+        className="md:hidden bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-white/5 z-30 shrink-0 shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
+        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+      >
+        <div className="flex items-center justify-around px-1 pt-2">
+          {primaryNavItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              end={item.exact}
+              onClick={() => setShowMoreDrawer(false)}
+              className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group"
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-amber-50 dark:bg-amber-500/10 rounded-2xl -z-10" />
+                  )}
+                  <div className={cn(
+                    "p-1.5 rounded-xl mb-0.5 transition-all duration-200",
+                    isActive ? "text-amber-600 dark:text-amber-500 scale-110" : "text-slate-400"
+                  )}>
+                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <span className={cn(
+                    "text-[10px] font-bold tracking-wide transition-colors",
+                    isActive ? "text-amber-600 dark:text-amber-500" : "text-slate-400"
+                  )}>
+                    {item.name}
+                  </span>
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {/* Botón "Más" */}
+          <button
+            onClick={() => setShowMoreDrawer(true)}
+            className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group active:scale-95"
           >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <div className="absolute inset-0 bg-violet-50 dark:bg-violet-500/10 rounded-2xl -z-10 animate-in zoom-in-95 duration-200"></div>
-                )}
-                <div className={cn(
-                  "p-1.5 rounded-xl mb-1 transition-all duration-300", 
-                  isActive ? "text-violet-600 dark:text-violet-400 scale-110" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
-                )}>
-                  <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                </div>
-                <span className={cn(
-                  "text-[10px] font-bold tracking-wide transition-colors", 
-                  isActive ? "text-violet-600 dark:text-violet-400" : "text-slate-400"
-                )}>
-                  {item.name}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
+            <div className="p-1.5 rounded-xl mb-0.5 text-slate-400 group-active:text-amber-500 transition-colors">
+              <Menu size={22} strokeWidth={2} />
+            </div>
+            <span className="text-[10px] font-bold tracking-wide text-slate-400">Más</span>
+          </button>
+        </div>
       </nav>
+
+      {/* Drawer "Más" — Bottom Sheet Móvil */}
+      {showMoreDrawer && (
+        <div className="md:hidden fixed inset-0 z-50" onClick={() => setShowMoreDrawer(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+          {/* Sheet */}
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 rounded-t-3xl border-t border-slate-200 dark:border-white/5 shadow-2xl animate-in slide-in-from-bottom duration-300 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle + header */}
+            <div className="flex items-center justify-between px-5 pt-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black">
+                  <ShoppingBag size={18} />
+                </div>
+                <span className="text-sm font-extrabold text-slate-800 dark:text-white truncate max-w-[160px]">{storeName}</span>
+              </div>
+              <button
+                onClick={() => setShowMoreDrawer(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-zinc-900 rounded-xl"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="px-4 pb-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Más opciones</p>
+            </div>
+
+            {/* Grid de ítems secundarios */}
+            <div className="grid grid-cols-4 gap-2 px-4 py-3">
+              {secondaryNavItems.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  end={item.exact}
+                  onClick={() => setShowMoreDrawer(false)}
+                  className={({ isActive }) => cn(
+                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all active:scale-95",
+                    isActive
+                      ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500"
+                      : "text-slate-500 dark:text-zinc-400 active:bg-slate-100 dark:active:bg-zinc-900"
+                  )}
+                >
+                  <item.icon size={22} strokeWidth={2} />
+                  <span className="text-[10px] font-bold text-center leading-tight">{item.name}</span>
+                </NavLink>
+              ))}
+            </div>
+
+            {/* Acciones rápidas */}
+            <div
+              className="px-4 pt-3 border-t border-slate-100 dark:border-white/5 space-y-2"
+              style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+            >
+              <button
+                onClick={() => {
+                  const slug = localStorage.getItem('storeSlug');
+                  if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
+                  else alert('No se encontró el enlace de tu tienda.');
+                  setShowMoreDrawer(false);
+                }}
+                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 font-semibold text-sm rounded-xl active:bg-amber-200 transition-colors"
+              >
+                <MonitorSmartphone size={16} /> Ver mi Vitrina
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('activeWorkspace');
+                  localStorage.removeItem('storeSlug');
+                  navigate('/ecommerce/live');
+                }}
+                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-semibold text-sm rounded-xl active:bg-slate-200 transition-colors"
+              >
+                <ArrowLeft size={16} /> Salir de la tienda
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

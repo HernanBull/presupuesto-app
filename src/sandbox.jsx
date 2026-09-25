@@ -36,9 +36,6 @@ function SandboxApp() {
                 <Package size={18} />
                 Delivery
               </Link>
-              <Link to="/delivery/settings" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors ml-4">
-                ⚙️ Ajustes Agencia
-              </Link>
             </nav>
           </div>
           <div className="text-sm text-slate-400">

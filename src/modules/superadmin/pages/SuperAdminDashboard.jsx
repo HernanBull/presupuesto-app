@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, ArrowRight } from 'lucide-react';
+import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, ArrowRight, Truck, ShieldCheck, ShieldBan, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 
@@ -12,6 +12,8 @@ export default function SuperAdminDashboard({ superKey }) {
   const [liveOrders, setLiveOrders] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deliveryGroupId, setDeliveryGroupId] = useState('');
+  const [drivers, setDrivers] = useState([]);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +46,16 @@ export default function SuperAdminDashboard({ superKey }) {
       else if (activeTab === 'merchants') endpoint = '/api/superadmin/merchants';
       else if (activeTab === 'customers') endpoint = '/api/superadmin/customers';
       else if (activeTab === 'monitor') endpoint = '/api/superadmin/monitor';
+      else if (activeTab === 'delivery_bot') {
+        const [setRes, drvRes] = await Promise.all([
+          fetch('http://localhost:3001/api/superadmin/settings', { headers: { 'x-superadmin-key': superKey } }),
+          fetch('http://localhost:3001/api/superadmin/drivers', { headers: { 'x-superadmin-key': superKey } })
+        ]);
+        if (setRes.ok) { const data = await setRes.json(); setDeliveryGroupId(data.delivery_master_group_id || ''); }
+        if (drvRes.ok) { const data = await drvRes.json(); setDrivers(data || []); }
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch(`http://localhost:3001${endpoint}`, {
         headers: { 'x-superadmin-key': superKey }
@@ -61,6 +73,56 @@ export default function SuperAdminDashboard({ superKey }) {
       console.error(e);
     }
     setLoading(false);
+  };
+
+  const handleSaveDeliveryGroup = async () => {
+    setIsActionLoading(true);
+    try {
+      const res = await fetch('http://localhost:3001/api/superadmin/settings', {
+        method: 'PUT',
+        headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ delivery_master_group_id: deliveryGroupId })
+      });
+      if (res.ok) alert('Grupo de Telegram guardado exitosamente.');
+      else alert('Error al guardar grupo');
+    } catch(e) { alert('Error de conexión'); }
+    setIsActionLoading(false);
+  };
+
+  const handleToggleDriverBan = async (driver) => {
+    setIsActionLoading(true);
+    const newBannedState = driver.banned ? 0 : 1;
+    const confirmMessage = driver.banned 
+      ? '✅ ¿Deseas LEVANTAR LA SUSPENSIÓN a este conductor?'
+      : '🚨 ¿Estás seguro de que deseas BANEAR a este conductor?';
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        const res = await fetch(`http://localhost:3001/api/superadmin/drivers/${driver.id}/status`, {
+          method: 'PUT',
+          headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isBanned: newBannedState })
+        });
+        if (res.ok) fetchData();
+        else alert('Error al cambiar estado');
+      } catch(e) { alert('Error de conexión'); }
+    }
+    setIsActionLoading(false);
+  };
+
+  const handleDeleteDriver = async (id) => {
+    if (window.confirm('🗑️ ¿Deseas eliminar el registro de este conductor?')) {
+      setIsActionLoading(true);
+      try {
+        const res = await fetch(`http://localhost:3001/api/superadmin/drivers/${id}`, {
+          method: 'DELETE',
+          headers: { 'x-superadmin-key': superKey }
+        });
+        if (res.ok) fetchData();
+        else alert('Error al eliminar');
+      } catch(e) { alert('Error de conexión'); }
+      setIsActionLoading(false);
+    }
   };
 
   const handleViewDetails = (item, type) => {
@@ -283,6 +345,14 @@ export default function SuperAdminDashboard({ superKey }) {
             <Radio size={18} /> Monitor
           </button>
           <button 
+            onClick={() => setActiveTab('delivery_bot')}
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
+              activeTab === 'delivery_bot' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            <Truck size={18} /> Delivery Bot
+          </button>
+          <button 
             onClick={() => setActiveTab('merchants')}
             className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === 'merchants' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
@@ -439,6 +509,116 @@ export default function SuperAdminDashboard({ superKey }) {
                 </div>
               </div>
 
+            </div>
+          ) : activeTab === 'delivery_bot' ? (
+            <div className="space-y-8 max-w-4xl mx-auto w-full">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-widest text-white mb-2">Bot de Repartidores</h2>
+                <p className="text-zinc-400">Configuración global del ecosistema de delivery de Telegram.</p>
+              </div>
+
+              {!deliveryGroupId && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-2xl flex items-center gap-3">
+                  <ShieldBan className="w-6 h-6 shrink-0" />
+                  <div>
+                    <h3 className="font-bold">El motor de envíos requiere configuración</h3>
+                    <p className="text-sm text-red-400">Para que el bot pueda despachar viajes, configura el Chat ID global.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-red-500/10 rounded-xl text-red-500">
+                    <Truck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-widest">Grupo Maestro</h2>
+                    <p className="text-zinc-500 text-sm">Todas las peticiones irán a este grupo</p>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <input 
+                    type="text" 
+                    value={deliveryGroupId} 
+                    onChange={(e) => setDeliveryGroupId(e.target.value)}
+                    placeholder="Ej. -1001234567890"
+                    className="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 font-mono"
+                  />
+                  <button 
+                    onClick={handleSaveDeliveryGroup}
+                    disabled={!deliveryGroupId || isActionLoading}
+                    className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                  >
+                    {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                    Guardar
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-widest">Base de Conductores</h2>
+                    <p className="text-zinc-500 text-sm">Gestiona los repartidores registrados en el bot</p>
+                  </div>
+                </div>
+                
+                {drivers.length === 0 ? (
+                  <div className="bg-zinc-950 border border-white/5 p-8 rounded-2xl text-center text-zinc-500">
+                    Aún no hay conductores registrados.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {drivers.map(driver => (
+                      <div key={driver.id} className={`p-5 rounded-2xl border ${driver.banned ? 'bg-red-950/20 border-red-900/50' : 'bg-zinc-950 border-white/5'}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-3 font-bold text-lg text-white mb-1">
+                              <span className={driver.banned ? 'line-through text-red-500' : ''}>{driver.name}</span>
+                              <span className="text-[10px] font-normal text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                                {driver.driver_code}
+                              </span>
+                              {driver.banned ? (
+                                <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">
+                                  Suspendido
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-sm text-zinc-400 grid grid-cols-2 gap-x-6 gap-y-1 mt-3">
+                              <p><b>CI:</b> {driver.cedula}</p>
+                              <p><b>Tel:</b> {driver.telefono}</p>
+                              <p><b>Moto:</b> {driver.moto} ({driver.placa})</p>
+                              <p><b>Agencia:</b> {driver.agencia}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => handleDeleteDriver(driver.id)}
+                              disabled={isActionLoading}
+                              className="text-zinc-500 hover:text-orange-500 bg-zinc-900 hover:bg-orange-500/10 p-3 rounded-xl transition-colors flex items-center justify-center disabled:opacity-50"
+                              title="Eliminar Registro"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                            <button 
+                              onClick={() => handleToggleDriverBan(driver)}
+                              disabled={isActionLoading}
+                              className={`p-3 rounded-xl transition-colors flex items-center justify-center disabled:opacity-50 ${driver.banned ? 'text-emerald-500 bg-zinc-900 hover:bg-emerald-500/10' : 'text-zinc-500 hover:text-red-500 bg-zinc-900 hover:bg-red-500/10'}`}
+                              title={driver.banned ? 'Levantar Suspensión' : 'Suspender Conductor'}
+                            >
+                              {driver.banned ? <ShieldCheck className="w-5 h-5" /> : <ShieldBan className="w-5 h-5" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           ) : activeTab === 'monitor' ? (
             <div className="flex flex-col h-full">

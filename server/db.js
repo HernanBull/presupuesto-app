@@ -148,6 +148,39 @@ db.exec(`
     user_type TEXT,
     expires_at TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS platform_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS delivery_drivers (
+    id TEXT PRIMARY KEY,
+    driver_code TEXT,
+    name TEXT,
+    cedula TEXT,
+    telefono TEXT,
+    age TEXT,
+    moto TEXT,
+    placa TEXT,
+    agencia TEXT,
+    banned INTEGER DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS delivery_pending_trips (
+    order_id TEXT PRIMARY KEY,
+    customer_data TEXT,
+    delivery_pin TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS delivery_active_trips (
+    order_id TEXT PRIMARY KEY,
+    driver_id TEXT,
+    pin TEXT,
+    customer_name TEXT,
+    customer_data TEXT,
+    start_time TEXT
+  );
 `);
 
 // Migración simple por si la tabla budgets ya existía sin la columna name o maintenance
@@ -233,6 +266,9 @@ try {
   db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN customer_email TEXT').run();
 } catch(e) {}
 try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN shipping_info JSON').run();
+} catch(e) {}
+try {
   db.prepare('ALTER TABLE ecommerce_customers ADD COLUMN favorites JSON DEFAULT "[]"').run();
 } catch(e) {}
 try {
@@ -299,6 +335,17 @@ try {
 
 try {
   db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN delivery_pin TEXT').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN chat_history JSON DEFAULT \"[]\"').run();
+} catch(e) {}
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN driver_confirmed INTEGER DEFAULT 0').run();
+} catch(e) {}
+
+try {
+  db.prepare('ALTER TABLE ecommerce_orders_v2 ADD COLUMN customer_confirmed INTEGER DEFAULT 0').run();
 } catch(e) {}
 
 export default db;

@@ -8,7 +8,7 @@ import PresupuestoDashboard from './modules/presupuesto/pages/PresupuestoDashboa
 import EcommerceRouter from './modules/ecommerce/EcommerceRouter';
 import DeliveryRouter from './modules/delivery/DeliveryRouter';
 import { startTelegramEngine } from './modules/delivery/utils/telegramService';
-import { RegisterWizard } from './pages/RegisterWizard';
+
 import SuperAdminRouter from './modules/superadmin/SuperAdminRouter';
 
 function App() {
@@ -20,7 +20,7 @@ function App() {
   // Aislar E-commerce y Delivery para pruebas sin autenticación
   const isEcommerceRoute = window.location.pathname.startsWith('/ecommerce');
   const isDeliveryRoute = window.location.pathname.startsWith('/delivery');
-  const isRegisterRoute = window.location.pathname.startsWith('/register');
+
   const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
 
   useEffect(() => {
@@ -53,7 +53,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading && !isEcommerceRoute && !isDeliveryRoute && !isRegisterRoute && !isSuperAdminRoute) {
+  if (authLoading && !isEcommerceRoute && !isDeliveryRoute && !isSuperAdminRoute) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -87,15 +87,7 @@ function App() {
     );
   }
 
-  if (isRegisterRoute) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/register" element={<RegisterWizard />} />
-        </Routes>
-      </BrowserRouter>
-    );
-  }
+
 
   if (isSuperAdminRoute) {
     return (
@@ -123,13 +115,18 @@ function App() {
         </div>
       );
     }
-    return <LandingPage onLoginClick={() => setShowLogin(true)} />;
+    // Axon Market es la página principal del MVP.
+    // La LandingPage queda oculta; redirigimos al marketplace público.
+    if (!isEcommerceRoute && !isDeliveryRoute && !isSuperAdminRoute) {
+      window.location.replace('/ecommerce/live');
+      return <div style={{ minHeight: '100vh', background: '#000' }} />;
+    }
   }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/presupuesto" replace />} />
+        <Route path="/" element={<Navigate to="/ecommerce/live" replace />} />
         <Route 
           path="/presupuesto/*" 
           element={<PresupuestoDashboard session={session} theme={theme} toggleTheme={toggleTheme} />} 

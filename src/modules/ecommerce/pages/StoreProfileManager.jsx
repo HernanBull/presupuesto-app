@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2 } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock } from 'lucide-react';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -9,10 +9,42 @@ export default function StoreProfileManager() {
   const [storeName, setStoreName] = useState('Mi Tienda Online');
   const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
+  const [adminPin, setAdminPin] = useState('');
+  
+  // Cambio de contraseña
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState({ type: '', msg: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   // BCV
   const [bcvRate, setBcvRate] = useState(36.50);
-  const [autoBcv, setAutoBcv] = useState(false);
+  const [manualBcv, setManualBcv] = useState(false);
+  const [isFetchingBcv, setIsFetchingBcv] = useState(false);
+
+  const fetchBcvRate = async () => {
+    setIsFetchingBcv(true);
+    try {
+      const res = await fetch('http://localhost:3001/api/bcv');
+      const data = await res.json();
+      if (res.ok && data.rate) {
+        setBcvRate(data.rate);
+      } else if (data.fallbackRate) {
+        setBcvRate(data.fallbackRate);
+      }
+    } catch (error) {
+      console.error("Error al obtener la tasa del BCV:", error);
+    } finally {
+      setIsFetchingBcv(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!manualBcv) {
+      fetchBcvRate();
+    }
+  }, [manualBcv]);
   
   // Pago Móvil
   const [paymentMobile, setPaymentMobile] = useState(true);
@@ -39,6 +71,7 @@ export default function StoreProfileManager() {
   });
   const [openTime, setOpenTime] = useState('08:00');
   const [closeTime, setCloseTime] = useState('18:00');
+  const [closeWarningMinutes, setCloseWarningMinutes] = useState(30);
   
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
@@ -52,8 +85,13 @@ export default function StoreProfileManager() {
           if (ws.config) {
             if (ws.config.currency) setCurrency(ws.config.currency);
             if (ws.config.description) setDescription(ws.config.description);
+            if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
             if (ws.config.bcvRate) setBcvRate(ws.config.bcvRate);
-            if (ws.config.autoBcv) setAutoBcv(ws.config.autoBcv);
+            if (ws.config.manualBcv !== undefined) {
+              setManualBcv(ws.config.manualBcv);
+            } else if (ws.config.autoBcv !== undefined) {
+              setManualBcv(!ws.config.autoBcv); // Migrate from old config
+            }
             
             if (ws.config.paymentProfile) {
               setPaymentMobile(ws.config.paymentProfile.paymentMobile !== false);
@@ -74,6 +112,7 @@ export default function StoreProfileManager() {
               if (ws.config.scheduleProfile.workDays) setWorkDays(ws.config.scheduleProfile.workDays);
               if (ws.config.scheduleProfile.openTime) setOpenTime(ws.config.scheduleProfile.openTime);
               if (ws.config.scheduleProfile.closeTime) setCloseTime(ws.config.scheduleProfile.closeTime);
+              if (ws.config.scheduleProfile.closeWarningMinutes !== undefined) setCloseWarningMinutes(ws.config.scheduleProfile.closeWarningMinutes);
             }
           }
         }
@@ -84,6 +123,48 @@ export default function StoreProfileManager() {
         setIsLoaded(true);
       });
   }, [workspaceId]);
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setPasswordStatus({ type: 'error', msg: 'La nueva contraseña debe tener al menos 6 caracteres' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus({ type: 'error', msg: 'Las contraseñas nuevas no coinciden' });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    setPasswordStatus({ type: '', msg: '' });
+
+    try {
+      const res = await fetch('http://localhost:3001/api/workspaces/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId,
+          currentPassword,
+          newPassword
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setPasswordStatus({ type: 'success', msg: 'Contraseña cambiada exitosamente' });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordStatus({ type: 'error', msg: data.error || 'Error al cambiar la contraseña' });
+      }
+    } catch (err) {
+      console.error(err);
+      setPasswordStatus({ type: 'error', msg: 'Error de conexión' });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -96,8 +177,10 @@ export default function StoreProfileManager() {
         ...ws.config,
         currency,
         description,
+        adminPin,
         bcvRate,
-        autoBcv,
+        manualBcv,
+        autoBcv: !manualBcv, // Keep for backward compatibility
         paymentProfile: {
           paymentMobile,
           pmBank,
@@ -116,7 +199,8 @@ export default function StoreProfileManager() {
           scheduleActive,
           workDays,
           openTime,
-          closeTime
+          closeTime,
+          closeWarningMinutes
         }
       };
 
@@ -141,6 +225,52 @@ export default function StoreProfileManager() {
   };
 
   if (!isLoaded) return <div className="p-8 text-center font-bold text-slate-500">Cargando perfil...</div>;
+
+  const getStoreScheduleStatus = () => {
+    if (!scheduleActive) return { status: 'open', message: 'Abierto 24/7' };
+    
+    const currentDayIdx = new Date().getDay();
+    const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const currentDayName = daysMap[currentDayIdx];
+    
+    if (!workDays[currentDayName]) return { status: 'closed', message: `Cerrado (Hoy ${currentDayName} no laborable)` };
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    
+    const [openH, openM] = openTime.split(':').map(Number);
+    const [closeH, closeM] = closeTime.split(':').map(Number);
+    
+    const currentMins = currentHour * 60 + currentMin;
+    const openMins = openH * 60 + openM;
+    const closeMins = closeH * 60 + closeM;
+    
+    let isClosed = false;
+    let minsToClose = 0;
+
+    if (closeMins < openMins) {
+      if (currentMins < openMins && currentMins >= closeMins) isClosed = true;
+      else {
+        minsToClose = (currentMins >= openMins) ? ((1440 - currentMins) + closeMins) : (closeMins - currentMins);
+      }
+    } else {
+      if (currentMins < openMins || currentMins >= closeMins) isClosed = true;
+      else {
+        minsToClose = closeMins - currentMins;
+      }
+    }
+    
+    if (isClosed) return { status: 'closed', message: `Cerrado (Abre a las ${openTime})` };
+    
+    if (minsToClose <= closeWarningMinutes) {
+      return { status: 'closing', message: `Cierra en ${minsToClose} min` };
+    }
+    
+    return { status: 'open', message: `Abierto (Cierra a las ${closeTime})` };
+  };
+
+  const scheduleStatusPreview = getStoreScheduleStatus();
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8 pb-24 md:pb-8">
@@ -197,16 +327,35 @@ export default function StoreProfileManager() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tasa de Cambio Actual (Bs por $)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-2.5 text-slate-400 font-bold">Bs.</span>
-                <input type="number" step="0.01" value={bcvRate} onChange={e => setBcvRate(Number(e.target.value))} className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <span className="absolute left-4 top-2.5 text-slate-400 font-bold">Bs.</span>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={bcvRate} 
+                    onChange={e => setBcvRate(Number(e.target.value))} 
+                    disabled={!manualBcv}
+                    className={`w-full pl-12 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-colors ${!manualBcv ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed' : 'bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white'}`} 
+                  />
+                </div>
+                {!manualBcv && (
+                  <button 
+                    onClick={fetchBcvRate} 
+                    disabled={isFetchingBcv}
+                    title="Sincronizar ahora"
+                    className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw size={18} className={isFetchingBcv ? "animate-spin text-violet-500" : ""} />
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex items-center pt-6">
                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={autoBcv} onChange={e => setAutoBcv(e.target.checked)} />
+                  <input type="checkbox" className="sr-only peer" checked={manualBcv} onChange={e => setManualBcv(e.target.checked)} />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:peer-focus:ring-violet-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-violet-600"></div>
-                  <span className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Actualizar automáticamente (Pro)</span>
+                  <span className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Actualizar de forma manual (Respaldo)</span>
                 </label>
             </div>
           </div>
@@ -376,6 +525,31 @@ export default function StoreProfileManager() {
                       <label className="text-xs font-bold text-slate-500 mb-1 block">Hora Cierre</label>
                       <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-800 dark:text-white focus:outline-none" />
                     </div>
+                    <div className="col-span-2">
+                      <label className="text-xs font-bold text-slate-500 mb-1 block">Margen de Cierre (Amarillo)</label>
+                      <div className="flex items-center gap-2">
+                        <input type="number" min="0" max="120" value={closeWarningMinutes} onChange={e => setCloseWarningMinutes(Number(e.target.value))} className="w-24 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-800 dark:text-white focus:outline-none" />
+                        <span className="text-xs text-slate-500">minutos antes del cierre se bloquearán las compras.</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 rounded-xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800">
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">Vista previa del semáforo actual:</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Así ve el estado el cliente en este momento exacto.</p>
+                    </div>
+                    <div className={`px-4 py-2 rounded-full flex items-center gap-2 font-bold text-sm tracking-wide ${
+                      scheduleStatusPreview.status === 'open' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' :
+                      scheduleStatusPreview.status === 'closing' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' :
+                      'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${
+                        scheduleStatusPreview.status === 'open' ? 'bg-emerald-500' :
+                        scheduleStatusPreview.status === 'closing' ? 'bg-amber-500' : 'bg-red-500'
+                      }`}></div>
+                      {scheduleStatusPreview.message}
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-500 mb-2 block">Días Laborables</label>
@@ -403,6 +577,100 @@ export default function StoreProfileManager() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Seguridad y Acceso (PIN) */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg">
+              <Lock size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Seguridad y Acceso</h3>
+              <p className="text-xs text-slate-500 mt-1">Bloquea rutas sensibles para tus empleados usando un PIN.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex flex-col gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950/50">
+              <div>
+                <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">PIN Administrativo (4 dígitos)</label>
+                <p className="text-xs text-slate-500 mb-3">Si dejas este campo vacío, cualquier empleado podrá entrar al Dashboard, Analítica y Perfil.</p>
+                <input 
+                  type="password" 
+                  maxLength={4}
+                  value={adminPin} 
+                  onChange={e => setAdminPin(e.target.value.replace(/\D/g, '').slice(0, 4))} 
+                  placeholder="Ej: 1234"
+                  className="w-full max-w-[200px] px-4 py-2 text-center tracking-[0.5em] font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-white focus:outline-none focus:border-red-500" 
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Cambio de Contraseña */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-lg">
+              <Lock size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Cambio de Contraseña</h3>
+              <p className="text-xs text-slate-500 mt-1">Cambia la contraseña maestra de acceso a esta tienda.</p>
+            </div>
+          </div>
+          
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="flex flex-col gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950/50">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Contraseña Actual</label>
+                  <input 
+                    type="password" 
+                    value={currentPassword} 
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Nueva Contraseña</label>
+                  <input 
+                    type="password" 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Confirmar Nueva</label>
+                  <input 
+                    type="password" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+              </div>
+
+              {passwordStatus.msg && (
+                <div className={`p-3 rounded-lg text-sm font-medium ${passwordStatus.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                  {passwordStatus.msg}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button type="submit" disabled={isChangingPassword} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-70">
+                  {isChangingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
+                </button>
+              </div>
+
+            </div>
+          </form>
         </section>
 
       </div>

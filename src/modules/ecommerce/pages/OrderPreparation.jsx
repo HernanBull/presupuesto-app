@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Clock, CheckCircle2, ChevronRight, CheckSquare, Square, Printer, Box, ShieldCheck, MapPin, ScanBarcode, Image as ImageIcon } from 'lucide-react';
+import { Package, Clock, CheckCircle2, ChevronRight, CheckSquare, Square, Printer, Box, ShieldCheck, MapPin, ScanBarcode, Image as ImageIcon, FileText, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
 
 export default function OrderPreparation() {
   const [orders, setOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fiscalInvoicePicked, setFiscalInvoicePicked] = useState({});
 
   // Cargar pedidos desde el backend
   useEffect(() => {
-    fetch('http://localhost:3001/api/ecommerce/orders')
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    const url = workspaceId 
+      ? `http://localhost:3001/api/ecommerce/orders?workspaceId=${workspaceId}`
+      : 'http://localhost:3001/api/ecommerce/orders';
+      
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setOrders(data || []);
@@ -90,16 +96,30 @@ export default function OrderPreparation() {
 
   const markOrderAsReady = async (orderId) => {
     const orderToSend = orders.find(o => o.id === orderId);
+    if (!orderToSend || orderToSend.status !== 'Preparando') return;
+
+    let newDeliveryPin = orderToSend.deliveryPin;
+    if (!newDeliveryPin) {
+      newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+    }
 
     const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: 'Enviado' } : order
+      order.id === orderId ? { ...order, status: 'Enviado', deliveryPin: newDeliveryPin } : order
     );
     setOrders(updatedOrders);
+    
+    // Limpiar UI visualmente de inmediato
+    const remainingOrders = updatedOrders.filter(o => o.status === 'Preparando');
+    if (remainingOrders.length > 0) {
+      setSelectedOrderId(remainingOrders[0].id);
+    } else {
+      setSelectedOrderId(null);
+    }
     
     fetch(`http://localhost:3001/api/ecommerce/orders/${orderId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'Enviado' })
+      body: JSON.stringify({ status: 'Enviado', deliveryPin: newDeliveryPin })
     }).catch(console.error);
 
     // Enviar a Telegram directamente desde Picking
@@ -108,11 +128,13 @@ export default function OrderPreparation() {
         name: orderToSend.customer,
         phone: orderToSend.paymentDetails?.phone || 'Sin número',
         address: orderToSend.address || 'Dirección del cliente',
+        location: orderToSend.shipping_info?.location || null,
         zone: 'Centro de la ciudad',
         packageType: 'Paquete E-commerce',
         productList: `Pedido ${orderToSend.id} (${orderToSend.items?.length || 0} artículos)`,
         weight: 1,
-        quantity: 1
+        quantity: 1,
+        deliveryPin: newDeliveryPin
       };
 
       const res = await sendDeliveryRequest('Tienda Principal', customerData, orderToSend.id);
@@ -130,26 +152,26 @@ export default function OrderPreparation() {
         payload: { orderId }
       });
     }
-    
-    if (updatedOrders.length > 0) {
-      setSelectedOrderId(updatedOrders[0].id);
-    } else {
-      setSelectedOrderId(null);
-    }
   };
 
-  // Calcular progreso
+  // Calcular progreso — incluye la Factura Fiscal como paso obligatorio
   const getProgress = (order) => {
     if (!order || !order.items.length) return 0;
     const pickedCount = order.items.filter(i => i.picked).length;
-    return Math.round((pickedCount / order.items.length) * 100);
+    const invoicePicked = fiscalInvoicePicked[order.id] ? 1 : 0;
+    const totalSteps = order.items.length + 1; // +1 por la factura fiscal
+    return Math.round(((pickedCount + invoicePicked) / totalSteps) * 100);
+  };
+
+  const toggleFiscalInvoice = (orderId) => {
+    setFiscalInvoicePicked(prev => ({ ...prev, [orderId]: !prev[orderId] }));
   };
 
   return (
     <div className="p-6 md:p-8 w-full max-w-7xl mx-auto min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 font-sans">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in slide-in-from-top-4 duration-500">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/30 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/30 shrink-0">
              <ScanBarcode size={24} />
           </div>
           <div>
@@ -167,9 +189,9 @@ export default function OrderPreparation() {
         <div className="w-full lg:w-1/3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col shadow-sm min-h-[300px] lg:min-h-0">
            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 rounded-t-2xl flex justify-between items-center">
              <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-               <Package size={18} className="text-violet-500" /> Por Preparar
+               <Package size={18} className="text-amber-500" /> Por Preparar
              </h3>
-             <span className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-xs px-2 py-0.5 rounded-full font-black">
+             <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs px-2 py-0.5 rounded-full font-black">
                {orders.filter(o => o.status === 'Preparando').length}
              </span>
           </div>
@@ -193,12 +215,12 @@ export default function OrderPreparation() {
                    onClick={() => setSelectedOrderId(order.id)}
                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 relative overflow-hidden group animate-in slide-in-from-left-4 ${
                      isSelected 
-                       ? 'bg-violet-50/80 border-violet-400 dark:bg-violet-900/20 dark:border-violet-600 shadow-[0_0_20px_-5px_rgba(139,92,246,0.2)]' 
-                       : 'bg-white border-transparent hover:border-violet-200 dark:bg-slate-900/50 dark:hover:border-slate-700 shadow-sm hover:shadow-md'
+                       ? 'bg-amber-50/80 border-amber-400 dark:bg-amber-900/20 dark:border-amber-600 shadow-[0_0_20px_-5px_rgba(139,92,246,0.2)]' 
+                       : 'bg-white border-transparent hover:border-amber-200 dark:bg-slate-900/50 dark:hover:border-slate-700 shadow-sm hover:shadow-md'
                    }`}
                    style={{ animationDelay: `${idx * 100}ms` }}
                  >
-                    {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-violet-500"></div>}
+                    {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500"></div>}
                     
                     <div className="flex justify-between items-start mb-2">
                        <div className="flex items-center gap-2">
@@ -214,7 +236,7 @@ export default function OrderPreparation() {
                          {order.customer.charAt(0)}
                        </div>
                        <div>
-                         <p className={`font-black text-sm ${isSelected ? 'text-violet-900 dark:text-violet-100' : 'text-slate-800 dark:text-white'}`}>{order.customer}</p>
+                         <p className={`font-black text-sm ${isSelected ? 'text-amber-900 dark:text-amber-100' : 'text-slate-800 dark:text-white'}`}>{order.customer}</p>
                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5"><Clock size={12}/> {order.date}</p>
                        </div>
                     </div>
@@ -223,10 +245,10 @@ export default function OrderPreparation() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-bold">
                         <span className="text-slate-500 uppercase tracking-wider text-[10px]">Progreso</span>
-                        <span className={progress === 100 ? 'text-emerald-500' : 'text-violet-600 dark:text-violet-400'}>{progress}%</span>
+                        <span className={progress === 100 ? 'text-emerald-500' : 'text-amber-600 dark:text-amber-400'}>{progress}%</span>
                       </div>
                       <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                        <div className={`h-full rounded-full transition-all duration-700 ease-out ${progress === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'}`} style={{ width: `${progress}%` }}></div>
+                        <div className={`h-full rounded-full transition-all duration-700 ease-out ${progress === 100 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-gradient-to-r from-amber-500 to-amber-500'}`} style={{ width: `${progress}%` }}></div>
                       </div>
                     </div>
                  </div>
@@ -241,12 +263,12 @@ export default function OrderPreparation() {
              <div className="animate-in fade-in duration-500 h-full flex flex-col">
                <div className="p-6 md:p-8 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-50 to-white dark:from-slate-950/80 dark:to-slate-900">
                  <div className="flex items-center gap-4">
-                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-violet-500/20">
+                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-amber-500 flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-amber-500/20">
                      {selectedOrder.customer.charAt(0)}
                    </div>
                    <div>
                      <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{selectedOrder.customer}</h3>
-                     <p className="text-sm font-bold text-violet-600 dark:text-violet-400">Pedido {selectedOrder.id}</p>
+                     <p className="text-sm font-bold text-amber-600 dark:text-amber-400">Pedido {selectedOrder.id}</p>
                      <div className="flex items-center gap-1 mt-1 text-xs font-medium text-slate-500">
                         <MapPin size={12} className="text-rose-500" />
                         <span className="line-clamp-1">{selectedOrder.address}</span>
@@ -254,15 +276,15 @@ export default function OrderPreparation() {
                    </div>
                  </div>
                  <div className="flex gap-2 w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none px-5 py-2.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold hover:border-violet-400 dark:hover:border-violet-500 transition-colors flex items-center justify-center gap-2 shadow-sm group">
-                      <Printer size={16} className="text-slate-400 group-hover:text-violet-500 transition-colors" /> Imprimir Etiqueta
+                    <button className="flex-1 sm:flex-none px-5 py-2.5 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-bold hover:border-amber-400 dark:hover:border-amber-500 transition-colors flex items-center justify-center gap-2 shadow-sm group">
+                      <Printer size={16} className="text-slate-400 group-hover:text-amber-500 transition-colors" /> Imprimir Etiqueta
                     </button>
                  </div>
                </div>
 
                <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/20 relative">
                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
-                    <Box size={16} className="text-violet-500" /> Artículos a empacar ({selectedOrder.items.length})
+                    <Box size={16} className="text-amber-500" /> Artículos a empacar ({selectedOrder.items.length})
                  </h4>
                  
                  <div className="space-y-4">
@@ -273,11 +295,11 @@ export default function OrderPreparation() {
                        className={`flex items-center gap-4 p-4 md:p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 group animate-in slide-in-from-bottom-4 ${
                          item.picked 
                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10 dark:border-emerald-500/50 opacity-80' 
-                           : 'border-transparent bg-white dark:bg-slate-800 shadow-md hover:shadow-lg hover:border-violet-300 dark:hover:border-violet-600 hover:-translate-y-0.5'
+                           : 'border-transparent bg-white dark:bg-slate-800 shadow-md hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-600 hover:-translate-y-0.5'
                        }`}
                        style={{ animationDelay: `${idx * 100}ms` }}
                      >
-                       <div className={`shrink-0 transition-transform duration-300 group-active:scale-90 ${item.picked ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-violet-400'}`}>
+                       <div className={`shrink-0 transition-transform duration-300 group-active:scale-90 ${item.picked ? 'text-emerald-500' : 'text-slate-300 dark:text-slate-600 group-hover:text-amber-400'}`}>
                          {item.picked ? <CheckSquare size={32} /> : <Square size={32} />}
                        </div>
                        
@@ -305,10 +327,44 @@ export default function OrderPreparation() {
                        </div>
                      </div>
                    ))}
-                 </div>
-               </div>
+                  </div>
 
-               <div className="p-6 md:p-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative">
+                  {/* Sección Fiscal Obligatoria */}
+                  <div className="mt-6 border-2 border-dashed border-amber-400/60 dark:border-amber-600/40 rounded-2xl overflow-hidden">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 px-5 py-3 flex items-center gap-2">
+                      <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                      <p className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Documentos Fiscales Obligatorios (SENIAT)</p>
+                    </div>
+                    <div
+                      onClick={() => toggleFiscalInvoice(selectedOrder.id)}
+                      className={`flex items-center gap-4 p-4 cursor-pointer transition-all duration-300 group ${
+                        fiscalInvoicePicked[selectedOrder.id]
+                          ? 'bg-emerald-50/50 dark:bg-emerald-900/10'
+                          : 'bg-white dark:bg-slate-800 hover:bg-amber-50/30 dark:hover:bg-amber-900/10'
+                      }`}
+                    >
+                      <div className={`shrink-0 transition-all duration-300 ${
+                        fiscalInvoicePicked[selectedOrder.id] ? 'text-emerald-500' : 'text-amber-400 group-hover:text-amber-500'
+                      }`}>
+                        {fiscalInvoicePicked[selectedOrder.id] ? <CheckSquare size={32} /> : <Square size={32} />}
+                      </div>
+                      <div className="w-14 h-14 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <FileText size={28} className="text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className={`font-black text-base ${
+                          fiscalInvoicePicked[selectedOrder.id] ? 'text-emerald-700 dark:text-emerald-300 line-through decoration-emerald-500/50' : 'text-slate-800 dark:text-white'
+                        }`}>Factura Fiscal Física (Original y Copia)</p>
+                        <p className="text-xs font-medium text-slate-400 mt-0.5">Obligatorio para el despacho — Art. 57 Ley IVA</p>
+                      </div>
+                      {!fiscalInvoicePicked[selectedOrder.id] && (
+                        <span className="text-[10px] font-black uppercase bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-2 py-1 rounded-lg shrink-0">Pendiente</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 md:p-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative">
                  <button 
                    onClick={() => markOrderAsReady(selectedOrder.id)}
                    disabled={getProgress(selectedOrder) !== 100}
@@ -321,11 +377,13 @@ export default function OrderPreparation() {
                    {getProgress(selectedOrder) === 100 && (
                       <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite] -skew-x-12 translate-x-[-150%]"></div>
                    )}
-                   {getProgress(selectedOrder) === 100 ? (
-                     <><ShieldCheck size={24} /> Despachar Pedido</>
-                   ) : (
-                     'Empaca todos los artículos'
-                   )}
+                    {getProgress(selectedOrder) === 100 ? (
+                      <><ShieldCheck size={24} /> Despachar Pedido</>
+                    ) : selectedOrder.items.every(i => i.picked) && !fiscalInvoicePicked[selectedOrder.id] ? (
+                      <><FileText size={20} /> Confirma la Factura Fiscal para despachar</>
+                    ) : (
+                      'Empaca todos los artículos'
+                    )}
                  </button>
                </div>
              </div>

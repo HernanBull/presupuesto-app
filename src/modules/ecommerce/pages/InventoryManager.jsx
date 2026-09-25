@@ -386,17 +386,19 @@ export default function InventoryManager() {
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Logística e Inventario</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Controla existencias, órdenes de compra y márgenes de ganancia.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={handleExportCSV} className="hidden sm:flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={handleExportCSV} className="hidden sm:flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
             Exportar
           </button>
-          <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm">
-            <FileUp size={18} />
-            Importar POS (.csv)
+          <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+            <FileUp size={16} />
+            <span className="hidden sm:inline">Importar POS (.csv)</span>
+            <span className="sm:hidden">Importar</span>
           </button>
-          <button onClick={() => navigate('/ecommerce/product-studio')} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
-            <PackagePlus size={18} />
-            Registrar Entrada
+          <button onClick={() => navigate('/ecommerce/product-studio')} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
+            <PackagePlus size={16} />
+            <span className="hidden sm:inline">Registrar Entrada</span>
+            <span className="sm:hidden">+ Entrada</span>
           </button>
         </div>
       </div>
@@ -451,8 +453,74 @@ export default function InventoryManager() {
           )}
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Vista móvil: tarjetas */}
+        <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {filteredInventory.length === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-sm">No se encontraron registros.</div>
+          ) : (
+            filteredInventory.map(item => {
+              const status = getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate);
+              const statusColors = {
+                'Crítico': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+                'Bajo': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                'Vence Pronto': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+                'Sobre-Stock': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                'En Stock': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+              };
+              return (
+                <div key={item.id} className="p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
+                      <p className="text-[10px] font-mono text-slate-500 mt-0.5">{item.id}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 ${statusColors[status] || ''}`}>{status}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
+                      <p className="text-[10px] text-slate-500 mb-0.5">Stock</p>
+                      <p className={`text-sm font-bold ${status === 'Crítico' ? 'text-rose-500' : 'text-slate-800 dark:text-white'}`}>{item.stock}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
+                      <p className="text-[10px] text-slate-500 mb-0.5">Costo</p>
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">${item.cogs.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
+                      <p className="text-[10px] text-slate-500 mb-0.5">Precio</p>
+                      <p className="text-sm font-bold text-violet-600 dark:text-violet-400">${item.price.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {settings.transfers && (
+                      <button onClick={() => { setTransferItem(item); setTransferData({ quantity: 1, toVitrina: true }); setIsTransferModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400 rounded-lg text-xs font-bold">
+                        <Truck size={12} /> Transferir
+                      </button>
+                    )}
+                    {settings.audit && (
+                      <button onClick={() => { setAuditItem(item); setAuditData({ quantity: item.stock }); setIsAuditModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                        <ClipboardCheck size={12} /> Auditar
+                      </button>
+                    )}
+                    {settings.waste && (
+                      <button onClick={() => { setWasteItem(item); setIsWasteModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-lg text-xs font-bold">
+                        <TrendingDown size={12} /> Merma
+                      </button>
+                    )}
+                    <button onClick={() => navigate('/ecommerce/product-studio/' + item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold">
+                      <Edit2 size={12} /> Editar
+                    </button>
+                    <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">
+                      <Trash2 size={12} /> Borrar
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Vista desktop: tabla */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
@@ -499,26 +567,20 @@ export default function InventoryManager() {
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-sm font-medium text-slate-600 dark:text-slate-400">
-                        ${item.cogs.toFixed(2)}
-                      </td>
-                      <td className="py-3 px-4 text-sm font-bold text-slate-800 dark:text-white">
-                        ${item.price.toFixed(2)}
-                      </td>
+                      <td className="py-3 px-4 text-sm font-medium text-slate-600 dark:text-slate-400">${item.cogs.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-sm font-bold text-slate-800 dark:text-white">${item.price.toFixed(2)}</td>
                       {settings.expiration && (
                         <td className="py-3 px-4">
                           {item.expirationDate ? (
-                             <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                               getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate) === 'Vence Pronto' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                             }`}>
-                               {item.expirationDate}
-                             </span>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-md ${
+                              getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate) === 'Vence Pronto' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}>
+                              {item.expirationDate}
+                            </span>
                           ) : <span className="text-xs text-slate-400">N/A</span>}
                         </td>
                       )}
-                      <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">
-                        {item.supplier}
-                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{item.supplier}</td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {settings.transfers && (
@@ -548,7 +610,7 @@ export default function InventoryManager() {
                         </div>
                       </td>
                     </tr>
-                  )
+                  );
                 })
               )}
             </tbody>
@@ -561,7 +623,7 @@ export default function InventoryManager() {
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity" onClick={closeEditor}></div>
           
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="relative w-full sm:max-w-md bg-white dark:bg-slate-900 sm:border-l border-t sm:border-t-0 border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-right duration-300 sm:h-full max-h-[90dvh] rounded-t-3xl sm:rounded-none">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
                <div>
                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">
