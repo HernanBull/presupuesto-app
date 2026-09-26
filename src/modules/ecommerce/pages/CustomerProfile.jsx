@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, FileText, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -217,10 +218,25 @@ export default function CustomerProfile() {
   const fetchOrders = async (email) => {
     setLoadingOrders(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customer-orders/${email}`);
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data);
+      const { data, error } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('*')
+        .eq('customer_email', email)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const mappedOrders = data.map(order => ({
+          ...order,
+          date: new Date(order.created_at).toLocaleString(),
+          paymentMethod: order.payment_method,
+          paymentStatus: order.payment_status,
+          paymentDetails: typeof order.payment_details === 'string' ? JSON.parse(order.payment_details) : order.payment_details,
+          shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          deliveryPin: order.delivery_pin,
+          isMobile: order.is_mobile
+        }));
+        setOrders(mappedOrders);
       }
     } catch (e) {
       console.error(e);
@@ -233,11 +249,14 @@ export default function CustomerProfile() {
     setCurrentCustomer(newUser);
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
-      });
+      const payload = {
+        name: newUser.name,
+        phone: newUser.phone,
+        doc_id: newUser.docId,
+        address: newUser.address,
+        wishlist: newUser.wishlist
+      };
+      await supabase.from('ecommerce_customers').update(payload).eq('id', currentCustomer.id);
     } catch (err) {
       console.error(err);
     }

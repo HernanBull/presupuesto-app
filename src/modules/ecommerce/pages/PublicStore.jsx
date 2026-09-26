@@ -153,18 +153,41 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authForm)
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Error al registrarse');
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from('ecommerce_customers')
+        .select('*')
+        .eq('email', authForm.email)
+        .single();
+        
+      if (existingUser) {
+        alert('Este correo ya está registrado');
         setAuthLoading(false);
         return false;
       }
-      const newUser = { ...data.user, orders: [] };
+
+      const id = 'CUS-' + Math.floor(Math.random() * 1000000);
+      const payload = {
+        id,
+        email: authForm.email,
+        password: authForm.password,
+        name: authForm.name || authForm.email.split('@')[0],
+        phone: '',
+        doc_id: '',
+        address: '',
+        wishlist: [],
+        created_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase.from('ecommerce_customers').insert([payload]);
+      
+      if (error) {
+        alert(error.message || 'Error al registrarse');
+        setAuthLoading(false);
+        return false;
+      }
+      
+      const newUser = { ...payload, docId: '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(newUser);
@@ -240,18 +263,18 @@ export default function PublicStore() {
     const finalTotal = subtotal + (isFreeShipping ? 0 : flatRate);
 
     const orderData = {
-      workspaceId,
-      customerId: currentCustomer.id,
+      id: 'ORD-' + Math.floor(Math.random() * 1000000),
+      workspace_id: workspaceId,
       customer: currentCustomer.name,
-      customerEmail: currentCustomer.email,
+      customer_email: currentCustomer.email,
       address: checkoutAddress,
       discount_code: appliedDiscount ? appliedDiscount.code : null,
       total: finalTotal,
       items: orderItems,
       status: 'Pendiente',
-      paymentMethod: selectedPaymentMethod,
-      paymentStatus: selectedPaymentMethod === 'cash' ? 'approved' : 'pending',
-      paymentDetails: {
+      payment_method: selectedPaymentMethod,
+      payment_status: selectedPaymentMethod === 'cash' ? 'approved' : 'pending',
+      payment_details: {
         capture: receiptUrl,
         ref: paymentReference,
         bank: selectedPaymentMethod === 'zelle' ? 'Zelle' : paymentBank,
@@ -259,20 +282,16 @@ export default function PublicStore() {
         docId: currentCustomer.docId || '',
         address: checkoutAddress
       },
-      shippingInfo: {
+      shipping_info: {
          cost: isFreeShipping ? 0 : flatRate,
          location: checkoutLocation
       },
-      workspace_id: workspaceId
+      created_at: new Date().toISOString()
     };
 
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
-      });
-      if (res.ok) {
+      const { error } = await supabase.from('ecommerce_orders_v2').insert([orderData]);
+      if (!error) {
         setCart({});
         setIsCartOpen(false);
         setIsCheckoutMode(false);
@@ -399,21 +418,28 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: authForm.email, password: authForm.password })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Credenciales incorrectas');
+      const { data: user, error } = await supabase
+        .from('ecommerce_customers')
+        .select('*')
+        .eq('email', authForm.email)
+        .eq('password', authForm.password)
+        .single();
+        
+      if (error || !user) {
+        alert('Credenciales incorrectas');
         setAuthLoading(false);
         return false;
       }
-      const user = { ...data.user, orders: [] };
-      localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      
+      const mappedUser = {
+        ...user,
+        docId: user.doc_id,
+        orders: []
+      };
+      
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
-      setCurrentCustomer(user);
+      setCurrentCustomer(mappedUser);
       
       setShowAuthModal(false);
       setAuthLoading(false);
@@ -429,26 +455,47 @@ export default function PublicStore() {
   const handleGoogleSuccess = async (credentialResponse) => {
     setAuthLoading(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/auth/oauth-g`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Error al iniciar sesión con Google');
-        setAuthLoading(false);
-        return;
+      const base64Url = credentialResponse.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const decoded = JSON.parse(jsonPayload);
+      
+      const { email, name } = decoded;
+      
+      let { data: user } = await supabase
+        .from('ecommerce_customers')
+        .select('*')
+        .eq('email', email)
+        .single();
+        
+      if (!user) {
+        const id = 'CUS-' + Math.floor(Math.random() * 1000000);
+        const payload = {
+          id,
+          email,
+          password: 'oauth-google',
+          name,
+          phone: '',
+          doc_id: '',
+          address: '',
+          wishlist: [],
+          created_at: new Date().toISOString()
+        };
+        await supabase.from('ecommerce_customers').insert([payload]);
+        user = payload;
       }
-      const user = { ...data.user, orders: [] };
-      localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      
+      const mappedUser = { ...user, docId: user.doc_id, orders: [] };
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
-      setCurrentCustomer(user);
+      setCurrentCustomer(mappedUser);
       
       setShowAuthModal(false);
     } catch (err) {
       console.error(err);
-      alert('Error de conexión con el servidor');
+      alert('Error al iniciar sesión con Google');
     }
     setAuthLoading(false);
   };
@@ -494,11 +541,10 @@ export default function PublicStore() {
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedUser));
 
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedUser)
-      });
+      await supabase
+        .from('ecommerce_customers')
+        .update({ wishlist })
+        .eq('id', currentCustomer.id);
     } catch (err) { console.error(err); }
   };
 
