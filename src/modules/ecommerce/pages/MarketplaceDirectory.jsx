@@ -113,7 +113,13 @@ export default function MarketplaceDirectory() {
     fetchStores();
 
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
-    if (savedCustomer) setCurrentCustomer(JSON.parse(savedCustomer));
+    if (savedCustomer) {
+      const parsed = JSON.parse(savedCustomer);
+      setCurrentCustomer(parsed);
+      if (!parsed.phone || (!parsed.docId && !parsed.doc_id) || !parsed.address || !parsed.name || parsed.name === parsed.email.split('@')[0] || parsed.name === parsed.email) {
+        setIsWizardOpen(true);
+      }
+    }
 
     loadGlobalCart();
     window.addEventListener('cart_updated', loadGlobalCart);
@@ -153,13 +159,15 @@ export default function MarketplaceDirectory() {
       const { error } = await supabase.from('ecommerce_customers').insert([newCustomer]);
       if (error) throw error;
 
-      const user = { ...newCustomer, orders: [] };
+      const user = { ...newCustomer, docId: newCustomer.doc_id, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
       
-      if (pendingStoreSlug) {
+      if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
+        setIsWizardOpen(true);
+      } else if (pendingStoreSlug) {
         navigate(`/ecommerce/live/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
@@ -182,14 +190,16 @@ export default function MarketplaceDirectory() {
         
       if (error && error.code !== 'PGRST116') throw error;
 
-      const user = customerData ? { ...customerData, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
+      const user = customerData ? { ...customerData, docId: customerData.doc_id, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
       
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
       
-      if (pendingStoreSlug) {
+      if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
+        setIsWizardOpen(true);
+      } else if (pendingStoreSlug) {
         navigate(`/ecommerce/live/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
@@ -240,7 +250,9 @@ export default function MarketplaceDirectory() {
       setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
       
-      if (pendingStoreSlug) {
+      if (!mappedUser.phone || !mappedUser.doc_id || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+        setIsWizardOpen(true);
+      } else if (pendingStoreSlug) {
         navigate(`/ecommerce/live/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
