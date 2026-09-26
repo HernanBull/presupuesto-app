@@ -327,16 +327,21 @@ export default function CustomerProfile() {
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
-    if (!newAddressName || !newAddress) return;
+    if (!newAddressName || (!newAddress && !position)) {
+      alert("Debes escribir una dirección o usar el botón de GPS para fijar tu ubicación.");
+      return;
+    }
     
     const addresses = Array.isArray(currentCustomer.addresses) ? currentCustomer.addresses : (
       typeof currentCustomer.addresses === 'string' ? JSON.parse(currentCustomer.addresses || '[]') : []
     );
     
+    const finalAddressText = newAddress.trim() === '' ? 'Ubicación fijada por GPS' : newAddress;
+    
     const newAddr = {
       id: Date.now().toString(),
       name: newAddressName,
-      address: newAddress,
+      address: finalAddressText,
       isDefault: addresses.length === 0
     };
     if (position) {
@@ -645,8 +650,8 @@ export default function CustomerProfile() {
                           <input type="text" required value={newAddressName} onChange={e => setNewAddressName(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-zinc-400 mb-2">Dirección Completa (Texto)</label>
-                          <input type="text" required value={newAddress} onChange={e => setNewAddress(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                          <label className="block text-sm font-bold text-zinc-400 mb-2">Dirección Completa <span className="text-zinc-500 text-xs font-normal">(Opcional si usas GPS)</span></label>
+                          <input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Ej: Av. Principal, Casa 4" className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
                         </div>
                       </div>
                       
