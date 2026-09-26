@@ -36,7 +36,7 @@ export const isUserInGroup = async (userId, groupId) => {
   }
 };
 
-export const startTelegramEngine = (db, io) => {
+export const startTelegramEngine = (supabase, io) => {
   if (isEngineRunning) return;
   isEngineRunning = true;
   console.log("🚀 Motor de Telegram iniciado en el backend.");
@@ -61,7 +61,7 @@ export const startTelegramEngine = (db, io) => {
           // --- BARRERA DE SEGURIDAD: Validación de Membresía (Whitelist) ---
           // Si es un chat privado, verificamos que el usuario esté en el grupo maestro
           if (userId && !chatId.startsWith('-')) {
-            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+            const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             const masterGroupId = setting ? setting.value : null;
 
             if (masterGroupId) {
@@ -76,7 +76,7 @@ export const startTelegramEngine = (db, io) => {
           }
 
           // Driver from DB
-          let driverData = (await db.execute({ sql: 'SELECT * FROM delivery_drivers WHERE id = ?', args: [chatId] })).rows[0];
+          let { data: driverData } = await supabase.from('delivery_drivers').select('*').eq('id', chatId).single();
 
           if (driverData && driverData.banned) {
             if (text.startsWith('/')) {
@@ -93,7 +93,7 @@ export const startTelegramEngine = (db, io) => {
           // --- BARRERA DE SEGURIDAD: Grupos no autorizados ---
           // Si el bot está en un grupo (chatId negativo) que no es el oficial configurado, ignorar comandos.
           if (chatId.startsWith('-')) {
-            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+            const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             if (!setting || setting.value !== chatId) {
               continue; // Ignora silenciosamente para evitar que el bot responda a intrusos en grupos al azar
             }
@@ -147,12 +147,10 @@ export const startTelegramEngine = (db, io) => {
               const driverCode = 'REP-' + Math.floor(1000 + Math.random() * 9000);
 
               if (!driverData) {
-                await db.execute({ sql: `INSERT INTO delivery_drivers (id, driver_code, name, cedula, telefono, age, moto, placa, agencia) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, args: [
-                  chatId, driverCode, state.fullName, '', state.telefono, '', state.moto, '', state.agencia] });
+                await supabase.from('delivery_drivers').insert([{ id: chatId, driver_code: driverCode, name: state.fullName, cedula: '', telefono: state.telefono, age: '', moto: state.moto, placa: '', agencia: state.agencia }]);
 
               } else {
-                await db.execute({ sql: `UPDATE delivery_drivers SET driver_code=?, name=?, telefono=?, moto=?, agencia=? WHERE id=?`, args: [
-                  driverCode, state.fullName, state.telefono, state.moto, state.agencia, chatId] });
+                await supabase.from('delivery_drivers').update({ driver_code: driverCode, name: state.fullName, telefono: state.telefono, moto: state.moto, agencia: state.agencia }).eq('id', chatId);
 
               }
               delete botState[chatId];
@@ -164,7 +162,7 @@ export const startTelegramEngine = (db, io) => {
           } else
           if (text.startsWith('/start accept_')) {
             const orderId = text.replace('/start accept_', '');
-            const pendingOrder = (await db.execute({ sql: 'SELECT * FROM delivery_pending_trips WHERE order_id = ?', args: [orderId] })).rows[0];
+            const { data: pendingOrder } = await supabase.from('delivery_pending_trips').select('*').eq('order_id', orderId).single();
 
             if (!pendingOrder) {
               await sendMessageToChat(chatId, "❌ Este viaje ya no está disponible o ya fue tomado.");
@@ -179,9 +177,8 @@ export const startTelegramEngine = (db, io) => {
             const customerData = JSON.parse(pendingOrder.customer_data);
 
             // Move to active
-            await db.execute({ sql: 'DELETE FROM delivery_pending_trips WHERE order_id = ?', args: [orderId] });
-            await db.execute({ sql: 'INSERT INTO delivery_active_trips (order_id, driver_id, pin, customer_name, customer_data, start_time) VALUES (?, ?, ?, ?, ?, ?)', args: [
-              orderId, chatId, pendingOrder.delivery_pin, customerData.name, pendingOrder.customer_data, new Date().toISOString()] });
+            await supabase.from('delivery_pending_trips').delete().eq('order_id', orderId);
+            await supabase.from('delivery_active_trips').insert([{ order_id: orderId, driver_id: chatId, pin: pendingOrder.delivery_pin, customer_name: customerData.name, customer_data: pendingOrder.customer_data, start_time: new Date().toISOString() }]);
 
 
             const gpsLink = customerData.location ? `\n📍 <b>Mapa GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
@@ -195,7 +192,7 @@ export const startTelegramEngine = (db, io) => {
             await sendMessageToChat(chatId, privateMessage, replyMarkup);
 
             // Avisar al grupo maestro
-            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+            const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             const masterChatId = setting ? setting.value : null;
             if (masterChatId) {
               await sendMessageToChat(masterChatId, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b>.`);
@@ -208,22 +205,22 @@ export const startTelegramEngine = (db, io) => {
 
             // Mark driver confirmed
             try {
-              await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET driver_confirmed = 1 WHERE id = ?', args: [orderId] });
+              await supabase.from('ecommerce_orders_v2').update({ driver_confirmed: 1 }).eq('id', orderId);
             } catch (e) {}
 
             // Check if customer already confirmed
-            const order = (await db.execute({ sql: 'SELECT customer_confirmed FROM ecommerce_orders_v2 WHERE id = ?', args: [orderId] })).rows[0];
+            const { data: order } = await supabase.from('ecommerce_orders_v2').select('customer_confirmed').eq('id', orderId).single();
             if (order && order.customer_confirmed === 1) {
-              await db.execute({ sql: 'DELETE FROM delivery_active_trips WHERE order_id = ?', args: [orderId] });
+              await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
               await sendMessageToChat(chatId, `✅ <b>¡Listo!</b> El cliente también ha confirmado de recibido. Pedido <b>#${orderId}</b> finalizado con éxito. ¡Buen trabajo!`);
 
-              const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+              const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
               if (setting && setting.value) {
                 await sendMessageToChat(setting.value, `✅ El pedido <b>#${orderId}</b> ha sido entregado exitosamente por <b>${driverName}</b> y el cliente ha confirmado.`);
               }
 
               // Update the main ecommerce order
-              await db.execute({ sql: "UPDATE ecommerce_orders_v2 SET status = 'Entregado' WHERE id = ?", args: [orderId] });
+              await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado' }).eq('id', orderId);
               io.emit('delivery_completed', { orderId });
             } else {
               await sendMessageToChat(chatId, `⏳ <b>¡Buen trabajo!</b> Ya entregaste el pedido <b>#${orderId}</b>. Ahora estamos esperando que el cliente confirme de recibido en la app.`);
@@ -231,7 +228,7 @@ export const startTelegramEngine = (db, io) => {
           } else
           if (text.startsWith('/start cancel_')) {
             const orderId = text.replace('/start cancel_', '');
-            const active = (await db.execute({ sql: 'SELECT * FROM delivery_active_trips WHERE order_id = ?', args: [orderId] })).rows[0];
+            const { data: active } = await supabase.from('delivery_active_trips').select('*').eq('order_id', orderId).single();
 
             if (!active) {
               await sendMessageToChat(chatId, "❌ Este viaje ya no está en curso o ya fue cancelado.");
@@ -240,14 +237,13 @@ export const startTelegramEngine = (db, io) => {
 
             await sendMessageToChat(chatId, `🚨 <b>VIAJE ABORTADO</b> 🚨\n\nHas cancelado el pedido <b>#${orderId}</b>. Será asignado a otro compañero.`);
 
-            await db.execute({ sql: 'DELETE FROM delivery_active_trips WHERE order_id = ?', args: [orderId] });
+            await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
 
             // Re-add to pending
-            await db.execute({ sql: 'INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)', args: [
-              active.order_id, active.customer_data, active.pin] });
+            await supabase.from('delivery_pending_trips').insert([{ order_id: active.order_id, customer_data: active.customer_data, delivery_pin: active.pin }]);
 
 
-            const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+            const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             if (setting && setting.value) {
               const retryMessage = `🚨 <b>¡VIAJE ABANDONADO - ALTA PRIORIDAD!</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\nEl conductor <b>${driverName}</b> ha tenido un inconveniente y abortó el viaje.\n¡Necesitamos a alguien más de inmediato!\n\n<i>(Presiona el botón para tomar este viaje de emergencia)</i>`;
               const replyMarkup = {

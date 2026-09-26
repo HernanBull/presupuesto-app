@@ -5,7 +5,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import db from './db.js';
+import { supabase } from './supabaseClient.js';
 import { startTelegramEngine, sendMessageToChat } from './telegramBot.js';
 import { OAuth2Client } from 'google-auth-library';
 import http from 'http';
@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
 app.set('io', io);
 const PORT = 3001;
 
-startTelegramEngine(db, io);
+startTelegramEngine(supabase, io);
 
 // Asegurar que exista la carpeta uploads
 const uploadDir = path.join(__dirname, 'uploads');
@@ -131,7 +131,7 @@ app.get('/api/bcv', async (req, res) => {
 app.post('/api/delivery/telegram/send', async (req, res) => {
   const { commerceId, customerData, customOrderId } = req.body;
 
-  const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+  const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
   const chatId = setting ? setting.value : null;
 
   if (!chatId) return res.status(400).json({ success: false, error: "No hay un Grupo de Repartidores configurado globalmente." });
@@ -142,7 +142,7 @@ app.post('/api/delivery/telegram/send', async (req, res) => {
   if (!deliveryPin) {
     deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      await db.execute({ sql: 'UPDATE ecommerce_orders_v2 SET delivery_pin = ? WHERE id = ?', args: [deliveryPin, orderId] });
+      await supabase.from('ecommerce_orders_v2').update({ delivery_pin: deliveryPin }).eq('id', orderId);
     } catch (e) {console.error("Error updating emergency pin in db", e);}
   }
 
@@ -162,8 +162,7 @@ app.post('/api/delivery/telegram/send', async (req, res) => {
     if (!telegramRes.ok) throw new Error("Error al enviar a Telegram");
 
     // Save to pending
-    await db.execute({ sql: 'INSERT INTO delivery_pending_trips (order_id, customer_data, delivery_pin) VALUES (?, ?, ?)', args: [
-      orderId, JSON.stringify(customerData), deliveryPin] });
+    await supabase.from('delivery_pending_trips').insert([{ order_id: orderId, customer_data: JSON.stringify(customerData), delivery_pin: deliveryPin }]);
 
 
     res.json({ success: true, orderId, deliveryPin });
@@ -1692,7 +1691,7 @@ app.put('/api/superadmin/merchants/:id/status', requireSuperAdmin, async (req, r
 // --- SUPERADMIN DELIVERY SETTINGS ---
 app.get('/api/superadmin/settings', requireSuperAdmin, async (req, res) => {
   try {
-    const setting = (await db.execute({ sql: "SELECT value FROM platform_settings WHERE key = 'delivery_master_group_id'", args: [] })).rows[0];
+    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     res.json({ delivery_master_group_id: setting ? setting.value : '' });
   } catch (err) {
     res.status(500).json({ error: err.message });
