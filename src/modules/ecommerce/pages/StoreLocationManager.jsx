@@ -40,7 +40,7 @@ export default function StoreLocationManager() {
 
   const fetchConfig = async (id) => {
     try {
-      const res = await fetch('https://axonmarket-api.onrender.com/api/workspaces');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`);
       const data = await res.json();
       const ws = data.find(w => w.id === id);
       if (ws && ws.config && ws.config.location) {
@@ -58,7 +58,7 @@ export default function StoreLocationManager() {
     
     setSaving(true);
     try {
-      const res = await fetch('https://axonmarket-api.onrender.com/api/workspaces');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`);
       const data = await res.json();
       const ws = data.find(w => w.id === workspaceId);
       
@@ -71,7 +71,7 @@ export default function StoreLocationManager() {
         }
       };
 
-      await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${workspaceId}/config`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/${workspaceId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: newConfig })

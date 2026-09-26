@@ -14,7 +14,7 @@ export default function NotificationsManager() {
     if (!workspaceId) return;
     try {
       setLoading(true);
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${workspaceId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/notifications/${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -32,7 +32,7 @@ export default function NotificationsManager() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/notifications/${id}/read`, { method: 'PUT' });
       if (res.ok) {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
       }
@@ -44,7 +44,7 @@ export default function NotificationsManager() {
   const handleAutoReplenish = async (n) => {
     try {
       // 1. Obtener datos actuales del producto
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${n.product_id}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${n.product_id}`);
       if (!res.ok) {
         alert('⚠️ Error al consultar el producto.');
         return;
@@ -57,7 +57,7 @@ export default function NotificationsManager() {
         const newVitrina = (product.stock_vitrina || 0) + 1;
         
         // 3. Aplicar parche (transferencia)
-        const patchRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${n.product_id}`, {
+        const patchRes = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${n.product_id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stock: newStock, stock_vitrina: newVitrina })

@@ -12,8 +12,8 @@ export default function OrderPreparation() {
   useEffect(() => {
     const workspaceId = localStorage.getItem('activeWorkspace');
     const url = workspaceId 
-      ? `https://axonmarket-api.onrender.com/api/ecommerce/orders?workspaceId=${workspaceId}`
-      : 'https://axonmarket-api.onrender.com/api/ecommerce/orders';
+      ? `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders?workspaceId=${workspaceId}`
+      : `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders`;
       
     fetch(url)
       .then(res => res.json())
@@ -116,7 +116,7 @@ export default function OrderPreparation() {
       setSelectedOrderId(null);
     }
     
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'Enviado', deliveryPin: newDeliveryPin })

@@ -19,7 +19,7 @@ export default function ProductsManager() {
         window.location.reload();
         return;
       }
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${workspaceId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         const mapped = data.map(p => ({
@@ -77,7 +77,7 @@ export default function ProductsManager() {
     
     try {
       const p = products.find(p => p.id === id);
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ publish_status: newStatus })
@@ -92,7 +92,7 @@ export default function ProductsManager() {
   const handleDelete = async (id) => {
     if(window.confirm('¿Estás seguro de eliminar este producto?')) {
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${id}`, {
           method: 'DELETE'
         });
         if (res.ok) {

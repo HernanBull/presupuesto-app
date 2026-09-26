@@ -15,7 +15,7 @@ export default function ReviewsManager() {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews?workspaceId=${workspaceId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/reviews?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         setReviews(data);
@@ -57,7 +57,7 @@ export default function ReviewsManager() {
   // Acciones
   const handleApprove = async (id) => {
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/status`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/reviews/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Aprobado' })
@@ -71,7 +71,7 @@ export default function ReviewsManager() {
   const handleReject = async (id) => {
     if(window.confirm('¿Estás seguro de rechazar y ocultar esta reseña?')) {
       try {
-        await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/status`, {
+        await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/reviews/${id}/status`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'Rechazado' })
@@ -91,7 +91,7 @@ export default function ReviewsManager() {
   const submitReply = async (id) => {
     if (!replyText.trim()) return;
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/reply`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/reviews/${id}/reply`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reply: replyText })
@@ -210,7 +210,7 @@ export default function ReviewsManager() {
                          <button 
                            onClick={async () => {
                              try {
-                               await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${review.id}/reply`, {
+                               await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/reviews/${review.id}/reply`, {
                                  method: 'PUT',
                                  headers: { 'Content-Type': 'application/json' },
                                  body: JSON.stringify({ reply: null })

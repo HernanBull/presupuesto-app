@@ -13,7 +13,7 @@ export default function OrdersManager() {
   // Cargar pedidos desde el backend
   useEffect(() => {
     const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders?workspaceId=${workspaceId}`)
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders?workspaceId=${workspaceId}`)
       .then(res => res.json())
       .then(data => {
         setOrders(data || []);
@@ -98,7 +98,7 @@ export default function OrdersManager() {
       ));
 
       // Update en backend
-      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${completedOrderId}`, {
+      fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${completedOrderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Entregado' })
@@ -149,7 +149,7 @@ export default function OrdersManager() {
         const payload = { status: targetStatus };
         if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
 
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${draggedOrderId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${draggedOrderId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -192,7 +192,7 @@ export default function OrdersManager() {
     if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
 
     // Update en backend
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${id}`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -252,7 +252,7 @@ export default function OrdersManager() {
     if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) updatePayload.deliveryPin = newDeliveryPin;
 
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatePayload)

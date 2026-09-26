@@ -26,7 +26,7 @@ export default function StoreProfileManager() {
   const fetchBcvRate = async () => {
     setIsFetchingBcv(true);
     try {
-      const res = await fetch('https://axonmarket-api.onrender.com/api/bcv');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/bcv`);
       const data = await res.json();
       if (res.ok && data.rate) {
         setBcvRate(data.rate);
@@ -76,7 +76,7 @@ export default function StoreProfileManager() {
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
   useEffect(() => {
-    fetch('https://axonmarket-api.onrender.com/api/workspaces', { cache: 'no-store' })
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const ws = data.find(w => w.id === workspaceId);
@@ -139,7 +139,7 @@ export default function StoreProfileManager() {
     setPasswordStatus({ type: '', msg: '' });
 
     try {
-      const res = await fetch('https://axonmarket-api.onrender.com/api/workspaces/change-password', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,7 +169,7 @@ export default function StoreProfileManager() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch('https://axonmarket-api.onrender.com/api/workspaces', { cache: 'no-store' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`, { cache: 'no-store' });
       const data = await res.json();
       const ws = data.find(w => w.id === workspaceId) || { config: {} };
       
@@ -207,7 +207,7 @@ export default function StoreProfileManager() {
       // Si queremos cambiar el nombre del workspace, el endpoint PUT /config no lo cambia,
       // pero para la funcionalidad de pagos esto es suficiente.
 
-      await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${workspaceId}/config`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/${workspaceId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: newConfig })

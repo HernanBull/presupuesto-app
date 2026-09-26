@@ -22,7 +22,7 @@ export default function CartSettings() {
 
   // Cargar configuración desde SQLite
   useEffect(() => {
-    fetch('https://axonmarket-api.onrender.com/api/workspaces')
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`)
       .then(res => res.json())
       .then(data => {
         const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
@@ -49,7 +49,7 @@ export default function CartSettings() {
     try {
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
       // Primero obtener la config actual
-      const res = await fetch('https://axonmarket-api.onrender.com/api/workspaces');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`);
       const data = await res.json();
       const defaultWs = data.find(w => w.id === workspaceId) || { config: {} };
       
@@ -60,7 +60,7 @@ export default function CartSettings() {
         }
       };
 
-      await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${workspaceId}/config`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/${workspaceId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: newConfig })

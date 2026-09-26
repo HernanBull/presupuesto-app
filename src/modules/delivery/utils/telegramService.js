@@ -1,6 +1,6 @@
 export const sendDeliveryRequest = async (commerceId, customerData, customOrderId = null) => {
   try {
-    const res = await fetch('https://axonmarket-api.onrender.com/api/delivery/telegram/send', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/delivery/telegram/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ commerceId, customerData, customOrderId })

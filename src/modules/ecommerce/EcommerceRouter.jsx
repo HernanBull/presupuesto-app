@@ -74,7 +74,7 @@ const AdminGuard = () => {
       setLoading(false);
       return;
     }
-    fetch('https://axonmarket-api.onrender.com/api/workspaces', { cache: 'no-store' })
+    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         const ws = data.find(w => w.id === wsId);
@@ -111,7 +111,7 @@ const AdminGuard = () => {
       
       const wsId = localStorage.getItem('activeWorkspace');
       if (wsId) {
-        fetch('https://axonmarket-api.onrender.com/api/workspaces/notify-pin-login', {
+        fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/notify-pin-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ workspaceId: wsId })
@@ -163,13 +163,13 @@ const AdminGuard = () => {
     try {
       const wsId = localStorage.getItem('activeWorkspace');
       
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`);
       const data = await res.json();
       const ws = data.find(w => w.id === wsId);
       
       const updatedConfig = { ...ws.config, adminPin: newPin };
 
-      const putRes = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${wsId}/config`, {
+      const putRes = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/${wsId}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ config: updatedConfig, store_slug: ws.store_slug || ws.slug })
