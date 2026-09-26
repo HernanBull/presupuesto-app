@@ -1707,7 +1707,6 @@ app.get('/api/superadmin/2fa/status', async (req, res) => {
   const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
   res.json({ isActive: !!(setting && setting.value) });
 });
-});
 
 app.post('/api/superadmin/recover', async (req, res) => {
   try {
