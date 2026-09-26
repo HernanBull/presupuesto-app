@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Search, CheckCheck, PackageSearch, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../../supabaseClient';
 
 export default function NotificationsManager() {
   const [notifications, setNotifications] = useState([]);
@@ -14,9 +15,13 @@ export default function NotificationsManager() {
     if (!workspaceId) return;
     try {
       setLoading(true);
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${workspaceId}`);
-      if (res.ok) {
-        const data = await res.json();
+      const { data, error } = await supabase
+        .from('ecommerce_notifications')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false });
+        
+      if (!error && data) {
         setNotifications(data);
       }
     } catch (err) {
@@ -32,8 +37,8 @@ export default function NotificationsManager() {
 
   const markAsRead = async (id) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' });
-      if (res.ok) {
+      const { error } = await supabase.from('ecommerce_notifications').update({ is_read: 1 }).eq('id', id);
+      if (!error) {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
       }
     } catch (err) {
@@ -44,12 +49,11 @@ export default function NotificationsManager() {
   const handleAutoReplenish = async (n) => {
     try {
       // 1. Obtener datos actuales del producto
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${n.product_id}`);
-      if (!res.ok) {
+      const { data: product, error: fetchErr } = await supabase.from('ecommerce_products').select('*').eq('id', n.product_id).single();
+      if (fetchErr || !product) {
         alert('⚠️ Error al consultar el producto.');
         return;
       }
-      const product = await res.json();
       
       // 2. Validar si hay stock en depósito
       if (product.stock > 0) {
@@ -57,13 +61,9 @@ export default function NotificationsManager() {
         const newVitrina = (product.stock_vitrina || 0) + 1;
         
         // 3. Aplicar parche (transferencia)
-        const patchRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${n.product_id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stock: newStock, stock_vitrina: newVitrina })
-        });
+        const { error: patchErr } = await supabase.from('ecommerce_products').update({ stock: newStock, stock_vitrina: newVitrina }).eq('id', n.product_id);
         
-        if (patchRes.ok) {
+        if (!patchErr) {
           // 4. Marcar como leída y avisar
           markAsRead(n.id);
           alert(`✅ Éxito: Se ha transferido 1 unidad de '${product.name}' de Depósito a Vitrina.`);
