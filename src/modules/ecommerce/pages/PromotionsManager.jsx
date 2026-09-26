@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Tag, Plus, Scissors, Calendar, Trash2 } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
 
 export default function PromotionsManager() {
   const [coupons, setCoupons] = useState([]);
@@ -14,9 +15,12 @@ export default function PromotionsManager() {
 
   const fetchPromotions = async () => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions?workspaceId=${workspaceId}`);
-      if (res.ok) {
-        const data = await res.json();
+      const { data, error } = await supabase
+        .from('ecommerce_promotions')
+        .select('*')
+        .eq('workspace_id', workspaceId);
+
+      if (!error && data) {
         const formatted = data.map(p => {
           let displayDiscount = p.value;
           if (p.type === 'Porcentaje (%)') displayDiscount = `${p.value}%`;
@@ -28,7 +32,7 @@ export default function PromotionsManager() {
             code: p.code,
             discount: displayDiscount,
             type: p.type,
-            usage: `${p.usage_count}/${p.usage_limit > 0 ? p.usage_limit : '∞'}`,
+            usage: `${p.usage_count || 0}/${p.usage_limit > 0 ? p.usage_limit : '∞'}`,
             expires: p.expires_at ? new Date(p.expires_at).toLocaleDateString() : 'Ilimitado',
             status: p.status
           };
@@ -65,18 +69,20 @@ export default function PromotionsManager() {
     }
 
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          code: formData.code,
-          type: formData.type,
-          value: formData.value || '0'
-        })
-      });
+      const newCoupon = {
+        id: 'PRM-' + Math.floor(Math.random() * 1000000),
+        workspace_id: workspaceId,
+        code: formData.code,
+        type: formData.type,
+        value: formData.value || '0',
+        usage_count: 0,
+        usage_limit: 0,
+        status: 'Activo'
+      };
 
-      if (res.ok) {
+      const { error } = await supabase.from('ecommerce_promotions').insert([newCoupon]);
+
+      if (!error) {
         fetchPromotions();
         setFormData({
           code: '',
@@ -84,8 +90,7 @@ export default function PromotionsManager() {
           value: ''
         });
       } else {
-        const error = await res.json();
-        alert(error.error || 'Error al crear el cupón');
+        alert(error.message || 'Error al crear el cupón');
       }
     } catch (err) {
       console.error(err);
@@ -96,8 +101,8 @@ export default function PromotionsManager() {
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este cupón?')) {
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/promotions/${id}`, { method: 'DELETE' });
-        if (res.ok) {
+        const { error } = await supabase.from('ecommerce_promotions').delete().eq('id', id);
+        if (!error) {
           fetchPromotions();
         }
       } catch (err) {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Star, MessageSquare, Check, X, CornerDownRight, Send, Trash2 } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
 
 export default function ReviewsManager() {
   const [reviews, setReviews] = useState([]);
@@ -15,9 +16,11 @@ export default function ReviewsManager() {
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews?workspaceId=${workspaceId}`);
-      if (res.ok) {
-        const data = await res.json();
+      const { data, error } = await supabase
+        .from('ecommerce_reviews')
+        .select('*')
+        .eq('workspace_id', workspaceId);
+      if (!error && data) {
         setReviews(data);
       }
     } catch (err) {
@@ -57,11 +60,7 @@ export default function ReviewsManager() {
   // Acciones
   const handleApprove = async (id) => {
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Aprobado' })
-      });
+      await supabase.from('ecommerce_reviews').update({ status: 'Aprobado' }).eq('id', id);
       fetchReviews();
     } catch (err) {
       console.error(err);
@@ -71,11 +70,7 @@ export default function ReviewsManager() {
   const handleReject = async (id) => {
     if(window.confirm('¿Estás seguro de rechazar y ocultar esta reseña?')) {
       try {
-        await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/status`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Rechazado' })
-        });
+        await supabase.from('ecommerce_reviews').update({ status: 'Rechazado' }).eq('id', id);
         fetchReviews();
       } catch (err) {
         console.error(err);
@@ -91,11 +86,7 @@ export default function ReviewsManager() {
   const submitReply = async (id) => {
     if (!replyText.trim()) return;
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${id}/reply`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reply: replyText })
-      });
+      await supabase.from('ecommerce_reviews').update({ reply: replyText }).eq('id', id);
       setReplyingTo(null);
       setReplyText('');
       fetchReviews();
@@ -210,11 +201,7 @@ export default function ReviewsManager() {
                          <button 
                            onClick={async () => {
                              try {
-                               await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/reviews/${review.id}/reply`, {
-                                 method: 'PUT',
-                                 headers: { 'Content-Type': 'application/json' },
-                                 body: JSON.stringify({ reply: null })
-                               });
+                               await supabase.from('ecommerce_reviews').update({ reply: null }).eq('id', review.id);
                                fetchReviews();
                              } catch(err) {}
                            }}
