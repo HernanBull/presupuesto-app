@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, FileUp, UploadCloud, ClipboardCheck } from 'lucide-react';
-
+import { supabase } from '../../../supabaseClient';
 const initialInventory = [];
 
 export default function InventoryManager() {
@@ -26,9 +26,13 @@ export default function InventoryManager() {
         window.location.reload();
         return;
       }
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspace_id=${workspaceId}`);
-      const data = await res.json();
-      if (!data.error) {
+      const { data, error } = await supabase
+        .from('ecommerce_products')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('name', { ascending: true });
+        
+      if (!error && data) {
         setInventory(data.map(p => ({
           ...p,
           stock: p.stock || 0,
@@ -279,16 +283,7 @@ export default function InventoryManager() {
 
     try {
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      const method = editingId ? 'PATCH' : 'POST';
-      const url = editingId 
-        ? `https://axonmarket-api.onrender.com/api/ecommerce/products/${editingId}` 
-        : `https://axonmarket-api.onrender.com/api/ecommerce/products`;
-
-      await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: newItem.id,
+      const payload = {
           name: newItem.name,
           stock: newItem.stock,
           cogs: newItem.cogs,
@@ -298,8 +293,16 @@ export default function InventoryManager() {
           supplier: newItem.supplier,
           stock_vitrina: newItem.stockVitrina,
           workspace_id: workspaceId
-        })
-      });
+      };
+      
+      if (editingId) {
+        await supabase.from('ecommerce_products').update(payload).eq('id', editingId);
+      } else {
+        payload.id = newItem.id;
+        payload.created_at = new Date().toISOString();
+        payload.publish_status = 'Activo';
+        await supabase.from('ecommerce_products').insert([payload]);
+      }
       await fetchInventory();
     } catch(e) { console.error(e) }
     closeEditor();
@@ -314,11 +317,7 @@ export default function InventoryManager() {
     }
 
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${wasteItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: wasteItem.stock - qty })
-      });
+      await supabase.from('ecommerce_products').update({ stock: wasteItem.stock - qty }).eq('id', wasteItem.id);
       await fetchInventory();
     } catch(e) { console.error(e) }
     setIsWasteModalOpen(false);
@@ -336,11 +335,7 @@ export default function InventoryManager() {
     }
 
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${auditItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: physicalCount })
-      });
+      await supabase.from('ecommerce_products').update({ stock: physicalCount }).eq('id', auditItem.id);
       await fetchInventory();
     } catch(e) { console.error(e) }
     setIsAuditModalOpen(false);
@@ -360,11 +355,7 @@ export default function InventoryManager() {
     const newVitrina = transferData.toVitrina ? (transferItem.stockVitrina || 0) + qty : (transferItem.stockVitrina || 0) - qty;
 
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${transferItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stock: newStock, stock_vitrina: newVitrina })
-      });
+      await supabase.from('ecommerce_products').update({ stock: newStock, stock_vitrina: newVitrina }).eq('id', transferItem.id);
       await fetchInventory();
     } catch(e) { console.error(e) }
     setIsTransferModalOpen(false);
@@ -373,7 +364,7 @@ export default function InventoryManager() {
   const handleDelete = async (id) => {
     if(window.confirm('¿Estás seguro de eliminar este registro del inventario?')) {
       try {
-        await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, { method: 'DELETE' });
+        await supabase.from('ecommerce_products').delete().eq('id', id);
         await fetchInventory();
       } catch(e) { console.error(e) }
     }
@@ -395,7 +386,7 @@ export default function InventoryManager() {
             <span className="hidden sm:inline">Importar POS (.csv)</span>
             <span className="sm:hidden">Importar</span>
           </button>
-          <button onClick={() => navigate('/ecommerce/product-studio')} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
+          <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
             <PackagePlus size={16} />
             <span className="hidden sm:inline">Registrar Entrada</span>
             <span className="sm:hidden">+ Entrada</span>
@@ -506,7 +497,7 @@ export default function InventoryManager() {
                         <TrendingDown size={12} /> Merma
                       </button>
                     )}
-                    <button onClick={() => navigate('/ecommerce/product-studio/' + item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold">
+                    <button onClick={() => openEditor(item)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold">
                       <Edit2 size={12} /> Editar
                     </button>
                     <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">
@@ -601,7 +592,7 @@ export default function InventoryManager() {
                           <button onClick={() => { setHistoryItem(item); setIsHistoryModalOpen(true); }} className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors" title="Ver Historial (Kardex)">
                             <PackageSearch size={16} />
                           </button>
-                          <button onClick={() => navigate('/ecommerce/product-studio/' + item.id)} className="p-1.5 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Editar Stock y Costo">
+                          <button onClick={() => openEditor(item)} className="p-1.5 text-slate-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors" title="Editar Stock y Costo">
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => handleDelete(item.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Eliminar Registro">
