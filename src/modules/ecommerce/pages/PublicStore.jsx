@@ -444,6 +444,10 @@ export default function PublicStore() {
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       
+      if (!mappedUser.phone || !mappedUser.docId || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+        setIsWizardOpen(true);
+      }
+
       setShowAuthModal(false);
       setAuthLoading(false);
       return true;
@@ -495,6 +499,10 @@ export default function PublicStore() {
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       
+      if (!mappedUser.phone || !mappedUser.docId || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+        setIsWizardOpen(true);
+      }
+
       setShowAuthModal(false);
     } catch (err) {
       console.error(err);
@@ -2281,7 +2289,7 @@ export default function PublicStore() {
         isOpen={isWizardOpen} 
         onClose={() => setIsWizardOpen(false)} 
         customer={currentCustomer} 
-        canClose={true}
+        canClose={false}
         onComplete={(updatedCustomer) => {
           localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
           setCurrentCustomer(updatedCustomer);
