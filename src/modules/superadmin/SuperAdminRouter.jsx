@@ -141,23 +141,14 @@ export default function SuperAdminRouter() {
                 </div>
                 <h1 className="text-xl font-black tracking-tight text-white mb-2 uppercase">Inicialización 2FA</h1>
                 <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
-                  El sistema no tiene un código 2FA configurado en la base de datos segura.
+                  El sistema no tiene un código 2FA configurado, pero la generación pública ha sido desactivada por seguridad.
                 </p>
                 {!publicQrUri ? (
                   <button 
-                    onClick={async () => {
-                      setIsChecking2fa(true);
-                      try {
-                        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/setup-public`, { method: 'POST' });
-                        const data = await res.json();
-                        if (res.ok) setPublicQrUri(data.uri);
-                        else setError(data.error);
-                      } catch(e) { setError('Error de red'); }
-                      setIsChecking2fa(false);
-                    }}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all flex items-center justify-center"
+                    disabled
+                    className="w-full bg-zinc-800 text-zinc-500 font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full flex items-center justify-center cursor-not-allowed"
                   >
-                    Generar Código QR Único
+                    Generación Desactivada
                   </button>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
