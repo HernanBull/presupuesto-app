@@ -41,7 +41,7 @@ export default function SuperAdminRouter() {
 
   const check2FaStatus = async () => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/status`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/status`, { cache: 'no-store' });
       const data = await res.json();
       setIs2faActive(data.isActive);
     } catch(e) {}
