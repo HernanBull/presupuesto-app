@@ -13,17 +13,40 @@ export default function OrdersManager() {
   // Cargar pedidos desde el backend
   useEffect(() => {
     const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders?workspaceId=${workspaceId}`)
-      .then(res => res.json())
-      .then(data => {
-        setOrders(data || []);
-        setIsLoading(false);
-      })
-      .catch(err => {
+    
+    const loadOrders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('*')
+          .eq('workspace_id', workspaceId)
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        
+        // Map snake_case from DB to camelCase for UI
+        const mappedOrders = (data || []).map(order => ({
+          ...order,
+          date: new Date(order.created_at).toLocaleString(),
+          paymentMethod: order.payment_method,
+          paymentStatus: order.payment_status,
+          paymentDetails: typeof order.payment_details === 'string' ? JSON.parse(order.payment_details) : order.payment_details,
+          shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          deliveryPin: order.delivery_pin,
+          isMobile: order.is_mobile
+        }));
+        
+        setOrders(mappedOrders);
+      } catch (err) {
         console.error('Error fetching orders:', err);
         setOrders([]);
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+    
+    loadOrders();
   }, []);
   
   // Modal de detalles
@@ -98,11 +121,10 @@ export default function OrdersManager() {
       ));
 
       // Update en backend
-      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${completedOrderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Entregado' })
-      }).catch(console.error);
+      supabase.from('ecommerce_orders_v2')
+        .update({ status: 'Entregado' })
+        .eq('id', completedOrderId)
+        .catch(console.error);
     };
 
     globalListeners.onComplete.push(handleComplete);
@@ -147,17 +169,15 @@ export default function OrdersManager() {
       
       try {
         const payload = { status: targetStatus };
-        if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
+        if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.delivery_pin = newDeliveryPin;
 
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${draggedOrderId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        const { error } = await supabase
+          .from('ecommerce_orders_v2')
+          .update(payload)
+          .eq('id', draggedOrderId);
         
-        if (!res.ok || data.error) {
-          alert(data.error || 'Error al actualizar pedido.');
+        if (error) {
+          alert('Error al actualizar pedido: ' + error.message);
           // Revertir
           setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus } : order));
           return;
@@ -189,14 +209,10 @@ export default function OrdersManager() {
     ));
     
     const payload = { status: newStatus };
-    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.deliveryPin = newDeliveryPin;
+    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.delivery_pin = newDeliveryPin;
 
     // Update en backend
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(console.error);
+    supabase.from('ecommerce_orders_v2').update(payload).eq('id', id).catch(console.error);
 
     // Integración Telegram Delivery
     if (newStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
@@ -247,20 +263,18 @@ export default function OrdersManager() {
       return order;
     }));
 
-    const updatePayload = { paymentStatus: newPaymentStatus };
+    const updatePayload = { payment_status: newPaymentStatus };
     if (newStatus) updatePayload.status = newStatus;
-    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) updatePayload.deliveryPin = newDeliveryPin;
+    if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) updatePayload.delivery_pin = newDeliveryPin;
 
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatePayload)
-      });
-      const data = await res.json();
-      
-      if (!res.ok || data.error) {
-        alert(data.error || 'Error al actualizar pedido.');
+      const { error } = await supabase
+        .from('ecommerce_orders_v2')
+        .update(updatePayload)
+        .eq('id', id);
+        
+      if (error) {
+        alert('Error al actualizar pedido: ' + error.message);
         // Revertir
         setOrders(prev => prev.map(order => {
            if (order.id === id) {
