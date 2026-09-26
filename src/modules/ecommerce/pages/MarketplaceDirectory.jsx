@@ -530,9 +530,9 @@ export default function MarketplaceDirectory() {
   ];
 
   const filteredStores = stores.filter(store => 
-    (activeCategory === 'Todas' || (store.productCategories && store.productCategories.includes(activeCategory))) &&
-    (store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (store.description && store.description.toLowerCase().includes(searchTerm.toLowerCase())))
+    (activeCategory === 'Todas' || (store.config?.categories && store.config.categories.includes(activeCategory))) &&
+    (store.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (store.config?.description && store.config.description.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   return (
@@ -728,11 +728,11 @@ export default function MarketplaceDirectory() {
                   className="group relative bg-zinc-900/40 rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:border-amber-500/30 hover:bg-zinc-900/80 cursor-pointer flex flex-col hover:-translate-y-2"
                   onClick={() => {
                     if (!currentCustomer) {
-                      setPendingStoreSlug(store.slug);
+                      setPendingStoreSlug(store.store_slug);
                       setAuthMode('login');
                       setIsAuthModalOpen(true);
                     } else {
-                      navigate(`/ecommerce/live/${store.slug}`);
+                      navigate(`/ecommerce/live/${store.store_slug}`);
                     }
                   }}
                 >
@@ -741,8 +741,8 @@ export default function MarketplaceDirectory() {
 
                   {/* Store Banner */}
                   <div className="h-56 w-full relative bg-zinc-950 overflow-hidden">
-                    {store.heroUrl ? (
-                      <img src={`https://axonmarket-api.onrender.com${store.heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
+                    {store.config?.storefront?.heroUrl ? (
+                      <img src={`https://axonmarket-api.onrender.com${store.config.storefront.heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
                         <Store size={40} className="text-zinc-700" />
@@ -757,10 +757,10 @@ export default function MarketplaceDirectory() {
                       <button 
                         onClick={(e) => toggleFavorite(e, store)}
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all backdrop-blur-md border ${
-                          isFavorite(store.slug) ? 'bg-red-500/20 border-red-500/30 text-red-500' : 'bg-black/60 border-white/10 text-zinc-400 hover:text-red-500 hover:border-red-500/30'
+                          isFavorite(store.store_slug) ? 'bg-red-500/20 border-red-500/30 text-red-500' : 'bg-black/60 border-white/10 text-zinc-400 hover:text-red-500 hover:border-red-500/30'
                         }`}
                       >
-                        <Heart size={16} fill={isFavorite(store.slug) ? 'currentColor' : 'none'} />
+                        <Heart size={16} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} />
                       </button>
                     </div>
                   </div>
@@ -769,17 +769,17 @@ export default function MarketplaceDirectory() {
                   <div className="p-8 pt-0 relative flex-grow flex flex-col z-10">
                     <div className="relative -mt-12 mb-6 w-24 h-24 bg-zinc-950 rounded-[1.5rem] shadow-2xl border border-white/10 p-1 flex items-center justify-center overflow-hidden group-hover:border-amber-500/30 transition-colors duration-500">
                       <div className="w-full h-full bg-zinc-900 rounded-[1.2rem] flex items-center justify-center overflow-hidden">
-                        {store.logoUrl ? (
-                          <img src={`https://axonmarket-api.onrender.com${store.logoUrl}`} alt={store.name} className="w-full h-full object-contain" />
+                        {store.config?.storefront?.logoUrl ? (
+                          <img src={`https://axonmarket-api.onrender.com${store.config.storefront.logoUrl}`} alt={store.name} className="w-full h-full object-contain" />
                         ) : (
-                          <span className="text-3xl font-black text-amber-500 uppercase">{store.name.charAt(0)}</span>
+                          <span className="text-3xl font-black text-amber-500 uppercase">{store.name?.charAt(0) || 'S'}</span>
                         )}
                       </div>
                     </div>
                     
                     <div className="mb-6 flex-grow">
                       <h3 className="text-2xl font-normal text-white mb-2 group-hover:text-amber-400 transition-colors line-clamp-1">{store.name}</h3>
-                      <p className="text-zinc-400 text-sm font-light line-clamp-2 leading-relaxed">{store.description}</p>
+                      <p className="text-zinc-400 text-sm font-light line-clamp-2 leading-relaxed">{store.config?.description || store.config?.expediente?.address}</p>
                     </div>
                     
                     <div className="pt-6 flex items-center justify-between border-t border-white/5">
