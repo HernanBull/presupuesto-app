@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, ArrowRight, Truck, ShieldCheck, ShieldBan, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
+import { supabase } from '../../../supabaseClient';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -41,10 +42,21 @@ export default function SuperAdminDashboard({ superKey }) {
   const fetchData = async () => {
     setLoading(true);
     try {
+      if (activeTab === 'merchants') {
+        const { data } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
+        setMerchants(data || []);
+        setLoading(false);
+        return;
+      }
+      if (activeTab === 'customers') {
+        const { data } = await supabase.from('ecommerce_customers').select('*').order('join_date', { ascending: false });
+        setCustomers(data || []);
+        setLoading(false);
+        return;
+      }
+
       let endpoint = '';
       if (activeTab === 'dashboard') endpoint = '/api/superadmin/stats';
-      else if (activeTab === 'merchants') endpoint = '/api/superadmin/merchants';
-      else if (activeTab === 'customers') endpoint = '/api/superadmin/customers';
       else if (activeTab === 'monitor') endpoint = '/api/superadmin/monitor';
       else if (activeTab === 'delivery_bot') {
         const [setRes, drvRes] = await Promise.all([
@@ -134,18 +146,11 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(true);
     const newStatus = merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido';
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/merchants/${merchant.id}/status`, {
-        method: 'PUT',
-        headers: { 
-          'x-superadmin-key': superKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (res.ok) {
+      const { error } = await supabase.from('workspaces').update({ status: newStatus }).eq('id', merchant.id);
+      if (!error) {
         fetchData();
       } else {
-        alert('Error al cambiar estado');
+        alert('Error al cambiar estado: ' + error.message);
       }
     } catch(e) {
       alert('Error de conexión');
@@ -163,26 +168,19 @@ export default function SuperAdminDashboard({ superKey }) {
     if (confirmText.trim().toUpperCase() !== 'ELIMINAR') return;
     setIsActionLoading(true);
     try {
-      const endpoint = itemToDelete.type === 'merchant' 
-        ? `/api/superadmin/merchants/${itemToDelete.id}` 
-        : `/api/superadmin/customers/${itemToDelete.id}`;
-      
-      const res = await fetch(`https://axonmarket-api.onrender.com${endpoint}`, {
-        method: 'DELETE',
-        headers: { 'x-superadmin-key': superKey }
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (res.ok) {
-        setIsConfirmOpen(false);
-        fetchData();
+      if (itemToDelete.type === 'merchant') {
+        await supabase.from('ecommerce_products').delete().eq('workspace_id', itemToDelete.id);
+        const { error } = await supabase.from('workspaces').delete().eq('id', itemToDelete.id);
+        if (error) throw error;
       } else {
-        alert('Error del servidor: ' + (data.error || 'Desconocido'));
+        const { error } = await supabase.from('ecommerce_customers').delete().eq('id', itemToDelete.id);
+        if (error) throw error;
       }
+      setIsConfirmOpen(false);
+      fetchData();
     } catch (e) {
       console.error(e);
-      alert('Error de conexión con el servidor');
+      alert('Error al eliminar: ' + (e.message || 'Desconocido'));
     }
     setIsActionLoading(false);
   };
