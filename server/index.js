@@ -1810,7 +1810,8 @@ app.get('/api/superadmin/settings', requireSuperAdmin, async (req, res) => {
 app.put('/api/superadmin/settings', requireSuperAdmin, async (req, res) => {
   const { delivery_master_group_id } = req.body;
   try {
-    await db.execute({ sql: "INSERT INTO platform_settings (key, value) VALUES ('delivery_master_group_id', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", args: [delivery_master_group_id] });
+    const { error } = await supabase.from('platform_settings').upsert({ key: 'delivery_master_group_id', value: delivery_master_group_id }, { onConflict: 'key' });
+    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
