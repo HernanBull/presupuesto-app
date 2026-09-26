@@ -1669,7 +1669,6 @@ app.get('/api/superadmin/2fa/setup', requireSuperAdmin, (req, res) => {
 
 app.post('/api/superadmin/2fa/setup-public', async (req, res) => {
   try {
-    return res.status(403).json({ error: 'La inicialización pública de 2FA ha sido deshabilitada por seguridad.' });
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
     let secret = setting ? setting.value : null;
     
