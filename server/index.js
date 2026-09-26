@@ -1683,6 +1683,10 @@ app.get('/api/superadmin/2fa/setup', requireSuperAdmin, (req, res) => {
 });
 
 
+app.get('/api/superadmin/2fa/status', (req, res) => {
+  res.json({ isActive: !!process.env.SUPERADMIN_2FA_SECRET });
+});
+
 app.post('/api/superadmin/recover', (req, res) => {
   try {
     const { token } = req.body;
