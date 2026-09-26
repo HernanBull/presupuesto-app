@@ -1667,16 +1667,15 @@ app.get('/api/superadmin/2fa/setup', requireSuperAdmin, (req, res) => {
 
 
 
-app.post('/api/superadmin/2fa/setup-public', (req, res) => {
+app.post('/api/superadmin/2fa/setup-public', async (req, res) => {
   try {
-    let secret = process.env.SUPERADMIN_2FA_SECRET;
+    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
+    let secret = setting ? setting.value : null;
     
-    // If it already exists, refuse to generate a new one publicly
     if (secret) {
       return res.status(403).json({ error: 'El 2FA ya fue inicializado.' });
     }
 
-    // Generate a random 20 byte buffer and encode it in base32
     const randomBuffer = crypto.randomBytes(20);
     const base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
     secret = '';
@@ -1684,19 +1683,9 @@ app.post('/api/superadmin/2fa/setup-public', (req, res) => {
       secret += base32chars[randomBuffer[i] % 32];
     }
     
-    const envPath = path.join(__dirname, '..', '.env');
-    let envContent = '';
-    if (fs.existsSync(envPath)) {
-      envContent = fs.readFileSync(envPath, 'utf8');
-    }
-
-    if (envContent.includes('SUPERADMIN_2FA_SECRET=')) {
-      envContent = envContent.replace(/SUPERADMIN_2FA_SECRET=.*/g, `SUPERADMIN_2FA_SECRET="${secret}"`);
-    } else {
-      envContent += `\nSUPERADMIN_2FA_SECRET="${secret}"\n`;
-    }
-    fs.writeFileSync(envPath, envContent);
-    process.env.SUPERADMIN_2FA_SECRET = secret;
+    // Save to DB
+    const { error } = await supabase.from('platform_settings').upsert({ key: 'superadmin_2fa_secret', value: secret }, { onConflict: 'key' });
+    if (error) throw error;
 
     const totp = new OTPAuth.TOTP({
       issuer: 'AxonMarket SuperAdmin',
@@ -1713,17 +1702,20 @@ app.post('/api/superadmin/2fa/setup-public', (req, res) => {
   }
 });
 
-app.get('/api/superadmin/2fa/status', (req, res) => {
-  res.json({ isActive: !!process.env.SUPERADMIN_2FA_SECRET });
+app.get('/api/superadmin/2fa/status', async (req, res) => {
+  const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
+  res.json({ isActive: !!(setting && setting.value) });
+});
 });
 
-app.post('/api/superadmin/recover', (req, res) => {
+app.post('/api/superadmin/recover', async (req, res) => {
   try {
     const { token } = req.body;
-    const secret = process.env.SUPERADMIN_2FA_SECRET;
+    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
+    const secret = setting ? setting.value : null;
 
     if (!secret) {
-      return res.status(400).json({ error: 'El administrador no ha configurado la recuperación 2FA todavía.' });
+      return res.status(400).json({ error: 'EL ADMINISTRADOR NO HA CONFIGURADO LA RECUPERACIÓN 2FA TODAVÍA.' });
     }
 
     if (!token || token.length !== 6) {

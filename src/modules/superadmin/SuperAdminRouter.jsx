@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { QRCodeCanvas } from 'qrcode.react';
 import { ShieldAlert, ArrowRight, Loader2, Key, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,6 +17,9 @@ export default function SuperAdminRouter() {
   const [captchaPassed, setCaptchaPassed] = useState(false);
   const [totpCode, setTotpCode] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isChecking2fa, setIsChecking2fa] = useState(true);
+  const [is2faActive, setIs2faActive] = useState(true);
+  const [publicQrUri, setPublicQrUri] = useState('');
 
   useEffect(() => {
     const savedKey = localStorage.getItem('superadmin_key');
@@ -31,8 +35,18 @@ export default function SuperAdminRouter() {
     } else {
       setIsLoading(false);
       generateCaptcha();
+      check2FaStatus();
     }
   }, []);
+
+  const check2FaStatus = async () => {
+    try {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/status`);
+      const data = await res.json();
+      setIs2faActive(data.isActive);
+    } catch(e) {}
+    setIsChecking2fa(false);
+  };
 
   const generateCaptcha = () => {
     setCaptchaQ({ a: Math.floor(Math.random() * 10) + 1, b: Math.floor(Math.random() * 10) + 1 });
@@ -113,8 +127,60 @@ export default function SuperAdminRouter() {
         <div className="w-full max-w-md bg-zinc-950/80 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center relative z-10">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-red-600"></div>
           
+          
           <AnimatePresence mode="wait">
-            {!captchaPassed ? (
+            {isChecking2fa ? (
+              <div className="py-12 flex flex-col items-center justify-center text-white" key="loading">
+                <Loader2 size={40} className="animate-spin text-indigo-500 mb-4" />
+                <p className="text-sm font-bold tracking-widest animate-pulse">Verificando Seguridad...</p>
+              </div>
+            ) : !is2faActive ? (
+              <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <div className="flex justify-center mb-6">
+                  <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl"><ShieldAlert size={40} /></div>
+                </div>
+                <h1 className="text-xl font-black tracking-tight text-white mb-2 uppercase">Inicialización 2FA</h1>
+                <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
+                  El sistema no tiene un código 2FA configurado en la base de datos segura.
+                </p>
+                {!publicQrUri ? (
+                  <button 
+                    onClick={async () => {
+                      setIsChecking2fa(true);
+                      try {
+                        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/setup-public`, { method: 'POST' });
+                        const data = await res.json();
+                        if (res.ok) setPublicQrUri(data.uri);
+                        else setError(data.error);
+                      } catch(e) { setError('Error de red'); }
+                      setIsChecking2fa(false);
+                    }}
+                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all flex items-center justify-center"
+                  >
+                    Generar Código QR Único
+                  </button>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="bg-white p-4 rounded-xl shadow-lg">
+                      <QRCodeCanvas value={publicQrUri} size={200} level="M" />
+                    </div>
+                    <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Escanéalo y presiona Continuar.</p>
+                    <button 
+                      onClick={() => {
+                        setPublicQrUri('');
+                        setIs2faActive(true);
+                        setCaptchaPassed(false);
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+                    >
+                      Ya lo escaneé, Continuar
+                    </button>
+                  </div>
+                )}
+                {error && <p className="text-red-500 text-xs font-bold uppercase tracking-wider mt-4">{error}</p>}
+              </motion.div>
+            ) : !captchaPassed ? (
+
               <motion.div
                 key="captcha"
                 initial={{ opacity: 0, x: -20 }}
