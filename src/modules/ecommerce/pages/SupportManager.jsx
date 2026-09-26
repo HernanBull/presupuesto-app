@@ -27,7 +27,7 @@ export default function SupportManager() {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders?workspaceId=${workspaceId}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders?workspaceId=${workspaceId}`);
       if (res.ok) {
         const data = await res.json();
         // Filtrar órdenes que tengan chat_history con mensajes
@@ -61,7 +61,7 @@ export default function SupportManager() {
 
   useEffect(() => {
     fetchOrders();
-    const socket = io(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}`);
+    const socket = io(`https://axonmarket-api.onrender.com`);
     const workspaceId = localStorage.getItem('activeWorkspace');
     if (workspaceId) {
       socket.emit('join_workspace', workspaceId);
@@ -75,7 +75,7 @@ export default function SupportManager() {
   useEffect(() => {
     if (!activeChat) return;
     
-    const socket = io(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}`);
+    const socket = io(`https://axonmarket-api.onrender.com`);
     socket.emit('join_chat', activeChat.id);
     
     socket.on('new_message', (msg) => {
@@ -86,7 +86,7 @@ export default function SupportManager() {
       scrollToBottom();
       fetchOrders(); // Refresh order list silently to update last message preview
       if (msg.sender === 'customer') {
-        fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${activeChat.id}/chat/read`, {
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChat.id}/chat/read`, {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ reader: 'merchant' })
@@ -115,7 +115,7 @@ export default function SupportManager() {
   const handleTyping = (e) => {
     setChatInput(e.target.value);
     if (activeChat) {
-      const socket = io(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}`);
+      const socket = io(`https://axonmarket-api.onrender.com`);
       socket.emit('typing', { orderId: activeChat.id, sender: 'merchant' });
       socket.disconnect();
     }
@@ -128,13 +128,13 @@ export default function SupportManager() {
 
   const fetchChatMessages = async (orderId) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}/chat`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat`);
       if(res.ok) {
         const data = await res.json();
         setChatMessages(data);
         scrollToBottom();
         // Mark as read
-        fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}/chat/read`, {
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat/read`, {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ reader: 'merchant' })
@@ -152,10 +152,10 @@ export default function SupportManager() {
       if (chatImageFile) {
         const formData = new FormData();
         formData.append('image', chatImageFile);
-        const uploadRes = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/upload`, { method: 'POST', body: formData });
+        const uploadRes = await fetch(`https://axonmarket-api.onrender.com/api/upload`, { method: 'POST', body: formData });
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
-          finalImageUrl = `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}` + uploadData.url;
+          finalImageUrl = `https://axonmarket-api.onrender.com` + uploadData.url;
         }
       }
 
@@ -175,7 +175,7 @@ export default function SupportManager() {
       setChatImageFile(null);
       scrollToBottom();
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${activeChat.id}/chat`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChat.id}/chat`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ sender: 'merchant', text: optimisticMsg.text, imageUrl: finalImageUrl, id: tempId })
@@ -209,7 +209,7 @@ export default function SupportManager() {
     else if(action === 'fraud') newStatus = 'fraud';
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentStatus: newStatus })
@@ -221,7 +221,7 @@ export default function SupportManager() {
           ? '✅ Resolución: El comercio ha verificado las pruebas y ha Aprobado su pago exitosamente. Su orden será procesada.'
           : '🚨 Resolución: El comercio ha rechazado las pruebas y ha marcado esta transacción como Fraude. Su orden ha sido cancelada.';
           
-        await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}/chat`, {
+        await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat`, {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ sender: 'merchant', text: botText })

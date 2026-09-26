@@ -15,9 +15,9 @@ export default function EcommerceDashboard() {
       try {
         const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
         const [summaryRes, topRes, salesRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/analytics/summary?range=${timeRange}&workspaceId=${workspaceId}`),
-          fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/analytics/top-products?range=${timeRange}&workspaceId=${workspaceId}`),
-          fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/analytics/sales-by-date?range=${timeRange}&workspaceId=${workspaceId}`)
+          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/summary?range=${timeRange}&workspaceId=${workspaceId}`),
+          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/top-products?range=${timeRange}&workspaceId=${workspaceId}`),
+          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/sales-by-date?range=${timeRange}&workspaceId=${workspaceId}`)
         ]);
         
         if (summaryRes.ok) setSummary(await summaryRes.json());

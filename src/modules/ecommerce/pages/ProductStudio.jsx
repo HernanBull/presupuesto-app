@@ -22,7 +22,7 @@ export default function ProductStudio() {
   
   useEffect(() => {
     if (isEditing) {
-      fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${id}`)
+      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`)
         .then(res => res.json())
         .then(data => {
           if (!data.error) {
@@ -43,7 +43,7 @@ export default function ProductStudio() {
     } else {
       // Load inventory items for selection
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products?workspace_id=${workspaceId}`)
+      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspace_id=${workspaceId}`)
         .then(res => res.json())
         .then(data => {
           if (!data.error) setInventoryItems(data);
@@ -55,8 +55,8 @@ export default function ProductStudio() {
   const handleSave = async (formData) => {
     try {
       const url = isEditing 
-        ? `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${id}` 
-        : `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products`;
+        ? `https://axonmarket-api.onrender.com/api/ecommerce/products/${id}` 
+        : `https://axonmarket-api.onrender.com/api/ecommerce/products`;
       const method = isEditing ? 'PATCH' : 'POST';
       
       const workspaceId = localStorage.getItem('activeWorkspace');

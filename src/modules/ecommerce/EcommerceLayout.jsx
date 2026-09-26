@@ -18,7 +18,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const fetchNotifications = () => {
     const slug = localStorage.getItem('storeSlug');
     if (!slug) return;
-    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/notifications/${slug}`)
+    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${slug}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setNotifications(data);
@@ -33,7 +33,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   }, []);
 
   const markAsRead = (id) => {
-    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/notifications/${id}/read`, { method: 'PUT' })
+    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' })
       .then(() => fetchNotifications())
       .catch(console.error);
   };
@@ -41,7 +41,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   useEffect(() => {
     const slug = localStorage.getItem('storeSlug');
     if (slug) {
-      fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/store/${slug}`)
+      fetch(`https://axonmarket-api.onrender.com/api/workspaces/store/${slug}`)
         .then(res => res.json())
         .then(data => {
           if (data && data.name) setStoreName(data.name);

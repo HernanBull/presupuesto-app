@@ -943,7 +943,7 @@ app.post('/api/ecommerce/customers/login', async (req, res) => {
   }
 });
 
-app.post('/api/ecommerce/customers/google-login', async (req, res) => {
+app.post(['/api/ecommerce/customers/google-login', '/api/ecommerce/customers/auth/oauth-g'], async (req, res) => {
   const { credential } = req.body;
   try {
     const ticket = await googleClient.verifyIdToken({

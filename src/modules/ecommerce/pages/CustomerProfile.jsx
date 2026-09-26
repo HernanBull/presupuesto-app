@@ -89,13 +89,13 @@ export default function CustomerProfile() {
 
   const fetchChatMessages = async (orderId) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}/chat`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat`);
       if(res.ok) {
         const data = await res.json();
         setChatMessages(data);
         scrollToBottom();
         // Mark as read
-        fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}/chat/read`, {
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat/read`, {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ reader: 'customer' })
@@ -112,7 +112,7 @@ export default function CustomerProfile() {
   
   useEffect(() => {
     if (!isChatOpen || !activeChatOrder) return;
-    const socket = io(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}`);
+    const socket = io(`https://axonmarket-api.onrender.com`);
     socket.emit('join_chat', activeChatOrder.id);
     
     socket.on('new_message', (msg) => {
@@ -122,7 +122,7 @@ export default function CustomerProfile() {
       });
       scrollToBottom();
       if (msg.sender === 'merchant') {
-        fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${activeChatOrder.id}/chat/read`, {
+        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChatOrder.id}/chat/read`, {
           method: 'PUT',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ reader: 'customer' })
@@ -151,7 +151,7 @@ export default function CustomerProfile() {
   const handleTyping = (e) => {
     setChatInput(e.target.value);
     if (activeChatOrder) {
-      const socket = io(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}`);
+      const socket = io(`https://axonmarket-api.onrender.com`);
       socket.emit('typing', { orderId: activeChatOrder.id, sender: 'customer' });
       socket.disconnect();
     }
@@ -166,10 +166,10 @@ export default function CustomerProfile() {
       if (chatImageFile) {
         const formData = new FormData();
         formData.append('image', chatImageFile);
-        const uploadRes = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/upload`, { method: 'POST', body: formData });
+        const uploadRes = await fetch(`https://axonmarket-api.onrender.com/api/upload`, { method: 'POST', body: formData });
         if (uploadRes.ok) {
           const uploadData = await uploadRes.json();
-          finalImageUrl = `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}` + uploadData.url;
+          finalImageUrl = `https://axonmarket-api.onrender.com` + uploadData.url;
         }
       }
 
@@ -189,7 +189,7 @@ export default function CustomerProfile() {
       setChatImageFile(null);
       scrollToBottom();
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${activeChatOrder.id}/chat`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChatOrder.id}/chat`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ sender: 'customer', text: optimisticMsg.text, imageUrl: finalImageUrl, id: tempId })
@@ -217,7 +217,7 @@ export default function CustomerProfile() {
   const fetchOrders = async (email) => {
     setLoadingOrders(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/customer-orders/${email}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customer-orders/${email}`);
       if (res.ok) {
         const data = await res.json();
         setOrders(data);
@@ -233,7 +233,7 @@ export default function CustomerProfile() {
     setCurrentCustomer(newUser);
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/customers/${currentCustomer.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser)
@@ -251,7 +251,7 @@ export default function CustomerProfile() {
 
   const confirmOrderReceived = async (orderId) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/orders/${orderId}`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ customer_confirmed: 1 })

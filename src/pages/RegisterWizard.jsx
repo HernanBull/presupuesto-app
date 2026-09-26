@@ -135,7 +135,7 @@ export const RegisterWizard = () => {
       simulateSetup();
       const selectedType = BUSINESS_TYPES.find(t => t.id === formData.businessType);
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: formData.businessName })
@@ -159,7 +159,7 @@ export const RegisterWizard = () => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, '');
 
-      const configRes = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/workspaces/${data.id}/config`, {
+      const configRes = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${data.id}/config`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

@@ -48,8 +48,8 @@ export default function SuperAdminDashboard({ superKey }) {
       else if (activeTab === 'monitor') endpoint = '/api/superadmin/monitor';
       else if (activeTab === 'delivery_bot') {
         const [setRes, drvRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/settings`, { headers: { 'x-superadmin-key': superKey } }),
-          fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/drivers`, { headers: { 'x-superadmin-key': superKey } })
+          fetch(`https://axonmarket-api.onrender.com/api/superadmin/settings`, { headers: { 'x-superadmin-key': superKey } }),
+          fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers`, { headers: { 'x-superadmin-key': superKey } })
         ]);
         if (setRes.ok) { const data = await setRes.json(); setDeliveryGroupId(data.delivery_master_group_id || ''); }
         if (drvRes.ok) { const data = await drvRes.json(); setDrivers(data || []); }
@@ -57,7 +57,7 @@ export default function SuperAdminDashboard({ superKey }) {
         return;
       }
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}${endpoint}`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com${endpoint}`, {
         headers: { 'x-superadmin-key': superKey }
       });
       if (res.ok) {
@@ -78,7 +78,7 @@ export default function SuperAdminDashboard({ superKey }) {
   const handleSaveDeliveryGroup = async () => {
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/settings`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/settings`, {
         method: 'PUT',
         headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({ delivery_master_group_id: deliveryGroupId })
@@ -98,7 +98,7 @@ export default function SuperAdminDashboard({ superKey }) {
     
     if (window.confirm(confirmMessage)) {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/drivers/${driver.id}/status`, {
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers/${driver.id}/status`, {
           method: 'PUT',
           headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
           body: JSON.stringify({ isBanned: newBannedState })
@@ -114,7 +114,7 @@ export default function SuperAdminDashboard({ superKey }) {
     if (window.confirm('🗑️ ¿Deseas eliminar el registro de este conductor?')) {
       setIsActionLoading(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/drivers/${id}`, {
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers/${id}`, {
           method: 'DELETE',
           headers: { 'x-superadmin-key': superKey }
         });
@@ -134,7 +134,7 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(true);
     const newStatus = merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido';
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/merchants/${merchant.id}/status`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/merchants/${merchant.id}/status`, {
         method: 'PUT',
         headers: { 
           'x-superadmin-key': superKey,
@@ -167,7 +167,7 @@ export default function SuperAdminDashboard({ superKey }) {
         ? `/api/superadmin/merchants/${itemToDelete.id}` 
         : `/api/superadmin/customers/${itemToDelete.id}`;
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}${endpoint}`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com${endpoint}`, {
         method: 'DELETE',
         headers: { 'x-superadmin-key': superKey }
       });
@@ -194,7 +194,7 @@ export default function SuperAdminDashboard({ superKey }) {
     }
     setIsActionLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/superadmin/key`, {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/key`, {
         method: 'PUT',
         headers: { 
           'x-superadmin-key': superKey,

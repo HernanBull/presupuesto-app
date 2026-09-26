@@ -5,7 +5,7 @@ export default function CustomersManager() {
   const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/customers`)
+    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers`)
       .then(res => res.json())
       .then(data => {
         if(Array.isArray(data)) {

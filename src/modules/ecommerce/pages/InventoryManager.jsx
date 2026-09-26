@@ -26,7 +26,7 @@ export default function InventoryManager() {
         window.location.reload();
         return;
       }
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products?workspace_id=${workspaceId}`);
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspace_id=${workspaceId}`);
       const data = await res.json();
       if (!data.error) {
         setInventory(data.map(p => ({
@@ -114,7 +114,7 @@ export default function InventoryManager() {
             workspace_id: workspaceId
           };
           try {
-            await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products`, {
+            await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(item)
@@ -281,8 +281,8 @@ export default function InventoryManager() {
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
       const method = editingId ? 'PATCH' : 'POST';
       const url = editingId 
-        ? `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${editingId}` 
-        : `${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products`;
+        ? `https://axonmarket-api.onrender.com/api/ecommerce/products/${editingId}` 
+        : `https://axonmarket-api.onrender.com/api/ecommerce/products`;
 
       await fetch(url, {
         method,
@@ -314,7 +314,7 @@ export default function InventoryManager() {
     }
 
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${wasteItem.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${wasteItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: wasteItem.stock - qty })
@@ -336,7 +336,7 @@ export default function InventoryManager() {
     }
 
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${auditItem.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${auditItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: physicalCount })
@@ -360,7 +360,7 @@ export default function InventoryManager() {
     const newVitrina = transferData.toVitrina ? (transferItem.stockVitrina || 0) + qty : (transferItem.stockVitrina || 0) - qty;
 
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${transferItem.id}`, {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${transferItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock, stock_vitrina: newVitrina })
@@ -373,7 +373,7 @@ export default function InventoryManager() {
   const handleDelete = async (id) => {
     if(window.confirm('¿Estás seguro de eliminar este registro del inventario?')) {
       try {
-        await fetch(`${import.meta.env.VITE_API_URL || 'https://axomarket.pagina.dev'}/api/ecommerce/products/${id}`, { method: 'DELETE' });
+        await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, { method: 'DELETE' });
         await fetchInventory();
       } catch(e) { console.error(e) }
     }
