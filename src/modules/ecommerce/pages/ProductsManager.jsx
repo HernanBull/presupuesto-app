@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react';
-
+import { supabase } from '../../../supabaseClient';
 export default function ProductsManager() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -19,14 +19,24 @@ export default function ProductsManager() {
         window.location.reload();
         return;
       }
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${workspaceId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const mapped = data.map(p => ({
-          ...p,
-          publishStatus: p.publish_status || 'Borrador',
-          imageUrl: p.image_url || ''
-        }));
+      const { data, error } = await supabase
+        .from('ecommerce_products')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const mapped = data.map(p => {
+          let metadata = p.metadata || {};
+          if (typeof metadata === 'string') {
+            try { metadata = JSON.parse(metadata); } catch(e) {}
+          }
+          return {
+            ...p,
+            publishStatus: p.publish_status || 'Borrador',
+            imageUrl: p.image_url || (metadata?.images && metadata.images.length > 0 ? metadata.images[0] : '')
+          };
+        });
         setProducts(mapped);
       }
     } catch (err) {
@@ -76,12 +86,12 @@ export default function ProductsManager() {
     setProducts(products.map(p => p.id === id ? { ...p, publishStatus: newStatus } : p));
     
     try {
-      const p = products.find(p => p.id === id);
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publish_status: newStatus })
-      });
+      const { error } = await supabase
+        .from('ecommerce_products')
+        .update({ publish_status: newStatus })
+        .eq('id', id);
+        
+      if (error) throw error;
     } catch (err) {
       console.error(err);
       // Revert on error
@@ -92,13 +102,15 @@ export default function ProductsManager() {
   const handleDelete = async (id) => {
     if(window.confirm('¿Estás seguro de eliminar este producto?')) {
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`, {
-          method: 'DELETE'
-        });
-        if (res.ok) {
+        const { error } = await supabase
+          .from('ecommerce_products')
+          .delete()
+          .eq('id', id);
+          
+        if (!error) {
           setProducts(products.filter(p => p.id !== id));
         } else {
-          alert('Error al eliminar producto');
+          alert('Error al eliminar producto: ' + error.message);
         }
       } catch (err) {
         console.error(err);
