@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Filter, MessageSquare, AlertCircle, Check, X, CheckCircle2, User, Clock, Image as ImageIcon, Send, Loader2, Info, Phone, CheckCheck } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { supabase } from '../../../supabaseClient';
 
 export default function SupportManager() {
   const [orders, setOrders] = useState([]);
@@ -150,12 +151,13 @@ export default function SupportManager() {
     try {
       let finalImageUrl = null;
       if (chatImageFile) {
-        const formData = new FormData();
-        formData.append('image', chatImageFile);
-        const uploadRes = await fetch(`https://axonmarket-api.onrender.com/api/upload`, { method: 'POST', body: formData });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          finalImageUrl = `https://axonmarket-api.onrender.com` + uploadData.url;
+        const fileExt = chatImageFile.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `chat/${fileName}`;
+        const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, chatImageFile);
+        if (!uploadError) {
+          const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+          if (data && data.publicUrl) finalImageUrl = data.publicUrl;
         }
       }
 

@@ -397,16 +397,19 @@ export default function PublicStore() {
       }
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if(data.url) {
-        setReceiptUrl(data.url);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `receipts/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file);
+      if (!uploadError) {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+        if(data && data.publicUrl) {
+          setReceiptUrl(data.publicUrl);
+        }
+      } else {
+        throw uploadError;
       }
     } catch (error) {
       console.error(error);

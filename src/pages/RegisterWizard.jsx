@@ -8,6 +8,7 @@ import {
   Truck, Calendar, Package, BarChart3, Clock, MapPin, Phone, FileText
 } from 'lucide-react';
 import { BUSINESS_TYPES } from '../config/businessTypes';
+import { supabase } from '../supabaseClient';
 
 // Mapeo de iconos
 const iconMap = {
@@ -135,15 +136,14 @@ export const RegisterWizard = () => {
       simulateSetup();
       const selectedType = BUSINESS_TYPES.find(t => t.id === formData.businessType);
       
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.businessName })
-      });
-
-      if (!res.ok) throw new Error('Error al crear la tienda virtual');
-      const data = await res.json();
-      
+      const id = 'WS-' + Math.floor(Math.random() * 1000000);
+      const generatedSlug = formData.businessName
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+        
       const finalModules = [];
       if (formData.features.delivery) finalModules.push('orders');
       if (formData.features.expiration_dates) finalModules.push('expiration_dates');
@@ -152,39 +152,37 @@ export const RegisterWizard = () => {
       if (formData.features.analytics) finalModules.push('analytics');
       finalModules.push('product_studio');
 
-      const generatedSlug = formData.businessName
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)+/g, '');
+      const config = {
+        business_type: formData.businessType,
+        modules: finalModules,
+        categories: selectedType.defaultCategories,
+        expediente: {
+          legalType: formData.legalType,
+          rif: formData.legalType + '-' + formData.rif,
+          state: formData.state,
+          city: formData.city,
+          whatsapp: '+58' + formData.whatsapp,
+          instagram: formData.instagram
+        },
+        adminEmail: formData.email,
+        adminPin: formData.password
+      };
 
-      const configRes = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${data.id}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          store_slug: generatedSlug,
-          config: {
-            business_type: formData.businessType,
-            modules: finalModules,
-            categories: selectedType.defaultCategories,
-            expediente: {
-              legalType: formData.legalType,
-              rif: formData.legalType + '-' + formData.rif,
-              state: formData.state,
-              city: formData.city,
-              whatsapp: '+58' + formData.whatsapp,
-              instagram: formData.instagram
-            },
-            adminEmail: formData.email
-          }
-        })
-      });
+      const payload = {
+        id,
+        name: formData.businessName,
+        store_slug: generatedSlug,
+        config: config,
+        owner_email: formData.email,
+        created_at: new Date().toISOString()
+      };
 
-      if (!configRes.ok) throw new Error('Error al configurar los módulos');
+      const { error: wsError } = await supabase.from('workspaces').insert([payload]);
+
+      if (wsError) throw new Error(wsError.message || 'Error al crear la tienda virtual');
 
       // Guardar el workspace y el slug en localStorage para el panel de administración
-      localStorage.setItem('activeWorkspace', data.id);
+      localStorage.setItem('activeWorkspace', id);
       localStorage.setItem('storeSlug', generatedSlug);
 
       setTimeout(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -76,10 +77,9 @@ export default function StoreProfileManager() {
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
   useEffect(() => {
-    fetch(`https://axonmarket-api.onrender.com/api/workspaces`, { cache: 'no-store' })
-      .then(res => res.json())
-      .then(data => {
-        const ws = data.find(w => w.id === workspaceId);
+    const fetchWorkspace = async () => {
+      try {
+        const { data: ws, error } = await supabase.from('workspaces').select('*').eq('id', workspaceId).single();
         if (ws) {
           if (ws.name) setStoreName(ws.name);
           if (ws.config) {
@@ -117,11 +117,12 @@ export default function StoreProfileManager() {
           }
         }
         setIsLoaded(true);
-      })
-      .catch(err => {
+      } catch (err) {
         console.error(err);
         setIsLoaded(true);
-      });
+      }
+    };
+    fetchWorkspace();
   }, [workspaceId]);
 
   const handleChangePassword = async (e) => {
@@ -139,24 +140,31 @@ export default function StoreProfileManager() {
     setPasswordStatus({ type: '', msg: '' });
 
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId,
-          currentPassword,
-          newPassword
-        })
-      });
-      const data = await res.json();
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      
+      if (fetchErr || !ws) {
+        setPasswordStatus({ type: 'error', msg: 'Error de conexión' });
+        setIsChangingPassword(false);
+        return;
+      }
+      
+      if (ws.config.adminPin !== currentPassword && ws.config.adminEmail !== currentPassword) {
+        setPasswordStatus({ type: 'error', msg: 'Contraseña actual incorrecta' });
+        setIsChangingPassword(false);
+        return;
+      }
 
-      if (data.success) {
+      const updatedConfig = { ...ws.config, adminPin: newPassword };
+      const { error: updateErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+
+      if (!updateErr) {
         setPasswordStatus({ type: 'success', msg: 'Contraseña cambiada exitosamente' });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        setAdminPin(newPassword);
       } else {
-        setPasswordStatus({ type: 'error', msg: data.error || 'Error al cambiar la contraseña' });
+        setPasswordStatus({ type: 'error', msg: updateErr.message || 'Error al cambiar la contraseña' });
       }
     } catch (err) {
       console.error(err);
@@ -169,12 +177,11 @@ export default function StoreProfileManager() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`, { cache: 'no-store' });
-      const data = await res.json();
-      const ws = data.find(w => w.id === workspaceId) || { config: {} };
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      if (fetchErr) throw fetchErr;
       
       const newConfig = {
-        ...ws.config,
+        ...(ws?.config || {}),
         currency,
         description,
         adminPin,
@@ -204,14 +211,8 @@ export default function StoreProfileManager() {
         }
       };
 
-      // Si queremos cambiar el nombre del workspace, el endpoint PUT /config no lo cambia,
-      // pero para la funcionalidad de pagos esto es suficiente.
-
-      await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${workspaceId}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: newConfig })
-      });
+      const { error: updateErr } = await supabase.from('workspaces').update({ config: newConfig }).eq('id', workspaceId);
+      if (updateErr) throw updateErr;
       
       setTimeout(() => {
         setIsSaving(false);

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { supabase } from '../../../supabaseClient';
 
 // Fix for default Leaflet marker icon
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -40,9 +41,7 @@ export default function StoreLocationManager() {
 
   const fetchConfig = async (id) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`);
-      const data = await res.json();
-      const ws = data.find(w => w.id === id);
+      const { data: ws, error } = await supabase.from('workspaces').select('config').eq('id', id).single();
       if (ws && ws.config && ws.config.location) {
         setPosition({ lat: ws.config.location.lat, lng: ws.config.location.lng });
         setAddressText(ws.config.location.address || '');
@@ -58,12 +57,11 @@ export default function StoreLocationManager() {
     
     setSaving(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`);
-      const data = await res.json();
-      const ws = data.find(w => w.id === workspaceId);
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      if (fetchErr) throw fetchErr;
       
       const newConfig = {
-        ...ws.config,
+        ...(ws?.config || {}),
         location: {
           lat: position.lat,
           lng: position.lng,
@@ -71,14 +69,12 @@ export default function StoreLocationManager() {
         }
       };
 
-      await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${workspaceId}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: newConfig })
-      });
+      const { error: updateErr } = await supabase.from('workspaces').update({ config: newConfig }).eq('id', workspaceId);
+      if (updateErr) throw updateErr;
       
       alert('Ubicación guardada con éxito.');
     } catch (e) {
+      console.error(e);
       alert('Error al guardar la ubicación.');
     }
     setSaving(false);
