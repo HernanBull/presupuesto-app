@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import Tesseract from 'tesseract.js';
+import { supabase } from '../../../supabaseClient';
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -806,19 +807,18 @@ export default function PublicStore() {
       };
 
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/store/${slug || 'tienda-ejemplo'}`, { cache: 'no-store' });
-        if (!res.ok) {
+        const { data: storeData, error: storeError } = await supabase.from('workspaces').select('*').eq('store_slug', slug || 'tienda-ejemplo').single();
+        if (storeError || !storeData) {
           const savedStr = localStorage.getItem('storefrontConfig');
           if (savedStr) {
              const saved = JSON.parse(savedStr);
              saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
              setConfig(saved);
              setWorkspaceId('default_workspace');
-             const pRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=default_workspace`);
-             if (pRes.ok) {
-               const pData = await pRes.json();
+             const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', 'default_workspace');
+             if (!pError && pData) {
                const published = pData
-                 .filter(p => p.publish_status === 'Publicado')
+                 .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
                  .sort((a, b) => {
                     const aStock = a.stock_vitrina || 0;
                     const bStock = b.stock_vitrina || 0;
@@ -836,7 +836,6 @@ export default function PublicStore() {
           return;
         }
         
-        const storeData = await res.json();
         setWorkspaceId(storeData.id);
         
         let saved = storeData.config?.storefront || storeData.config;
@@ -862,11 +861,10 @@ export default function PublicStore() {
         setConfig(saved);
         trackEvent('visit', storeData.id);
 
-        const pRes = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspaceId=${storeData.id}`);
-        if (pRes.ok) {
-          const pData = await pRes.json();
+        const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', storeData.id);
+        if (!pError && pData) {
           const published = pData
-             .filter(p => p.publish_status === 'Publicado')
+             .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
              .sort((a, b) => {
                 const aStock = a.stock_vitrina || 0;
                 const bStock = b.stock_vitrina || 0;

@@ -322,6 +322,7 @@ export default function MarketplaceDirectory() {
         id: authData.user.id,
         name: merchantForm.businessName,
         store_slug: generatedSlug,
+        status: 'Activo',
         config: {}
       };
 

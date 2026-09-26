@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Image as ImageIcon, Star, ShoppingBag, Check, TrendingUp, TrendingDown, Activity, AlertTriangle, FileSpreadsheet, Calculator, CheckCircle, PackageCheck } from 'lucide-react';
 import UnifiedProductForm from '../components/UnifiedProductForm';
+import { supabase } from '../../../supabaseClient';
 
 export default function ProductStudio() {
   const navigate = useNavigate();
@@ -22,10 +23,9 @@ export default function ProductStudio() {
   
   useEffect(() => {
     if (isEditing) {
-      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products/${id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.error) {
+      supabase.from('ecommerce_products').select('*').eq('id', id).single()
+        .then(({ data, error }) => {
+          if (!error && data) {
             const parsedData = {
               id: data.id,
               sku: data.batch_number || '', // Mapping to old fields for compatibility
@@ -43,10 +43,9 @@ export default function ProductStudio() {
     } else {
       // Load inventory items for selection
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products?workspace_id=${workspaceId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (!data.error) setInventoryItems(data);
+      supabase.from('ecommerce_products').select('*').eq('workspace_id', workspaceId)
+        .then(({ data, error }) => {
+          if (!error && data) setInventoryItems(data);
         })
         .catch(err => console.error("Error loading inventory:", err));
     }
@@ -54,11 +53,6 @@ export default function ProductStudio() {
 
   const handleSave = async (formData) => {
     try {
-      const url = isEditing 
-        ? `https://axonmarket-api.onrender.com/api/ecommerce/products/${id}` 
-        : `https://axonmarket-api.onrender.com/api/ecommerce/products`;
-      const method = isEditing ? 'PATCH' : 'POST';
-      
       const workspaceId = localStorage.getItem('activeWorkspace');
       if (!workspaceId) {
         alert('Error: Sesión de comerciante no encontrada. Por favor inicie sesión nuevamente.');
@@ -69,28 +63,29 @@ export default function ProductStudio() {
       const payload = {
         name: formData.name,
         category: formData.category,
-        price: formData.price_usd,
-        stock: formData.stock,
-        cogs: formData.cogs,
-        batchNumber: formData.sku, // Map SKU to batchNumber for legacy support
-        metadata: JSON.stringify(formData.metadata), // Must stringify for PATCH/POST
+        price: parseFloat(formData.price_usd),
+        stock: parseInt(formData.stock) || 0,
+        cogs: parseFloat(formData.cogs) || 0,
+        batch_number: formData.sku,
+        metadata: formData.metadata,
         workspace_id: workspaceId
       };
 
       if (!isEditing) {
-        payload.publish_status = 'Borrador'; // Default status on creation
+        payload.id = Date.now().toString();
+        payload.publish_status = 'Activo'; // Auto publish for faster UX
       }
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const query = isEditing 
+        ? supabase.from('ecommerce_products').update(payload).eq('id', id)
+        : supabase.from('ecommerce_products').insert([payload]);
+
+      const { error } = await query;
       
-      if (response.ok) {
+      if (!error) {
         navigate('/ecommerce/products');
       } else {
-        alert("Error al guardar el producto");
+        alert("Error al guardar el producto: " + error.message);
       }
     } catch (error) {
       console.error("Error saving product:", error);
