@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { QRCodeCanvas } from 'qrcode.react';
 import { ShieldAlert, ArrowRight, Loader2, X, Key, CheckCircle, Copy, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -19,6 +20,7 @@ export default function SuperAdminRouter() {
   const [isRecovering, setIsRecovering] = useState(false);
   const [is2faActive, setIs2faActive] = useState(null);
   const [isChecking2fa, setIsChecking2fa] = useState(false);
+  const [publicQrUri, setPublicQrUri] = useState('');
 
   useEffect(() => {
     if (isRecoveryOpen) {
@@ -207,28 +209,51 @@ export default function SuperAdminRouter() {
                   </div>
                 ) : !is2faActive ? (
                   <>
+                    
                     <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-red-500">
                       <ShieldAlert size={32} />
                     </div>
-                    <h2 className="text-xl font-black text-white uppercase tracking-widest mb-4">Intervención Manual</h2>
+                    <h2 className="text-xl font-black text-white uppercase tracking-widest mb-4">Inicialización 2FA</h2>
                     <p className="text-sm text-zinc-400 font-light leading-relaxed mb-6">
-                      El sistema 2FA <strong className="text-red-400">no fue inicializado</strong> en tu cuenta. Por motivos de seguridad máxima, la clave maestra del ecosistema no puede ser extraída ni reseteada desde esta interfaz pública.
+                      El sistema 2FA no ha sido configurado. Puedes generar el código QR ahora mismo por única vez para recuperar el acceso.
                     </p>
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-5 mb-8 text-left relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                      <p className="text-xs text-zinc-300 font-medium">
-                        Para visualizar o cambiar tu clave actual, por favor dirígete a los archivos de tu servidor (Render/cPanel), abre el archivo <code className="text-red-400 font-mono bg-red-500/10 px-1 py-0.5 rounded">.env</code> y busca la variable:
-                      </p>
-                      <p className="text-center text-white font-mono font-bold mt-4 tracking-wider text-sm bg-black/50 py-2 rounded-lg border border-white/5">
-                        VITE_SUPERADMIN_KEY
-                      </p>
-                    </div>
-                    <button 
-                      onClick={() => setIsRecoveryOpen(false)}
-                      className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-full py-3 text-xs font-bold uppercase tracking-widest transition-colors"
-                    >
-                      Entendido
-                    </button>
+                    
+                    {!publicQrUri ? (
+                      <button 
+                        onClick={async () => {
+                          setIsChecking2fa(true);
+                          try {
+                            const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/setup-public`, { method: 'POST' });
+                            const data = await res.json();
+                            if (res.ok) setPublicQrUri(data.uri);
+                            else alert(data.error);
+                          } catch(e) { alert('Error'); }
+                          setIsChecking2fa(false);
+                        }}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-full py-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors mb-4"
+                      >
+                        Generar Código QR Único
+                      </button>
+                    ) : (
+                      <div className="flex flex-col items-center gap-6 mb-6 animate-in zoom-in-95">
+                        <div className="bg-white p-4 rounded-xl shadow-lg">
+                          <QRCodeCanvas value={publicQrUri} size={200} level="M" />
+                        </div>
+                        <p className="text-xs text-red-400 font-bold uppercase tracking-widest px-4">¡Escanéalo rápido! Una vez escaneado, presiona Continuar para ingresar el código.</p>
+                        <button 
+                          onClick={() => {
+                            setPublicQrUri('');
+                            setIs2faActive(true); // Jump to captcha -> 2FA flow
+                            setCaptchaQ({ a: Math.floor(Math.random() * 10) + 1, b: Math.floor(Math.random() * 10) + 1 });
+                            setCaptchaA('');
+                          }}
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors"
+                        >
+                          Ya lo escaneé, Continuar
+                        </button>
+                      </div>
+                    )}
+
                   </>
                 ) : recoveredKey ? (
                   <>

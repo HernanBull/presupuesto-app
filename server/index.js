@@ -1683,6 +1683,53 @@ app.get('/api/superadmin/2fa/setup', requireSuperAdmin, (req, res) => {
 });
 
 
+
+app.post('/api/superadmin/2fa/setup-public', (req, res) => {
+  try {
+    let secret = process.env.SUPERADMIN_2FA_SECRET;
+    
+    // If it already exists, refuse to generate a new one publicly
+    if (secret) {
+      return res.status(403).json({ error: 'El 2FA ya fue inicializado.' });
+    }
+
+    // Generate a random 20 byte buffer and encode it in base32
+    const randomBuffer = crypto.randomBytes(20);
+    const base32chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    secret = '';
+    for (let i = 0; i < randomBuffer.length; i++) {
+      secret += base32chars[randomBuffer[i] % 32];
+    }
+    
+    const envPath = path.join(__dirname, '..', '.env');
+    let envContent = '';
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, 'utf8');
+    }
+
+    if (envContent.includes('SUPERADMIN_2FA_SECRET=')) {
+      envContent = envContent.replace(/SUPERADMIN_2FA_SECRET=.*/g, `SUPERADMIN_2FA_SECRET="${secret}"`);
+    } else {
+      envContent += `\nSUPERADMIN_2FA_SECRET="${secret}"\n`;
+    }
+    fs.writeFileSync(envPath, envContent);
+    process.env.SUPERADMIN_2FA_SECRET = secret;
+
+    const totp = new OTPAuth.TOTP({
+      issuer: 'AxonMarket SuperAdmin',
+      label: 'Admin Panel',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: secret
+    });
+
+    res.json({ success: true, uri: totp.toString() });
+  } catch (err) {
+    res.status(500).json({ error: 'Error setting up 2FA: ' + err.message });
+  }
+});
+
 app.get('/api/superadmin/2fa/status', (req, res) => {
   res.json({ isActive: !!process.env.SUPERADMIN_2FA_SECRET });
 });
