@@ -200,20 +200,43 @@ export default function MarketplaceDirectory() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/auth/oauth-g`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: credentialResponse.credential })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Error al iniciar sesión con Google');
+      const base64Url = credentialResponse.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      const { email, name } = payload;
+      
+      if (!email) {
+        alert('No se pudo obtener el email de Google');
         return;
       }
-      const user = { ...data.user, orders: [] };
-      localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
+      
+      let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).single();
+      
+      if (!user) {
+        const id = 'CUS-' + Math.floor(Math.random() * 1000000);
+        const newUser = {
+          id,
+          email,
+          password: 'GOOGLE_AUTH',
+          name: name || email.split('@')[0],
+          phone: '',
+          doc_id: '',
+          address: '',
+          wishlist: [],
+          created_at: new Date().toISOString()
+        };
+        const { error } = await supabase.from('ecommerce_customers').insert([newUser]);
+        if (error) throw error;
+        user = newUser;
+      }
+      
+      const mappedUser = { ...user, docId: user.doc_id, orders: [] };
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
-      setCurrentCustomer(user);
+      setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
       
       if (pendingStoreSlug) {
@@ -222,7 +245,7 @@ export default function MarketplaceDirectory() {
       }
     } catch (err) {
       console.error(err);
-      alert('Error de conexión con el servidor');
+      alert('Error de conexión al iniciar con Google');
     }
   };
 
