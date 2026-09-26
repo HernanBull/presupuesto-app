@@ -82,6 +82,13 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     if (step === 2 && !formData.address) return alert('Ingresa tu dirección de entrega');
 
     if (step < 3) {
+      if (step === 0) {
+        setFormData(prev => ({
+          ...prev,
+          payment_cedula: prev.docId,
+          payment_titular: prev.name
+        }));
+      }
       setStep(step + 1);
     } else {
       setIsSubmitting(true);
@@ -224,6 +231,10 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                       <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl"><Banknote size={24} /></div>
                       <h3 className="text-xl font-bold text-white">Tu Pago Móvil</h3>
                     </div>
+                    <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl mb-4 text-xs text-red-200">
+                      <strong>⚠️ Prevención de Fraude y Triangulación:</strong><br />
+                      El pago móvil afiliado DEBE pertenecer a tu misma titularidad. La cédula y nombre se han bloqueado por seguridad. No aceptamos pagos de terceros.
+                    </div>
                     <p className="text-zinc-400 text-xs mb-4">Ingresa los datos desde donde harás los pagos para aprobarlos más rápido.</p>
                     <div className="space-y-4">
                       <select value={formData.payment_bank} onChange={e => setFormData({...formData, payment_bank: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
@@ -231,8 +242,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                         {VZLA_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
                       </select>
                       <input type="tel" placeholder="Teléfono afiliado" value={formData.payment_phone} onChange={e => setFormData({...formData, payment_phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
-                      <input type="text" placeholder="Cédula afiliada" value={formData.payment_cedula} onChange={e => setFormData({...formData, payment_cedula: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
-                      <input type="text" placeholder="Nombre del titular" value={formData.payment_titular} onChange={e => setFormData({...formData, payment_titular: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
+                      <input type="text" placeholder="Cédula afiliada" value={formData.payment_cedula} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
+                      <input type="text" placeholder="Nombre del titular" value={formData.payment_titular} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
                     </div>
                   </motion.div>
                 )}
