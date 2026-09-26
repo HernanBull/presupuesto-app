@@ -146,7 +146,8 @@ export default function MarketplaceDirectory() {
         doc_id: authForm.docId,
         phone: authForm.phone,
         address: authForm.address,
-        status: 'Activo'
+        status: 'Activo',
+        join_date: new Date().toISOString()
       };
 
       const { error } = await supabase.from('ecommerce_customers').insert([newCustomer]);
@@ -213,7 +214,7 @@ export default function MarketplaceDirectory() {
         return;
       }
       
-      let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).single();
+      let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).maybeSingle();
       
       if (!user) {
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
@@ -226,6 +227,7 @@ export default function MarketplaceDirectory() {
           doc_id: '',
           address: '',
           wishlist: [],
+          join_date: new Date().toISOString(),
           created_at: new Date().toISOString()
         };
         const { error } = await supabase.from('ecommerce_customers').insert([newUser]);

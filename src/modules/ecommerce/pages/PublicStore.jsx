@@ -158,7 +158,7 @@ export default function PublicStore() {
         .from('ecommerce_customers')
         .select('*')
         .eq('email', authForm.email)
-        .single();
+        .maybeSingle();
         
       if (existingUser) {
         alert('Este correo ya está registrado');
@@ -176,6 +176,7 @@ export default function PublicStore() {
         doc_id: '',
         address: '',
         wishlist: [],
+        join_date: new Date().toISOString(),
         created_at: new Date().toISOString()
       };
 
@@ -426,7 +427,7 @@ export default function PublicStore() {
         .select('*')
         .eq('email', authForm.email)
         .eq('password', authForm.password)
-        .single();
+        .maybeSingle();
         
       if (error || !user) {
         alert('Credenciales incorrectas');
@@ -475,7 +476,7 @@ export default function PublicStore() {
         .from('ecommerce_customers')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
         
       if (!user) {
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
@@ -488,6 +489,7 @@ export default function PublicStore() {
           doc_id: '',
           address: '',
           wishlist: [],
+          join_date: new Date().toISOString(),
           created_at: new Date().toISOString()
         };
         await supabase.from('ecommerce_customers').insert([payload]);
