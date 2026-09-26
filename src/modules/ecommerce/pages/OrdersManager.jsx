@@ -424,6 +424,8 @@ export default function OrdersManager() {
                               )}
                             </p>
                             <p><span className="text-slate-500">Banco:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails?.bank || 'N/A'}</span></p>
+                            {order.paymentDetails?.titular && <p><span className="text-slate-500">Titular:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails.titular}</span></p>}
+                            {order.paymentDetails?.docId && <p><span className="text-slate-500">CI:</span> <span className="font-bold text-slate-800 dark:text-white">{order.paymentDetails.docId}</span></p>}
                           </div>
                           
                           {order.paymentDetails?.capture && (
@@ -558,6 +560,14 @@ export default function OrdersManager() {
                               <div className="flex justify-between text-sm">
                                 <span className="text-slate-500 dark:text-slate-400">Banco:</span>
                                 <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">Titular:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.titular || selectedOrder.customer || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-500 dark:text-slate-400">CI/RIF:</span>
+                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.docId || 'N/A'}</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>

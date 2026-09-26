@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,6 +58,17 @@ export default function PublicStore() {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentBank, setPaymentBank] = useState('');
+  const [selectedPaymentProfileIdx, setSelectedPaymentProfileIdx] = useState('');
+  
+  const customerPaymentProfiles = useMemo(() => {
+    if (!currentCustomer?.payment_profile) return [];
+    let p = currentCustomer.payment_profile;
+    if (typeof p === 'string') {
+      try { p = JSON.parse(p); } catch(e) { return []; }
+    }
+    if (p && !Array.isArray(p)) return [p];
+    return p || [];
+  }, [currentCustomer]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [ocrStatus, setOcrStatus] = useState('idle');
   const [ocrMessage, setOcrMessage] = useState('');
@@ -284,8 +295,9 @@ export default function PublicStore() {
         capture: receiptUrl,
         ref: paymentReference,
         bank: selectedPaymentMethod === 'zelle' ? 'Zelle' : paymentBank,
-        phone: currentCustomer.phone || '',
-        docId: currentCustomer.docId || '',
+        phone: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].phone : (currentCustomer.phone || ''),
+        docId: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].cedula : (currentCustomer.docId || ''),
+        titular: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].titular : currentCustomer.name,
         address: checkoutAddress
       },
       shipping_info: {
@@ -2061,25 +2073,24 @@ export default function PublicStore() {
                               </div>
                               
                               <div className="mt-4 space-y-3">
-                                <select value={paymentBank} onChange={e => setPaymentBank(e.target.value)} className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white">
-                                  <option value="" disabled hidden>Banco desde donde transferiste</option>
-                                  <option value="0102 - Banco de Venezuela">0102 - Banco de Venezuela</option>
-                                  <option value="0104 - Venezolano de Crédito">0104 - Venezolano de Crédito</option>
-                                  <option value="0105 - Mercantil">0105 - Mercantil</option>
-                                  <option value="0108 - Provincial">0108 - Provincial</option>
-                                  <option value="0114 - Bancaribe">0114 - Bancaribe</option>
-                                  <option value="0115 - Exterior">0115 - Exterior</option>
-                                  <option value="0134 - Banesco">0134 - Banesco</option>
-                                  <option value="0137 - Sofitasa">0137 - Sofitasa</option>
-                                  <option value="0138 - Plaza">0138 - Plaza</option>
-                                  <option value="0156 - 100% Banco">0156 - 100% Banco</option>
-                                  <option value="0163 - Banco del Tesoro">0163 - Banco del Tesoro</option>
-                                  <option value="0171 - Banco Activo">0171 - Banco Activo</option>
-                                  <option value="0172 - Bancamiga">0172 - Bancamiga</option>
-                                  <option value="0175 - Bicentenario">0175 - Bicentenario</option>
-                                  <option value="0191 - BNC">0191 - BNC</option>
-                                  <option value="Otro">Otro</option>
-                                </select>
+                                <select value={selectedPaymentProfileIdx} onChange={e => {
+                                    const val = e.target.value;
+                                    setSelectedPaymentProfileIdx(val);
+                                    if (val !== '') {
+                                      const profile = customerPaymentProfiles[Number(val)];
+                                      if (profile) setPaymentBank(profile.bank);
+                                    } else {
+                                      setPaymentBank('');
+                                    }
+                                  }} className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white">
+                                    <option value="" disabled hidden>¿Desde qué Pago Móvil enviarás el dinero?</option>
+                                    {customerPaymentProfiles.map((p, idx) => (
+                                      <option key={idx} value={idx}>{p.bank} - {p.phone} ({p.titular})</option>
+                                    ))}
+                                    {customerPaymentProfiles.length === 0 && (
+                                      <option value="" disabled>No tienes cuentas registradas. Actualiza tu perfil.</option>
+                                    )}
+                                  </select>
                                  {ocrStatus === 'idle' || ocrStatus === 'analyzing' || ocrStatus === 'success' ? (
                                    <div className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 text-white/50 flex items-center justify-between">
                                      <span className={ocrStatus === 'success' ? 'text-emerald-400 font-bold' : ''}>{ocrStatus === 'analyzing' ? ocrMessage : (ocrStatus === 'success' ? ocrMessage : "Sube el comprobante para extraer la referencia")}</span>
