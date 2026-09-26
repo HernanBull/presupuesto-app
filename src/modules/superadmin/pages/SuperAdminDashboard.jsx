@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, ArrowRight, Truck, ShieldCheck, ShieldBan, Save } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, ArrowRight, Truck, ShieldCheck, ShieldBan, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -31,6 +32,8 @@ export default function SuperAdminDashboard({ superKey }) {
 
   // Key Change State
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
+  const [is2faModalOpen, setIs2faModalOpen] = useState(false);
+  const [twoFaSetup, setTwoFaSetup] = useState(null);
   const [newKeyInput, setNewKeyInput] = useState('');
   const [keyError, setKeyError] = useState('');
 
@@ -185,6 +188,24 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(false);
   };
 
+  const fetch2FaSetup = async () => {
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/setup`, {
+        headers: { 'x-superadmin-key': superKey }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTwoFaSetup(data);
+      } else {
+        alert('Error al generar 2FA');
+      }
+    } catch(e) {
+      alert('Error de conexión');
+    }
+    setIsActionLoading(false);
+  };
+
   const handleChangeKey = async () => {
     if (!newKeyInput || newKeyInput.length < 4) {
       setKeyError('La clave debe tener al menos 4 caracteres');
@@ -311,6 +332,13 @@ export default function SuperAdminDashboard({ superKey }) {
             title="Cambiar Clave Maestra"
           >
             <Key size={18} />
+          </button>
+          <button 
+            onClick={() => { setIs2faModalOpen(true); fetch2FaSetup(); }}
+            className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 hover:text-white hover:bg-indigo-500 transition-colors"
+            title="Configurar Google Authenticator (2FA)"
+          >
+            <QrCode size={18} />
           </button>
           <button 
             onClick={() => { localStorage.removeItem('superadmin_key'); window.location.reload(); }}
