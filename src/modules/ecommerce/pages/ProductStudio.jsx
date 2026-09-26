@@ -74,6 +74,7 @@ export default function ProductStudio() {
       if (!isEditing) {
         payload.id = Date.now().toString();
         payload.publish_status = 'Activo'; // Auto publish for faster UX
+        payload.created_at = new Date().toISOString();
       }
 
       const query = isEditing 
