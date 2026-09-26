@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+const path = require('path');
+
+const filePath = path.join(__dirname, 'src', 'modules', 'superadmin', 'SuperAdminRouter.jsx');
+
+const newContent = `import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { ShieldAlert, ArrowRight, Loader2, Key, ShieldCheck } from 'lucide-react';
@@ -21,7 +26,7 @@ export default function SuperAdminRouter() {
     const savedKey = localStorage.getItem('superadmin_key');
     if (savedKey) {
       setKey(savedKey);
-      fetch(`https://axonmarket-api.onrender.com/api/superadmin/merchants`, { headers: { 'x-superadmin-key': savedKey } })
+      fetch(\`https://axonmarket-api.onrender.com/api/superadmin/merchants\`, { headers: { 'x-superadmin-key': savedKey } })
         .then(res => {
           if (res.ok) setIsAuthenticated(true);
           else localStorage.removeItem('superadmin_key');
@@ -57,7 +62,7 @@ export default function SuperAdminRouter() {
     const lockout = localStorage.getItem('admin_lockout');
     if (lockout && new Date().getTime() < parseInt(lockout)) {
       const minutesLeft = Math.ceil((parseInt(lockout) - new Date().getTime()) / 60000);
-      setError(`Demasiados intentos. Intenta en ${minutesLeft} minutos.`);
+      setError(\`Demasiados intentos. Intenta en \${minutesLeft} minutos.\`);
       return;
     }
     if (lockout) localStorage.removeItem('admin_lockout');
@@ -66,7 +71,7 @@ export default function SuperAdminRouter() {
     
     setIsAuthenticating(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/recover`, {
+      const res = await fetch(\`https://axonmarket-api.onrender.com/api/superadmin/recover\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: totpCode })
@@ -86,7 +91,7 @@ export default function SuperAdminRouter() {
           setError('Sistema bloqueado por 5 minutos.');
         } else {
           localStorage.setItem('admin_attempts', attempts.toString());
-          setError(data.error || `Código incorrecto. Intentos restantes: ${3 - attempts}`);
+          setError(data.error || \`Código incorrecto. Intentos restantes: \${3 - attempts}\`);
         }
       }
     } catch(err) {
@@ -179,7 +184,7 @@ export default function SuperAdminRouter() {
                       type="text" 
                       maxLength="6"
                       value={totpCode} 
-                      onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '')); setError(''); }}
+                      onChange={(e) => { setTotpCode(e.target.value.replace(/\\D/g, '')); setError(''); }}
                       placeholder="000000" 
                       className="w-full bg-black/50 border border-indigo-500/30 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-indigo-500 transition-colors text-center font-mono text-4xl tracking-[0.5em] placeholder-zinc-700"
                       autoFocus
@@ -219,3 +224,7 @@ export default function SuperAdminRouter() {
     </Routes>
   );
 }
+`;
+
+fs.writeFileSync(filePath, newContent);
+console.log("SuperAdminRouter completely refactored for Passwordless!");
