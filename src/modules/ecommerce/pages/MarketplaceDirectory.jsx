@@ -227,8 +227,7 @@ export default function MarketplaceDirectory() {
           doc_id: '',
           address: '',
           wishlist: [],
-          join_date: new Date().toISOString(),
-          created_at: new Date().toISOString()
+          join_date: new Date().toISOString()
         };
         const { error } = await supabase.from('ecommerce_customers').insert([newUser]);
         if (error) throw error;

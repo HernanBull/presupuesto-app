@@ -176,8 +176,7 @@ export default function PublicStore() {
         doc_id: '',
         address: '',
         wishlist: [],
-        join_date: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        join_date: new Date().toISOString()
       };
 
       const { error } = await supabase.from('ecommerce_customers').insert([payload]);
@@ -489,8 +488,7 @@ export default function PublicStore() {
           doc_id: '',
           address: '',
           wishlist: [],
-          join_date: new Date().toISOString(),
-          created_at: new Date().toISOString()
+          join_date: new Date().toISOString()
         };
         await supabase.from('ecommerce_customers').insert([payload]);
         user = payload;
