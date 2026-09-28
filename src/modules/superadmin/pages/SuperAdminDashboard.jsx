@@ -58,7 +58,7 @@ export default function SuperAdminDashboard({ superKey }) {
         const { count: totalCustomers } = await supabase.from('ecommerce_customers').select('*', { count: 'exact', head: true });
         const { count: totalProducts } = await supabase.from('ecommerce_products').select('*', { count: 'exact', head: true });
 
-        const { data: ordersData } = await supabase.from('ecommerce_orders_v2').select('total, status, paymentMethod, date, workspace_id, items');
+        const { data: ordersData } = await supabase.from('ecommerce_orders_v2').select('total, status, paymentmethod, date, workspace_id, items');
         
         let totalGMV = 0;
         let totalOrders = 0;
@@ -84,7 +84,7 @@ export default function SuperAdminDashboard({ superKey }) {
               totalGMV += Number(o.total || 0);
               totalOrders++;
 
-              const pmLabel = o.paymentMethod || 'Otro';
+              const pmLabel = o.paymentmethod || 'Otro';
               if (!pmMap[pmLabel]) pmMap[pmLabel] = 0;
               pmMap[pmLabel]++;
 
@@ -149,7 +149,16 @@ export default function SuperAdminDashboard({ superKey }) {
           .not('status', 'in', '("Entregado","Cancelado")')
           .order('date', { ascending: false });
         
-        // Populate workspace info manually if needed, or just let UI show raw fields
+        if (activeOrders) {
+          const workspaceIds = [...new Set(activeOrders.map(o => o.workspace_id))].filter(Boolean);
+          if (workspaceIds.length > 0) {
+            const { data: workspaces } = await supabase.from('workspaces').select('id, name').in('id', workspaceIds);
+            const wsMap = {};
+            if (workspaces) workspaces.forEach(w => wsMap[w.id] = w.name);
+            activeOrders.forEach(o => o.workspace_name = wsMap[o.workspace_id] || 'Desconocida');
+          }
+        }
+        
         setLiveOrders(activeOrders || []);
       } else if (activeTab === 'delivery_bot') {
         const { data: settingsData } = await supabase.from('platform_settings').select('*').in('key', ['delivery_master_group_id', 'telegram_groups']);
