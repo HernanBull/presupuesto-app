@@ -271,15 +271,37 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition-all appearance-none"
                         >
                           <option value="" className="text-black bg-white">Seleccione sector...</option>
-                          <option value="Cagua Centro" className="text-black bg-white">Cagua Centro</option>
-                          <option value="Corinsa" className="text-black bg-white">Corinsa</option>
+                          <option value="Corinsa" className="text-black bg-white">Corinsa (Urbanización Corinsa)</option>
+                          <option value="La Segundera / Rafael Urdaneta" className="text-black bg-white">La Segundera / Rafael Urdaneta</option>
+                          <option value="Prados de la Encrucijada" className="text-black bg-white">Prados de la Encrucijada</option>
+                          <option value="Prados de Aragua" className="text-black bg-white">Prados de Aragua</option>
                           <option value="Ciudad Jardín" className="text-black bg-white">Ciudad Jardín</option>
-                          <option value="Fundación Mendoza" className="text-black bg-white">Fundación Mendoza</option>
-                          <option value="Tamborito" className="text-black bg-white">Tamborito</option>
-                          <option value="Prados de San Juan" className="text-black bg-white">Prados de San Juan</option>
-                          <option value="La Comuna" className="text-black bg-white">La Comuna</option>
+                          <option value="Suramericana" className="text-black bg-white">Suramericana</option>
+                          <option value="Fundacagua" className="text-black bg-white">Fundacagua (Urb. La Fundación)</option>
+                          <option value="Francisco de Miranda" className="text-black bg-white">Francisco de Miranda</option>
                           <option value="Santa Rosalía" className="text-black bg-white">Santa Rosalía</option>
-                          <option value="Huete" className="text-black bg-white">Huete</option>
+                          <option value="Rómulo Gallegos" className="text-black bg-white">Rómulo Gallegos</option>
+                          <option value="Blandín" className="text-black bg-white">Blandín</option>
+                          <option value="El Corozal" className="text-black bg-white">El Corozal</option>
+                          <option value="Residencias Codazzi" className="text-black bg-white">Residencias Codazzi</option>
+                          <option value="La Exclusiva" className="text-black bg-white">La Exclusiva</option>
+                          <option value="Tamborito" className="text-black bg-white">Tamborito</option>
+                          <option value="La Carpiera" className="text-black bg-white">La Carpiera</option>
+                          <option value="Huete" className="text-black bg-white">Huete (Brisas de Aragua)</option>
+                          <option value="Alí Primera" className="text-black bg-white">Alí Primera</option>
+                          <option value="Las Vegas" className="text-black bg-white">Las Vegas</option>
+                          <option value="Guillén" className="text-black bg-white">Guillén</option>
+                          <option value="Bella Vista" className="text-black bg-white">Bella Vista</option>
+                          <option value="El Toco" className="text-black bg-white">El Toco</option>
+                          <option value="La Comuna de Chávez" className="text-black bg-white">La Comuna de Chávez</option>
+                          <option value="Casco Central" className="text-black bg-white">Casco Central (Centro de Cagua)</option>
+                          <option value="Barrancón" className="text-black bg-white">Barrancón</option>
+                          <option value="Los Meregotos" className="text-black bg-white">Los Meregotos</option>
+                          <option value="Campo Alegre" className="text-black bg-white">Campo Alegre</option>
+                          <option value="Zona Industrial Soco" className="text-black bg-white">Zona Industrial Soco</option>
+                          <option value="Zona Industrial Corinsa" className="text-black bg-white">Zona Industrial Corinsa</option>
+                          <option value="Zona Industrial Santa Rosalía" className="text-black bg-white">Zona Industrial Santa Rosalía</option>
+                          <option value="Zona Industrial Cagua" className="text-black bg-white">Zona Industrial Cagua</option>
                           <option value="Otra Zona" className="text-black bg-white">Otra Zona (Cagua)</option>
                         </select>
                       </div>
