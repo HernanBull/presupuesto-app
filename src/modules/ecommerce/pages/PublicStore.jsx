@@ -316,20 +316,6 @@ export default function PublicStore() {
     try {
       const { error } = await supabase.from('ecommerce_orders_v2').insert([orderData]);
       if (!error) {
-        // Restar el inventario de cada producto (anti-spam / lógica en nube)
-        try {
-          const updates = Object.entries(cart).map(async ([productId, quantity]) => {
-            const { data } = await supabase.from('ecommerce_products').select('stock').eq('id', productId).single();
-            if (data && typeof data.stock === 'number') {
-              const newStock = Math.max(0, data.stock - quantity);
-              await supabase.from('ecommerce_products').update({ stock: newStock }).eq('id', productId);
-            }
-          });
-          await Promise.all(updates);
-        } catch (stockErr) {
-          console.error("Error deduciendo inventario:", stockErr);
-        }
-
         setCart({});
         setIsCartOpen(false);
         setIsCheckoutMode(false);

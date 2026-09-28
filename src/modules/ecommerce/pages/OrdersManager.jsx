@@ -150,6 +150,22 @@ export default function OrdersManager() {
     e.preventDefault();
   };
 
+  const deductInventory = async (items) => {
+    if (!items || !Array.isArray(items)) return;
+    try {
+      const updates = items.map(async (item) => {
+        const { data } = await supabase.from('ecommerce_products').select('stock').eq('id', item.id).single();
+        if (data && typeof data.stock === 'number') {
+          const newStock = Math.max(0, data.stock - (item.quantity || 1));
+          await supabase.from('ecommerce_products').update({ stock: newStock }).eq('id', item.id);
+        }
+      });
+      await Promise.all(updates);
+    } catch (err) {
+      console.error('Error deduciendo inventario:', err);
+    }
+  };
+
   const handleDrop = async (e, targetStatus) => {
     e.preventDefault();
     if (draggedOrderId) {
@@ -183,6 +199,11 @@ export default function OrdersManager() {
           return;
         }
 
+        // Lógica Anti-Spam: Restar inventario solo al pasar de Pendiente a estados posteriores
+        if (previousStatus === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(targetStatus)) {
+          deductInventory(orderToMove.items);
+        }
+
         // Integración Telegram Delivery
         if (targetStatus === 'Enviado' && orderToMove.status !== 'Enviado') {
           handleSendToDelivery({ ...orderToMove, deliveryPin: newDeliveryPin });
@@ -212,7 +233,11 @@ export default function OrdersManager() {
     if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.delivery_pin = newDeliveryPin;
 
     // Update en backend
-    supabase.from('ecommerce_orders_v2').update(payload).eq('id', id).catch(console.error);
+    supabase.from('ecommerce_orders_v2').update(payload).eq('id', id).then(({error}) => {
+      if (!error && orderToMove.status === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(newStatus)) {
+        deductInventory(orderToMove.items);
+      }
+    }).catch(console.error);
 
     // Integración Telegram Delivery
     if (newStatus === 'Enviado' && orderToMove && orderToMove.status !== 'Enviado') {
@@ -284,6 +309,11 @@ export default function OrdersManager() {
            }
            return order;
         }));
+      } else {
+        // Lógica Anti-Spam: Restar inventario al aprobar el pago (pasa de Pendiente a Preparando)
+        if (action === 'approve' && previousStatus === 'Pendiente') {
+          deductInventory(orderToMove.items);
+        }
       }
     } catch(err) {
       console.error(err);
