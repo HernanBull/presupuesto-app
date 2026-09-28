@@ -60,6 +60,8 @@ export default function PublicStore() {
   const [paymentBank, setPaymentBank] = useState('');
   const [selectedPaymentProfileIdx, setSelectedPaymentProfileIdx] = useState('');
   
+  const [currentCustomer, setCurrentCustomer] = useState(null);
+
   const customerPaymentProfiles = useMemo(() => {
     if (!currentCustomer?.payment_profile) return [];
     let p = currentCustomer.payment_profile;
@@ -77,8 +79,6 @@ export default function PublicStore() {
   const [flyingItems, setFlyingItems] = useState([]);
   const [cartBounce, setCartBounce] = useState(false);
   const [stockAlert, setStockAlert] = useState(null);
-
-  const [currentCustomer, setCurrentCustomer] = useState(null);
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', docId: '', phone: '', address: '' });
