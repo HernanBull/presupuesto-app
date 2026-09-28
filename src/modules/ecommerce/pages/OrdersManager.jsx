@@ -638,7 +638,7 @@ export default function OrdersManager() {
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
                 <div className="space-y-2">
-                  {selectedOrder.items && selectedOrder.items.map((item, idx) => (
+                  {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center text-sm">
                       <span className="text-slate-700 dark:text-slate-300">{item.name} x{item.quantity}</span>
                       <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>

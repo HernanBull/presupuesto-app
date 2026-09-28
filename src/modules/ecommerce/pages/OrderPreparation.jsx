@@ -8,28 +8,41 @@ export default function OrderPreparation() {
   const [isLoading, setIsLoading] = useState(true);
   const [fiscalInvoicePicked, setFiscalInvoicePicked] = useState({});
 
+  const fetchOrders = async () => {
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    try {
+      let query = supabase.from('ecommerce_orders_v2').select('*');
+      if (workspaceId) {
+        query = query.eq('workspace_id', workspaceId);
+      }
+      
+      const { data, error } = await query.order('date', { ascending: false });
+      if (error) throw error;
+      
+      const safeData = (data || []).map(order => ({
+        ...order,
+        date: new Date(order.date).toLocaleString(),
+        paymentMethod: order.paymentmethod,
+        paymentStatus: order.paymentstatus,
+        paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : order.paymentdetails,
+        shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
+        deliveryPin: order.delivery_pin,
+        isMobile: order.ismobile
+      }));
+      
+      setOrders(safeData);
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setOrders([]);
+      setIsLoading(false);
+    }
+  };
+
   // Cargar pedidos desde el backend
   useEffect(() => {
-    const workspaceId = localStorage.getItem('activeWorkspace');
-    const url = workspaceId 
-      ? `https://axonmarket-api.onrender.com/api/ecommerce/orders?workspaceId=${workspaceId}`
-      : `https://axonmarket-api.onrender.com/api/ecommerce/orders`;
-      
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        const safeData = (data || []).map(order => ({
-          ...order,
-          items: Array.isArray(order.items) ? order.items : []
-        }));
-        setOrders(safeData);
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching orders:', err);
-        setOrders([]);
-        setIsLoading(false);
-      });
+    fetchOrders();
   }, []);
 
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -64,6 +77,10 @@ export default function OrderPreparation() {
           }));
           setOrders(safeData);
         }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ecommerce_orders_v2' }, () => {
+        // Re-fetch when any change happens in the database
+        fetchOrders();
       })
       .subscribe();
 
@@ -124,11 +141,12 @@ export default function OrderPreparation() {
       setSelectedOrderId(null);
     }
     
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'Enviado', deliveryPin: newDeliveryPin })
-    }).catch(console.error);
+    try {
+      supabase.from('ecommerce_orders_v2')
+        .update({ status: 'Enviado', delivery_pin: newDeliveryPin })
+        .eq('id', orderId)
+        .then(({ error }) => { if (error) console.error(error); });
+    } catch (e) { console.error(e); }
 
     // Enviar a Telegram directamente desde Picking
     if (orderToSend) {
