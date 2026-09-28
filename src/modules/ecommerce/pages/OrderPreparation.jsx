@@ -145,7 +145,12 @@ export default function OrderPreparation() {
       supabase.from('ecommerce_orders_v2')
         .update({ status: 'Enviado', delivery_pin: newDeliveryPin })
         .eq('id', orderId)
-        .then(({ error }) => { if (error) console.error(error); });
+        .then(({ error }) => { 
+          if (error) console.error(error); 
+          else {
+            supabase.channel('support_orders_updates').send({ type: 'broadcast', event: 'order_updated', payload: { orderId } });
+          }
+        });
     } catch (e) { console.error(e); }
 
     // Enviar a Telegram directamente desde Picking

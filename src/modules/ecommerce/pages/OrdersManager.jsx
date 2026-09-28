@@ -256,6 +256,9 @@ export default function OrdersManager() {
       if (!error && orderToMove.status === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(newStatus)) {
         deductInventory(orderToMove.items);
       }
+      if (!error) {
+        supabase.channel('support_orders_updates').send({ type: 'broadcast', event: 'order_updated', payload: { orderId: id } });
+      }
     }).catch(console.error);
 
     // Integración Telegram Delivery

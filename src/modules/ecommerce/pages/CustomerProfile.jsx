@@ -96,6 +96,20 @@ export default function CustomerProfile() {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    if (!currentCustomer?.email) return;
+    
+    const channel = supabase.channel('support_orders_updates')
+      .on('broadcast', { event: 'order_updated' }, () => {
+        fetchOrders(currentCustomer.email);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentCustomer?.email]);
+
   const fetchChatMessages = async (orderId) => {
     try {
       const { data, error } = await supabase
