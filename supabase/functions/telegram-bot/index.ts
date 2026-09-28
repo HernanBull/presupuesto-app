@@ -83,8 +83,10 @@ async function handleCustomerConfirm({ orderId }, supabase) {
   await supabase.from('ecommerce_orders_v2').update({ customer_confirmed: 1 }).eq('id', orderId);
   
   const { data: order } = await supabase.from('ecommerce_orders_v2').select('driver_confirmed').eq('id', orderId).single();
+  let fullyDelivered = false;
   
   if (order && order.driver_confirmed === 1) {
+    fullyDelivered = true;
     await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado' }).eq('id', orderId);
     
     const { data: activeTrip } = await supabase.from('delivery_active_trips').select('driver_id').eq('order_id', orderId).single();
@@ -99,7 +101,7 @@ async function handleCustomerConfirm({ orderId }, supabase) {
     }
   }
   
-  return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ success: true, fullyDelivered }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
 // === Lógica para manejar respuestas del Bot (Webhook) ===

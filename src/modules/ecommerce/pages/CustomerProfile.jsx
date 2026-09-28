@@ -315,9 +315,17 @@ export default function CustomerProfile() {
         body: JSON.stringify({ type: 'customer_confirm', orderId })
       });
       if (res.ok) {
-        // Optimistically update the UI to show the customer has confirmed, 
-        // even if it hasn't reached 'Entregado' yet if the driver hasn't confirmed.
-        setOrders(orders.map(order => order.id === orderId ? { ...order, customer_confirmed: 1 } : order));
+        const data = await res.json();
+        setOrders(orders.map(order => {
+          if (order.id === orderId) {
+            return {
+              ...order,
+              customer_confirmed: 1,
+              status: data.fullyDelivered ? 'Entregado' : order.status
+            };
+          }
+          return order;
+        }));
       }
     } catch(err) {
       console.error(err);
