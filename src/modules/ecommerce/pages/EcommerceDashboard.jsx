@@ -1,28 +1,141 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, ArrowUpRight, Activity } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { supabase } from '../../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 export default function EcommerceDashboard() {
+  const navigate = useNavigate();
   const [summary, setSummary] = useState({ revenue: 0, orders: 0, aov: 0, products: 0, revenueChange: 0, ordersChange: 0, aovChange: 0, productsChange: 0 });
   const [topSellers, setTopSellers] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
+  const [lowStockCount, setLowStockCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
-        const [summaryRes, topRes, salesRes] = await Promise.all([
-          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/summary?range=${timeRange}&workspaceId=${workspaceId}`),
-          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/top-products?range=${timeRange}&workspaceId=${workspaceId}`),
-          fetch(`https://axonmarket-api.onrender.com/api/ecommerce/analytics/sales-by-date?range=${timeRange}&workspaceId=${workspaceId}`)
-        ]);
+        const workspaceId = localStorage.getItem('activeWorkspace');
+        if (!workspaceId) return;
+
+        // Date ranges
+        const now = new Date();
+        const start = new Date();
+        let prevStart = new Date();
         
-        if (summaryRes.ok) setSummary(await summaryRes.json());
-        if (topRes.ok) setTopSellers(await topRes.json());
-        if (salesRes.ok) setSalesData(await salesRes.json());
+        if (timeRange === '7d') {
+          start.setDate(now.getDate() - 7);
+          prevStart.setDate(start.getDate() - 7);
+        } else if (timeRange === '30d') {
+          start.setDate(now.getDate() - 30);
+          prevStart.setDate(start.getDate() - 30);
+        } else if (timeRange === 'year') {
+          start.setFullYear(now.getFullYear() - 1);
+          prevStart.setFullYear(start.getFullYear() - 1);
+        }
+
+        const { count: productsCount } = await supabase
+          .from('ecommerce_products')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspaceId);
+
+        const { data: currentOrders } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('*')
+          .eq('workspace_id', workspaceId)
+          .gte('date', start.toISOString())
+          .neq('status', 'Cancelado');
+
+        const { data: prevOrders } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('*')
+          .eq('workspace_id', workspaceId)
+          .gte('date', prevStart.toISOString())
+          .lt('date', start.toISOString())
+          .neq('status', 'Cancelado');
+
+        const curOrders = currentOrders || [];
+        const prvOrders = prevOrders || [];
+        
+        const curRevenue = curOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const prvRevenue = prvOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        
+        const curAOV = curOrders.length > 0 ? curRevenue / curOrders.length : 0;
+        const prvAOV = prvOrders.length > 0 ? prvRevenue / prvOrders.length : 0;
+
+        const calcChange = (cur, prv) => prv === 0 ? (cur > 0 ? 100 : 0) : ((cur - prv) / prv) * 100;
+
+        setSummary({
+          revenue: curRevenue,
+          orders: curOrders.length,
+          aov: curAOV,
+          products: productsCount || 0,
+          revenueChange: calcChange(curRevenue, prvRevenue),
+          ordersChange: calcChange(curOrders.length, prvOrders.length),
+          aovChange: calcChange(curAOV, prvAOV),
+          productsChange: 0
+        });
+
+        const salesMap = {};
+        curOrders.forEach(o => {
+          const d = o.date.substring(0, 10);
+          if (!salesMap[d]) salesMap[d] = { date: d, revenue: 0, orders: 0 };
+          salesMap[d].revenue += Number(o.total) || 0;
+          salesMap[d].orders += 1;
+        });
+        
+        const daysToFill = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 365;
+        const salesArray = [];
+        for (let i = daysToFill - 1; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const dStr = d.toISOString().substring(0, 10);
+          salesArray.push(salesMap[dStr] || { date: dStr, revenue: 0, orders: 0 });
+        }
+        
+        if (timeRange === 'year') {
+           const monthly = {};
+           salesArray.forEach(s => {
+             const m = s.date.substring(0, 7);
+             if(!monthly[m]) monthly[m] = { date: m, revenue: 0, orders: 0 };
+             monthly[m].revenue += s.revenue;
+             monthly[m].orders += s.orders;
+           });
+           setSalesData(Object.values(monthly));
+        } else {
+           setSalesData(salesArray);
+        }
+
+        const productMap = {};
+        curOrders.forEach(o => {
+          let items = [];
+          if (typeof o.items === 'string') {
+            try { items = JSON.parse(o.items); } catch(e){}
+          } else {
+            items = o.items;
+          }
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              if (!productMap[item.id]) productMap[item.id] = { id: item.id, name: item.name || item.id, sales: 0, revenue: 0 };
+              productMap[item.id].sales += Number(item.quantity) || 1;
+              productMap[item.id].revenue += (Number(item.price) || 0) * (Number(item.quantity) || 1);
+            });
+          }
+        });
+        const sortedProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+        setTopSellers(sortedProducts);
+
+        const { data: lowStock } = await supabase
+          .from('ecommerce_products')
+          .select('id')
+          .eq('workspace_id', workspaceId)
+          .lte('stock_vitrina', 4)
+          .gt('stock', 0);
+        
+        setLowStockCount(lowStock ? lowStock.length : 0);
+        
       } catch (error) {
         console.error("Error fetching analytics data", error);
       } finally {
@@ -132,25 +245,27 @@ export default function EcommerceDashboard() {
         <div className="space-y-6">
           
           {/* Bajo Stock Alert */}
-          <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-200 dark:border-amber-500/20 shadow-sm p-5 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-10">
-               <AlertTriangle size={64} className="text-amber-500" />
-             </div>
-             <div className="flex items-start gap-3 relative z-10">
-               <div className="p-2 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
-                 <AlertTriangle size={20} />
+          {lowStockCount > 0 && (
+            <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-200 dark:border-amber-500/20 shadow-sm p-5 relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-10">
+                 <AlertTriangle size={64} className="text-amber-500" />
                </div>
-               <div>
-                 <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Alerta de Inventario</h3>
-                 <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1 mb-3">
-                   2 productos están por agotarse (menos de 5 unidades).
-                 </p>
-                 <button className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 px-3 py-1.5 rounded-lg transition-colors">
-                   Revisar inventario
-                 </button>
+               <div className="flex items-start gap-3 relative z-10">
+                 <div className="p-2 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
+                   <AlertTriangle size={20} />
+                 </div>
+                 <div>
+                   <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Alerta de Inventario</h3>
+                   <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1 mb-3">
+                     {lowStockCount} producto(s) están por agotarse en la vitrina.
+                   </p>
+                   <button onClick={() => navigate('/ecommerce/inventory')} className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                     Revisar inventario
+                   </button>
+                 </div>
                </div>
-             </div>
-          </div>
+            </div>
+          )}
 
           {/* Top Sellers */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
