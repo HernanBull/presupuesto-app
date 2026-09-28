@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { supabase } from '../../supabaseClient';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -39,17 +40,15 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   };
 
   useEffect(() => {
-    const slug = localStorage.getItem('storeSlug');
-    if (slug) {
-      import('../../supabaseClient').then(({ supabase }) => {
-        supabase.from('workspaces').select('name').eq('slug', slug).single()
-          .then(({ data, error }) => {
-            if (!error && data && data.name) {
-              setStoreName(data.name);
-            }
-          })
-          .catch(err => console.error("Error fetching store name:", err));
-      });
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (wsId) {
+      supabase.from('workspaces').select('name').eq('id', wsId).single()
+        .then(({ data, error }) => {
+          if (!error && data && data.name) {
+            setStoreName(data.name);
+          }
+        })
+        .catch(err => console.error("Error fetching store name:", err));
     }
   }, []);
 
