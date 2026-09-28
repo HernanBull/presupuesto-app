@@ -20,18 +20,16 @@ export default function SuperAdminRouter() {
 
   useEffect(() => {
     const savedKey = localStorage.getItem('superadmin_key');
-    if (savedKey) {
+    const expectedKey = import.meta.env.VITE_SUPERADMIN_KEY || 'cac2003';
+    
+    if (savedKey === expectedKey) {
       setKey(savedKey);
-      fetch(`https://axonmarket-api.onrender.com/api/superadmin/merchants`, { headers: { 'x-superadmin-key': savedKey } })
-        .then(res => {
-          if (res.ok) setIsAuthenticated(true);
-          else localStorage.removeItem('superadmin_key');
-        })
-        .catch(()=>{})
-        .finally(() => setIsLoading(false));
-    } else {
+      setIsAuthenticated(true);
       setIsLoading(false);
+    } else {
+      localStorage.removeItem('superadmin_key');
       generateCaptcha();
+      setIsLoading(false);
     }
   }, []);
 
@@ -66,33 +64,29 @@ export default function SuperAdminRouter() {
     if (!password) return;
     
     setIsAuthenticating(true);
-    try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/recover`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
-      });
-      const data = await res.json();
-      
-      if (res.ok && data.key) {
-        setIsAuthenticated(true);
-        setKey(data.key);
-        localStorage.setItem('superadmin_key', data.key);
+    
+    // Simular un pequeño retraso de red por UX
+    await new Promise(r => setTimeout(r, 600));
+
+    const expectedKey = import.meta.env.VITE_SUPERADMIN_KEY || 'cac2003';
+
+    if (password === expectedKey) {
+      setIsAuthenticated(true);
+      setKey(password);
+      localStorage.setItem('superadmin_key', password);
+      localStorage.removeItem('admin_attempts');
+    } else {
+      const attempts = parseInt(localStorage.getItem('admin_attempts') || '0') + 1;
+      if (attempts >= 3) {
+        localStorage.setItem('admin_lockout', (new Date().getTime() + 5 * 60000).toString());
         localStorage.removeItem('admin_attempts');
+        setError('Sistema bloqueado por 5 minutos.');
       } else {
-        const attempts = parseInt(localStorage.getItem('admin_attempts') || '0') + 1;
-        if (attempts >= 3) {
-          localStorage.setItem('admin_lockout', (new Date().getTime() + 5 * 60000).toString());
-          localStorage.removeItem('admin_attempts');
-          setError('Sistema bloqueado por 5 minutos.');
-        } else {
-          localStorage.setItem('admin_attempts', attempts.toString());
-          setError(data.error || `Contraseña incorrecta. Intentos restantes: ${3 - attempts}`);
-        }
+        localStorage.setItem('admin_attempts', attempts.toString());
+        setError(`Contraseña incorrecta. Intentos restantes: ${3 - attempts}`);
       }
-    } catch(err) {
-      setError('Error de conexión con el servidor');
     }
+    
     setIsAuthenticating(false);
   };
 
