@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 
@@ -9,18 +9,37 @@ export default function OrdersManager() {
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Cargar pedidos desde el backend
   useEffect(() => {
     const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
     
     const loadOrders = async () => {
+      setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('ecommerce_orders_v2')
           .select('*')
-          .eq('workspace_id', workspaceId)
-          .order('date', { ascending: false });
+          .eq('workspace_id', workspaceId);
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        if (filterDate === todayStr) {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          const orQuery = `date.gte.${today.toISOString()},status.in.("Pendiente","Preparando","Enviado")`;
+          query = query.or(orQuery);
+        } else {
+          // Specific past day
+          const start = new Date(filterDate);
+          start.setHours(0,0,0,0);
+          const end = new Date(filterDate);
+          end.setHours(23,59,59,999);
+          query = query.gte('date', start.toISOString()).lte('date', end.toISOString());
+        }
+
+        const { data, error } = await query.order('date', { ascending: false });
           
         if (error) throw error;
         
@@ -47,7 +66,7 @@ export default function OrdersManager() {
     };
     
     loadOrders();
-  }, []);
+  }, [filterDate]);
   
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -350,7 +369,19 @@ export default function OrdersManager() {
             />
           </div>
           
-          <button 
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="date"
+              value={filterDate}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer shadow-sm"
+              title="Filtrar por fecha"
+            />
+          </div>
+          
+          <button  
             onClick={() => setShowQrModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-sm"
           >
