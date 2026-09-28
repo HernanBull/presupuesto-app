@@ -619,7 +619,7 @@ export default function PublicStore() {
       const product = await res.json();
       
       // Simplemente retornamos si hay suficiente stock global para cubrir lo que falta, sin parchear nada
-      if (product.stock >= neededQty) {
+      if (product.stock_vitrina >= neededQty) {
         return true;
       }
       return false;
@@ -662,7 +662,7 @@ export default function PublicStore() {
     const currentQty = cart[productId] || 0;
     const addedQty = Number(stepSize || 1);
     const requestedQty = currentQty + addedQty;
-    let available = product.stock || 0;
+    let available = product.stock_vitrina || 0;
     
     if (requestedQty > available) {
       const neededQty = requestedQty - available;
@@ -802,7 +802,7 @@ export default function PublicStore() {
     if (!selectedProduct) return;
     
     const currentQty = cart[selectedProduct.id] || 0;
-    let available = selectedProduct.stock || 0;
+    let available = selectedProduct.stock_vitrina || 0;
     const requestedQty = currentQty + modalQty;
     
     if (requestedQty > available) {
@@ -901,8 +901,8 @@ export default function PublicStore() {
                const published = pData
                  .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
                  .sort((a, b) => {
-                    const aStock = a.stock || 0;
-                    const bStock = b.stock || 0;
+                    const aStock = a.stock_vitrina || 0;
+                    const bStock = b.stock_vitrina || 0;
                     if (aStock > 0 && bStock <= 0) return -1;
                     if (aStock <= 0 && bStock > 0) return 1;
                     return 0;
@@ -953,8 +953,8 @@ export default function PublicStore() {
           const published = pData
              .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
              .sort((a, b) => {
-                const aStock = a.stock || 0;
-                const bStock = b.stock || 0;
+                const aStock = a.stock_vitrina || 0;
+                const bStock = b.stock_vitrina || 0;
                 if (aStock > 0 && bStock <= 0) return -1;
                 if (aStock <= 0 && bStock > 0) return 1;
                 return 0;
@@ -1361,8 +1361,8 @@ export default function PublicStore() {
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true }}
                           transition={{ duration: 0.6, delay: i * 0.1 }}
-                          onClick={() => { if ((p.stock || 0) > 0) openProductModal(p); }}
-                          className={`group relative flex flex-col bg-zinc-900/40 rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-zinc-900/80 hover:-translate-y-2 ${(p.stock || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                          onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
+                          className={`group relative flex flex-col bg-zinc-900/40 rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-zinc-900/80 hover:-translate-y-2 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                            <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/0 group-hover:from-white/5 group-hover:to-transparent transition-all duration-500 pointer-events-none"></div>
                            
@@ -1394,10 +1394,10 @@ export default function PublicStore() {
                                </div>
                              )}
 
-                             {(p.stock || 0) <= 0 && (
+                             {(p.stock_vitrina || 0) <= 0 && (
                                <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border border-red-500/50 z-30">Agotado en Vitrina</div>
                              )}
-                             {p.is_offer && p.stock > 0 && (
+                             {p.is_offer && p.stock_vitrina > 0 && (
                                <div className="absolute top-4 left-4 bg-amber-500 text-black text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_0_15px_rgba(245,158,11,0.5)]">
                                  <Tag size={10} /> Oferta
                                </div>
@@ -1444,7 +1444,7 @@ export default function PublicStore() {
                                  )}
                                </div>
 
-                               {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock || 0) > 0 && (
+                               {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
                                  <button 
                                    onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
                                    className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
@@ -1509,8 +1509,8 @@ export default function PublicStore() {
                     initial={{ opacity: 0, scale: 0.9, y: 30 }} 
                     animate={{ opacity: 1, scale: 1, y: 0 }} 
                     transition={{ duration: 0.5, delay: i * 0.1, type: "spring", stiffness: 100 }}
-                    onClick={() => { if ((p.stock || 0) > 0) openProductModal(p); }}
-                    className={`group relative flex flex-col bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all duration-500 hover:-translate-y-3 ${(p.stock || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
+                    className={`group relative flex flex-col bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all duration-500 hover:-translate-y-3 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     {/* Glow effect on hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none blur-2xl" style={{ background: `radial-gradient(circle at 50% 50%, ${primaryColor}20 0%, transparent 70%)` }}></div>
@@ -1530,7 +1530,7 @@ export default function PublicStore() {
                       >
                         <Zap size={14} fill="currentColor" className="animate-pulse" /> OFERTA
                       </motion.div>
-                      {(p.stock || 0) <= 0 && (
+                      {(p.stock_vitrina || 0) <= 0 && (
                          <div className="absolute top-16 left-4 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full border border-red-500/50 z-30">Agotado en Vitrina</div>
                       )}
 
@@ -1565,7 +1565,7 @@ export default function PublicStore() {
                         </div>
                         <span className="text-xs text-zinc-500 font-bold">({p.review_count || 0})</span>
                       </div>
-                      <p className="text-xs text-zinc-400 mb-4">Disponibles: <span className="font-bold text-white">{p.stock || 0}</span></p>
+                      <p className="text-xs text-zinc-400 mb-4">Disponibles: <span className="font-bold text-white">{p.stock_vitrina || 0}</span></p>
                       
                       <div className="mt-auto pt-4 flex flex-col gap-3">
                         <div className="flex items-center justify-between">
@@ -1596,7 +1596,7 @@ export default function PublicStore() {
                           )}
                         </div>
 
-                        {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock || 0) > 0 && (
+                        {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
                           <button 
                             onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
                             className={`w-full py-4 rounded-2xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
@@ -1662,8 +1662,8 @@ export default function PublicStore() {
                         key={p.id}
                         id={`product-card-${p.id}`}
                         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: (i % 12) * 0.05 }}
-                        onClick={() => { if ((p.stock || 0) > 0) openProductModal(p); }}
-                        className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 ${(p.stock || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
+                        className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
                           {p.image_url ? (
@@ -1677,7 +1677,7 @@ export default function PublicStore() {
                               Oferta
                             </div>
                           )}
-                          {(p.stock || 0) <= 0 && (
+                          {(p.stock_vitrina || 0) <= 0 && (
                              <div className="absolute top-12 left-3 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border border-red-500/50 z-30">Agotado en Vitrina</div>
                           )}
 
@@ -1711,7 +1711,7 @@ export default function PublicStore() {
                             </div>
                             <span className="text-[10px] text-zinc-500 font-bold">({p.review_count || 0})</span>
                           </div>
-                          <p className="text-[10px] text-zinc-500 mb-2">Disponibles: <span className="text-zinc-300 font-bold">{p.stock || 0}</span></p>
+                          <p className="text-[10px] text-zinc-500 mb-2">Disponibles: <span className="text-zinc-300 font-bold">{p.stock_vitrina || 0}</span></p>
                           <div className="mt-auto pt-4 flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                               {isUserAllowedToSeePrices ? (
@@ -1741,7 +1741,7 @@ export default function PublicStore() {
                               )}
                             </div>
 
-                            {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock || 0) > 0 && (
+                            {isUserAllowedToSeePrices && (!cart[p.id] || cart[p.id] === 0) && (p.stock_vitrina || 0) > 0 && (
                               <button 
                                 onClick={(e) => { e.stopPropagation(); if (!storeClosed) addToCart(p.id, p.step_size || 1); }}
                                 className={`w-full py-2.5 rounded-xl font-bold uppercase tracking-widest text-[11px] flex items-center justify-center gap-2 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 text-zinc-400 cursor-not-allowed' : 'text-black hover:scale-[1.02] active:scale-[0.98]'}`}
@@ -1804,7 +1804,7 @@ export default function PublicStore() {
                  
                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">{selectedProduct.category || 'Categoría'}</p>
                  <h2 className="text-3xl md:text-4xl font-light text-white mb-2 tracking-tight leading-tight">{selectedProduct.name}</h2>
-                 <p className="text-sm text-zinc-400 mb-6">Disponibles en vitrina: <span className="font-bold text-white">{selectedProduct.stock || 0}</span> unidades</p>
+                 <p className="text-sm text-zinc-400 mb-6">Disponibles en vitrina: <span className="font-bold text-white">{selectedProduct.stock_vitrina || 0}</span> unidades</p>
                  
                  <div className="mb-8">
                    {isUserAllowedToSeePrices ? (

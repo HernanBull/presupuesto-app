@@ -173,10 +173,10 @@ export default function OrdersManager() {
     if (!items || !Array.isArray(items)) return;
     try {
       const updates = items.map(async (item) => {
-        const { data } = await supabase.from('ecommerce_products').select('stock').eq('id', item.id).single();
-        if (data && typeof data.stock === 'number') {
-          const newStock = Math.max(0, data.stock - (item.quantity || 1));
-          await supabase.from('ecommerce_products').update({ stock: newStock }).eq('id', item.id);
+        const { data } = await supabase.from('ecommerce_products').select('stock_vitrina').eq('id', item.id).single();
+        if (data && typeof data.stock_vitrina === 'number') {
+          const newStockVitrina = Math.max(0, data.stock_vitrina - (item.quantity || 1));
+          await supabase.from('ecommerce_products').update({ stock_vitrina: newStockVitrina }).eq('id', item.id);
         }
       });
       await Promise.all(updates);
