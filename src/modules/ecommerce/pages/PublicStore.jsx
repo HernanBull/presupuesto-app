@@ -24,6 +24,12 @@ L.Icon.Default.mergeOptions({
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
+const resolveImageUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  return `https://axonmarket-api.onrender.com${url}`;
+};
+
 export default function PublicStore() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -1210,7 +1216,7 @@ export default function PublicStore() {
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setCurrentPage('home')}>
             {logoUrl ? (
               <div className="h-10 w-auto bg-white/5 rounded-xl border border-white/10 p-1 backdrop-blur-md">
-                 <img src={`https://axonmarket-api.onrender.com${logoUrl}`} alt="Logo" className="h-full w-auto object-contain rounded-lg" />
+                 <img src={resolveImageUrl(logoUrl)} alt="Logo" className="h-full w-auto object-contain rounded-lg" />
               </div>
             ) : (
               <span className={`text-2xl font-black tracking-tight text-white`}>
@@ -1297,7 +1303,7 @@ export default function PublicStore() {
                   <div key={section.id} className="relative overflow-hidden min-h-[500px] md:min-h-[700px] flex items-center justify-center text-center px-6">
                     {heroUrl ? (
                       <div className="absolute inset-0 z-0">
-                        <img src={`https://axonmarket-api.onrender.com${heroUrl}`} alt="Cover" className="w-full h-full object-cover opacity-40 scale-105" />
+                        <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-40 scale-105" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                       </div>
                     ) : (
@@ -1362,7 +1368,7 @@ export default function PublicStore() {
                            
                            <div className="w-full aspect-square bg-zinc-950 relative overflow-hidden p-6">
                              {p.image_url ? (
-                               <img id={`product-img-${p.id}`} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                               <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                              ) : (
                                <div className="w-full h-full flex items-center justify-center text-zinc-800 transition-transform duration-700 group-hover:scale-110">
                                  <ImageIcon size={64} />
@@ -1512,7 +1518,7 @@ export default function PublicStore() {
 
                     <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-8 flex items-center justify-center">
                       {p.image_url ? (
-                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
+                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
                       ) : (
                         <ImageIcon size={80} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                       )}
@@ -1661,7 +1667,7 @@ export default function PublicStore() {
                       >
                         <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
                           {p.image_url ? (
-                            <img id={`product-img-${p.id}`} src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                            <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
                           ) : (
                             <ImageIcon size={48} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
                           )}
@@ -1762,7 +1768,7 @@ export default function PublicStore() {
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-             {logoUrl && <img src={`https://axonmarket-api.onrender.com${logoUrl}`} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
+             {logoUrl && <img src={resolveImageUrl(logoUrl)} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
              <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">{config.business_name || 'MI TIENDA'}</span>
            </div>
            <p className="text-zinc-600 font-light text-xs tracking-wider uppercase">{texts.footerText}</p>
@@ -1781,7 +1787,7 @@ export default function PublicStore() {
               <div className="md:w-1/2 bg-black relative flex items-center justify-center p-12 overflow-hidden">
                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
                  {selectedProduct.image_url ? (
-                   <img id={`modal-img-${selectedProduct.id}`} src={`https://axonmarket-api.onrender.com${selectedProduct.image_url}`} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
+                   <img id={`modal-img-${selectedProduct.id}`} src={resolveImageUrl(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
                  ) : (
                    <ImageIcon size={80} className="text-zinc-800" />
                  )}
@@ -2221,7 +2227,7 @@ export default function PublicStore() {
                         >
                           <div className="w-24 h-24 bg-black rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-white/5 relative shadow-inner">
                             {p.image_url ? (
-                              <img src={`https://axonmarket-api.onrender.com${p.image_url}`} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-110 duration-500" />
+                              <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-110 duration-500" />
                             ) : (
                               <Package size={32} className="text-zinc-700" />
                             )}
