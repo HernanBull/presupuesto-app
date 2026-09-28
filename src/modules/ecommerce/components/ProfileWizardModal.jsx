@@ -34,7 +34,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     name: '',
     phone: '',
     docId: '',
-    address: '',
+    addressSector: '',
+    addressDetail: '',
     payment_bank: '',
     payment_phone: '',
     payment_cedula: '',
@@ -62,7 +63,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         name: isDefaultName ? '' : (defaultName || ''),
         phone: customer.phone || '',
         docId: customer.docId || '',
-        address: customer.address || '',
+        addressSector: '',
+        addressDetail: customer.address || '',
         payment_bank: paymentProfile.bank || '',
         payment_phone: paymentProfile.phone || '',
         payment_cedula: paymentProfile.cedula || '',
@@ -79,7 +81,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     // Validate current step
     if (step === 0 && (!formData.name || !formData.docId || !formData.phone)) return alert('Completa los datos personales');
     if (step === 1 && (!formData.payment_bank || !formData.payment_phone || !formData.payment_cedula || !formData.payment_titular)) return alert('Completa los datos de pago móvil');
-    if (step === 2 && !formData.address) return alert('Ingresa tu dirección de entrega');
+    if (step === 2 && !formData.addressDetail) return alert('Ingresa tu dirección de entrega');
 
     if (step < 3) {
       if (step === 0) {
@@ -119,7 +121,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           name: formData.name,
           phone: formData.phone,
           doc_id: formData.docId,
-          address: formData.address,
+          address: formData.addressSector ? `${formData.addressSector}, ${formData.addressDetail}` : formData.addressDetail,
           payment_profile: paymentProfile,
           profile_picture: pictureUrl
         };
@@ -155,9 +157,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           const addr = data.display_name || `Lat: ${latitude}, Lng: ${longitude}`;
-          setFormData({ ...formData, address: addr });
+          setFormData({ ...formData, addressDetail: addr });
         } catch(e) {
-          setFormData({ ...formData, address: `${latitude}, ${longitude}` });
+          setFormData({ ...formData, addressDetail: `${latitude}, ${longitude}` });
         }
         setIsDetectingLocation(false);
       },
@@ -260,12 +262,37 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                         Detectar Ubicación (GPS)
                       </button>
                     )}
-                    <textarea 
-                      placeholder="Escribe tu dirección detallada (Av, Calle, Casa, Apto)" 
-                      value={formData.address}
-                      onChange={e => setFormData({...formData, address: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500 h-32 resize-none"
-                    />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 mb-1">Urbanización / Zona</label>
+                        <select 
+                          value={formData.addressSector} 
+                          onChange={e => setFormData({...formData, addressSector: e.target.value})} 
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition-all appearance-none"
+                        >
+                          <option value="" className="text-black bg-white">Seleccione sector...</option>
+                          <option value="Cagua Centro" className="text-black bg-white">Cagua Centro</option>
+                          <option value="Corinsa" className="text-black bg-white">Corinsa</option>
+                          <option value="Ciudad Jardín" className="text-black bg-white">Ciudad Jardín</option>
+                          <option value="Fundación Mendoza" className="text-black bg-white">Fundación Mendoza</option>
+                          <option value="Tamborito" className="text-black bg-white">Tamborito</option>
+                          <option value="Prados de San Juan" className="text-black bg-white">Prados de San Juan</option>
+                          <option value="La Comuna" className="text-black bg-white">La Comuna</option>
+                          <option value="Santa Rosalía" className="text-black bg-white">Santa Rosalía</option>
+                          <option value="Huete" className="text-black bg-white">Huete</option>
+                          <option value="Otra Zona" className="text-black bg-white">Otra Zona (Cagua)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 mb-1">Calle / Casa / Piso <span className="font-normal text-zinc-500">(Opcional con GPS)</span></label>
+                        <textarea 
+                          placeholder="Ej. Calle 4, Casa 12" 
+                          value={formData.addressDetail}
+                          onChange={e => setFormData({...formData, addressDetail: e.target.value})}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500 h-24 resize-none"
+                        />
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 
