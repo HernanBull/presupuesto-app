@@ -1,9 +1,20 @@
 export const sendDeliveryRequest = async (commerceId, customerData, customOrderId = null) => {
   try {
-    const res = await fetch(`https://axonmarket-api.onrender.com/api/delivery/telegram/send`, {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    const res = await fetch(`${supabaseUrl}/functions/v1/telegram-bot`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commerceId, customerData, customOrderId })
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${anonKey}`
+      },
+      body: JSON.stringify({ 
+        type: 'send_delivery',
+        commerceId, 
+        customerData, 
+        customOrderId 
+      })
     });
     const data = await res.json();
     return data;
