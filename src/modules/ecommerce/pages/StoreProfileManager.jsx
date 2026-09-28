@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 
 export default function StoreProfileManager() {
@@ -37,6 +37,8 @@ export default function StoreProfileManager() {
   const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
   const [adminPin, setAdminPin] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   
   // Cambio de contraseña
   const [currentPassword, setCurrentPassword] = useState('');
@@ -102,6 +104,32 @@ export default function StoreProfileManager() {
   
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
+  const handleImageUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setIsSaving(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${type}_${Date.now()}.${fileExt}`;
+      const filePath = `store_assets/${workspaceId}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      
+      const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+      if (data && data.publicUrl) {
+        if (type === 'logo') setLogoUrl(data.publicUrl);
+        if (type === 'cover') setCoverUrl(data.publicUrl);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error subiendo imagen. Verifica tu conexión a internet.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   useEffect(() => {
     const fetchWorkspace = async () => {
       try {
@@ -119,6 +147,8 @@ export default function StoreProfileManager() {
             if (ws.config.currency) setCurrency(ws.config.currency);
             if (ws.config.description) setDescription(ws.config.description);
             if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
+            if (ws.config.logoUrl) setLogoUrl(ws.config.logoUrl);
+            if (ws.config.coverUrl) setCoverUrl(ws.config.coverUrl);
             if (ws.config.bcvRate) setBcvRate(ws.config.bcvRate);
             if (ws.config.manualBcv !== undefined) {
               setManualBcv(ws.config.manualBcv);
@@ -218,6 +248,8 @@ export default function StoreProfileManager() {
         currency,
         description,
         adminPin,
+        logoUrl,
+        coverUrl,
         bcvRate,
         manualBcv,
         autoBcv: !manualBcv, // Keep for backward compatibility
@@ -396,6 +428,44 @@ export default function StoreProfileManager() {
             <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descripción Breve</label>
               <textarea rows="3" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ej. Vendemos los mejores productos del mercado..." className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"></textarea>
+            </div>
+          </div>
+        </section>
+
+        {/* Imágenes de Tienda */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 rounded-lg">
+              <ImageIcon size={20} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white">Imágenes y Diseño</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Logotipo de la Tienda</label>
+              <div className="flex items-center gap-4">
+                <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950/50">
+                  {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain p-2" /> : <ImageIcon size={24} className="text-slate-400" />}
+                </div>
+                <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium cursor-pointer transition-colors">
+                  <input type="file" className="hidden" accept="image/*" onChange={e => handleImageUpload(e, 'logo')} disabled={isSaving} />
+                  Subir Logo
+                </label>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Imagen de Portada (Fondo)</label>
+              <div className="flex items-center gap-4">
+                <div className="w-32 h-24 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 overflow-hidden flex items-center justify-center bg-slate-50 dark:bg-slate-950/50">
+                  {coverUrl ? <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" /> : <ImageIcon size={24} className="text-slate-400" />}
+                </div>
+                <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium cursor-pointer transition-colors">
+                  <input type="file" className="hidden" accept="image/*" onChange={e => handleImageUpload(e, 'cover')} disabled={isSaving} />
+                  Subir Portada
+                </label>
+              </div>
             </div>
           </div>
         </section>

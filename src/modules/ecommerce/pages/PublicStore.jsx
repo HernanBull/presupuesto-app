@@ -418,7 +418,7 @@ export default function PublicStore() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
+      const filePath = `receipts/${workspaceId}/${fileName}`;
       
       const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file);
       if (!uploadError) {
@@ -930,6 +930,12 @@ export default function PublicStore() {
         saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
         if (!Array.isArray(saved.sections)) {
           saved.sections = [{ id: 'sec-hero-1', type: 'hero' }, { id: 'sec-feat-1', type: 'featured' }];
+        }
+        
+        // Ensure logo and cover are taken from the main store config if not explicitly set in storefront
+        if (storeData.config) {
+          saved.logoUrl = storeData.config.logoUrl || saved.logoUrl;
+          saved.heroUrl = storeData.config.coverUrl || saved.heroUrl || saved.coverUrl;
         }
         
         saved.business_name = storeData.name;
