@@ -59,12 +59,23 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       const isDefaultName = defaultName === customer.email || defaultName === customer.email.split('@')[0];
       const paymentProfile = customer.payment_profile || {};
       
+      let defaultAddress = '';
+      if (Array.isArray(customer.addresses) && customer.addresses.length > 0) {
+        defaultAddress = customer.addresses.find(a => a.isDefault)?.address || customer.addresses[0].address;
+      } else if (typeof customer.addresses === 'string') {
+        try {
+          const parsed = JSON.parse(customer.addresses);
+          if (parsed.length > 0) defaultAddress = parsed.find(a => a.isDefault)?.address || parsed[0].address;
+        } catch(e){}
+      }
+      if (!defaultAddress && customer.address) defaultAddress = customer.address;
+
       setFormData({
         name: isDefaultName ? '' : (defaultName || ''),
         phone: customer.phone || '',
         docId: customer.docId || '',
         addressSector: '',
-        addressDetail: customer.address || '',
+        addressDetail: defaultAddress || '',
         payment_bank: paymentProfile.bank || '',
         payment_phone: paymentProfile.phone || '',
         payment_cedula: paymentProfile.cedula || '',
@@ -117,11 +128,37 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           titular: formData.payment_titular
         };
 
+        const finalAddressText = formData.addressSector ? `${formData.addressSector}, ${formData.addressDetail}` : formData.addressDetail;
+        
+        let existingAddresses = [];
+        if (Array.isArray(customer.addresses)) {
+          existingAddresses = customer.addresses;
+        } else if (typeof customer.addresses === 'string') {
+          try { existingAddresses = JSON.parse(customer.addresses); } catch (e) {}
+        }
+
+        if (existingAddresses.length === 0) {
+          existingAddresses.push({
+            id: Date.now().toString(),
+            name: 'Principal',
+            address: finalAddressText,
+            isDefault: true
+          });
+        } else {
+          // Actualizar la dirección principal o la primera
+          const defaultIndex = existingAddresses.findIndex(a => a.isDefault);
+          if (defaultIndex >= 0) {
+            existingAddresses[defaultIndex].address = finalAddressText;
+          } else {
+            existingAddresses[0].address = finalAddressText;
+          }
+        }
+
         const updatePayload = {
           name: formData.name,
           phone: formData.phone,
           doc_id: formData.docId,
-          address: formData.addressSector ? `${formData.addressSector}, ${formData.addressDetail}` : formData.addressDetail,
+          addresses: existingAddresses,
           payment_profile: paymentProfile,
           profile_picture: pictureUrl
         };
