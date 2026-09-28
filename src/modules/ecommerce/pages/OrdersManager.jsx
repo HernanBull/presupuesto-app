@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy } from 'lucide-react';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 
