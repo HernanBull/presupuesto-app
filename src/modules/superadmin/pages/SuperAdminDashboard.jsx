@@ -151,10 +151,14 @@ export default function SuperAdminDashboard({ superKey }) {
         
         if (activeOrders) {
           const workspaceIds = [...new Set(activeOrders.map(o => o.workspace_id))].filter(Boolean);
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const validWorkspaceIds = workspaceIds.filter(id => uuidRegex.test(id));
+          
           const wsMap = {};
-          if (workspaceIds.length > 0) {
-            const { data: workspaces } = await supabase.from('workspaces').select('id, name').in('id', workspaceIds);
+          if (validWorkspaceIds.length > 0) {
+            const { data: workspaces, error } = await supabase.from('workspaces').select('id, name').in('id', validWorkspaceIds);
             if (workspaces) workspaces.forEach(w => wsMap[w.id] = w.name);
+            if (error) console.error("Error fetching workspaces:", error);
           }
           
           const enhancedOrders = activeOrders.map(o => ({
