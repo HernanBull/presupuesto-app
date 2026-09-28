@@ -41,12 +41,15 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   useEffect(() => {
     const slug = localStorage.getItem('storeSlug');
     if (slug) {
-      fetch(`https://axonmarket-api.onrender.com/api/workspaces/store/${slug}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.name) setStoreName(data.name);
-        })
-        .catch(err => console.error("Error fetching store name:", err));
+      import('../../supabaseClient').then(({ supabase }) => {
+        supabase.from('workspaces').select('name').eq('slug', slug).single()
+          .then(({ data, error }) => {
+            if (!error && data && data.name) {
+              setStoreName(data.name);
+            }
+          })
+          .catch(err => console.error("Error fetching store name:", err));
+      });
     }
   }, []);
 
