@@ -303,10 +303,16 @@ export default function CustomerProfile() {
 
   const confirmOrderReceived = async (orderId) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer_confirmed: 1 })
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/telegram-bot`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`
+        },
+        body: JSON.stringify({ type: 'customer_confirm', orderId })
       });
       if (res.ok) {
         // Optimistically update the UI to show the customer has confirmed, 
