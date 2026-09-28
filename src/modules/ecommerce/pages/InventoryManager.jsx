@@ -125,9 +125,9 @@ export default function InventoryManager() {
 
       if (newProducts.length > 0) {
         try {
-          const { error } = await supabase.from('ecommerce_products').insert(newProducts);
+          const { error } = await supabase.from('ecommerce_products').upsert(newProducts);
           if (error) throw error;
-          toast.success(`Se importaron ${newProducts.length} productos exitosamente.`);
+          toast.success(`Se importaron/actualizaron ${newProducts.length} productos exitosamente.`);
           fetchInventory();
         } catch(e) {
           console.error(e);
