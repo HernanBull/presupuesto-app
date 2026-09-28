@@ -35,11 +35,18 @@ export default function SupportManager() {
 
       if (!error && data) {
         // Map snake_case to camelCase
-        const mappedData = data.map(o => ({
-          ...o,
-          paymentStatus: o.paymentstatus,
-          customer: typeof o.customer === 'string' ? JSON.parse(o.customer) : o.customer
-        }));
+        const mappedData = data.map(o => {
+          let parsedCustomer = o.customer;
+          if (typeof o.customer === 'string') {
+            try { parsedCustomer = JSON.parse(o.customer); } 
+            catch(e) { parsedCustomer = { name: o.customer }; }
+          }
+          return {
+            ...o,
+            paymentStatus: o.paymentstatus,
+            customer: parsedCustomer
+          };
+        });
         
         const chatOrders = mappedData.filter(order => {
           if (order.paymentStatus === 'review' || order.paymentStatus === 'fraud') return true;
