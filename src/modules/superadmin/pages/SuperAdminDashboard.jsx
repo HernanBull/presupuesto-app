@@ -15,6 +15,8 @@ export default function SuperAdminDashboard({ superKey }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deliveryGroupId, setDeliveryGroupId] = useState('');
+  const [groupName, setGroupName] = useState('');
+  const [deliveryGroups, setDeliveryGroups] = useState([]);
   const [drivers, setDrivers] = useState([]);
   
   // Search State
@@ -62,12 +64,19 @@ export default function SuperAdminDashboard({ superKey }) {
       if (activeTab === 'dashboard') endpoint = '/api/superadmin/stats';
       else if (activeTab === 'monitor') endpoint = '/api/superadmin/monitor';
       else if (activeTab === 'delivery_bot') {
-        const [setRes, drvRes] = await Promise.all([
-          fetch(`https://axonmarket-api.onrender.com/api/superadmin/settings`, { headers: { 'x-superadmin-key': superKey } }),
-          fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers`, { headers: { 'x-superadmin-key': superKey } })
-        ]);
-        if (setRes.ok) { const data = await setRes.json(); setDeliveryGroupId(data.delivery_master_group_id || ''); }
-        if (drvRes.ok) { const data = await drvRes.json(); setDrivers(data || []); }
+        try {
+          const { data: settingsData } = await supabase.from('platform_settings').select('*').in('key', ['delivery_master_group_id', 'telegram_groups']);
+          if (settingsData && settingsData.length > 0) {
+            const masterGroup = settingsData.find(s => s.key === 'delivery_master_group_id');
+            const savedGroups = settingsData.find(s => s.key === 'telegram_groups');
+            if (masterGroup) setDeliveryGroupId(masterGroup.value || '');
+            if (savedGroups) setDeliveryGroups(JSON.parse(savedGroups.value || '[]'));
+          }
+          const { data: driversData } = await supabase.from('delivery_drivers').select('*').order('created_at', { ascending: false });
+          setDrivers(driversData || []);
+        } catch (e) {
+          console.error('Error fetching delivery bot data', e);
+        }
         setLoading(false);
         return;
       }
@@ -91,17 +100,63 @@ export default function SuperAdminDashboard({ superKey }) {
   };
 
   const handleSaveDeliveryGroup = async () => {
+    if (!deliveryGroupId) return;
     setIsActionLoading(true);
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/settings`, {
-        method: 'PUT',
-        headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ delivery_master_group_id: deliveryGroupId })
-      });
-      if (res.ok) alert('Grupo de Telegram guardado exitosamente.');
-      else alert('Error al guardar grupo');
-    } catch(e) { alert('Error de conexión'); }
+      // Create new group object
+      const nameToSave = groupName.trim() || 'Sin Nombre';
+      const newGroup = { id: Date.now().toString(), name: nameToSave, chat_id: deliveryGroupId };
+      
+      // Check if it exists
+      const exists = deliveryGroups.find(g => g.chat_id === deliveryGroupId);
+      let updatedGroups = deliveryGroups;
+      if (!exists) {
+        updatedGroups = [...deliveryGroups, newGroup];
+      } else {
+        updatedGroups = deliveryGroups.map(g => g.chat_id === deliveryGroupId ? { ...g, name: nameToSave } : g);
+      }
+
+      await supabase.from('platform_settings').upsert([
+        { key: 'delivery_master_group_id', value: deliveryGroupId },
+        { key: 'telegram_groups', value: JSON.stringify(updatedGroups) }
+      ], { onConflict: 'key' });
+
+      setDeliveryGroups(updatedGroups);
+      setGroupName('');
+      alert('Grupo de Telegram guardado exitosamente.');
+    } catch(e) { 
+      console.error(e);
+      alert('Error al guardar grupo'); 
+    }
     setIsActionLoading(false);
+  };
+  
+  const handleSetMasterGroup = async (chatId) => {
+    if (window.confirm('¿Establecer este grupo como el Grupo Maestro actual?')) {
+      setIsActionLoading(true);
+      try {
+        await supabase.from('platform_settings').upsert({ key: 'delivery_master_group_id', value: chatId }, { onConflict: 'key' });
+        setDeliveryGroupId(chatId);
+        alert('Grupo Maestro actualizado');
+      } catch(e) {
+        alert('Error al actualizar');
+      }
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async (chatId) => {
+    if (window.confirm('¿Eliminar este grupo de la lista?')) {
+      setIsActionLoading(true);
+      try {
+        const updatedGroups = deliveryGroups.filter(g => g.chat_id !== chatId);
+        await supabase.from('platform_settings').upsert({ key: 'telegram_groups', value: JSON.stringify(updatedGroups) }, { onConflict: 'key' });
+        setDeliveryGroups(updatedGroups);
+      } catch(e) {
+        alert('Error al eliminar');
+      }
+      setIsActionLoading(false);
+    }
   };
 
   const handleToggleDriverBan = async (driver) => {
@@ -113,12 +168,8 @@ export default function SuperAdminDashboard({ superKey }) {
     
     if (window.confirm(confirmMessage)) {
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers/${driver.id}/status`, {
-          method: 'PUT',
-          headers: { 'x-superadmin-key': superKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isBanned: newBannedState })
-        });
-        if (res.ok) fetchData();
+        const { error } = await supabase.from('delivery_drivers').update({ banned: newBannedState }).eq('id', driver.id);
+        if (!error) fetchData();
         else alert('Error al cambiar estado');
       } catch(e) { alert('Error de conexión'); }
     }
@@ -129,11 +180,8 @@ export default function SuperAdminDashboard({ superKey }) {
     if (window.confirm('🗑️ ¿Deseas eliminar el registro de este conductor?')) {
       setIsActionLoading(true);
       try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/drivers/${id}`, {
-          method: 'DELETE',
-          headers: { 'x-superadmin-key': superKey }
-        });
-        if (res.ok) fetchData();
+        const { error } = await supabase.from('delivery_drivers').delete().eq('id', id);
+        if (!error) fetchData();
         else alert('Error al eliminar');
       } catch(e) { alert('Error de conexión'); }
       setIsActionLoading(false);
@@ -559,27 +607,85 @@ export default function SuperAdminDashboard({ superKey }) {
                     <Truck className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-white uppercase tracking-widest">Grupo Maestro</h2>
-                    <p className="text-zinc-500 text-sm">Todas las peticiones irán a este grupo</p>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-widest">Grupos de Telegram</h2>
+                    <p className="text-zinc-500 text-sm">Gestiona los grupos y define el Grupo Maestro para los despachos</p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <input 
-                    type="text" 
-                    value={deliveryGroupId} 
-                    onChange={(e) => setDeliveryGroupId(e.target.value)}
-                    placeholder="Ej. -1001234567890"
-                    className="flex-1 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 font-mono"
-                  />
+                
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <input 
+                      type="text" 
+                      value={groupName} 
+                      onChange={(e) => setGroupName(e.target.value)}
+                      placeholder="Nombre (ej. Axon Market)"
+                      className="w-full sm:w-1/3 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50"
+                    />
+                    <input 
+                      type="text" 
+                      value={deliveryGroupId} 
+                      onChange={(e) => setDeliveryGroupId(e.target.value)}
+                      placeholder="Chat ID (ej. -1001234567890)"
+                      className="w-full sm:w-2/3 bg-zinc-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 font-mono"
+                    />
+                  </div>
                   <button 
                     onClick={handleSaveDeliveryGroup}
                     disabled={!deliveryGroupId || isActionLoading}
-                    className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-50 whitespace-nowrap flex items-center justify-center gap-2"
+                    className="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                    Guardar
+                    Guardar Grupo
                   </button>
                 </div>
+
+                {deliveryGroups.length > 0 && (
+                  <div className="overflow-x-auto bg-zinc-950/50 border border-white/10 rounded-2xl p-4 mt-6">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
+                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Chat ID</th>
+                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {deliveryGroups.map(group => {
+                          const isMaster = group.chat_id === deliveryGroupId;
+                          return (
+                            <tr key={group.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                              <td className="py-3 px-4 text-sm font-bold text-white flex items-center gap-2">
+                                {group.name}
+                                {isMaster && <span className="bg-emerald-500/20 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-500/30">Maestro</span>}
+                              </td>
+                              <td className="py-3 px-4 text-sm font-mono text-zinc-400">{group.chat_id}</td>
+                              <td className="py-3 px-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {!isMaster && (
+                                    <button 
+                                      onClick={() => handleSetMasterGroup(group.chat_id)}
+                                      className="p-2 bg-zinc-800 text-zinc-300 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                                      title="Establecer como Grupo Maestro"
+                                    >
+                                      <Check size={16} />
+                                    </button>
+                                  )}
+                                  <button 
+                                    onClick={() => handleDeleteGroup(group.chat_id)}
+                                    className="p-2 bg-zinc-800 text-zinc-300 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                    title="Eliminar Grupo"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               <div className="bg-zinc-900 border border-white/5 rounded-3xl p-6">
