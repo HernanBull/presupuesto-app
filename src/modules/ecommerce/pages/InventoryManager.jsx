@@ -118,7 +118,7 @@ export default function InventoryManager() {
             min_stock: 5,
             workspace_id: workspaceId,
             created_at: new Date().toISOString(),
-            publish_status: 'Activo'
+            publish_status: 'Borrador'
           });
         }
       }
@@ -303,7 +303,7 @@ export default function InventoryManager() {
       } else {
         payload.id = newItem.id;
         payload.created_at = new Date().toISOString();
-        payload.publish_status = 'Activo';
+        payload.publish_status = 'Borrador';
         await supabase.from('ecommerce_products').insert([payload]);
         toast.success("Producto registrado correctamente.");
       }
