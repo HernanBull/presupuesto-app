@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, ArrowUpRight, Activity } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 export default function EcommerceDashboard() {
