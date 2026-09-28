@@ -98,19 +98,33 @@ export default function CustomerProfile() {
 
   const fetchChatMessages = async (orderId) => {
     try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat`);
-      if(res.ok) {
-        const data = await res.json();
-        setChatMessages(data);
+      const { data, error } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('chat_history')
+        .eq('id', orderId)
+        .single();
+      if (!error && data) {
+        let history = [];
+        try { history = typeof data.chat_history === 'string' ? JSON.parse(data.chat_history) : (data.chat_history || []); } catch(e){}
+        
+        // Mark merchant messages as read
+        let updated = false;
+        const newHistory = history.map(m => {
+          if (m.sender === 'merchant' && !m.read) {
+            updated = true;
+            return { ...m, read: true };
+          }
+          return m;
+        });
+
+        if (updated) {
+          await supabase.from('ecommerce_orders_v2').update({ chat_history: JSON.stringify(newHistory) }).eq('id', orderId);
+        }
+        
+        setChatMessages(newHistory);
         scrollToBottom();
-        // Mark as read
-        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${orderId}/chat/read`, {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ reader: 'customer' })
-        }).catch(()=>{});
       }
-    } catch(e) {}
+    } catch(e) { console.error(e); }
   };
 
   const openChat = (order) => {
@@ -121,49 +135,33 @@ export default function CustomerProfile() {
   
   useEffect(() => {
     if (!isChatOpen || !activeChatOrder) return;
-    const socket = io(`https://axonmarket-api.onrender.com`);
-    socket.emit('join_chat', activeChatOrder.id);
     
-    socket.on('new_message', (msg) => {
-      setChatMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-      scrollToBottom();
-      if (msg.sender === 'merchant') {
-        fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChatOrder.id}/chat/read`, {
-          method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ reader: 'customer' })
-        }).catch(()=>{});
-      }
-    });
+    const channel = supabase
+      .channel(`chat_${activeChatOrder.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ecommerce_orders_v2', filter: `id=eq.${activeChatOrder.id}` }, (payload) => {
+        if (payload.new && payload.new.chat_history) {
+          let history = [];
+          try { history = typeof payload.new.chat_history === 'string' ? JSON.parse(payload.new.chat_history) : payload.new.chat_history; } catch(e){}
+          setChatMessages(history);
+          scrollToBottom();
+          
+          // Mark as read logic
+          const unreadMerchant = history.some(m => m.sender === 'merchant' && !m.read);
+          if (unreadMerchant) {
+             const marked = history.map(m => (m.sender === 'merchant' && !m.read) ? { ...m, read: true } : m);
+             supabase.from('ecommerce_orders_v2').update({ chat_history: JSON.stringify(marked) }).eq('id', activeChatOrder.id).then(()=>{});
+          }
+        }
+      })
+      .subscribe();
 
-    socket.on('typing', ({ sender }) => {
-      if (sender === 'merchant') {
-        setIsTyping(true);
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
-        scrollToBottom();
-      }
-    });
-
-    socket.on('messages_read', ({ reader }) => {
-      if (reader === 'merchant') {
-        setChatMessages(prev => prev.map(m => m.sender === 'customer' ? { ...m, read: true } : m));
-      }
-    });
-    
-    return () => socket.disconnect();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isChatOpen, activeChatOrder]);
 
   const handleTyping = (e) => {
     setChatInput(e.target.value);
-    if (activeChatOrder) {
-      const socket = io(`https://axonmarket-api.onrender.com`);
-      socket.emit('typing', { orderId: activeChatOrder.id, sender: 'customer' });
-      socket.disconnect();
-    }
   };
 
   const sendChatMessage = async (e) => {
@@ -199,14 +197,21 @@ export default function CustomerProfile() {
       setChatImageFile(null);
       scrollToBottom();
 
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/orders/${activeChatOrder.id}/chat`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ sender: 'customer', text: optimisticMsg.text, imageUrl: finalImageUrl, id: tempId })
-      });
-      if(res.ok) {
-        const data = await res.json();
-        setChatMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
+      const { data: orderData } = await supabase.from('ecommerce_orders_v2').select('chat_history').eq('id', activeChatOrder.id).single();
+      let currentHistory = [];
+      if (orderData && orderData.chat_history) {
+        try { currentHistory = typeof orderData.chat_history === 'string' ? JSON.parse(orderData.chat_history) : orderData.chat_history; } catch(e){}
+      }
+      
+      const updatedHistory = [...currentHistory, optimisticMsg];
+      
+      const { error: updateError } = await supabase
+        .from('ecommerce_orders_v2')
+        .update({ chat_history: JSON.stringify(updatedHistory) })
+        .eq('id', activeChatOrder.id);
+        
+      if (!updateError) {
+        // Optimistic update works
       }
     } catch(err) {
       console.error(err);
