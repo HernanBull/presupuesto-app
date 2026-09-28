@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 import * as OTPAuth from 'otpauth';
 import { AlertCircle, LogOut } from 'lucide-react';
 import EcommerceLayout from './EcommerceLayout';
@@ -74,11 +75,9 @@ const AdminGuard = () => {
       setLoading(false);
       return;
     }
-    fetch(`https://axonmarket-api.onrender.com/api/workspaces`, { cache: 'no-store' })
-      .then(res => res.json())
-      .then(data => {
-        const ws = data.find(w => w.id === wsId);
-        if (ws && ws.config) {
+    supabase.from('workspaces').select('config').eq('id', wsId).single()
+      .then(({ data: ws, error }) => {
+        if (!error && ws && ws.config) {
           if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
           if (ws.config.mfaSecret) setMfaSecret(ws.config.mfaSecret);
         }
@@ -163,19 +162,14 @@ const AdminGuard = () => {
     try {
       const wsId = localStorage.getItem('activeWorkspace');
       
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/workspaces`);
-      const data = await res.json();
-      const ws = data.find(w => w.id === wsId);
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      if (fetchErr) throw fetchErr;
       
-      const updatedConfig = { ...ws.config, adminPin: newPin };
+      const updatedConfig = { ...(ws?.config || {}), adminPin: newPin };
 
-      const putRes = await fetch(`https://axonmarket-api.onrender.com/api/workspaces/${wsId}/config`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: updatedConfig, store_slug: ws.store_slug || ws.slug })
-      });
+      const { error: updateErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', wsId);
 
-      if (putRes.ok) {
+      if (!updateErr) {
         setAdminPin(newPin);
         setUpdateMsg('¡PIN actualizado correctamente!');
         setTimeout(() => {

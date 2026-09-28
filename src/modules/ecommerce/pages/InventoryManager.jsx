@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, FileUp, UploadCloud, ClipboardCheck } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import toast from 'react-hot-toast';
 const initialInventory = [];
 
 export default function InventoryManager() {
@@ -98,7 +99,7 @@ export default function InventoryManager() {
       const lines = text.split('\n');
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
       
-      let importedCount = 0;
+      const newProducts = [];
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
@@ -107,7 +108,7 @@ export default function InventoryManager() {
         
         if (cols.length >= 5) {
           if (isNaN(parseFloat(cols[2])) || isNaN(parseFloat(cols[3]))) continue; 
-          const item = {
+          newProducts.push({
             id: cols[0].trim(),
             name: cols[1].trim(),
             stock: Number(cols[2].trim()),
@@ -115,24 +116,25 @@ export default function InventoryManager() {
             price: Number(cols[4].trim()),
             supplier: cols[5] ? cols[5].trim() : 'Sistema POS Importado',
             min_stock: 5,
-            workspace_id: workspaceId
-          };
-          try {
-            await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/products`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(item)
-            });
-            importedCount++;
-          } catch(e) { console.error(e) }
+            workspace_id: workspaceId,
+            created_at: new Date().toISOString(),
+            publish_status: 'Activo'
+          });
         }
       }
 
-      if (importedCount > 0) {
-        alert(`Se importaron ${importedCount} productos exitosamente.`);
-        fetchInventory();
+      if (newProducts.length > 0) {
+        try {
+          const { error } = await supabase.from('ecommerce_products').insert(newProducts);
+          if (error) throw error;
+          toast.success(`Se importaron ${newProducts.length} productos exitosamente.`);
+          fetchInventory();
+        } catch(e) {
+          console.error(e);
+          toast.error('Error al importar en Supabase: ' + e.message);
+        }
       } else {
-        alert("No se detectaron productos válidos. Asegúrate de que el archivo tenga columnas separadas por comas o punto y coma (SKU, Nombre, Stock, Costo, Precio).");
+        toast.error("No se detectaron productos válidos. Asegúrate de que el archivo tenga columnas (SKU, Nombre, Stock, Costo, Precio).");
       }
       setIsImportModalOpen(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -253,7 +255,7 @@ export default function InventoryManager() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.id || formData.stock === '' || formData.cogs === '' || formData.price === '') {
-      alert("Por favor llena todos los campos numéricos y de texto requeridos.");
+      toast.error("Por favor llena todos los campos numéricos y de texto requeridos.");
       return;
     }
 
@@ -297,14 +299,19 @@ export default function InventoryManager() {
       
       if (editingId) {
         await supabase.from('ecommerce_products').update(payload).eq('id', editingId);
+        toast.success("Producto actualizado correctamente.");
       } else {
         payload.id = newItem.id;
         payload.created_at = new Date().toISOString();
         payload.publish_status = 'Activo';
         await supabase.from('ecommerce_products').insert([payload]);
+        toast.success("Producto registrado correctamente.");
       }
       await fetchInventory();
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e);
+      toast.error("Ocurrió un error al guardar el producto.");
+    }
     closeEditor();
   };
 
@@ -312,14 +319,18 @@ export default function InventoryManager() {
     if (!wasteItem || wasteData.quantity <= 0) return;
     const qty = Number(wasteData.quantity);
     if (qty > wasteItem.stock) {
-      alert('La merma no puede ser mayor al stock actual.');
+      toast.error('La merma no puede ser mayor al stock actual.');
       return;
     }
 
     try {
       await supabase.from('ecommerce_products').update({ stock: wasteItem.stock - qty }).eq('id', wasteItem.id);
+      toast.success('Merma registrada exitosamente.');
       await fetchInventory();
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e);
+      toast.error('Error al registrar merma.');
+    }
     setIsWasteModalOpen(false);
   };
 
@@ -329,15 +340,19 @@ export default function InventoryManager() {
     const stockDiff = physicalCount - auditItem.stock;
     
     if (stockDiff === 0) {
-      alert('El conteo físico coincide con el sistema. No hay ajustes que hacer.');
+      toast.success('El conteo físico coincide con el sistema. No hay ajustes que hacer.');
       setIsAuditModalOpen(false);
       return;
     }
 
     try {
       await supabase.from('ecommerce_products').update({ stock: physicalCount }).eq('id', auditItem.id);
+      toast.success('Auditoría registrada y stock actualizado.');
       await fetchInventory();
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e);
+      toast.error('Error al registrar auditoría.');
+    }
     setIsAuditModalOpen(false);
   };
 
@@ -347,7 +362,7 @@ export default function InventoryManager() {
     
     const sourceStock = transferData.toVitrina ? transferItem.stock : (transferItem.stockVitrina || 0);
     if (qty > sourceStock) {
-      alert('La cantidad a transferir no puede ser mayor al stock de origen.');
+      toast.error('La cantidad a transferir no puede ser mayor al stock de origen.');
       return;
     }
 
@@ -356,8 +371,12 @@ export default function InventoryManager() {
 
     try {
       await supabase.from('ecommerce_products').update({ stock: newStock, stock_vitrina: newVitrina }).eq('id', transferItem.id);
+      toast.success('Transferencia registrada exitosamente.');
       await fetchInventory();
-    } catch(e) { console.error(e) }
+    } catch(e) { 
+      console.error(e);
+      toast.error('Error al registrar transferencia.');
+    }
     setIsTransferModalOpen(false);
   };
 
@@ -365,8 +384,12 @@ export default function InventoryManager() {
     if(window.confirm('¿Estás seguro de eliminar este registro del inventario?')) {
       try {
         await supabase.from('ecommerce_products').delete().eq('id', id);
+        toast.success('Producto eliminado del inventario.');
         await fetchInventory();
-      } catch(e) { console.error(e) }
+      } catch(e) { 
+        console.error(e);
+        toast.error('Error al eliminar producto.');
+      }
     }
   };
 

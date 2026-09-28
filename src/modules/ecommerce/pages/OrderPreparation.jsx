@@ -18,7 +18,11 @@ export default function OrderPreparation() {
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        setOrders(data || []);
+        const safeData = (data || []).map(order => ({
+          ...order,
+          items: Array.isArray(order.items) ? order.items : []
+        }));
+        setOrders(safeData);
         setIsLoading(false);
       })
       .catch(err => {
@@ -54,7 +58,11 @@ export default function OrderPreparation() {
       .on('broadcast', { event: 'UPDATE_ORDERS' }, (payload) => {
         // Update local state when a broadcast message is received
         if (payload.payload) {
-          setOrders(payload.payload);
+          const safeData = payload.payload.map(order => ({
+            ...order,
+            items: Array.isArray(order.items) ? order.items : []
+          }));
+          setOrders(safeData);
         }
       })
       .subscribe();
@@ -156,7 +164,7 @@ export default function OrderPreparation() {
 
   // Calcular progreso — incluye la Factura Fiscal como paso obligatorio
   const getProgress = (order) => {
-    if (!order || !order.items.length) return 0;
+    if (!order || !Array.isArray(order.items) || order.items.length === 0) return 0;
     const pickedCount = order.items.filter(i => i.picked).length;
     const invoicePicked = fiscalInvoicePicked[order.id] ? 1 : 0;
     const totalSteps = order.items.length + 1; // +1 por la factura fiscal

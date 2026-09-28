@@ -15,11 +15,8 @@ export default function SuperAdminRouter() {
   const [captchaQ, setCaptchaQ] = useState({ a: 0, b: 0 });
   const [captchaA, setCaptchaA] = useState('');
   const [captchaPassed, setCaptchaPassed] = useState(false);
-  const [totpCode, setTotpCode] = useState('');
+  const [password, setPassword] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isChecking2fa, setIsChecking2fa] = useState(true);
-  const [is2faActive, setIs2faActive] = useState(true);
-  const [publicQrUri, setPublicQrUri] = useState('');
 
   useEffect(() => {
     const savedKey = localStorage.getItem('superadmin_key');
@@ -35,18 +32,8 @@ export default function SuperAdminRouter() {
     } else {
       setIsLoading(false);
       generateCaptcha();
-      check2FaStatus();
     }
   }, []);
-
-  const check2FaStatus = async () => {
-    try {
-      const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/status`, { cache: 'no-store' });
-      const data = await res.json();
-      setIs2faActive(data.isActive);
-    } catch(e) {}
-    setIsChecking2fa(false);
-  };
 
   const generateCaptcha = () => {
     setCaptchaQ({ a: Math.floor(Math.random() * 10) + 1, b: Math.floor(Math.random() * 10) + 1 });
@@ -64,7 +51,7 @@ export default function SuperAdminRouter() {
     }
   };
 
-  const handleLogin2FA = async (e) => {
+  const handleLogin = async (e) => {
     e && e.preventDefault();
     
     // Rate limit check
@@ -76,14 +63,14 @@ export default function SuperAdminRouter() {
     }
     if (lockout) localStorage.removeItem('admin_lockout');
 
-    if (totpCode.length !== 6) return;
+    if (!password) return;
     
     setIsAuthenticating(true);
     try {
       const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/recover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: totpCode })
+        body: JSON.stringify({ password })
       });
       const data = await res.json();
       
@@ -100,7 +87,7 @@ export default function SuperAdminRouter() {
           setError('Sistema bloqueado por 5 minutos.');
         } else {
           localStorage.setItem('admin_attempts', attempts.toString());
-          setError(data.error || `Código incorrecto. Intentos restantes: ${3 - attempts}`);
+          setError(data.error || `Contraseña incorrecta. Intentos restantes: ${3 - attempts}`);
         }
       }
     } catch(err) {
@@ -129,57 +116,7 @@ export default function SuperAdminRouter() {
           
           
           <AnimatePresence mode="wait">
-            {isChecking2fa ? (
-              <div className="py-12 flex flex-col items-center justify-center text-white" key="loading">
-                <Loader2 size={40} className="animate-spin text-indigo-500 mb-4" />
-                <p className="text-sm font-bold tracking-widest animate-pulse">Verificando Seguridad...</p>
-              </div>
-            ) : !is2faActive ? (
-              <motion.div key="setup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl"><ShieldAlert size={40} /></div>
-                </div>
-                <h1 className="text-xl font-black tracking-tight text-white mb-2 uppercase">Inicialización 2FA</h1>
-                <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
-                  El sistema no tiene un código 2FA configurado en la base de datos segura.
-                </p>
-                {!publicQrUri ? (
-                  <button 
-                    onClick={async () => {
-                      setIsChecking2fa(true);
-                      try {
-                        const res = await fetch(`https://axonmarket-api.onrender.com/api/superadmin/2fa/setup-public`, { method: 'POST' });
-                        const data = await res.json();
-                        if (res.ok) setPublicQrUri(data.uri);
-                        else setError(data.error);
-                      } catch(e) { setError('Error de red'); }
-                      setIsChecking2fa(false);
-                    }}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all flex items-center justify-center"
-                  >
-                    Generar Código QR Único
-                  </button>
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="bg-white p-4 rounded-xl shadow-lg">
-                      <QRCodeCanvas value={publicQrUri} size={200} level="M" />
-                    </div>
-                    <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Escanéalo y presiona Continuar.</p>
-                    <button 
-                      onClick={() => {
-                        setPublicQrUri('');
-                        setIs2faActive(true);
-                        setCaptchaPassed(false);
-                      }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-full py-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors"
-                    >
-                      Ya lo escaneé, Continuar
-                    </button>
-                  </div>
-                )}
-                {error && <p className="text-red-500 text-xs font-bold uppercase tracking-wider mt-4">{error}</p>}
-              </motion.div>
-            ) : !captchaPassed ? (
+            {!captchaPassed ? (
 
               <motion.div
                 key="captcha"
@@ -223,7 +160,7 @@ export default function SuperAdminRouter() {
               </motion.div>
             ) : (
               <motion.div
-                key="2fa"
+                key="password"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
@@ -234,20 +171,19 @@ export default function SuperAdminRouter() {
                     <Key size={40} />
                   </div>
                 </div>
-                <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">Google Authenticator</h1>
+                <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">Autenticación Segura</h1>
                 <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-                  Ingresa el código rotativo de 6 dígitos de tu aplicación autenticadora.
+                  Ingresa la contraseña de seguridad para acceder al panel.
                 </p>
 
-                <form onSubmit={handleLogin2FA} className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-6">
                   <div>
                     <input 
-                      type="text" 
-                      maxLength="6"
-                      value={totpCode} 
-                      onChange={(e) => { setTotpCode(e.target.value.replace(/\D/g, '')); setError(''); }}
-                      placeholder="000000" 
-                      className="w-full bg-black/50 border border-indigo-500/30 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-indigo-500 transition-colors text-center font-mono text-4xl tracking-[0.5em] placeholder-zinc-700"
+                      type="password" 
+                      value={password} 
+                      onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                      placeholder="••••••••" 
+                      className="w-full bg-black/50 border border-indigo-500/30 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-indigo-500 transition-colors text-center font-mono text-2xl tracking-[0.2em] placeholder-zinc-700"
                       autoFocus
                       required
                     />
@@ -255,7 +191,7 @@ export default function SuperAdminRouter() {
                   {error && <p className="text-red-500 text-xs font-bold uppercase tracking-wider animate-pulse">{error}</p>}
                   <button 
                     type="submit" 
-                    disabled={totpCode.length !== 6 || isAuthenticating}
+                    disabled={!password || isAuthenticating}
                     className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {isAuthenticating ? <Loader2 size={18} className="animate-spin" /> : <>Validar y Entrar <ShieldCheck size={18} /></>}
@@ -263,7 +199,7 @@ export default function SuperAdminRouter() {
                   <div className="pt-4 text-center">
                     <button 
                       type="button" 
-                      onClick={() => { setCaptchaPassed(false); generateCaptcha(); setTotpCode(''); setError(''); }}
+                      onClick={() => { setCaptchaPassed(false); generateCaptcha(); setPassword(''); setError(''); }}
                       className="text-xs text-zinc-500 hover:text-white font-bold uppercase tracking-widest transition-colors focus:outline-none"
                     >
                       Volver atrás

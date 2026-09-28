@@ -763,13 +763,7 @@ export default function MarketplaceDirectory() {
                   transition={{ duration: 0.8, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
                   className="group relative bg-zinc-900/40 rounded-[2rem] border border-white/5 overflow-hidden transition-all duration-500 hover:border-amber-500/30 hover:bg-zinc-900/80 cursor-pointer flex flex-col hover:-translate-y-2"
                   onClick={() => {
-                    if (!currentCustomer) {
-                      setPendingStoreSlug(store.store_slug);
-                      setAuthMode('login');
-                      setIsAuthModalOpen(true);
-                    } else {
-                      navigate(`/ecommerce/live/${store.store_slug}`);
-                    }
+                    navigate(`/ecommerce/live/${store.store_slug}`);
                   }}
                 >
                   {/* Subtle glowing background on hover */}

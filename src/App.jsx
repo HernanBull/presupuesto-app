@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+const AppToaster = () => (
+  <Toaster 
+    position="bottom-center"
+    toastOptions={{
+      style: { background: "#18181b", color: "#fff", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "16px", zIndex: 999999 }
+    }}
+  />
+);
 import { supabase } from './modules/presupuesto/utils/supabaseClient';
 import { Login } from './modules/presupuesto/components/Login';
 import { LandingPage } from './modules/presupuesto/components/LandingPage';
@@ -63,27 +73,33 @@ function App() {
 
   if (isEcommerceRoute) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route 
-            path="/ecommerce/*" 
-            element={<EcommerceRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
-          />
-        </Routes>
-      </BrowserRouter>
+      <>
+        <AppToaster />
+        <BrowserRouter>
+          <Routes>
+            <Route 
+              path="/ecommerce/*" 
+              element={<EcommerceRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
+            />
+          </Routes>
+        </BrowserRouter>
+      </>
     );
   }
 
   if (isDeliveryRoute) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route 
-            path="/delivery/*" 
-            element={<DeliveryRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
-          />
-        </Routes>
-      </BrowserRouter>
+      <>
+        <AppToaster />
+        <BrowserRouter>
+          <Routes>
+            <Route 
+              path="/delivery/*" 
+              element={<DeliveryRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
+            />
+          </Routes>
+        </BrowserRouter>
+      </>
     );
   }
 
@@ -91,11 +107,14 @@ function App() {
 
   if (isSuperAdminRoute) {
     return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/superadmin/*" element={<SuperAdminRouter />} />
-        </Routes>
-      </BrowserRouter>
+      <>
+        <AppToaster />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/superadmin/*" element={<SuperAdminRouter />} />
+          </Routes>
+        </BrowserRouter>
+      </>
     );
   }
 
@@ -124,16 +143,19 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/ecommerce/live" replace />} />
-        <Route 
-          path="/presupuesto/*" 
-          element={<PresupuestoDashboard session={session} theme={theme} toggleTheme={toggleTheme} />} 
-        />
-        {/* Futuras Rutas para ERP, CRM, etc. irán aquí */}
-      </Routes>
-    </BrowserRouter>
+    <>
+      <AppToaster />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Navigate to="/ecommerce/live" replace />} />
+          <Route 
+            path="/presupuesto/*" 
+            element={<PresupuestoDashboard session={session} theme={theme} toggleTheme={toggleTheme} />} 
+          />
+          {/* Futuras Rutas para ERP, CRM, etc. irán aquí */}
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

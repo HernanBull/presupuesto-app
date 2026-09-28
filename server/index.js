@@ -1709,34 +1709,17 @@ app.get('/api/superadmin/2fa/status', async (req, res) => {
 
 app.post('/api/superadmin/recover', async (req, res) => {
   try {
-    const { token } = req.body;
-    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'superadmin_2fa_secret').single();
-    const secret = setting ? setting.value : null;
+    const { password } = req.body;
+    const currentKey = process.env.VITE_SUPERADMIN_KEY || 'cac2003';
 
-    if (!secret) {
-      return res.status(400).json({ error: 'EL ADMINISTRADOR NO HA CONFIGURADO LA RECUPERACIÓN 2FA TODAVÍA.' });
+    if (!password) {
+      return res.status(400).json({ error: 'Debe proporcionar la contraseña.' });
     }
 
-    if (!token || token.length !== 6) {
-      return res.status(400).json({ error: 'Token inválido' });
-    }
-
-    const totp = new OTPAuth.TOTP({
-      issuer: 'AxonMarket SuperAdmin',
-      label: 'Admin Panel',
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-      secret: secret
-    });
-
-    const delta = totp.validate({ token: token, window: 2 });
-    
-    if (delta !== null) {
-      const currentKey = process.env.VITE_SUPERADMIN_KEY || 'cac2003';
+    if (password === currentKey) {
       return res.json({ success: true, key: currentKey });
     } else {
-      return res.status(401).json({ error: 'El código 2FA es incorrecto o ha expirado.' });
+      return res.status(401).json({ error: 'Contraseña incorrecta.' });
     }
   } catch (err) {
     res.status(500).json({ error: 'Error interno de recuperación: ' + err.message });
