@@ -295,9 +295,9 @@ export default function PublicStore() {
       total: finalTotal,
       items: orderItems,
       status: 'Pendiente',
-      payment_method: selectedPaymentMethod,
-      payment_status: selectedPaymentMethod === 'cash' ? 'approved' : 'pending',
-      payment_details: {
+      paymentmethod: selectedPaymentMethod,
+      paymentstatus: selectedPaymentMethod === 'cash' ? 'approved' : 'pending',
+      paymentdetails: {
         capture: receiptUrl,
         ref: paymentReference,
         bank: selectedPaymentMethod === 'zelle' ? 'Zelle' : paymentBank,
@@ -310,7 +310,7 @@ export default function PublicStore() {
          cost: isFreeShipping ? 0 : flatRate,
          location: checkoutLocation
       },
-      created_at: new Date().toISOString()
+      date: new Date().toISOString()
     };
 
     try {

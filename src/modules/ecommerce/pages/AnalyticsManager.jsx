@@ -43,7 +43,7 @@ export default function AnalyticsManager() {
         .from('ecommerce_orders_v2')
         .select('*')
         .eq('workspace_id', workspaceId)
-        .gte('created_at', limitDate.toISOString());
+        .gte('date', limitDate.toISOString());
 
       if (!error && orders) {
         // Aggregate Sales by Date
@@ -56,7 +56,7 @@ export default function AnalyticsManager() {
         orders.forEach(order => {
           if (order.status === 'Rechazado' || order.status === 'Cancelado') return;
           
-          const dateStr = order.created_at.split('T')[0];
+          const dateStr = order.date.split('T')[0];
           salesMap[dateStr] = (salesMap[dateStr] || 0) + Number(order.total);
           
           totalRevenue += Number(order.total);

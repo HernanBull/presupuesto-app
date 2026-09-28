@@ -20,21 +20,21 @@ export default function OrdersManager() {
           .from('ecommerce_orders_v2')
           .select('*')
           .eq('workspace_id', workspaceId)
-          .order('created_at', { ascending: false });
+          .order('date', { ascending: false });
           
         if (error) throw error;
         
         // Map snake_case from DB to camelCase for UI
         const mappedOrders = (data || []).map(order => ({
           ...order,
-          date: new Date(order.created_at).toLocaleString(),
-          paymentMethod: order.payment_method,
-          paymentStatus: order.payment_status,
-          paymentDetails: typeof order.payment_details === 'string' ? JSON.parse(order.payment_details) : order.payment_details,
+          date: new Date(order.date).toLocaleString(),
+          paymentMethod: order.paymentmethod,
+          paymentStatus: order.paymentstatus,
+          paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : order.paymentdetails,
           shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
           deliveryPin: order.delivery_pin,
-          isMobile: order.is_mobile
+          isMobile: order.ismobile
         }));
         
         setOrders(mappedOrders);
@@ -263,7 +263,7 @@ export default function OrdersManager() {
       return order;
     }));
 
-    const updatePayload = { payment_status: newPaymentStatus };
+    const updatePayload = { paymentstatus: newPaymentStatus };
     if (newStatus) updatePayload.status = newStatus;
     if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) updatePayload.delivery_pin = newDeliveryPin;
 
