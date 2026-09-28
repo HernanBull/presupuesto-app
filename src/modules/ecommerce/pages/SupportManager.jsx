@@ -80,9 +80,8 @@ export default function SupportManager() {
     const workspaceId = localStorage.getItem('activeWorkspace');
     if (!workspaceId) return;
 
-    const channel = supabase
-      .channel('support_orders_updates')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ecommerce_orders_v2', filter: `workspace_id=eq.${workspaceId}` }, (payload) => {
+    const channel = supabase.channel('support_orders_updates')
+      .on('broadcast', { event: 'order_updated' }, () => {
         fetchOrders();
       })
       .subscribe();
@@ -95,25 +94,18 @@ export default function SupportManager() {
   useEffect(() => {
     if (!activeChat) return;
     
-    const channel = supabase
-      .channel(`support_chat_${activeChat.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ecommerce_orders_v2', filter: `id=eq.${activeChat.id}` }, (payload) => {
-        if (payload.new) {
-          if (payload.new.chat_history) {
-            let history = [];
-            try { history = typeof payload.new.chat_history === 'string' ? JSON.parse(payload.new.chat_history) : payload.new.chat_history; } catch(e){}
-            setChatMessages(history);
-            scrollToBottom();
-            
-            // Mark as read if customer sent something
-            const unreadCustomer = history.some(m => m.sender === 'customer' && !m.read);
-            if (unreadCustomer) {
-              const marked = history.map(m => (m.sender === 'customer' && !m.read) ? { ...m, read: true } : m);
-              supabase.from('ecommerce_orders_v2').update({ chat_history: JSON.stringify(marked) }).eq('id', activeChat.id).then(()=>{});
-            }
-          }
-          if (payload.new.paymentstatus !== activeChat.paymentStatus) {
-            setActiveChat(prev => ({...prev, paymentStatus: payload.new.paymentstatus}));
+    const channel = supabase.channel(`chat_${activeChat.id}`)
+      .on('broadcast', { event: 'chat_updated' }, (payload) => {
+        if (payload.payload && payload.payload.history) {
+          const history = payload.payload.history;
+          setChatMessages(history);
+          scrollToBottom();
+          
+          // Mark as read if customer sent something
+          const unreadCustomer = history.some(m => m.sender === 'customer' && !m.read);
+          if (unreadCustomer) {
+            const marked = history.map(m => (m.sender === 'customer' && !m.read) ? { ...m, read: true } : m);
+            supabase.from('ecommerce_orders_v2').update({ chat_history: JSON.stringify(marked) }).eq('id', activeChat.id).then(()=>{});
           }
         }
       })
@@ -206,6 +198,12 @@ export default function SupportManager() {
         .eq('id', activeChat.id);
         
       if (!updateError) {
+        // Broadcast
+        supabase.channel(`chat_${activeChat.id}`).send({
+          type: 'broadcast',
+          event: 'chat_updated',
+          payload: { history: updatedHistory }
+        });
         fetchOrders();
       }
     } catch(err) {
@@ -264,6 +262,17 @@ export default function SupportManager() {
         .eq('id', orderId);
         
       if(!updateError) {
+        supabase.channel(`chat_${orderId}`).send({
+          type: 'broadcast',
+          event: 'chat_updated',
+          payload: { history: updatedHistory }
+        });
+        supabase.channel('support_orders_updates').send({
+          type: 'broadcast',
+          event: 'order_updated',
+          payload: { orderId }
+        });
+
         setActiveChat(prev => ({ ...prev, paymentStatus: newStatus }));
         setChatMessages(updatedHistory);
         fetchOrders();

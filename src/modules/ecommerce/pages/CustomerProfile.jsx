@@ -136,12 +136,10 @@ export default function CustomerProfile() {
   useEffect(() => {
     if (!isChatOpen || !activeChatOrder) return;
     
-    const channel = supabase
-      .channel(`chat_${activeChatOrder.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'ecommerce_orders_v2', filter: `id=eq.${activeChatOrder.id}` }, (payload) => {
-        if (payload.new && payload.new.chat_history) {
-          let history = [];
-          try { history = typeof payload.new.chat_history === 'string' ? JSON.parse(payload.new.chat_history) : payload.new.chat_history; } catch(e){}
+    const channel = supabase.channel(`chat_${activeChatOrder.id}`)
+      .on('broadcast', { event: 'chat_updated' }, (payload) => {
+        if (payload.payload && payload.payload.history) {
+          const history = payload.payload.history;
           setChatMessages(history);
           scrollToBottom();
           
@@ -211,7 +209,18 @@ export default function CustomerProfile() {
         .eq('id', activeChatOrder.id);
         
       if (!updateError) {
-        // Optimistic update works
+        // Broadcast change
+        supabase.channel(`chat_${activeChatOrder.id}`).send({
+          type: 'broadcast',
+          event: 'chat_updated',
+          payload: { history: updatedHistory }
+        });
+        
+        supabase.channel('support_orders_updates').send({
+          type: 'broadcast',
+          event: 'order_updated',
+          payload: { orderId: activeChatOrder.id }
+        });
       }
     } catch(err) {
       console.error(err);
