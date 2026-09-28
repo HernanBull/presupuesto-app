@@ -16,15 +16,47 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
 
-  const fetchNotifications = () => {
+  const fetchNotifications = async () => {
     const slug = localStorage.getItem('storeSlug');
+    const wsId = localStorage.getItem('activeWorkspace');
     if (!slug) return;
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${slug}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setNotifications(data);
-      })
-      .catch(console.error);
+    
+    try {
+      let apiNotifs = [];
+      try {
+        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${slug}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) apiNotifs = data;
+        }
+      } catch (e) { console.error("Error fetching API notifs", e); }
+      
+      let virtualNotifs = [];
+      if (wsId) {
+        const { data: lowStock } = await supabase
+          .from('ecommerce_products')
+          .select('id, name, stock, stock_vitrina')
+          .eq('workspace_id', wsId)
+          .lte('stock_vitrina', 4)
+          .gt('stock', 0)
+          .in('publish_status', ['Activo', 'Publicado']);
+          
+        if (lowStock && lowStock.length > 0) {
+          virtualNotifs = lowStock.map(p => ({
+            id: 'virtual-stock-' + p.id,
+            product_id: p.id,
+            is_read: false,
+            type: 'stock_alert',
+            message: `¡Vitrina vaciándose! Quedan ${p.stock_vitrina || 0} uds de "${p.name}". Tienes ${p.stock} uds en el depósito.`,
+            created_at: new Date().toISOString()
+          }));
+        }
+      }
+      
+      setNotifications([...virtualNotifs, ...apiNotifs]);
+    } catch(e) {
+      console.error(e);
+    }
   };
 
   useEffect(() => {
@@ -34,6 +66,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   }, []);
 
   const markAsRead = (id) => {
+    if (typeof id === 'string' && id.startsWith('virtual-stock-')) return; // No se pueden descartar, deben transferir stock
     fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' })
       .then(() => fetchNotifications())
       .catch(console.error);
@@ -182,7 +215,11 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                     <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
                       onClick={() => {
                         markAsRead(n.id);
-                        if(n.product_id) navigate(`/ecommerce/product-studio/${n.product_id}`);
+                        if(n.type === 'stock_alert') {
+                          navigate('/ecommerce/inventory');
+                        } else if(n.product_id) {
+                          navigate(`/ecommerce/product-studio/${n.product_id}`);
+                        }
                         setShowNotifications(false);
                       }}
                     >
@@ -239,7 +276,11 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                         <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
                           onClick={() => {
                             markAsRead(n.id);
-                            if(n.product_id) navigate(`/ecommerce/product-studio/${n.product_id}`);
+                            if(n.type === 'stock_alert') {
+                              navigate('/ecommerce/inventory');
+                            } else if(n.product_id) {
+                              navigate(`/ecommerce/product-studio/${n.product_id}`);
+                            }
                             setShowNotifications(false);
                           }}
                         >
