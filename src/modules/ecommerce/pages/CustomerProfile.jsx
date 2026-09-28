@@ -38,6 +38,7 @@ export default function CustomerProfile() {
   const [orderFilterDate, setOrderFilterDate] = useState('');
   
   const [newAddress, setNewAddress] = useState('');
+  const [newAddressSector, setNewAddressSector] = useState('');
   const [newAddressName, setNewAddressName] = useState('');
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   
@@ -387,7 +388,8 @@ export default function CustomerProfile() {
       typeof currentCustomer.addresses === 'string' ? JSON.parse(currentCustomer.addresses || '[]') : []
     );
     
-    const finalAddressText = newAddress.trim() === '' ? 'Ubicación fijada por GPS' : newAddress;
+    const finalAddressString = newAddressSector ? `${newAddressSector}, ${newAddress}` : newAddress;
+    const finalAddressText = finalAddressString.trim() === '' ? 'Ubicación fijada por GPS' : finalAddressString;
     
     const newAddr = {
       id: Date.now().toString(),
@@ -680,9 +682,27 @@ export default function CustomerProfile() {
                           <label className="block text-sm font-bold text-zinc-400 mb-2">Nombre (Ej: Casa, Oficina)</label>
                           <input type="text" required value={newAddressName} onChange={e => setNewAddressName(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
                         </div>
-                        <div>
-                          <label className="block text-sm font-bold text-zinc-400 mb-2">Dirección Completa <span className="text-zinc-500 text-xs font-normal">(Opcional si usas GPS)</span></label>
-                          <input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Ej: Av. Principal, Casa 4" className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-bold text-zinc-400 mb-2">Urbanización / Zona</label>
+                            <select value={newAddressSector} onChange={e => setNewAddressSector(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner appearance-none">
+                              <option value="" className="text-black bg-white">Seleccione sector...</option>
+                              <option value="Cagua Centro" className="text-black bg-white">Cagua Centro</option>
+                              <option value="Corinsa" className="text-black bg-white">Corinsa</option>
+                              <option value="Ciudad Jardín" className="text-black bg-white">Ciudad Jardín</option>
+                              <option value="Fundación Mendoza" className="text-black bg-white">Fundación Mendoza</option>
+                              <option value="Tamborito" className="text-black bg-white">Tamborito</option>
+                              <option value="Prados de San Juan" className="text-black bg-white">Prados de San Juan</option>
+                              <option value="La Comuna" className="text-black bg-white">La Comuna</option>
+                              <option value="Santa Rosalía" className="text-black bg-white">Santa Rosalía</option>
+                              <option value="Huete" className="text-black bg-white">Huete</option>
+                              <option value="Otra Zona" className="text-black bg-white">Otra Zona (Cagua)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-zinc-400 mb-2">Calle / Casa / Piso <span className="text-zinc-500 text-xs font-normal">(Opcional si usas GPS)</span></label>
+                            <input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Ej: Calle 4, Casa 12" className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                          </div>
                         </div>
                       </div>
                       
@@ -1119,15 +1139,15 @@ export default function CustomerProfile() {
                 <div>
                   <label className="block text-sm font-bold text-zinc-400 mb-2">Banco Emisor</label>
                   <select required value={newPayment.bank} onChange={e => setNewPayment({...newPayment, bank: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-all appearance-none">
-                    <option value="">Selecciona...</option>
-                    <option value="Banesco">Banesco</option>
-                    <option value="Mercantil">Mercantil</option>
-                    <option value="Provincial">Provincial</option>
-                    <option value="Venezuela">Banco de Venezuela</option>
-                    <option value="BNC">BNC</option>
-                    <option value="Bicentenario">Bicentenario</option>
-                    <option value="BOD">BOD</option>
-                    <option value="Exterior">Exterior</option>
+                    <option value="" className="text-black bg-white">Selecciona...</option>
+                    <option value="Banesco" className="text-black bg-white">Banesco</option>
+                    <option value="Mercantil" className="text-black bg-white">Mercantil</option>
+                    <option value="Provincial" className="text-black bg-white">Provincial</option>
+                    <option value="Venezuela" className="text-black bg-white">Banco de Venezuela</option>
+                    <option value="BNC" className="text-black bg-white">BNC</option>
+                    <option value="Bicentenario" className="text-black bg-white">Bicentenario</option>
+                    <option value="BOD" className="text-black bg-white">BOD</option>
+                    <option value="Exterior" className="text-black bg-white">Exterior</option>
                   </select>
                 </div>
                 <div>
