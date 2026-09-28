@@ -151,15 +151,20 @@ export default function SuperAdminDashboard({ superKey }) {
         
         if (activeOrders) {
           const workspaceIds = [...new Set(activeOrders.map(o => o.workspace_id))].filter(Boolean);
+          const wsMap = {};
           if (workspaceIds.length > 0) {
             const { data: workspaces } = await supabase.from('workspaces').select('id, name').in('id', workspaceIds);
-            const wsMap = {};
             if (workspaces) workspaces.forEach(w => wsMap[w.id] = w.name);
-            activeOrders.forEach(o => o.workspace_name = wsMap[o.workspace_id] || 'Desconocida');
           }
+          
+          const enhancedOrders = activeOrders.map(o => ({
+            ...o,
+            workspace_name: wsMap[o.workspace_id] || 'Desconocida'
+          }));
+          setLiveOrders(enhancedOrders);
+        } else {
+          setLiveOrders([]);
         }
-        
-        setLiveOrders(activeOrders || []);
       } else if (activeTab === 'delivery_bot') {
         const { data: settingsData } = await supabase.from('platform_settings').select('*').in('key', ['delivery_master_group_id', 'telegram_groups']);
         if (settingsData && settingsData.length > 0) {
@@ -168,7 +173,7 @@ export default function SuperAdminDashboard({ superKey }) {
           if (masterGroup) setDeliveryGroupId(masterGroup.value || '');
           if (savedGroups) setDeliveryGroups(JSON.parse(savedGroups.value || '[]'));
         }
-        const { data: driversData } = await supabase.from('delivery_drivers').select('*').order('created_at', { ascending: false });
+        const { data: driversData } = await supabase.from('delivery_drivers').select('*');
         setDrivers(driversData || []);
       }
     } catch (e) {
