@@ -125,6 +125,17 @@ async function handleTelegramUpdate(update, supabase) {
   const driverName = update.message.from?.first_name || "Conductor";
   const userId = update.message.from?.id;
 
+  // --- LOGICA DE CONTROL Y MANTENIMIENTO ---
+  const { data: maintenanceSetting } = await supabase.from('platform_settings').select('value').eq('key', 'bot_maintenance_mode').single();
+  const isMaintenanceMode = maintenanceSetting?.value === 'true';
+
+  if (isMaintenanceMode) {
+    if (text.startsWith('/')) {
+      await sendMessageToChat(chatId, "🛠️ <b>El bot se encuentra en MANTENIMIENTO.</b>\nLa agencia ha pausado temporalmente las operaciones del bot. Por favor, intenta más tarde.");
+    }
+    return new Response("OK", { status: 200, headers: corsHeaders });
+  }
+
   // --- MAPEO DEL TECLADO INTERACTIVO ---
   if (text === "🟢 Disponible") text = "/estado disponible";
   if (text === "🔴 Ocupado") text = "/estado ocupado";
@@ -277,6 +288,14 @@ async function handleTelegramUpdate(update, supabase) {
       return new Response("OK", { headers: corsHeaders });
     }
 
+    // Verificar pausa de pedidos
+    const { data: acceptOrdersSetting } = await supabase.from('platform_settings').select('value').eq('key', 'bot_accept_orders').single();
+    if (acceptOrdersSetting?.value === 'false') {
+      await sendMessageToChat(chatId, "🚫 <b>Asignaciones Pausadas</b>\n\nLa agencia ha pausado temporalmente la asignación de nuevos pedidos. Por favor espera a que se reanuden las operaciones.");
+      await logEvent('warning', `Repartidor intentó aceptar pedido #${orderId} pero la asignación está pausada`, { driverId: chatId, driverName }, supabase);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
     if (driverData.status !== 'disponible') {
       await sendMessageToChat(chatId, `❌ No puedes aceptar el viaje porque tu estado actual es <b>${driverData.status ? driverData.status.toUpperCase() : 'DESCONOCIDO (Usa /estado disponible)'}</b>.\nCambia tu estado usando: <code>/estado disponible</code> o desde el teclado inferior.`);
       return new Response("OK", { headers: corsHeaders });
@@ -302,6 +321,7 @@ async function handleTelegramUpdate(update, supabase) {
       ]
     };
     await sendMessageToChat(chatId, privateMessage, replyMarkup);
+    await logEvent('info', `Repartidor tomó el pedido #${orderId}`, { orderId, driverId: chatId, driverName }, supabase);
 
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     if (setting && setting.value) {
@@ -322,8 +342,10 @@ async function handleTelegramUpdate(update, supabase) {
       }
 
       await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado' }).eq('id', orderId);
+      await logEvent('info', `Pedido #${orderId} entregado exitosamente por ${driverName}`, { orderId, driverName }, supabase);
     } else {
       await sendMessageToChat(chatId, `⏳ <b>¡Buen trabajo!</b> Ya entregaste el pedido <b>#${orderId}</b>. Ahora estamos esperando que el cliente confirme de recibido en la app.`);
+      await logEvent('info', `Repartidor ${driverName} marcó pedido #${orderId} como entregado (esperando cliente)`, { orderId, driverName }, supabase);
     }
   } else if (text.startsWith('/start cancel_')) {
     const orderId = text.replace('/start cancel_', '');
@@ -368,6 +390,8 @@ async function handleTelegramUpdate(update, supabase) {
     await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
     await supabase.from('delivery_pending_trips').insert([{ order_id: active.order_id, customer_data: active.customer_data, delivery_pin: active.pin }]);
 
+    await logEvent('warning', `Repartidor abortó el pedido #${orderId}`, { orderId, reason: reasonText, driverName }, supabase);
+
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     if (setting && setting.value) {
       const retryMessage = `🚨 <b>¡VIAJE ABANDONADO - ALTA PRIORIDAD!</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\nEl conductor <b>${driverName}</b> ha abortado el viaje.\nMotivo: <b>${reasonText}</b>\n¡Necesitamos a alguien más de inmediato!\n\n<i>(Presiona el botón para tomar este viaje de emergencia)</i>`;
@@ -381,6 +405,18 @@ async function handleTelegramUpdate(update, supabase) {
   }
 
   return new Response("OK", { status: 200, headers: corsHeaders });
+}
+
+async function logEvent(level, message, details, supabase) {
+  try {
+    await supabase.from('bot_logs').insert([{
+      level: level,
+      message: message,
+      details: details
+    }]);
+  } catch (e) {
+    console.error("Error guardando log:", e);
+  }
 }
 
 async function sendMessageToChat(chatId, text, replyMarkup = undefined) {

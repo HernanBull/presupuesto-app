@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
 import DeliveryFleetDashboard from './DeliveryFleetDashboard';
+import BotControlPanel from './BotControlPanel';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -684,11 +685,17 @@ export default function SuperAdminDashboard({ superKey }) {
           ) : activeTab === 'delivery_fleet' ? (
             <DeliveryFleetDashboard />
           ) : activeTab === 'delivery_bot' ? (
-            <div className="space-y-8 max-w-4xl mx-auto w-full">
-              <div>
-                <h2 className="text-2xl font-black uppercase tracking-widest text-white mb-2">Bot de Repartidores</h2>
-                <p className="text-zinc-400">Configuración global del ecosistema de delivery de Telegram.</p>
-              </div>
+            <div className="space-y-12 max-w-5xl mx-auto w-full">
+              
+              {/* Nuevo Panel de Control Avanzado (Switches y Logs) */}
+              <BotControlPanel />
+
+              {/* Configuración Antigua de Telegram y Conductores */}
+              <div className="border-t border-white/10 pt-10">
+                <div>
+                  <h2 className="text-2xl font-black uppercase tracking-widest text-white mb-2">Ajustes Base del Bot</h2>
+                  <p className="text-zinc-400">Configuración global del ecosistema de delivery de Telegram.</p>
+                </div>
 
               {!deliveryGroupId && (
                 <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-4 rounded-2xl flex items-center gap-3">
