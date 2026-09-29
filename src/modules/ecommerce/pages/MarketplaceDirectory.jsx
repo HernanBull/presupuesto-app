@@ -641,22 +641,17 @@ export default function MarketplaceDirectory() {
 
       {/* App Search Bar (Mobile Only) */}
       <div className="px-5 py-4 relative z-40 bg-zinc-950 md:hidden border-b border-white/5 shadow-md">
-        <div className="relative w-full group flex gap-2">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search size={18} className="text-zinc-500" />
-            </div>
-            <input
-              type="text"
-              placeholder="¿Qué quieres pedir hoy?"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white text-sm font-light focus:outline-none focus:border-amber-500/50 shadow-inner"
-            />
+        <div className="relative w-full group">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search size={18} className="text-zinc-500" />
           </div>
-          <button className="w-[50px] bg-amber-500 rounded-2xl flex items-center justify-center text-black flex-shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-            <Settings size={20} />
-          </button>
+          <input
+            type="text"
+            placeholder="¿Qué quieres pedir hoy?"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white text-sm font-light focus:outline-none focus:border-amber-500/50 shadow-inner"
+          />
         </div>
       </div>
 
@@ -731,18 +726,20 @@ export default function MarketplaceDirectory() {
           <div className="flex items-center justify-between px-1">
             <h3 className="text-white font-bold text-lg md:text-xl">Categorías</h3>
           </div>
-          <div className="grid grid-cols-4 md:grid-cols-8 gap-4 md:gap-6">
-            {categories.slice(1, 9).map((cat) => {
-              const isActive = activeCategory === cat.id;
-              return (
-                <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group">
-                  <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
-                    <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
+          <div className="overflow-x-auto scrollbar-hide pb-2 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory">
+            <div className="grid grid-rows-2 grid-flow-col gap-x-4 gap-y-4 md:gap-x-6 md:gap-y-6 auto-cols-max">
+              {categories.slice(1).map((cat) => {
+                const isActive = activeCategory === cat.id;
+                return (
+                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px]">
+                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
+                    </div>
+                    <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
                   </div>
-                  <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </section>
 
@@ -787,11 +784,13 @@ export default function MarketplaceDirectory() {
                         <Store size={40} className="text-zinc-700" />
                       </div>
                     )}
-                    <div className="absolute top-3 right-3">
-                      <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-black/70">
-                        <Heart size={14} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''}/>
-                      </button>
-                    </div>
+                    {currentCustomer && (
+                      <div className="absolute top-3 right-3">
+                        <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-black/70">
+                          <Heart size={14} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''}/>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="p-5 space-y-2">
                     <div className="flex items-start justify-between gap-2">
@@ -833,10 +832,13 @@ export default function MarketplaceDirectory() {
              <span className="text-[10px] font-bold">Inicio</span>
            </button>
            
-           <button onClick={() => setIsCartOpen(true)} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+           <button onClick={() => {
+              if (currentCustomer) setIsCartOpen(true);
+              else { setAuthMode('login'); setIsAuthModalOpen(true); }
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
              <ShoppingCart size={22} />
              <span className="text-[10px] font-medium">Carrito</span>
-             {totalCartItems > 0 && (
+             {currentCustomer && totalCartItems > 0 && (
                <span className="absolute top-1 right-1/4 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center rounded-full shadow-lg">
                  {totalCartItems}
                </span>
