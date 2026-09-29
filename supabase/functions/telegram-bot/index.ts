@@ -220,7 +220,17 @@ async function handleTelegramUpdate(update, supabase) {
       await sendMessageToChat(chatId, "⚠️ Aún no estás registrado. Escribe /registrar para comenzar.");
       return new Response("OK", { headers: corsHeaders });
     }
-    await sendMessageToChat(chatId, `👤 <b>TU PERFIL DE REPARTIDOR</b>\n\n📛 <b>Nombre:</b> ${driverData.name}\n🆔 <b>ID Agencia:</b> ${driverData.driver_code}\n🏍️ <b>Vehículo:</b> ${driverData.moto}\n🏷️ <b>Placa:</b> ${driverData.placa}\n\n¡Sigue así, buen trabajo! 🚀`);
+    
+    const trips = driverData.total_trips || 0;
+    const earned = parseFloat(driverData.total_earned || '0');
+    
+    let rank = 'Novato 🌱';
+    if (trips > 50) rank = 'Leyenda del Delivery 👑';
+    else if (trips > 10) rank = 'Corredor Frecuente 🚀';
+    
+    const dashboardText = `👤 <b>PANEL DEL CONDUCTOR</b> 👤\n\n📛 <b>Nombre:</b> ${driverData.name}\n🆔 <b>ID Agencia:</b> ${driverData.driver_code}\n🏍️ <b>Vehículo:</b> ${driverData.moto} (${driverData.placa || 'Sin placa'})\n\n📊 <b>TUS ESTADÍSTICAS GLOBALES:</b>\n🏆 <b>Viajes Completados:</b> ${trips} viajes\n💰 <b>Ganancias Estimadas:</b> $${earned.toFixed(2)}\n⭐ <b>Tu Rango:</b> ${rank}\n\n¡Sigue así, buen trabajo! 🚀`;
+    
+    await sendMessageToChat(chatId, dashboardText);
     return new Response("OK", { headers: corsHeaders });
   }
 
@@ -342,7 +352,18 @@ async function handleTelegramUpdate(update, supabase) {
         await sendMessageToChat(setting.value, `✅ El pedido <b>#${orderId}</b> ha sido entregado exitosamente por <b>${driverName}</b> y el cliente ha confirmado.`);
       }
 
-      await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado' }).eq('id', orderId);
+      // Sumar estadísticas al conductor
+      const { data: feeSetting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_base_fee').single();
+      const baseFee = parseFloat(feeSetting?.value || '0');
+      const currentTrips = driverData.total_trips || 0;
+      const currentEarned = parseFloat(driverData.total_earned || '0');
+      
+      await supabase.from('delivery_drivers').update({ 
+        total_trips: currentTrips + 1, 
+        total_earned: currentEarned + baseFee 
+      }).eq('id', chatId);
+
+      await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado', delivery_driver_id: chatId.toString() }).eq('id', orderId);
       await logEvent('info', `Pedido #${orderId} entregado exitosamente por ${driverName}`, { orderId, driverName }, supabase);
     } else {
       await sendMessageToChat(chatId, `⏳ <b>¡Buen trabajo!</b> Ya entregaste el pedido <b>#${orderId}</b>. Ahora estamos esperando que el cliente confirme de recibido en la app.`);
