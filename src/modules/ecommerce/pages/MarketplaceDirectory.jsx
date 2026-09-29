@@ -596,20 +596,11 @@ export default function MarketplaceDirectory() {
             <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           
-          {currentCustomer ? (
+          {currentCustomer && (
             <div className="bg-zinc-800/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 cursor-pointer shadow-inner">
               <span className="text-amber-500 font-bold text-sm">$ 0.00</span>
               <span className="text-zinc-600 text-[10px]">|</span>
               <span className="text-zinc-400 text-xs font-medium">Bs. 0.00</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="text-zinc-400 border border-white/10 bg-zinc-900/50 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm active:bg-zinc-800">
-                Vender
-              </button>
-              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                Entrar
-              </button>
             </div>
           )}
         </div>
@@ -698,17 +689,32 @@ export default function MarketplaceDirectory() {
       {/* Main Content App-Style */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-6 pb-28 md:pb-12 pt-6 md:pt-12 relative z-10 space-y-8">
         
-        {/* Categorías Principales (Grid Squircles) */}
+        {/* Categorías Principales (2 Filas Independientes) */}
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-white font-bold text-lg md:text-xl">Categorías</h3>
           </div>
-          <div className="overflow-x-auto scrollbar-hide pb-2 -mx-5 px-5 md:mx-0 md:px-0 snap-x snap-mandatory">
-            <div className="grid grid-rows-2 grid-flow-col gap-x-4 gap-y-4 md:gap-x-6 md:gap-y-6 auto-cols-max">
-              {categories.slice(1).map((cat) => {
+          <div className="flex flex-col gap-4 -mx-5 md:mx-0">
+            {/* Fila Superior */}
+            <div className="flex overflow-x-auto scrollbar-hide gap-4 px-5 md:px-0 snap-x snap-mandatory pb-1">
+              {categories.filter((_, i) => i % 2 === 0).map((cat) => {
                 const isActive = activeCategory === cat.id;
                 return (
-                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px]">
+                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
+                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
+                    </div>
+                    <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Fila Inferior */}
+            <div className="flex overflow-x-auto scrollbar-hide gap-4 px-5 md:px-0 snap-x snap-mandatory pb-1 pl-6 md:pl-10">
+              {categories.filter((_, i) => i % 2 !== 0).map((cat) => {
+                const isActive = activeCategory === cat.id;
+                return (
+                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
                     <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
                       <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
                     </div>
@@ -720,28 +726,18 @@ export default function MarketplaceDirectory() {
           </div>
         </section>
 
-        {/* Filtros Rápidos (Pills) */}
-        <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide -mx-5 px-5 md:mx-0 md:px-0">
-          <button onClick={() => setActiveCategory('Todas')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 border ${activeCategory === 'Todas' ? 'bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-zinc-900 text-zinc-400 border-white/5 hover:bg-zinc-800'}`}>
-            <Store size={14} /> Todas
-          </button>
-          {categories.slice(9).map((cat) => {
-            const isActive = activeCategory === cat.id;
-            return (
-              <button 
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap shrink-0 border ${
-                  isActive 
-                    ? 'bg-amber-500 text-black border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' 
-                    : 'bg-zinc-900 text-zinc-400 border-white/5 hover:bg-zinc-800'
-                }`}
-              >
-                <cat.icon size={14} /> {cat.name}
-              </button>
-            );
-          })}
-        </div>
+        {/* Vender Banner (Mobile Only) */}
+        {!currentCustomer && (
+          <div className="md:hidden mt-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-[0_10px_30px_rgba(245,158,11,0.3)]">
+            <div className="flex flex-col">
+              <span className="text-black font-black text-lg leading-tight">Haz crecer tu negocio</span>
+              <span className="text-black/80 text-xs font-medium mt-1">Crea tu tienda virtual gratis</span>
+            </div>
+            <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-lg active:scale-95 transition-transform">
+              Vender
+            </button>
+          </div>
+        )}
 
         {/* Todas las tiendas Grid */}
         <div className="pt-6 md:pt-8 border-t border-white/5 mt-6 md:mt-0">
