@@ -600,7 +600,7 @@ export default function MarketplaceDirectory() {
                 <User size={20} className="text-zinc-400" />
               </div>
             )}
-            <div className="flex flex-col">
+            <div className="flex flex-col select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
               <span className="text-zinc-400 text-xs">{currentCustomer ? 'Hola,' : 'Bienvenido a'}</span>
               <span className="text-white font-bold text-sm flex items-center gap-1">
                 {currentCustomer ? currentCustomer.name.split(' ')[0] : 'Axon Market'} <Sparkles size={12} className="text-amber-500"/>
@@ -845,7 +845,7 @@ export default function MarketplaceDirectory() {
 
            {/* Floating Action Button */}
            <div className="flex-1 flex justify-center relative -top-6">
-             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-zinc-950">
+             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} onDoubleClick={() => window.location.href = '/superadmin'} className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-zinc-950">
                <ShoppingBag size={24} className="stroke-[2.5]" />
              </div>
            </div>
