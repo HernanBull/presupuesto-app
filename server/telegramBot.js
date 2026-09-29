@@ -3,6 +3,7 @@ import fetch from 'node-fetch'; // Polyfill or use global fetch if Node 18+
 let globalOffset = 0;
 let isEngineRunning = false;
 const botState = {};
+const alertedTrips = new Set();
 
 const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN || '8931657407:AAHJtYXikKfBtYowHHB0HBKhaRUskhyyfHo';
 const TELEGRAM_BOT_USERNAME = process.env.VITE_TELEGRAM_BOT_USERNAME || 'DeliveryAxonbot';
@@ -40,6 +41,32 @@ export const startTelegramEngine = (supabase, io) => {
   if (isEngineRunning) return;
   isEngineRunning = true;
   console.log("🚀 Motor de Telegram iniciado en el backend.");
+
+  // --- Límite de Tiempo de Entrega (Timeouts) ---
+  setInterval(async () => {
+    try {
+      const { data: activeTrips } = await supabase.from('delivery_active_trips').select('*');
+      if (activeTrips) {
+        const now = new Date();
+        for (const trip of activeTrips) {
+          const startTime = new Date(trip.start_time);
+          const diffMinutes = (now.getTime() - startTime.getTime()) / (1000 * 60);
+          if (diffMinutes > 45 && !alertedTrips.has(trip.order_id)) {
+            alertedTrips.add(trip.order_id);
+            // Avisar al grupo maestro
+            const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
+            if (setting && setting.value) {
+              await sendMessageToChat(setting.value, `⏱️ <b>¡ALERTA DE RETRASO!</b> ⏱️\nEl pedido <b>#${trip.order_id}</b> lleva más de 45 minutos en curso.\nConductor ID: <code>${trip.driver_id}</code>`);
+            }
+            // Avisar al conductor
+            await sendMessageToChat(trip.driver_id, `⚠️ <b>ATENCIÓN</b>\nTu pedido <b>#${trip.order_id}</b> lleva más de 45 minutos en curso. ¿Todo está bien?\nRecuerda marcarlo como entregado al finalizar o abortar si tuviste un problema grave.`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error en timeout de viajes:", e);
+    }
+  }, 60000 * 5); // Chequear cada 5 minutos
 
   const poll = async () => {
     if (!isEngineRunning) return;
@@ -100,8 +127,27 @@ export const startTelegramEngine = (supabase, io) => {
           }
 
           if (text === '/ayuda') {
-            const helpText = `🛠️ <b>MENÚ DE AYUDA DE REPARTIDORES</b> 🛠️\n\n🔹 <b>/registrar</b> - Llena tus datos para poder trabajar.\n🔹 <b>/perfil</b> - Revisa tus estadísticas y viajes completados.\n🔹 <b>/ayuda</b> - Muestra este mensaje.\n\n📌 <b>REGLAS DE LA AGENCIA:</b>\n1️⃣ Cuando el bot envíe un viaje al grupo, presiona "Aceptar Viaje".\n2️⃣ El bot te enviará por privado la dirección exacta del cliente.\n3️⃣ Al entregar el pedido pídele al cliente el <b>PIN de Seguridad</b>.\n4️⃣ Presiona "Marcar como Entregado".\n5️⃣ 🚨 <b>IMPORTANTE:</b> Si te accidentas, usa el botón rojo "Abortar Viaje" para que otro compañero pueda llevar el pedido urgente.`;
+            const helpText = `🛠️ <b>MENÚ DE AYUDA DE REPARTIDORES</b> 🛠️\n\n🔹 <b>/registrar</b> - Llena tus datos para poder trabajar.\n🔹 <b>/perfil</b> - Revisa tus estadísticas y viajes completados.\n🔹 <b>/estado [disponible|ocupado|accidentado|descansando]</b> - Cambia tu estado.\n🔹 <b>/ayuda</b> - Muestra este mensaje.\n\n📌 <b>REGLAS DE LA AGENCIA:</b>\n1️⃣ Cuando el bot envíe un viaje al grupo, presiona "Aceptar Viaje".\n2️⃣ Debes estar "disponible" para aceptarlo.\n3️⃣ El bot te enviará por privado la dirección exacta del cliente.\n4️⃣ Al entregar el pedido pídele al cliente el <b>PIN de Seguridad</b>.\n5️⃣ Presiona "Marcar como Entregado".\n6️⃣ 🚨 <b>IMPORTANTE:</b> Si te accidentas, usa el botón rojo "Abortar Viaje".`;
             await sendMessageToChat(chatId, helpText);
+            continue;
+          }
+
+          if (text.startsWith('/estado')) {
+            const statusMatch = text.replace('/estado', '').trim().toLowerCase();
+            const validStatuses = ['disponible', 'ocupado', 'accidentado', 'descansando'];
+            
+            if (!driverData) {
+              await sendMessageToChat(chatId, "⚠️ Aún no estás registrado. Escribe /registrar para comenzar.");
+              continue;
+            }
+
+            if (validStatuses.includes(statusMatch)) {
+              await supabase.from('delivery_drivers').update({ status: statusMatch }).eq('id', chatId);
+              const emoji = statusMatch === 'disponible' ? '🟢' : statusMatch === 'ocupado' ? '🔴' : statusMatch === 'accidentado' ? '🚑' : '💤';
+              await sendMessageToChat(chatId, `${emoji} Tu estado ha sido actualizado a: <b>${statusMatch.toUpperCase()}</b>`);
+            } else {
+              await sendMessageToChat(chatId, `⚠️ Estado no válido. Usa uno de los siguientes:\n<code>/estado disponible</code>\n<code>/estado ocupado</code>\n<code>/estado accidentado</code>\n<code>/estado descansando</code>`);
+            }
             continue;
           }
 
@@ -174,6 +220,19 @@ export const startTelegramEngine = (supabase, io) => {
               continue;
             }
 
+            // Verificar estado del repartidor
+            if (driverData.status !== 'disponible') {
+              await sendMessageToChat(chatId, `❌ No puedes aceptar el viaje porque tu estado actual es <b>${driverData.status ? driverData.status.toUpperCase() : 'DESCONOCIDO (Usa /estado disponible)'}</b>.\nCambia tu estado usando: <code>/estado disponible</code>`);
+              continue;
+            }
+
+            // --- REGLA ESTRICTA: Un solo pedido activo por repartidor ---
+            const { data: activeTrips } = await supabase.from('delivery_active_trips').select('*').eq('driver_id', chatId);
+            if (activeTrips && activeTrips.length > 0) {
+              await sendMessageToChat(chatId, `⚠️ <b>ACCIÓN DENEGADA</b>\n\nActualmente tienes un viaje en curso (Pedido <b>#${activeTrips[0].order_id}</b>).\n\nDebes marcarlo como entregado o abortarlo antes de poder tomar un nuevo pedido.`);
+              continue;
+            }
+
             const customerData = JSON.parse(pendingOrder.customer_data);
 
             // Move to active
@@ -235,26 +294,58 @@ export const startTelegramEngine = (supabase, io) => {
               continue;
             }
 
-            await sendMessageToChat(chatId, `🚨 <b>VIAJE ABORTADO</b> 🚨\n\nHas cancelado el pedido <b>#${orderId}</b>. Será asignado a otro compañero.`);
+            const replyMarkup = {
+              inline_keyboard: [
+                [{ text: "💥 Falla mecánica", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=abort_${orderId}_mecanica` }],
+                [{ text: "📵 Cliente no responde", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=abort_${orderId}_cliente` }],
+                [{ text: "🚑 Accidente", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=abort_${orderId}_accidente` }],
+                [{ text: "❌ Otro motivo", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=abort_${orderId}_otro` }]
+              ]
+            };
+            await sendMessageToChat(chatId, `⚠️ ¿Estás seguro que deseas abortar el viaje <b>#${orderId}</b>?\n\nPor favor, selecciona el motivo:`, replyMarkup);
+            continue;
+          }
+
+          if (text.startsWith('/start abort_')) {
+            const match = text.match(/\/start abort_([^_]+)_(.+)/);
+            if (!match) continue;
+            const orderId = match[1];
+            const reasonCode = match[2];
+            const reasons = {
+              'mecanica': 'Falla mecánica',
+              'cliente': 'Cliente no responde',
+              'accidente': 'Accidente',
+              'otro': 'Otro motivo'
+            };
+            const reasonText = reasons[reasonCode] || 'Desconocido';
+
+            const { data: active } = await supabase.from('delivery_active_trips').select('*').eq('order_id', orderId).single();
+
+            if (!active) {
+              await sendMessageToChat(chatId, "❌ Este viaje ya no está en curso o ya fue cancelado.");
+              continue;
+            }
+
+            await sendMessageToChat(chatId, `🚨 <b>VIAJE ABORTADO</b> 🚨\n\nHas cancelado el pedido <b>#${orderId}</b> por el motivo: <b>${reasonText}</b>. Será asignado a otro compañero.`);
 
             await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
 
             // Re-add to pending
             await supabase.from('delivery_pending_trips').insert([{ order_id: active.order_id, customer_data: active.customer_data, delivery_pin: active.pin }]);
 
-
             const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             if (setting && setting.value) {
-              const retryMessage = `🚨 <b>¡VIAJE ABANDONADO - ALTA PRIORIDAD!</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\nEl conductor <b>${driverName}</b> ha tenido un inconveniente y abortó el viaje.\n¡Necesitamos a alguien más de inmediato!\n\n<i>(Presiona el botón para tomar este viaje de emergencia)</i>`;
+              const retryMessage = `🚨 <b>¡VIAJE ABANDONADO - ALTA PRIORIDAD!</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\nEl conductor <b>${driverName}</b> ha abortado el viaje.\nMotivo: <b>${reasonText}</b>\n¡Necesitamos a alguien más de inmediato!\n\n<i>(Presiona el botón para tomar este viaje de emergencia)</i>`;
               const replyMarkup = {
                 inline_keyboard: [
-                [{ text: "🚗 Aceptar Viaje Urgente", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]]
-
+                  [{ text: "🚗 Aceptar Viaje Urgente", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]
+                ]
               };
               await sendMessageToChat(setting.value, retryMessage, replyMarkup);
             }
 
-            io.emit('delivery_cancelled', { orderId });
+            io.emit('delivery_cancelled', { orderId, reason: reasonText });
+            continue;
           }
         }
       }

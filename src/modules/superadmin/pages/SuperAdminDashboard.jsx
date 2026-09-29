@@ -4,6 +4,7 @@ import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Pa
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
+import DeliveryFleetDashboard from './DeliveryFleetDashboard';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -507,6 +508,14 @@ export default function SuperAdminDashboard({ superKey }) {
             <Radio size={18} /> Monitor
           </button>
           <button 
+            onClick={() => setActiveTab('delivery_fleet')}
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
+              activeTab === 'delivery_fleet' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            <Truck size={18} /> Flota Delivery
+          </button>
+          <button 
             onClick={() => setActiveTab('delivery_bot')}
             className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === 'delivery_bot' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
@@ -672,6 +681,8 @@ export default function SuperAdminDashboard({ superKey }) {
               </div>
 
             </div>
+          ) : activeTab === 'delivery_fleet' ? (
+            <DeliveryFleetDashboard />
           ) : activeTab === 'delivery_bot' ? (
             <div className="space-y-8 max-w-4xl mx-auto w-full">
               <div>
