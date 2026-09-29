@@ -857,6 +857,7 @@ export default function SuperAdminDashboard({ superKey }) {
                   </div>
                 )}
               </div>
+              </div>
             </div>
           ) : activeTab === 'monitor' ? (
             <div className="flex flex-col h-full">
