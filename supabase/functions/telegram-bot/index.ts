@@ -260,13 +260,13 @@ async function handleTelegramUpdate(update, supabase) {
       const driverCode = 'REP-' + Math.floor(1000 + Math.random() * 9000);
 
       if (!driverData) {
-        await supabase.from('delivery_drivers').insert([{ id: chatId, driver_code: driverCode, name: state.fullName, cedula: '', telefono: state.telefono, age: '', moto: state.moto, placa: '', agencia: state.agencia }]);
+        await supabase.from('delivery_drivers').insert([{ id: chatId, driver_code: driverCode, name: state.fullName, cedula: '', telefono: state.telefono, age: '', moto: state.moto, placa: '', agencia: state.agencia, status: 'inactivo' }]);
       } else {
-        await supabase.from('delivery_drivers').update({ driver_code: driverCode, name: state.fullName, telefono: state.telefono, moto: state.moto, agencia: state.agencia }).eq('id', chatId);
+        await supabase.from('delivery_drivers').update({ driver_code: driverCode, name: state.fullName, telefono: state.telefono, moto: state.moto, agencia: state.agencia, status: 'inactivo' }).eq('id', chatId);
       }
       
       await supabase.from('platform_settings').delete().eq('key', botStateKey); // Clear state
-      await sendMessageToChat(chatId, `✅ <b>¡Felicidades!</b> Tus datos han sido registrados exitosamente. Ya puedes empezar a aceptar viajes.\n\nTu ID único de repartidor es: <b>${driverCode}</b>\n\n👇 <b>Usa el teclado de abajo para actualizar tu estado.</b>`, MENU_KEYBOARD);
+      await sendMessageToChat(chatId, `✅ <b>¡Registro Completo!</b>\n\nTu ID único de repartidor es: <b>${driverCode}</b>\n\n⚠️ <b>ATENCIÓN:</b> Actualmente tu estado es <b>INACTIVO</b> (Neutral).\nPara empezar a trabajar y poder aceptar pedidos, debes presionar el botón <b>🟢 Disponible</b> en tu teclado interactivo. 👇`, MENU_KEYBOARD);
     }
     return new Response("OK", { headers: corsHeaders });
   }
@@ -297,7 +297,8 @@ async function handleTelegramUpdate(update, supabase) {
     }
 
     if (driverData.status !== 'disponible') {
-      await sendMessageToChat(chatId, `❌ No puedes aceptar el viaje porque tu estado actual es <b>${driverData.status ? driverData.status.toUpperCase() : 'DESCONOCIDO (Usa /estado disponible)'}</b>.\nCambia tu estado usando: <code>/estado disponible</code> o desde el teclado inferior.`);
+      const statusText = driverData.status ? driverData.status.toUpperCase() : 'INACTIVO';
+      await sendMessageToChat(chatId, `❌ No puedes aceptar el viaje porque tu estado actual es <b>${statusText}</b>.\nCambia tu estado presionando el botón <b>🟢 Disponible</b> en tu teclado inferior.`);
       return new Response("OK", { headers: corsHeaders });
     }
 
