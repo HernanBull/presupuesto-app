@@ -14,47 +14,22 @@ import { VirtualMascot } from './VirtualMascot';
 // --- Ultra Premium Subcomponents ---
 
 const GlowingOrb = ({ color, size, top, left, delay, duration }) => (
-  <motion.div
-    className={`absolute rounded-full blur-[120px] pointer-events-none opacity-20 mix-blend-screen ${color}`}
+  <div
+    className={`absolute rounded-full blur-[60px] md:blur-[120px] pointer-events-none opacity-20 mix-blend-screen ${color}`}
     style={{ width: size, height: size, top, left }}
-    animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.3, 0.1], x: [0, 40, -40, 0], y: [0, -50, 30, 0] }}
-    transition={{ duration, repeat: Infinity, ease: "easeInOut", delay }}
   />
 );
 
 const SpotlightCard = ({ title, description, icon: Icon, span = 1, delay = 0, onClick }) => {
-  const divRef = useRef(null);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [opacity, setOpacity] = useState(0);
-
-  const handleMouseMove = (e) => {
-    if (!divRef.current) return;
-    const rect = divRef.current.getBoundingClientRect();
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-
   return (
     <motion.div
-      ref={divRef}
       onClick={onClick}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setOpacity(1)}
-      onMouseLeave={() => setOpacity(0)}
       initial={{ opacity: 0, y: 50 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`group relative rounded-[2rem] bg-zinc-900/30 backdrop-blur-xl border border-white/5 p-8 overflow-hidden cursor-pointer transition-all duration-500 hover:bg-zinc-900/60 hover:border-white/10 hover:shadow-[0_20px_40px_-20px_rgba(245,158,11,0.15)] ${span === 2 ? 'md:col-span-2' : ''}`}
     >
-      <div 
-        className="pointer-events-none absolute -inset-px transition-opacity duration-300"
-        style={{
-          opacity,
-          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(245,158,11,0.15), transparent 40%)`,
-        }}
-      />
-      {/* Removed static gradient overlay to ensure perfect transparency */}
-      
       <div className="relative z-10 h-full flex flex-col">
         <div className="mb-8 p-4 bg-zinc-950/50 backdrop-blur-md rounded-2xl w-fit border border-white/10 group-hover:border-amber-500/50 group-hover:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all duration-500">
           <Icon size={32} className="text-zinc-300 group-hover:text-amber-500 transition-colors duration-500" />
@@ -73,85 +48,34 @@ const SpotlightCard = ({ title, description, icon: Icon, span = 1, delay = 0, on
 
 
 const ToolSelectorAnimation = () => {
-  const [activeTool, setActiveTool] = useState(0);
-
   const tools = [
-    { icon: Settings, label: "ERP Core", angle: 0 },
-    { icon: Store, label: "POS", angle: Math.PI / 3 },
-    { icon: Box, label: "WMS", angle: (2 * Math.PI) / 3 },
-    { icon: Users, label: "CRM", angle: Math.PI },
-    { icon: Truck, label: "Delivery", angle: (4 * Math.PI) / 3 },
-    { icon: LineChart, label: "Analítica", angle: (5 * Math.PI) / 3 },
+    { icon: Settings, label: "ERP Core" },
+    { icon: Store, label: "POS" },
+    { icon: Box, label: "WMS" },
+    { icon: Users, label: "CRM" },
+    { icon: Truck, label: "Delivery" },
+    { icon: LineChart, label: "Analítica" },
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveTool((prev) => (prev + 1) % tools.length);
-    }, 2500); 
-    return () => clearInterval(interval);
-  }, [tools.length]);
-
   return (
-    <div className="relative w-full h-[400px] sm:h-[700px] flex items-center justify-center my-16 overflow-hidden">
-      <style>{`
-        @keyframes flow {
-          to { stroke-dashoffset: -20; }
-        }
-      `}</style>
-      
-      {/* Holographic Rings */}
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 100, repeat: Infinity, ease: "linear" }} className="absolute w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] border border-white/5 rounded-full border-dashed opacity-50 z-0"></motion.div>
-      <motion.div animate={{ rotate: -360 }} transition={{ duration: 120, repeat: Infinity, ease: "linear" }} className="absolute w-[200px] h-[200px] sm:w-[400px] sm:h-[400px] border border-amber-500/10 rounded-full opacity-50 z-0" style={{ borderStyle: 'dotted' }}></motion.div>
-
-      {/* Robot Center */}
-      <motion.div 
-        animate={{ y: [-15, 15, -15] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="relative z-30"
-      >
-        {/* Strong Spotlight under robot */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 w-48 h-8 bg-amber-500/40 blur-[20px] rounded-[100%]"></div>
-        <img 
-          src={guiaImg} 
-          alt="Axon Robot Guide" 
-          className="w-48 h-48 sm:w-80 sm:h-80 object-contain drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)]" 
-        />
-        {/* Subtle Glow when choosing */}
-        <div className="absolute inset-0 bg-amber-500/20 blur-[60px] rounded-full mix-blend-screen -z-10 animate-pulse"></div>
-      </motion.div>
-
-      {/* Animated Circular Tools */}
-      <motion.div 
-        animate={{ rotate: 360 }}
-        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
-      >
-        {tools.map((tool, i) => {
-           const isActive = activeTool === i;
-           return (
-             <div 
-               key={i}
-               className="absolute pointer-events-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
-               style={{ transform: `translate(calc(${Math.cos(tool.angle)} * clamp(130px, 25vw, 280px)), calc(${Math.sin(tool.angle)} * clamp(130px, 25vw, 280px)))` }}
-             >
-                <motion.div
-                  animate={{ rotate: -360 }}
-                  transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                >
-                  {/* Tool Icon Card */}
-                  <div 
-                    onClick={() => setActiveTool(i)}
-                    className={`w-14 h-14 sm:w-20 sm:h-20 backdrop-blur-2xl rounded-2xl flex flex-col items-center justify-center transition-all duration-500 cursor-pointer relative overflow-hidden ${isActive ? 'bg-amber-500/10 border-amber-400 shadow-[0_0_50px_rgba(245,158,11,0.6)] scale-125 border-[1.5px]' : 'bg-zinc-950/40 border-white/5 shadow-2xl border scale-90 hover:scale-105 hover:border-white/30 hover:bg-zinc-900/60'}`}
-                  >
-                    {isActive && <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 to-transparent animate-pulse"></div>}
-                    <tool.icon size={26} className={`transition-all duration-500 relative z-10 ${isActive ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,1)] scale-110' : 'text-zinc-500'}`} />
-                    <span className={`text-[10px] sm:text-[11px] font-black tracking-[0.2em] uppercase transition-opacity duration-500 absolute -bottom-8 whitespace-nowrap ${isActive ? 'text-amber-500 opacity-100 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)]' : 'text-zinc-600 opacity-0'}`}>{tool.label}</span>
-                  </div>
-                </motion.div>
-             </div>
-           );
-        })}
-      </motion.div>
+    <div className="relative w-full py-16 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl mx-auto px-4">
+        {tools.map((tool, i) => (
+          <motion.div 
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: i * 0.1 }}
+            className="bg-zinc-950/40 border border-white/5 rounded-3xl p-8 flex flex-col items-center justify-center gap-6 hover:bg-zinc-900/60 hover:border-amber-500/30 hover:shadow-[0_0_40px_rgba(245,158,11,0.15)] transition-all duration-500 group cursor-pointer"
+          >
+            <div className="p-4 bg-white/5 rounded-2xl group-hover:bg-amber-500/10 transition-colors duration-500">
+              <tool.icon size={36} className="text-zinc-500 group-hover:text-amber-400 group-hover:scale-110 transition-all duration-500" />
+            </div>
+            <span className="text-xs sm:text-sm font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-amber-500 transition-colors">{tool.label}</span>
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 };
@@ -167,60 +91,16 @@ const HERO_PHRASES = [
 
 const HomeView = ({ onNavigate }) => {
   const { scrollYProgress } = useScroll();
-  const [typedText, setTypedText] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    let charIndex = 0;
-    let phraseIdx = 0;
-    let isDeleting = false;
-    let timeoutId;
-
-    const loop = () => {
-      const currentFull = HERO_PHRASES[phraseIdx].p + HERO_PHRASES[phraseIdx].s;
-      setTypedText(currentFull.substring(0, charIndex));
-      setCurrentIndex(phraseIdx);
-
-      let nextDelay = 0;
-
-      if (!isDeleting) {
-        // Typing: Slower speed (random between 100ms and 180ms)
-        nextDelay = Math.random() * 80 + 100;
-        charIndex++;
-        
-        // When finished typing, pause before deleting
-        if (charIndex > currentFull.length) {
-          isDeleting = true;
-          nextDelay = 3000; // 3 seconds pause
-        }
-      } else {
-        // Deleting: Faster speed (random between 30ms and 60ms)
-        nextDelay = Math.random() * 30 + 30;
-        charIndex--;
-        
-        // When finished deleting, switch to next phrase and pause before typing again
-        if (charIndex === 0) {
-          isDeleting = false;
-          phraseIdx = (phraseIdx + 1) % HERO_PHRASES.length;
-          nextDelay = 500; // 0.5 seconds pause
-        }
-      }
-
-      timeoutId = setTimeout(loop, nextDelay);
-    };
-
-    // Initial delay before typing starts
-    timeoutId = setTimeout(loop, 400);
-
-    return () => clearTimeout(timeoutId);
+    const intervalId = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % HERO_PHRASES.length);
+    }, 4000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const currentPhrase = HERO_PHRASES[currentIndex];
-  const prefixLen = currentPhrase.p.length;
-  
-  const part1 = typedText.substring(0, prefixLen - 1);
-  const part2 = typedText.length > prefixLen ? typedText.substring(prefixLen) : "";
-  const showBr = typedText.length >= prefixLen;
 
   const techs = [
     { name: "ERP", icon: Settings }, { name: "POS", icon: Store },
@@ -236,35 +116,22 @@ const HomeView = ({ onNavigate }) => {
         className="min-h-screen flex flex-col lg:flex-row items-center justify-center lg:justify-between pt-32 pb-20 px-4 sm:px-6 lg:px-8 max-w-screen-2xl mx-auto text-center lg:text-left relative gap-16 lg:gap-8 overflow-hidden lg:overflow-visible"
       >
         <div className="flex-1 flex flex-col items-center lg:items-start z-10 w-full mt-20 lg:mt-0">
-          <h1 className="text-6xl sm:text-8xl lg:text-9xl xl:text-[9rem] font-light tracking-tighter leading-none w-full mix-blend-plus-lighter relative z-20">
-            {/* Invisible placeholder to maintain layout height */}
-            <div className="opacity-0 pointer-events-none select-none text-white" aria-hidden="true">
-              {currentPhrase.p.trim()} <br />
-              <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700 leading-normal pb-4 inline-block">{currentPhrase.s}</span>
-            </div>
-            {/* Actual typing text */}
-            <div className="absolute top-0 left-0 w-full h-full text-white flex flex-col items-center lg:items-start">
-              <span>
-                {part1}
-                {!showBr && (
-                  <motion.span 
-                    animate={{ opacity: [1, 0] }} 
-                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
-                    className="inline-block w-[3px] sm:w-[5px] h-[0.75em] bg-amber-500 ml-1 sm:ml-2 align-baseline translate-y-[2px]"
-                  />
-                )}
-              </span>
-              {showBr && (
-                <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700 leading-normal pb-4 inline-block">
-                  {part2}
-                  <motion.span 
-                    animate={{ opacity: [1, 0] }} 
-                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
-                    className="inline-block w-[3px] sm:w-[5px] h-[0.75em] bg-amber-500 ml-1 sm:ml-2 align-baseline translate-y-[2px]"
-                  />
+          <h1 className="text-6xl sm:text-8xl lg:text-9xl xl:text-[9rem] font-light tracking-tighter leading-none w-full relative z-20 h-[150px] sm:h-[200px] lg:h-[280px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="absolute top-0 left-0 w-full text-white flex flex-col items-center lg:items-start"
+              >
+                <span>{currentPhrase.p}</span>
+                <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-zinc-100 via-amber-200 to-amber-700 leading-normal pb-4 inline-block mt-2">
+                  {currentPhrase.s}
                 </span>
-              )}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </h1>
           
           <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.2, delay: 0.4, ease: [0.16, 1, 0.3, 1] }} className="mt-10 lg:mt-14 text-xl sm:text-2xl lg:text-3xl text-zinc-400 max-w-3xl font-light tracking-wide leading-relaxed">
@@ -404,7 +271,7 @@ const FeaturesView = () => (
         <div className="flex-1 w-full relative">
           <div className="aspect-[4/3] rounded-[3rem] bg-zinc-900 border border-white/10 shadow-2xl overflow-hidden relative group">
              {/* Glowing BG effect behind UI */}
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-amber-500/20 blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-amber-500/10 md:bg-amber-500/20 blur-[50px] md:blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
             
             {/* Abstract Premium UI representation */}
             <div className="absolute inset-0 p-8 flex flex-col gap-6 opacity-60 group-hover:opacity-100 transition-all duration-700 scale-95 group-hover:scale-100">
