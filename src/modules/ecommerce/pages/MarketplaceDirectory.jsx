@@ -1041,8 +1041,7 @@ export default function MarketplaceDirectory() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Merchant Registration Modal (Instantáneo Nativo) */}
       {isMerchantModalOpen && (
@@ -1435,8 +1434,7 @@ export default function MarketplaceDirectory() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       <ProfileWizardModal 
         isOpen={isWizardOpen} 
