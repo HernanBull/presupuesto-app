@@ -553,7 +553,6 @@ export default function MarketplaceDirectory() {
 
   const categories = [
     { id: 'Todas', name: 'Todas', icon: Store },
-    { id: 'General', name: 'General', icon: Store },
     { id: 'Víveres', name: 'Víveres', icon: ShoppingBasket },
     { id: 'Proteínas', name: 'Proteínas', icon: Package },
     { id: 'Charcutería y Lácteos', name: 'Charcutería', icon: ShoppingBag },
@@ -590,22 +589,11 @@ export default function MarketplaceDirectory() {
       {/* App Header (Mobile Only) */}
       <div className="md:hidden sticky top-0 z-50 bg-gradient-to-b from-zinc-950 to-zinc-900 border-b border-white/5 pt-6 pb-4 px-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {currentCustomer ? (
-              <div onClick={() => navigate('/ecommerce/live/profile')} className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10 overflow-hidden cursor-pointer shadow-lg">
-                <User size={20} className="text-zinc-400" />
-              </div>
-            ) : (
-              <div onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-white/10 cursor-pointer shadow-lg">
-                <User size={20} className="text-zinc-400" />
-              </div>
-            )}
-            <div className="flex flex-col select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
-              <span className="text-zinc-400 text-xs">{currentCustomer ? 'Hola,' : 'Bienvenido a'}</span>
-              <span className="text-white font-bold text-sm flex items-center gap-1">
-                {currentCustomer ? currentCustomer.name.split(' ')[0] : 'Axon Market'} <Sparkles size={12} className="text-amber-500"/>
-              </span>
+          <div className="flex items-center gap-2 select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
+            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
+              <ShoppingBag size={16} className="stroke-[2.5]"/>
             </div>
+            <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           
           {currentCustomer ? (
@@ -626,17 +614,6 @@ export default function MarketplaceDirectory() {
           )}
         </div>
 
-        {/* Address Pill */}
-        <button className="w-full bg-zinc-900/50 rounded-2xl p-3 flex items-center gap-3 border border-white/5 active:bg-zinc-800 transition-colors text-left shadow-sm">
-          <div className="bg-zinc-800 rounded-full p-2 text-amber-500 shadow-inner">
-            <MapPin size={16} />
-          </div>
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <span className="text-white text-sm font-bold truncate">Ubicación Actual</span>
-            <span className="text-zinc-400 text-xs truncate">Ingresa una dirección de entrega</span>
-          </div>
-          <ChevronRight size={16} className="text-zinc-500" />
-        </button>
       </div>
 
       {/* App Search Bar (Mobile Only) */}
@@ -834,7 +811,6 @@ export default function MarketplaceDirectory() {
            
            <button onClick={() => {
               if (currentCustomer) setIsCartOpen(true);
-              else { setAuthMode('login'); setIsAuthModalOpen(true); }
            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
              <ShoppingCart size={22} />
              <span className="text-[10px] font-medium">Carrito</span>
