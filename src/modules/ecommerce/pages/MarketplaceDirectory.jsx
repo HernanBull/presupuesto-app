@@ -615,9 +615,14 @@ export default function MarketplaceDirectory() {
               <span className="text-zinc-400 text-xs font-medium">Bs. 0.00</span>
             </div>
           ) : (
-            <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-xs font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-              Entrar
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="text-zinc-400 border border-white/10 bg-zinc-900/50 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-sm active:bg-zinc-800">
+                Vender
+              </button>
+              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-amber-500 text-black px-4 py-1.5 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                Entrar
+              </button>
+            </div>
           )}
         </div>
 
@@ -764,66 +769,8 @@ export default function MarketplaceDirectory() {
           })}
         </div>
 
-        {/* Horizontal List of Stores (Tiendas Destacadas / Promos) */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-white font-bold text-lg md:text-xl">Restaurantes con Promo</h3>
-            <button className="text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-wider bg-amber-500/10 px-3 py-1.5 rounded-full">Ver más</button>
-          </div>
-          
-          <div className="flex overflow-x-auto gap-5 pb-6 scrollbar-hide snap-x snap-mandatory -mx-5 px-5 md:mx-0 md:px-0">
-            {loading ? (
-              <div className="w-full flex flex-col items-center justify-center py-12">
-                <div className="w-12 h-12 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin mb-4"></div>
-                <p className="text-zinc-500 text-[10px] font-bold tracking-[0.2em] uppercase">Cargando tiendas...</p>
-              </div>
-            ) : filteredStores.length === 0 ? (
-              <div className="w-full flex flex-col items-center justify-center text-center bg-zinc-900/30 rounded-[2rem] border border-white/5 p-10">
-                <Store size={40} className="mx-auto text-zinc-700 mb-4" />
-                <h3 className="text-xl text-white font-light mb-1">No hay resultados</h3>
-                <p className="text-zinc-500 text-sm font-light">Explora otra categoría.</p>
-              </div>
-            ) : (
-              filteredStores.map((store) => (
-                <div key={store.id} onClick={() => navigate(`/ecommerce/live/${store.store_slug}`)} className="snap-start shrink-0 w-[280px] md:w-[320px] bg-zinc-900 rounded-[1.5rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
-                  <div className="h-40 w-full relative bg-zinc-950 overflow-hidden">
-                    {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
-                      <img src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center">
-                        <Store size={40} className="text-zinc-700" />
-                      </div>
-                    )}
-                    <div className="absolute top-3 right-3">
-                      <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-black/70 transition-colors">
-                        <Heart size={14} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''}/>
-                      </button>
-                    </div>
-                    <div className="absolute bottom-3 left-3 bg-amber-500 text-black text-[10px] font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-lg">
-                      <Zap size={12} strokeWidth={3} /> 20 - 30 min
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-white font-bold text-base line-clamp-1 group-hover:text-amber-400 transition-colors">{store.name}</h4>
-                      <div className="flex items-center gap-1 text-amber-500 text-xs font-bold bg-amber-500/10 px-1.5 py-0.5 rounded flex-shrink-0">
-                        <Star size={10} fill="currentColor"/> 4.8
-                      </div>
-                    </div>
-                    <p className="text-zinc-400 text-xs line-clamp-1">{store.config?.description || store.config?.expediente?.address || 'Tienda en Axon Market'}</p>
-                    <div className="flex items-center gap-3 pt-2 text-[10px] text-zinc-500 font-bold tracking-wide">
-                      <span className="flex items-center gap-1 bg-zinc-800 px-2 py-1 rounded-md text-zinc-300"><ShoppingBag size={12}/> Retiro Local</span>
-                      <span className="flex items-center gap-1 text-emerald-500"><Car size={12}/> Delivery $1.50</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Todas las tiendas Grid (Desktop Only) */}
-        <div className="hidden md:block pt-8 border-t border-white/5">
+        {/* Todas las tiendas Grid */}
+        <div className="pt-6 md:pt-8 border-t border-white/5 mt-6 md:mt-0">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-white font-bold text-xl">Directorio Completo</h3>
           </div>
@@ -997,15 +944,11 @@ export default function MarketplaceDirectory() {
         )}
       </AnimatePresence>
 
-      {/* Auth Modal (Ultra Premium) */}
-      <AnimatePresence>
-        {isAuthModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-zinc-950/90" onClick={() => setIsAuthModalOpen(false)} />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-white/10"
-            >
+      {/* Auth Modal (Instantáneo Nativo) */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="absolute inset-0 bg-zinc-950/95" onClick={() => setIsAuthModalOpen(false)} />
+          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-white/10 animate-in zoom-in-95 duration-150">
               <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-light text-white flex items-center gap-3 tracking-tight">
@@ -1096,20 +1039,16 @@ export default function MarketplaceDirectory() {
                   />
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
-      {/* Merchant Registration Modal (Ultra Premium) */}
-      <AnimatePresence>
-        {isMerchantModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-zinc-950/90" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border border-amber-500/20"
-            >
+      {/* Merchant Registration Modal (Instantáneo Nativo) */}
+      {isMerchantModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="absolute inset-0 bg-zinc-950/95" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
+          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border border-amber-500/20 animate-in zoom-in-95 duration-150">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
               
               <div className="p-8 pb-6 flex items-center justify-between">
@@ -1494,10 +1433,10 @@ export default function MarketplaceDirectory() {
                   )}
                 </form>
               )}
-            </motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       <ProfileWizardModal 
         isOpen={isWizardOpen} 
