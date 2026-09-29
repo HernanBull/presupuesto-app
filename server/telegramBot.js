@@ -142,9 +142,14 @@ export const startTelegramEngine = (supabase, io) => {
             }
 
             if (validStatuses.includes(statusMatch)) {
-              await supabase.from('delivery_drivers').update({ status: statusMatch }).eq('id', chatId);
-              const emoji = statusMatch === 'disponible' ? '🟢' : statusMatch === 'ocupado' ? '🔴' : statusMatch === 'accidentado' ? '🚑' : '💤';
-              await sendMessageToChat(chatId, `${emoji} Tu estado ha sido actualizado a: <b>${statusMatch.toUpperCase()}</b>`);
+              const { error } = await supabase.from('delivery_drivers').update({ status: statusMatch }).eq('id', chatId);
+              if (error) {
+                console.error("Error al actualizar estado:", error);
+                await sendMessageToChat(chatId, `❌ Hubo un error al actualizar tu estado. Asegúrate de que la base de datos esté configurada correctamente.`);
+              } else {
+                const emoji = statusMatch === 'disponible' ? '🟢' : statusMatch === 'ocupado' ? '🔴' : statusMatch === 'accidentado' ? '🚑' : '💤';
+                await sendMessageToChat(chatId, `${emoji} Tu estado ha sido actualizado a: <b>${statusMatch.toUpperCase()}</b>`);
+              }
             } else {
               await sendMessageToChat(chatId, `⚠️ Estado no válido. Usa uno de los siguientes:\n<code>/estado disponible</code>\n<code>/estado ocupado</code>\n<code>/estado accidentado</code>\n<code>/estado descansando</code>`);
             }
