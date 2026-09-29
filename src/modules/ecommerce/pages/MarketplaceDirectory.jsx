@@ -1001,10 +1001,10 @@ export default function MarketplaceDirectory() {
       <AnimatePresence>
         {isAuthModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsAuthModalOpen(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-zinc-950/90" onClick={() => setIsAuthModalOpen(false)} />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.5 }}
-              className="bg-zinc-950 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-md relative z-10 overflow-hidden border border-white/10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-white/10"
             >
               <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between">
                 <div>
@@ -1105,10 +1105,10 @@ export default function MarketplaceDirectory() {
       <AnimatePresence>
         {isMerchantModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-zinc-950/90" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.5 }}
-              className="bg-zinc-950 rounded-[3rem] shadow-[0_0_80px_rgba(245,158,11,0.15)] w-full max-w-lg relative z-10 overflow-hidden border border-amber-500/20"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border border-amber-500/20"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
               
