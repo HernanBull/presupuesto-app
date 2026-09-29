@@ -5,6 +5,16 @@ let isEngineRunning = false;
 const botState = {};
 const alertedTrips = new Set();
 
+const MENU_KEYBOARD = {
+  keyboard: [
+    [{ text: "🟢 Disponible" }, { text: "🔴 Ocupado" }],
+    [{ text: "💤 Descansando" }, { text: "🚑 Falla/Accidente" }],
+    [{ text: "👤 Mi Perfil" }, { text: "🛠️ Ayuda" }]
+  ],
+  resize_keyboard: true,
+  is_persistent: true
+};
+
 const TELEGRAM_BOT_TOKEN = process.env.VITE_TELEGRAM_BOT_TOKEN || '8931657407:AAHJtYXikKfBtYowHHB0HBKhaRUskhyyfHo';
 const TELEGRAM_BOT_USERNAME = process.env.VITE_TELEGRAM_BOT_USERNAME || 'DeliveryAxonbot';
 
@@ -77,9 +87,17 @@ export const startTelegramEngine = (supabase, io) => {
       if (data.ok && data.result.length > 0) {
         for (const update of data.result) {
           globalOffset = update.update_id + 1;
-          const text = update.message?.text || '';
+          let text = update.message?.text || '';
           const chatId = update.message?.chat?.id?.toString();
           const driverName = update.message?.from?.first_name || "Conductor";
+
+          // --- MAPEO DEL TECLADO INTERACTIVO ---
+          if (text === "🟢 Disponible") text = "/estado disponible";
+          if (text === "🔴 Ocupado") text = "/estado ocupado";
+          if (text === "💤 Descansando") text = "/estado descansando";
+          if (text === "🚑 Falla/Accidente") text = "/estado accidentado";
+          if (text === "👤 Mi Perfil") text = "/perfil";
+          if (text === "🛠️ Ayuda") text = "/ayuda";
 
           if (!chatId) continue;
 
@@ -127,8 +145,8 @@ export const startTelegramEngine = (supabase, io) => {
           }
 
           if (text === '/ayuda') {
-            const helpText = `🛠️ <b>MENÚ DE AYUDA DE REPARTIDORES</b> 🛠️\n\n🔹 <b>/registrar</b> - Llena tus datos para poder trabajar.\n🔹 <b>/perfil</b> - Revisa tus estadísticas y viajes completados.\n🔹 <b>/estado [disponible|ocupado|accidentado|descansando]</b> - Cambia tu estado.\n🔹 <b>/ayuda</b> - Muestra este mensaje.\n\n📌 <b>REGLAS DE LA AGENCIA:</b>\n1️⃣ Cuando el bot envíe un viaje al grupo, presiona "Aceptar Viaje".\n2️⃣ Debes estar "disponible" para aceptarlo.\n3️⃣ El bot te enviará por privado la dirección exacta del cliente.\n4️⃣ Al entregar el pedido pídele al cliente el <b>PIN de Seguridad</b>.\n5️⃣ Presiona "Marcar como Entregado".\n6️⃣ 🚨 <b>IMPORTANTE:</b> Si te accidentas, usa el botón rojo "Abortar Viaje".`;
-            await sendMessageToChat(chatId, helpText);
+            const helpText = `🛠️ <b>MENÚ DE AYUDA DE REPARTIDORES</b> 🛠️\n\nUsa los botones del teclado en la parte inferior para cambiar de estado rápidamente.\n\n🔹 <b>/registrar</b> - Llena tus datos para poder trabajar.\n🔹 <b>/perfil</b> - Revisa tus estadísticas y viajes completados.\n🔹 <b>/estado [disponible|ocupado|accidentado|descansando]</b> - Cambia tu estado.\n🔹 <b>/ayuda</b> - Muestra este mensaje.\n\n📌 <b>REGLAS DE LA AGENCIA:</b>\n1️⃣ Cuando el bot envíe un viaje al grupo, presiona "Aceptar Viaje".\n2️⃣ Debes estar "disponible" para aceptarlo.\n3️⃣ El bot te enviará por privado la dirección exacta del cliente.\n4️⃣ Al entregar el pedido pídele al cliente el <b>PIN de Seguridad</b>.\n5️⃣ Presiona "Marcar como Entregado".\n6️⃣ 🚨 <b>IMPORTANTE:</b> Si te accidentas, usa el botón rojo "Abortar Viaje".`;
+            await sendMessageToChat(chatId, helpText, MENU_KEYBOARD);
             continue;
           }
 
@@ -173,7 +191,7 @@ export const startTelegramEngine = (supabase, io) => {
           // Registration logic
           if (text === '/registrar') {
             if (driverData && driverData.name) {
-              await sendMessageToChat(chatId, `⚠️ <b>Ya estás registrado</b> en el sistema.\n\n👤 <b>Nombre:</b> ${driverData.name}\n🆔 <b>ID Repartidor:</b> ${driverData.driver_code}\n\nSi deseas cambiar algún dato, comunícate con la agencia.`);
+              await sendMessageToChat(chatId, `⚠️ <b>Ya estás registrado</b> en el sistema.\n\n👤 <b>Nombre:</b> ${driverData.name}\n🆔 <b>ID Repartidor:</b> ${driverData.driver_code}\n\nUsa el teclado interactivo para gestionar tu estado.`, MENU_KEYBOARD);
             } else {
               botState[chatId] = { step: 'WAITING_NAME' };
               await sendMessageToChat(chatId, "¡Hola! Bienvenido al proceso de registro de repartidores. 🛵\n\nPor favor, ingresa tu <b>Nombre Completo</b>:");
@@ -205,11 +223,11 @@ export const startTelegramEngine = (supabase, io) => {
 
               }
               delete botState[chatId];
-              await sendMessageToChat(chatId, `✅ <b>¡Felicidades!</b> Tus datos han sido registrados exitosamente. Ya puedes empezar a aceptar viajes.\n\nTu ID único de repartidor es: <b>${driverCode}</b>`);
+              await sendMessageToChat(chatId, `✅ <b>¡Felicidades!</b> Tus datos han sido registrados exitosamente. Ya puedes empezar a aceptar viajes.\n\nTu ID único de repartidor es: <b>${driverCode}</b>\n\n👇 <b>Usa el teclado de abajo para actualizar tu estado.</b>`, MENU_KEYBOARD);
             }
           } else
           if (text === '/start') {
-            await sendMessageToChat(chatId, "👋 ¡Hola! Bienvenido al bot de Delivery. Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones. Si eres nuevo, escribe /registrar para comenzar.");
+            await sendMessageToChat(chatId, "👋 ¡Hola! Bienvenido al bot de Delivery. Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones. Si eres nuevo, escribe /registrar para comenzar.\n\n👇 Usa el menú de abajo para gestionar tu estado.", MENU_KEYBOARD);
           } else
           if (text.startsWith('/start accept_')) {
             const orderId = text.replace('/start accept_', '');
