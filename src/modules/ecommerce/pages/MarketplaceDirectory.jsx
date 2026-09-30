@@ -606,7 +606,8 @@ export default function MarketplaceDirectory() {
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 mb-2" onClick={() => navigate('/ecommerce/live/profile')}>
-            <div className="flex items-center gap-3 flex-1">
+            {/* IZQUIERDA: Avatar e Info */}
+            <div className="flex items-center gap-3">
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-amber-500/30 flex-shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
                 {currentCustomer.photoUrl ? (
@@ -617,23 +618,35 @@ export default function MarketplaceDirectory() {
                     </span>
                 )}
               </div>
-              {/* Info */}
-              <div className="flex flex-col">
-                <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold">Bienvenido(a)</span>
-                <h4 className="text-white font-bold text-base leading-tight capitalize line-clamp-1">{currentCustomer.name}</h4>
+              
+              <div className="flex flex-col justify-center">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-white font-bold text-lg leading-tight capitalize">Hola, {currentCustomer.name ? currentCustomer.name.split(' ')[0] : 'Cliente'}</h4>
+                  <ShoppingBag size={14} className="text-amber-500" />
+                </div>
+                {/* Badge de Tasa de Cambio */}
+                <div className="mt-1 bg-amber-500/10 px-2 py-0.5 rounded flex items-center w-fit border border-amber-500/20">
+                  <span className="text-amber-500 text-[10px] font-bold tracking-wide">$1 ⇄ Bs. 45.30</span>
+                </div>
               </div>
             </div>
             
-            {/* Stats Badge */}
-            <div className="flex flex-col items-end gap-2">
-              <div className="bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 shadow-sm flex items-center gap-1">
-                <Star size={12} className="text-amber-500" fill="currentColor" />
-                <span className="text-amber-500 text-xs font-black">5.0</span>
+            {/* DERECHA: Nivel y Progreso */}
+            <div className="flex flex-col items-end w-24">
+              <div className="flex items-center gap-1 mb-1">
+                <Star size={10} className="text-amber-500" fill="currentColor"/>
+                <span className="text-amber-500 text-[10px] font-bold">Nivel 1</span>
               </div>
-              <button onClick={(e) => { e.stopPropagation(); setIsAnalyticsOpen(true); }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-2 py-1 rounded-lg border border-white/5 shadow-sm">
-                <TrendingUp size={12} />
-                <span className="text-[9px] uppercase font-bold tracking-widest">Gastos</span>
-              </button>
+              {/* Barra de Progreso */}
+              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-1">
+                <div className="h-full bg-amber-500 w-[15%] rounded-full"></div>
+              </div>
+              <div className="flex items-center justify-between w-full">
+                <span className="text-zinc-500 text-[8px] font-bold">0 / 3.000 pts</span>
+                <button onClick={(e) => { e.stopPropagation(); setIsAnalyticsOpen(true); }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-1 py-0.5 rounded border border-white/5 shadow-sm">
+                  <TrendingUp size={10} />
+                </button>
+              </div>
             </div>
           </div>
         )}
