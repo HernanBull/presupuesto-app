@@ -663,13 +663,6 @@ export default function MarketplaceDirectory() {
               </div>
               <div className="flex items-center justify-between w-full">
                 <span className="text-zinc-500 text-[8px] font-bold">0 / 3.000 pts</span>
-                <button onClick={(e) => { 
-                  e.stopPropagation();
-                  window.scrollTo({top:0, behavior:'smooth'});
-                  setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 300);
-                }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-1.5 py-0.5 rounded border border-white/5 shadow-sm">
-                  <Search size={10} />
-                </button>
               </div>
             </div>
           </div>
@@ -908,11 +901,11 @@ export default function MarketplaceDirectory() {
            </div>
 
            <button onClick={() => {
-              window.scrollTo({top:0, behavior:'smooth'});
-              setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 300);
+              if(currentCustomer) setIsAnalyticsOpen(true);
+              else { setAuthMode('login'); setIsAuthModalOpen(true); }
            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
-             <Search size={22} />
-             <span className="text-[10px] font-medium">Buscar</span>
+             <TrendingUp size={22} />
+             <span className="text-[10px] font-medium">Gastos</span>
            </button>
 
            <button onClick={() => {
