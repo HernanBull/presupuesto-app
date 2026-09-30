@@ -21,66 +21,73 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
 
   const fetchAnalytics = async () => {
     const cacheKey = `ecommerce_customer_analytics_${currentCustomer.id}`;
+    const cacheTimeKey = `${cacheKey}_time`;
     const cached = localStorage.getItem(cacheKey);
+    const cachedTime = localStorage.getItem(cacheTimeKey);
+    
+    // Si la caché tiene menos de 10 minutos, no volver a gastar datos ni procesador
+    const isFresh = cachedTime && (Date.now() - Number(cachedTime) < 10 * 60 * 1000);
+
     if (cached) {
       try {
          setStats(JSON.parse(cached));
          setLoading(false);
+         if (isFresh) return;
       } catch(e) {}
     } else {
       setLoading(true);
     }
 
-    try {
-      const { data: orders, error } = await supabase
-        .from('ecommerce_orders_v2')
-        .select('total, status, items, date')
-        .or(`customer_id.eq.${currentCustomer.id},customer_email.eq.${currentCustomer.email}`)
-        .eq('status', 'Entregado'); // Only count completed orders for spent metrics
+    // Retrasar el cálculo pesado 400ms para permitir que la animación del modal termine fluida (Anti-Crash)
+    setTimeout(async () => {
+      try {
+        const { data: orders, error } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('total, status, items, date')
+          .or(`customer_id.eq.${currentCustomer.id},customer_email.eq.${currentCustomer.email}`)
+          .eq('status', 'Entregado')
+          .order('date', { ascending: false })
+          .limit(150); // Limitar a los 150 más recientes para evitar que el JSON.parse congele teléfonos antiguos
 
-      if (error) throw error;
+        if (error) throw error;
 
-      let spent = 0;
-      let orderCount = orders ? orders.length : 0;
-      let categories = {};
+        let spent = 0;
+        let categories = {};
 
-      if (orders) {
-        orders.forEach(order => {
-          spent += (Number(order.total) || 0);
-          
-          try {
-            const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-            if (Array.isArray(items)) {
-              items.forEach(item => {
-                const cat = item.category || 'Varios';
-                categories[cat] = (categories[cat] || 0) + (Number(item.price) * Number(item.quantity) || 0);
-              });
-            }
-          } catch (e) {
-            console.error("Error parsing items for analytics", e);
-          }
-        });
+        if (orders) {
+          orders.forEach(order => {
+            spent += (Number(order.total) || 0);
+            try {
+              const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+              if (Array.isArray(items)) {
+                items.forEach(item => {
+                  const cat = item.category || 'Varios';
+                  categories[cat] = (categories[cat] || 0) + (Number(item.price) * Number(item.quantity) || 0);
+                });
+              }
+            } catch (e) {}
+          });
+        }
+
+        const newStats = {
+          totalSpent: spent,
+          totalSaved: spent * 0.05,
+          totalOrders: orders ? orders.length : 0,
+          topCategories: categories,
+          recentOrders: orders ? orders.slice(0, 3) : []
+        };
+
+        if (JSON.stringify(newStats) !== cached) {
+          setStats(newStats);
+          localStorage.setItem(cacheKey, JSON.stringify(newStats));
+          localStorage.setItem(cacheTimeKey, Date.now().toString());
+        }
+      } catch (err) {
+        console.error('Error fetching analytics:', err);
+      } finally {
+        setLoading(false);
       }
-
-      let estimatedSavings = spent * 0.05; 
-
-      const newStats = {
-        totalSpent: spent,
-        totalSaved: estimatedSavings,
-        totalOrders: orderCount,
-        topCategories: categories,
-        recentOrders: orders ? orders.slice(0, 3) : []
-      };
-
-      if (JSON.stringify(newStats) !== cached) {
-        setStats(newStats);
-        localStorage.setItem(cacheKey, JSON.stringify(newStats));
-      }
-    } catch (err) {
-      console.error('Error fetching customer analytics:', err);
-    } finally {
-      setLoading(false);
-    }
+    }, 400);
   };
 
   const sortedCategories = Object.entries(stats.topCategories)
