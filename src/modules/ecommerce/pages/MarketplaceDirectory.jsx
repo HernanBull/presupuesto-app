@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin } from 'lucide-react';
+import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -909,11 +909,11 @@ export default function MarketplaceDirectory() {
            </button>
 
            <button onClick={() => {
-              if(currentCustomer) navigate('/ecommerce/live/profile');
+              if(currentCustomer) navigate('/ecommerce/live/profile', { state: { tab: 'mensajes' } });
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
-           }} className={`flex-1 flex flex-col items-center gap-1 p-2 transition-colors ${!currentCustomer ? 'text-amber-500' : 'text-zinc-500 hover:text-zinc-300'}`}>
-             <User size={22} />
-             <span className="text-[10px] font-medium">{currentCustomer ? 'Perfil' : 'Entrar'}</span>
+           }} className={`flex-1 flex flex-col items-center gap-1 p-2 transition-colors ${!currentCustomer ? 'text-amber-500' : 'text-zinc-500 hover:text-amber-500'}`}>
+             <MessageSquare size={22} />
+             <span className="text-[10px] font-medium">Chats</span>
            </button>
         </div>
       </div>

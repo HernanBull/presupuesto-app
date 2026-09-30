@@ -271,7 +271,8 @@ export default function CustomerProfile() {
           shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
           deliveryPin: order.delivery_pin,
-          isMobile: order.ismobile
+          isMobile: order.ismobile,
+          chat_history: typeof order.chat_history === 'string' ? JSON.parse(order.chat_history) : (order.chat_history || [])
         }));
         setOrders(mappedOrders);
       }
@@ -556,7 +557,7 @@ export default function CustomerProfile() {
       {/* Mobile tab bar */}
       <div className="md:hidden px-6 py-3 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl sticky top-[80px] z-30">
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{id:'datos',icon:<User size={14}/>,label:'Perfil'},{id:'direcciones',icon:<MapPin size={14}/>,label:'Direcciones'},{id:'pedidos',icon:<History size={14}/>,label:'Pedidos'},{id:'wishlist',icon:<Package size={14}/>,label:'Guardados'},{id:'favoritas',icon:<Heart size={14}/>,label:'Favoritas'},{id:'ajustes',icon:<Settings size={14}/>,label:'Ajustes'}].map(tab => (
+          {[{id:'datos',icon:<User size={14}/>,label:'Perfil'},{id:'direcciones',icon:<MapPin size={14}/>,label:'Direcciones'},{id:'pedidos',icon:<History size={14}/>,label:'Pedidos'},{id:'mensajes',icon:<MessageSquare size={14}/>,label:'Chats'},{id:'wishlist',icon:<Package size={14}/>,label:'Guardados'},{id:'favoritas',icon:<Heart size={14}/>,label:'Favoritas'},{id:'ajustes',icon:<Settings size={14}/>,label:'Ajustes'}].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-full text-xs font-bold shrink-0 transition-all border ${activeTab === tab.id ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'text-zinc-500 border-transparent hover:text-white'}`}>
               {tab.icon}{tab.label}
             </button>
@@ -572,6 +573,7 @@ export default function CustomerProfile() {
             <button onClick={() => setActiveTab('datos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'datos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><User size={18} /> Mi Perfil</button>
             <button onClick={() => setActiveTab('direcciones')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'direcciones' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><MapPin size={18} /> Direcciones</button>
             <button onClick={() => setActiveTab('pedidos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'pedidos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><History size={18} /> Mis Pedidos</button>
+            <button onClick={() => setActiveTab('mensajes')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'mensajes' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><MessageSquare size={18} /> Chats y Soporte</button>
             <button onClick={() => setActiveTab('wishlist')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'wishlist' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Package size={18} /> Guardados</button>
             <button onClick={() => setActiveTab('favoritas')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'favoritas' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Heart size={18} /> Tiendas Favoritas</button>
             <div className="h-[1px] bg-white/5 my-2"></div>
@@ -852,6 +854,66 @@ export default function CustomerProfile() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* TABS: MENSAJES (CHATS) */}
+            {activeTab === 'mensajes' && (
+              <motion.div key="mensajes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-white mb-2">Mensajes y Soporte</h2>
+                  <p className="text-zinc-400 text-sm">Comunícate directamente con los comerciantes (apelaciones, confirmaciones).</p>
+                </div>
+                
+                {loadingOrders ? (
+                  <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.length === 0 ? (
+                      <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
+                        <MessageSquare size={48} className="mx-auto text-zinc-600 mb-4" />
+                        <h3 className="text-lg font-bold text-white">No tienes chats activos</h3>
+                        <p className="text-zinc-500 text-sm mt-2">Los chats se habilitan automáticamente cuando realizas un pedido.</p>
+                      </div>
+                    ) : (
+                      orders.map(order => {
+                         let unreadCount = 0;
+                         let lastMessage = 'Haz clic para ver el chat de esta orden';
+                         if (order.chat_history && Array.isArray(order.chat_history)) {
+                           unreadCount = order.chat_history.filter(m => m.sender === 'merchant' && !m.read).length;
+                           if (order.chat_history.length > 0) {
+                             const lastMsg = order.chat_history[order.chat_history.length - 1];
+                             lastMessage = lastMsg.text || '📷 Imagen adjunta';
+                           }
+                         }
+                         return (
+                           <div key={order.id} onClick={() => openChat(order)} className="bg-zinc-900/50 backdrop-blur-xl rounded-2xl p-5 border border-white/5 shadow-lg flex items-center justify-between cursor-pointer hover:bg-zinc-800 transition-colors">
+                             <div className="flex items-center gap-4">
+                               <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center relative border border-white/10">
+                                  <Store size={20} className="text-amber-500" />
+                                  {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-zinc-900">{unreadCount}</span>
+                                  )}
+                               </div>
+                               <div>
+                                 <div className="flex items-center gap-2">
+                                   <h4 className="text-white font-bold text-sm">Orden #{order.id.slice(-6)}</h4>
+                                   <span className={`px-2 py-0.5 rounded text-[8px] uppercase tracking-wider font-bold ${order.paymentStatus === 'review' ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' : 'bg-white/5 text-zinc-400 border border-white/10'}`}>
+                                     {order.paymentStatus === 'review' ? 'En Revisión' : order.status}
+                                   </span>
+                                 </div>
+                                 <p className={`text-xs mt-1 max-w-[200px] sm:max-w-[400px] truncate ${unreadCount > 0 ? 'text-white font-bold' : 'text-zinc-500 font-medium'}`}>{lastMessage}</p>
+                               </div>
+                             </div>
+                             <div className="text-zinc-500 hidden sm:block">
+                               <ChevronRight size={20} />
+                             </div>
+                           </div>
+                         );
+                      })
+                    )}
                   </div>
                 )}
               </motion.div>
