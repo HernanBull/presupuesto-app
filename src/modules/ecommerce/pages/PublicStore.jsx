@@ -1722,6 +1722,7 @@ export default function PublicStore() {
                               </button>
                             </div>
                           )}
+                        </div>
                         <div className="p-3 md:p-4 flex-1 flex flex-col">
                           <p className="font-light text-white text-base line-clamp-2 mb-1 group-hover:text-white/80 transition-colors">{p.name}</p>
                           <div className="flex items-center gap-1 mb-2">
