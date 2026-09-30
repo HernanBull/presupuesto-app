@@ -22,11 +22,10 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      // Fetch user's orders
       const { data: orders, error } = await supabase
         .from('ecommerce_orders_v2')
         .select('total, status, items, date')
-        .eq('customer_id', currentCustomer.id)
+        .or(`customer_id.eq.${currentCustomer.id},customer_email.eq.${currentCustomer.email}`)
         .eq('status', 'Entregado'); // Only count completed orders for spent metrics
 
       if (error) throw error;
@@ -76,14 +75,13 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3); // top 3
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
+      {isOpen && (
       <div className="fixed inset-0 z-[100] flex justify-end">
         <motion.div 
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+          className="absolute inset-0 bg-black/90" onClick={onClose}
         />
         <motion.div 
           initial={{ y: '100%' }}
@@ -182,6 +180,7 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }
