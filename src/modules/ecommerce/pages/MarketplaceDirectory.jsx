@@ -130,11 +130,23 @@ export default function MarketplaceDirectory() {
 
   useEffect(() => {
     const fetchStores = async () => {
+      const cached = localStorage.getItem('ecommerce_marketplace_stores');
+      if (cached) {
+        try {
+          setStores(JSON.parse(cached));
+          setLoading(false);
+        } catch(e) {}
+      }
+      
       const { data, error } = await supabase.from('workspaces').select('*').eq('status', 'Activo');
-      if (error) {
+      if (!error && data) {
+        const newCache = JSON.stringify(data);
+        if (cached !== newCache) {
+          setStores(data);
+          localStorage.setItem('ecommerce_marketplace_stores', newCache);
+        }
+      } else if (error) {
         console.error("Error fetching stores:", error);
-      } else {
-        setStores(data || []);
       }
       setLoading(false);
     };

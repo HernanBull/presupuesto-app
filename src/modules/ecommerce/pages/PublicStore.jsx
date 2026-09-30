@@ -880,6 +880,18 @@ export default function PublicStore() {
 
   useEffect(() => {
     const fetchStoreData = async () => {
+      const cacheKey = `ecommerce_store_${slug}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          setConfig(parsed.config);
+          setWorkspaceId(parsed.workspaceId);
+          setProducts(parsed.products);
+          setCategories(parsed.categories);
+        } catch(e) {}
+      }
+
       const defaultTexts = {
         banner: '¡Envíos gratis en compras mayores a $100!', nav1: 'Inicio', nav2: 'Catálogo', nav3: 'Ofertas',
         heroTitle: 'Descubre la nueva colección', heroSub: 'Productos exclusivos diseñados para ti.', heroBtn: 'Comprar Ahora',
@@ -961,7 +973,18 @@ export default function PublicStore() {
              });
           setProducts(published);
           const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
-          setCategories(['Todas', ...Array.from(cats)]);
+          const finalCats = ['Todas', ...Array.from(cats)];
+          setCategories(finalCats);
+          
+          const newCache = JSON.stringify({
+            config: saved,
+            workspaceId: storeData.id,
+            products: published,
+            categories: finalCats
+          });
+          if (cached !== newCache) {
+             localStorage.setItem(cacheKey, newCache);
+          }
         }
       } catch (error) {
         console.error(error);

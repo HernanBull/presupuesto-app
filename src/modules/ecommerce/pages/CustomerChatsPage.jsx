@@ -51,9 +51,14 @@ export default function CustomerChatsPage() {
         
         // Sort orders so those with recent chat messages appear first
         mappedOrders.sort((a, b) => {
-          const aTime = a.chat_history.length > 0 ? new Date(a.chat_history[a.chat_history.length - 1].timestamp).getTime() : new Date(a.date).getTime();
-          const bTime = b.chat_history.length > 0 ? new Date(b.chat_history[b.chat_history.length - 1].timestamp).getTime() : new Date(b.date).getTime();
-          return bTime - aTime;
+          const getValidTime = (order) => {
+            if (order.chat_history && order.chat_history.length > 0) {
+              const last = order.chat_history[order.chat_history.length - 1];
+              return last.timestamp ? new Date(last.timestamp).getTime() : new Date(order.date).getTime();
+            }
+            return new Date(order.date).getTime();
+          };
+          return getValidTime(b) - getValidTime(a);
         });
 
         setOrders(mappedOrders);
@@ -287,7 +292,9 @@ export default function CustomerChatsPage() {
                       unreadCount = history.filter(m => m.sender === 'merchant' && !m.read).length;
                       const lastMsg = history[history.length - 1];
                       lastMessage = lastMsg.text || '📷 Imagen adjunta';
-                      lastTime = new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      if (lastMsg.timestamp) {
+                         lastTime = new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      }
                     }
 
                     return (
@@ -412,7 +419,7 @@ export default function CustomerChatsPage() {
                       )}
                       
                       <div className={`flex items-center justify-end gap-1 px-3 pb-1.5 pt-0 text-[10px] ${isCustomer ? 'text-amber-200' : 'text-zinc-500'}`}>
-                        <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                         {isCustomer && (
                           msg.read ? <CheckCheck size={14} className="text-blue-300" /> : <Check size={14} />
                         )}
