@@ -20,7 +20,17 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
   }, [isOpen, currentCustomer]);
 
   const fetchAnalytics = async () => {
-    setLoading(true);
+    const cacheKey = `ecommerce_customer_analytics_${currentCustomer.id}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+         setStats(JSON.parse(cached));
+         setLoading(false);
+      } catch(e) {}
+    } else {
+      setLoading(true);
+    }
+
     try {
       const { data: orders, error } = await supabase
         .from('ecommerce_orders_v2')
@@ -38,7 +48,6 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
         orders.forEach(order => {
           spent += (Number(order.total) || 0);
           
-          // Parse items to get categories (if available) or just count items
           try {
             const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
             if (Array.isArray(items)) {
@@ -53,17 +62,20 @@ export default function CustomerAnalyticsModal({ isOpen, onClose, currentCustome
         });
       }
 
-      // Estimate savings: let's assume a standard 5% saving on platform vs traditional 
-      // or calculate from a real discount field if it existed.
       let estimatedSavings = spent * 0.05; 
 
-      setStats({
+      const newStats = {
         totalSpent: spent,
         totalSaved: estimatedSavings,
         totalOrders: orderCount,
         topCategories: categories,
-        recentOrders: orders ? orders.slice(0, 3) : [] // top 3 recent
-      });
+        recentOrders: orders ? orders.slice(0, 3) : []
+      };
+
+      if (JSON.stringify(newStats) !== cached) {
+        setStats(newStats);
+        localStorage.setItem(cacheKey, JSON.stringify(newStats));
+      }
     } catch (err) {
       console.error('Error fetching customer analytics:', err);
     } finally {

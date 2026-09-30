@@ -839,7 +839,7 @@ export default function MarketplaceDirectory() {
                   {/* Reuse horizontal card design for grid */}
                   <div className="h-40 w-full relative bg-zinc-950 overflow-hidden">
                     {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
-                      <img src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
+                      <img loading="lazy" src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center">
                         <Store size={40} className="text-zinc-700" />
@@ -885,8 +885,8 @@ export default function MarketplaceDirectory() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Mobile Only) */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-zinc-950/95 backdrop-blur-xl border-t border-white/5 pb-2 pt-1 px-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+      {/* Bottom Navigation Bar (Mobile Only) - Solid bg for performance */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-zinc-950 border-t border-white/5 pb-2 pt-1 px-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         <div className="flex justify-between items-end h-16 max-w-md mx-auto">
            <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
              <Home size={22} fill="currentColor" />
@@ -936,7 +936,7 @@ export default function MarketplaceDirectory() {
           <div className="fixed inset-0 z-[100] flex justify-end">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)}
+              className="absolute inset-0 bg-black/90" onClick={() => setIsCartOpen(false)}
             />
             <motion.div 
               initial={{ x: '100%' }}

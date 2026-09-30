@@ -206,7 +206,7 @@ export default function EcommerceDashboard() {
             </select>
           </div>
           
-          <div className="flex-1 min-h-[300px] w-full mt-4">
+          <div className="flex-1 min-h-[300px] w-full mt-4 min-w-0">
              {loading ? (
                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                  <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
@@ -215,7 +215,7 @@ export default function EcommerceDashboard() {
              ) : salesData.length === 0 ? (
                <div className="h-full flex items-center justify-center text-slate-400 text-sm">No hay datos en este periodo</div>
              ) : (
-               <ResponsiveContainer width="100%" height="100%">
+               <ResponsiveContainer width="99%" height={300}>
                  <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                    <defs>
                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">

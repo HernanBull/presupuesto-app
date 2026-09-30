@@ -270,8 +270,8 @@ export default function AnalyticsManager() {
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
                 <h3 className="font-bold mb-6 flex items-center gap-2"><CalendarDays size={18}/> Días con Más Ventas (Resumen Visual)</h3>
-                <div className="w-full h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="w-full h-[300px] min-w-0">
+                  <ResponsiveContainer width="99%" height={300}>
                     <AreaChart data={salesData}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
