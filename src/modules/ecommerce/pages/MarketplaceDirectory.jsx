@@ -909,7 +909,7 @@ export default function MarketplaceDirectory() {
            </button>
 
            <button onClick={() => {
-              if(currentCustomer) navigate('/ecommerce/live/profile', { state: { tab: 'mensajes' } });
+              if(currentCustomer) navigate('/ecommerce/live/chats');
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
            }} className={`flex-1 flex flex-col items-center gap-1 p-2 transition-colors ${!currentCustomer ? 'text-amber-500' : 'text-zinc-500 hover:text-amber-500'}`}>
              <MessageSquare size={22} />

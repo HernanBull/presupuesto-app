@@ -24,6 +24,7 @@ import PublicStore from './pages/PublicStore';
 import MarketplaceDirectory from './pages/MarketplaceDirectory';
 import PricingPage from './pages/PricingPage';
 import CustomerProfile from './pages/CustomerProfile';
+import CustomerChatsPage from './pages/CustomerChatsPage';
 import OrderPreparation from './pages/OrderPreparation';
 
 const MerchantGuard = () => {
@@ -286,6 +287,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
         <Route path="live/profile" element={<CustomerProfile />} />
+        <Route path="live/chats" element={<CustomerChatsPage />} />
         <Route path="live/:slug" element={<PublicStore />} />
         <Route path="live" element={<MarketplaceDirectory />} />
         <Route path="pricing" element={<PricingPage />} />
