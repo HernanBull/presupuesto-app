@@ -1323,7 +1323,7 @@ export default function PublicStore() {
             {sections.map((section, idx) => {
               if (section.type === 'hero') {
                 return (
-                  <div key={section.id} className="relative w-full bg-zinc-950 pb-6 border-b border-white/5 shadow-lg">
+                  <div key={section.id} className="relative w-full bg-black pb-8 border-b border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
                     <div className="w-full h-[140px] md:h-[220px] relative">
                       {heroUrl ? (
                         <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover" />
@@ -1334,7 +1334,7 @@ export default function PublicStore() {
                     </div>
                     
                     <div className="px-4 md:px-8 relative -mt-10 flex items-end gap-4 z-10">
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-zinc-900 border-[3px] border-zinc-950 flex flex-col items-center justify-center overflow-hidden shrink-0 shadow-lg">
+                      <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-zinc-900 border-[4px] border-black flex flex-col items-center justify-center overflow-hidden shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.5)] z-10">
                          {logoUrl ? (
                            <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-contain bg-white" />
                          ) : (
@@ -1365,9 +1365,9 @@ export default function PublicStore() {
 
               if (section.type === 'featured') {
                 return (
-                  <div key={section.id} className="px-6 md:px-12 py-24 max-w-[1400px] mx-auto w-full">
+                  <div key={section.id} className="px-4 md:px-8 py-8 md:py-12 max-w-[1400px] mx-auto w-full">
                     <div className="flex items-end justify-between mb-12">
-                      <h2 className={`${headingWeight} text-3xl md:text-5xl text-white tracking-tight`}>{texts.sectionTitle}</h2>
+                      <h2 className="font-bold text-2xl md:text-4xl text-white tracking-tight">{texts.sectionTitle}</h2>
                       <button onClick={() => setCurrentPage('catalog')} className="text-sm font-bold uppercase tracking-widest hidden md:flex items-center gap-2 hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
                         Ver Todo <ArrowRight size={14} />
                       </button>
@@ -1382,8 +1382,8 @@ export default function PublicStore() {
                           className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           <div className="flex-1 flex flex-col pt-1">
-                            <p className="font-medium text-white text-sm line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-snug">{p.name}</p>
-                            <p className="text-[11px] text-zinc-500 line-clamp-2 mb-3 leading-relaxed">{p.description || 'Sin descripción detallada.'}</p>
+                            <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
+                            <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
                             
                             <div className="mt-auto flex items-center gap-2">
                                {isUserAllowedToSeePrices ? (
@@ -1406,7 +1406,7 @@ export default function PublicStore() {
                             </div>
                           </div>
 
-                          <div className="w-[100px] h-[100px] rounded-xl bg-zinc-900 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-inner self-center md:w-28 md:h-28">
+                          <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
                             {p.image_url ? (
                               <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             ) : (
@@ -1501,7 +1501,7 @@ export default function PublicStore() {
                </motion.div>
             </div>
             
-            <div className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-16 relative z-10">
+            <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 md:py-12 relative z-10">
               <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 gap-0">
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
                   <div 
@@ -1511,8 +1511,8 @@ export default function PublicStore() {
                     className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <div className="flex-1 flex flex-col pt-1">
-                      <p className="font-medium text-white text-sm line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-snug">{p.name}</p>
-                      <p className="text-[11px] text-zinc-500 line-clamp-2 mb-3 leading-relaxed">{p.description || 'Sin descripción detallada.'}</p>
+                            <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
+                            <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
                       
                       <div className="mt-auto flex items-center gap-2">
                          {isUserAllowedToSeePrices ? (
@@ -1531,7 +1531,7 @@ export default function PublicStore() {
                       </div>
                     </div>
 
-                    <div className="w-[100px] h-[100px] rounded-xl bg-zinc-900 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-inner self-center md:w-28 md:h-28">
+                    <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
                       {p.image_url ? (
                         <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                       ) : (
@@ -1603,7 +1603,7 @@ export default function PublicStore() {
                <h1 className={`${headingWeight} text-4xl md:text-6xl text-white tracking-tighter relative z-10`}>{texts.catalogTitle}</h1>
             </div>
             
-            <div className={`max-w-[1400px] mx-auto w-full flex flex-col ${catalogFilterStyle === 'sidebar' ? 'md:flex-row' : ''} px-6 md:px-12 py-12 gap-12`}>
+            <div className={`max-w-[1400px] mx-auto w-full flex flex-col ${catalogFilterStyle === 'sidebar' ? 'md:flex-row' : ''} px-4 md:px-8 py-8 md:py-12 gap-8`}>
                
                <div className={`${catalogFilterStyle === 'sidebar' ? 'w-full md:w-64 flex-shrink-0' : 'w-full flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
                    {catalogFilterStyle === 'sidebar' ? (
@@ -1637,8 +1637,8 @@ export default function PublicStore() {
                         className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-300 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="flex-1 flex flex-col pt-1">
-                          <p className="font-medium text-white text-sm line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-snug">{p.name}</p>
-                          <p className="text-[11px] text-zinc-500 line-clamp-2 mb-3 leading-relaxed">{p.description || 'Sin descripción detallada.'}</p>
+                          <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
+                          <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
                           
                           <div className="mt-auto flex items-center gap-2">
                              {isUserAllowedToSeePrices ? (
@@ -1661,7 +1661,7 @@ export default function PublicStore() {
                           </div>
                         </div>
 
-                        <div className="w-[100px] h-[100px] rounded-xl bg-zinc-900 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-inner self-center md:w-28 md:h-28">
+                        <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
                           {p.image_url ? (
                             <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           ) : (
@@ -1903,14 +1903,13 @@ export default function PublicStore() {
       </AnimatePresence>
 
       {/* Cart Slide-over Premium (Glassmorphism Dark) */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <div className="fixed inset-0 z-[120] flex justify-end">
-            <div className="absolute inset-0 bg-black/90 animate-in fade-in duration-300" onClick={() => setIsCartOpen(false)} />
-            
-            <div 
-              className="w-full max-w-[480px] h-full relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 border-l border-white/10 animate-in slide-in-from-right duration-300"
-            >
+      {isCartOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end md:flex-row">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
+          
+          <div 
+            className="w-full h-[90vh] md:h-full md:max-w-[480px] relative z-10 shadow-[0_-20px_50px_rgba(0,0,0,0.7)] md:shadow-2xl flex flex-col overflow-hidden bg-zinc-950 rounded-t-3xl md:rounded-none md:border-l border-white/10"
+          >
               {/* Cart Ambient Glow */}
               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[120px] opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: primaryColor }}></div>
 
@@ -2265,8 +2264,8 @@ export default function PublicStore() {
               )}
             </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       <AnimatePresence>
         {renderAuthModal()}
@@ -2325,37 +2324,41 @@ export default function PublicStore() {
         )}
       </AnimatePresence>
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-white/5 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="grid grid-cols-4 h-16">
           <button
             onClick={() => setCurrentPage('home')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'home' ? 'text-amber-500' : 'text-zinc-500'}`}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'home' ? '' : 'text-zinc-500'}`}
+            style={currentPage === 'home' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
           >
             <Store size={20} />
             {texts?.nav1 || 'Inicio'}
           </button>
           <button
             onClick={() => setCurrentPage('catalog')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'catalog' ? 'text-amber-500' : 'text-zinc-500'}`}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'catalog' ? '' : 'text-zinc-500'}`}
+            style={currentPage === 'catalog' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
           >
             <Package size={20} />
             {texts?.nav2 || 'Catálogo'}
           </button>
           <button
             onClick={() => setCurrentPage('offers')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'offers' ? 'text-amber-500' : 'text-zinc-500'}`}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'offers' ? '' : 'text-zinc-500'}`}
+            style={currentPage === 'offers' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
           >
             <Tag size={20} />
             {texts?.nav3 || 'Ofertas'}
           </button>
           <button
             onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? 'text-amber-500' : 'text-zinc-500'}`}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? '' : 'text-zinc-500'}`}
+            style={totalCartItems > 0 ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
           >
             <div className="relative">
               <ShoppingBag size={20} />
               {totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-amber-500 text-black text-[9px] font-black flex items-center justify-center rounded-full">{totalCartItems}</span>
+                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full" style={{ backgroundColor: primaryColor }}>{totalCartItems}</span>
               )}
             </div>
             Carrito
