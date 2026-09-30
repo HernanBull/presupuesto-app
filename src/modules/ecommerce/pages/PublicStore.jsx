@@ -1524,16 +1524,13 @@ export default function PublicStore() {
             </div>
             
             <div className="max-w-[1400px] mx-auto w-full px-6 md:px-12 py-16 relative z-10">
-              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
-                  <motion.div 
+                  <div 
                     key={p.id}
                     id={`product-card-${p.id}`}
-                    initial={{ opacity: 0, scale: 0.9, y: 30 }} 
-                    animate={{ opacity: 1, scale: 1, y: 0 }} 
-                    transition={{ duration: 0.5, delay: i * 0.1, type: "spring", stiffness: 100 }}
                     onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                    className={`group relative flex flex-col bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all duration-500 hover:-translate-y-3 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`group relative flex flex-col bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden transition-all duration-300 hover:-translate-y-2 animate-in fade-in zoom-in-95 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     {/* Glow effect on hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none blur-2xl" style={{ background: `radial-gradient(circle at 50% 50%, ${primaryColor}20 0%, transparent 70%)` }}></div>
@@ -1631,7 +1628,7 @@ export default function PublicStore() {
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )) : (
                   <div className="col-span-full py-32 flex flex-col items-center justify-center">
                     <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
@@ -1679,14 +1676,13 @@ export default function PublicStore() {
                </div>
 
                <div className="flex-1">
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                     {catalogProducts.length > 0 ? catalogProducts.map((p, i) => (
-                      <motion.div 
+                      <div 
                         key={p.id}
                         id={`product-card-${p.id}`}
-                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: (i % 12) * 0.05 }}
                         onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                        className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                        className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                       >
                         <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
                           {p.image_url ? (
@@ -1776,7 +1772,7 @@ export default function PublicStore() {
                             )}
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     )) : (
                       <div className="col-span-full py-20 text-center text-zinc-500">No se encontraron productos en esta categoría.</div>
                     )}
@@ -1792,7 +1788,9 @@ export default function PublicStore() {
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-4">
              {logoUrl && <img src={resolveImageUrl(logoUrl)} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
-             <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">{config.business_name || 'MI TIENDA'}</span>
+             <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">
+               {config.business_name || 'MI TIENDA'} {config.rif && <span className="ml-2 font-mono text-xs opacity-70">{config.rif}</span>}
+             </span>
            </div>
            <p className="text-zinc-600 font-light text-xs tracking-wider uppercase">{texts.footerText}</p>
         </div>
@@ -1971,8 +1969,8 @@ export default function PublicStore() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
             
             <motion.div 
-              initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-[480px] h-full relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950/80 backdrop-blur-3xl border-l border-white/10"
+              initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="w-full max-w-[480px] h-full relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 border-l border-white/10"
             >
               {/* Cart Ambient Glow */}
               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[120px] opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: primaryColor }}></div>
