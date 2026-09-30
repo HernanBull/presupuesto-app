@@ -588,30 +588,49 @@ export default function MarketplaceDirectory() {
 
       {/* App Header (Mobile Only) */}
       <div className="md:hidden sticky top-0 z-50 bg-gradient-to-b from-zinc-950 to-zinc-900 border-b border-white/5 pt-6 pb-4 px-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
-            <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
-              <ShoppingBag size={16} className="stroke-[2.5]"/>
+        {!currentCustomer ? (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
+              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
+                <ShoppingBag size={16} className="stroke-[2.5]"/>
+              </div>
+              <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
             </div>
-            <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
-          </div>
-          
-          {!currentCustomer && (
+            
             <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-inner active:scale-95 transition-transform">
               <User size={14} className="text-amber-500" />
               Entrar
             </button>
-          )}
-
-          {currentCustomer && (
-            <div className="bg-zinc-800/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2 cursor-pointer shadow-inner">
-              <span className="text-amber-500 font-bold text-sm">$ 0.00</span>
-              <span className="text-zinc-600 text-[10px]">|</span>
-              <span className="text-zinc-400 text-xs font-medium">Bs. 0.00</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-3 mb-2" onClick={() => navigate('/ecommerce/live/profile')}>
+            <div className="flex items-center gap-3 flex-1">
+              {/* Avatar */}
+              <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-amber-500/30 flex-shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
+                {currentCustomer.photoUrl ? (
+                    <img src={resolveImageUrl(currentCustomer.photoUrl)} alt={currentCustomer.name} className="w-full h-full object-cover" />
+                ) : (
+                    <span className="text-amber-500 font-bold text-lg uppercase">
+                      {currentCustomer.name ? currentCustomer.name.charAt(0) : 'U'}
+                    </span>
+                )}
+              </div>
+              {/* Info */}
+              <div className="flex flex-col">
+                <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold">Bienvenido(a)</span>
+                <h4 className="text-white font-bold text-base leading-tight capitalize line-clamp-1">{currentCustomer.name}</h4>
+              </div>
             </div>
-          )}
-        </div>
-
+            
+            {/* Stats Badge */}
+            <div className="flex flex-col items-end">
+              <div className="bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 shadow-sm flex items-center gap-1">
+                <Star size={12} className="text-amber-500" fill="currentColor" />
+                <span className="text-amber-500 text-xs font-black">5.0</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* App Search Bar (Mobile Only) */}
@@ -621,6 +640,7 @@ export default function MarketplaceDirectory() {
             <Search size={18} className="text-zinc-500" />
           </div>
           <input
+            id="mobile-search-input"
             type="text"
             placeholder="¿Qué quieres pedir hoy?"
             value={searchTerm}
@@ -759,47 +779,6 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-        {/* Logged in User Banner (Mobile Only) */}
-        {currentCustomer && (
-          <div className="md:hidden mt-2 mb-4 bg-gradient-to-br from-zinc-900 to-zinc-950 border border-white/10 rounded-[1.5rem] p-4 flex items-center gap-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden">
-            {/* Efecto de luz de fondo para dar estética premium */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl -mr-10 -mt-10"></div>
-            
-            {/* Avatar del usuario */}
-            <div className="w-14 h-14 rounded-full bg-zinc-800 border border-amber-500/30 flex-shrink-0 overflow-hidden flex items-center justify-center relative z-10 shadow-inner">
-               {currentCustomer.photoUrl ? (
-                  <img src={resolveImageUrl(currentCustomer.photoUrl)} alt={currentCustomer.name} className="w-full h-full object-cover" />
-               ) : (
-                  <span className="text-amber-500 font-bold text-xl uppercase">
-                    {currentCustomer.name ? currentCustomer.name.charAt(0) : 'U'}
-                  </span>
-               )}
-            </div>
-            
-            {/* Información del usuario */}
-            <div className="flex-1 relative z-10">
-               <h4 className="text-white font-bold text-lg leading-tight line-clamp-1 capitalize">{currentCustomer.name}</h4>
-               <div className="flex items-center gap-3 mt-1.5">
-                  {/* Puntuación (Estilo Rider/Driver) */}
-                  <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 shadow-sm">
-                     <Star size={10} className="text-amber-500" fill="currentColor" />
-                     <span className="text-amber-500 text-[10px] font-bold">5.0</span>
-                  </div>
-                  {/* Contador de favoritos u otra métrica */}
-                  <span className="text-zinc-400 text-[10px] font-medium flex items-center gap-1">
-                     <Heart size={10} className="text-red-500/70" fill="currentColor" /> 
-                     {currentCustomer.favorites ? (Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites.length : (JSON.parse(currentCustomer.favorites || '[]').length || 0)) : 0} Favs
-                  </span>
-               </div>
-            </div>
-            
-            {/* Botón de acceso directo al perfil */}
-            <button onClick={() => navigate('/ecommerce/live/profile')} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shrink-0 relative z-10 hover:bg-white/10 transition-colors shadow-sm">
-               <ChevronRight size={18} className="text-zinc-400" />
-            </button>
-          </div>
-        )}
-
         {/* Todas las tiendas Grid */}
         <div className="pt-6 md:pt-8 border-t border-white/5 mt-6 md:mt-0">
           <div className="flex items-center justify-between mb-6">
@@ -885,7 +864,10 @@ export default function MarketplaceDirectory() {
              </div>
            </div>
 
-           <button className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors">
+           <button onClick={() => {
+              window.scrollTo({top:0, behavior:'smooth'});
+              setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 300);
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
              <Search size={22} />
              <span className="text-[10px] font-medium">Buscar</span>
            </button>
