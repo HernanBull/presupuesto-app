@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import * as OTPAuth from 'otpauth';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import CustomerAnalyticsModal from '../components/CustomerAnalyticsModal';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
@@ -35,6 +36,7 @@ export default function MarketplaceDirectory() {
   const [recoveryCode, setRecoveryCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
 
   // Merchant Auth State
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
@@ -623,11 +625,15 @@ export default function MarketplaceDirectory() {
             </div>
             
             {/* Stats Badge */}
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-end gap-2">
               <div className="bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 shadow-sm flex items-center gap-1">
                 <Star size={12} className="text-amber-500" fill="currentColor" />
                 <span className="text-amber-500 text-xs font-black">5.0</span>
               </div>
+              <button onClick={(e) => { e.stopPropagation(); setIsAnalyticsOpen(true); }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-2 py-1 rounded-lg border border-white/5 shadow-sm">
+                <TrendingUp size={12} />
+                <span className="text-[9px] uppercase font-bold tracking-widest">Gastos</span>
+              </button>
             </div>
           </div>
         )}
@@ -1467,6 +1473,11 @@ export default function MarketplaceDirectory() {
             setPendingStoreSlug(null);
           }
         }} 
+      />
+      <CustomerAnalyticsModal 
+        isOpen={isAnalyticsOpen}
+        onClose={() => setIsAnalyticsOpen(false)}
+        currentCustomer={currentCustomer}
       />
     </div>
     </GoogleOAuthProvider>
