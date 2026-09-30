@@ -1335,7 +1335,7 @@ export default function PublicStore() {
                       </div>
                     )}
                     
-                    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
+                    <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700">
                       <h1 className={`${headingWeight} text-5xl md:text-7xl lg:text-8xl text-white mb-6 tracking-tighter leading-tight drop-shadow-2xl`}>
                         {texts.heroTitle}
                       </h1>
@@ -1360,7 +1360,7 @@ export default function PublicStore() {
                           </button>
                         )}
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
                 );
               }
@@ -1969,11 +1969,10 @@ export default function PublicStore() {
       <AnimatePresence>
         {isCartOpen && (
           <div className="fixed inset-0 z-[120] flex justify-end">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
+            <div className="absolute inset-0 bg-black/90 animate-in fade-in duration-300" onClick={() => setIsCartOpen(false)} />
             
-            <motion.div 
-              initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }} transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="w-full max-w-[480px] h-full relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 border-l border-white/10"
+            <div 
+              className="w-full max-w-[480px] h-full relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 border-l border-white/10 animate-in slide-in-from-right duration-300"
             >
               {/* Cart Ambient Glow */}
               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[120px] opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: primaryColor }}></div>
@@ -2227,7 +2226,7 @@ export default function PublicStore() {
                      )}
                   </div>
                 ) : totalCartItems === 0 ? (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-20 flex flex-col items-center">
+                  <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mb-8 shadow-inner border border-white/10 relative">
                       <div className="absolute inset-0 blur-xl opacity-20 rounded-full" style={{ backgroundColor: primaryColor }}></div>
                       <Package size={48} className="text-zinc-500 relative z-10" />
@@ -2235,7 +2234,7 @@ export default function PublicStore() {
                     <h3 className="text-3xl font-light text-white mb-4 tracking-tight">Carrito Vacío</h3>
                     <p className="text-zinc-400 text-base font-light mb-10 max-w-[250px] leading-relaxed">Tu bolsa de compras necesita un poco de acción. Explora nuestro catálogo.</p>
                     <button onClick={() => { setIsCartOpen(false); setCurrentPage('catalog'); }} className="px-10 py-4 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-xl hover:scale-105" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}30` }}>Descubrir Productos</button>
-                  </motion.div>
+                  </div>
                 ) : (
                   <div className="space-y-5">
                     {Object.entries(cart).map(([id, qty], idx) => {
@@ -2279,7 +2278,7 @@ export default function PublicStore() {
 
               {/* Cart Footer */}
               {totalCartItems > 0 && (
-                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="px-8 py-8 bg-black/60 border-t border-white/10 z-10 backdrop-blur-md">
+                <div className="px-8 py-8 bg-zinc-950 border-t border-white/10 z-10 animate-in slide-in-from-bottom-4 duration-300">
                   <div className="flex justify-between items-end mb-8 bg-white/5 p-6 rounded-3xl border border-white/5">
                     <div>
                       <span className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest block mb-2">Subtotal</span>
@@ -2325,9 +2324,9 @@ export default function PublicStore() {
                       <span className="relative z-10 flex items-center gap-2">Finalizar Compra <ArrowRight size={18} /></span>
                     </button>
                   )}
-                </motion.div>
+                </div>
               )}
-            </motion.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
