@@ -92,6 +92,26 @@ export default function MarketplaceDirectory() {
   // Typewriter State
   const [typedCount, setTypedCount] = useState(0);
   const fullText = "Descubre comercios locales sin intermediarios.";
+  
+  // BCV Rate State
+  const [bcvRate, setBcvRate] = useState('...');
+
+  useEffect(() => {
+    const fetchBcvRate = async () => {
+      try {
+        const res = await fetch('https://axonmarket-api.onrender.com/api/bcv');
+        const data = await res.json();
+        if (res.ok && data.rate) {
+          setBcvRate(Number(data.rate).toFixed(2));
+        } else if (data.fallbackRate) {
+          setBcvRate(Number(data.fallbackRate).toFixed(2));
+        }
+      } catch (err) {
+        console.error('Error fetching BCV rate:', err);
+      }
+    };
+    fetchBcvRate();
+  }, []);
 
   useEffect(() => {
     if (typedCount < fullText.length) {
@@ -626,7 +646,7 @@ export default function MarketplaceDirectory() {
                 </div>
                 {/* Badge de Tasa de Cambio */}
                 <div className="mt-1 bg-amber-500/10 px-2 py-0.5 rounded flex items-center w-fit border border-amber-500/20">
-                  <span className="text-amber-500 text-[10px] font-bold tracking-wide">$1 ⇄ Bs. 45.30</span>
+                  <span className="text-amber-500 text-[10px] font-bold tracking-wide">$1 ⇄ Bs. {bcvRate}</span>
                 </div>
               </div>
             </div>
@@ -643,8 +663,12 @@ export default function MarketplaceDirectory() {
               </div>
               <div className="flex items-center justify-between w-full">
                 <span className="text-zinc-500 text-[8px] font-bold">0 / 3.000 pts</span>
-                <button onClick={(e) => { e.stopPropagation(); setIsAnalyticsOpen(true); }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-1 py-0.5 rounded border border-white/5 shadow-sm">
-                  <TrendingUp size={10} />
+                <button onClick={(e) => { 
+                  e.stopPropagation();
+                  window.scrollTo({top:0, behavior:'smooth'});
+                  setTimeout(() => document.getElementById('mobile-search-input')?.focus(), 300);
+                }} className="flex items-center gap-1 text-zinc-400 hover:text-amber-500 transition-colors bg-white/5 px-1.5 py-0.5 rounded border border-white/5 shadow-sm">
+                  <Search size={10} />
                 </button>
               </div>
             </div>
