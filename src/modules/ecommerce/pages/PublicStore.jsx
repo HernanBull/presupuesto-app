@@ -1536,11 +1536,13 @@ export default function PublicStore() {
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none blur-2xl" style={{ background: `radial-gradient(circle at 50% 50%, ${primaryColor}20 0%, transparent 70%)` }}></div>
                     <div className="absolute inset-0 border-2 border-transparent group-hover:border-white/10 rounded-[2.5rem] transition-colors duration-500 pointer-events-none z-30"></div>
 
-                    <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-8 flex items-center justify-center">
+                    <div className="w-full aspect-square bg-zinc-900/30 relative overflow-hidden flex items-center justify-center">
                       {p.image_url ? (
-                        <motion.img id={`product-img-${p.id}`} whileHover={{ scale: 1.15, rotate: 2 }} transition={{ duration: 0.6 }} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain relative z-10 drop-shadow-2xl" />
+                        <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover relative z-10 hover:scale-110 transition-transform duration-700" />
                       ) : (
-                        <ImageIcon size={80} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
+                        <div className="w-full h-full bg-zinc-900/50 flex items-center justify-center">
+                           <ImageIcon size={48} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
+                        </div>
                       )}
                       
                       <motion.div 
@@ -1574,8 +1576,7 @@ export default function PublicStore() {
                         </div>
                       )}
                     </div>
-                    
-                    <div className="p-8 pt-6 flex-1 flex flex-col relative z-20 bg-gradient-to-t from-zinc-950 to-zinc-900/80">
+                    <div className="p-4 md:p-5 flex-1 flex flex-col relative z-20 bg-zinc-950">
                       <p className="font-bold text-white text-xl line-clamp-2 mb-1 group-hover:text-white/80 transition-colors">{p.name}</p>
                       <div className="flex items-center gap-1.5 mb-3">
                         <div className="flex gap-0.5">
@@ -1684,11 +1685,13 @@ export default function PublicStore() {
                         onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
                         className={`group relative flex flex-col bg-zinc-900/40 rounded-3xl border border-white/5 overflow-hidden transition-all duration-300 hover:bg-zinc-900/80 hover:-translate-y-1 hover:border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                       >
-                        <div className="w-full aspect-[4/5] bg-zinc-950 relative overflow-hidden p-6 flex items-center justify-center">
+                        <div className="w-full aspect-square bg-zinc-900/30 relative overflow-hidden flex items-center justify-center">
                           {p.image_url ? (
-                            <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110" />
+                            <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                           ) : (
-                            <ImageIcon size={48} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
+                            <div className="w-full h-full bg-zinc-900/50 flex items-center justify-center">
+                               <ImageIcon size={40} className="text-zinc-800 transition-transform duration-700 group-hover:scale-110" />
+                            </div>
                           )}
                           
                           {p.is_offer && (
@@ -1719,8 +1722,7 @@ export default function PublicStore() {
                               </button>
                             </div>
                           )}
-                        </div>
-                        <div className="p-5 pt-4 flex-1 flex flex-col border-t border-white/5">
+                        <div className="p-3 md:p-4 flex-1 flex flex-col">
                           <p className="font-light text-white text-base line-clamp-2 mb-1 group-hover:text-white/80 transition-colors">{p.name}</p>
                           <div className="flex items-center gap-1 mb-2">
                             <div className="flex gap-0.5">
@@ -2241,35 +2243,33 @@ export default function PublicStore() {
                       const currentPrice = p.is_offer ? p.discount_price : p.price;
                       
                       return (
-                        <motion.div 
+                        <div 
                           key={id}
-                          initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1, type: 'spring', stiffness: 100 }}
-                          className="flex gap-5 group bg-white/5 p-4 rounded-3xl border border-white/5 hover:border-white/10 transition-all hover:bg-white/10"
+                          className="flex gap-4 group bg-transparent py-3 border-b border-white/5 last:border-0 items-center animate-in fade-in slide-in-from-right-4 duration-300"
                         >
-                          <div className="w-24 h-24 bg-black rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center border border-white/5 relative shadow-inner">
+                          <div className="w-16 h-16 bg-zinc-900 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center relative">
                             {p.image_url ? (
-                              <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity group-hover:scale-110 duration-500" />
+                              <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover" />
                             ) : (
-                              <Package size={32} className="text-zinc-700" />
+                              <Package size={24} className="text-zinc-700" />
                             )}
                           </div>
                           
-                          <div className="flex-1 flex flex-col justify-center py-1 relative">
-                            <button onClick={() => removeFromCart(p.id, cart[p.id])} className="absolute top-0 right-0 text-zinc-600 hover:text-red-500 transition-colors p-1"><X size={14} /></button>
+                          <div className="flex-1 flex flex-col justify-center relative pr-2">
+                            <h5 className="text-sm font-medium text-white line-clamp-1 mb-1 pr-6">{p.name}</h5>
                             
-                            <h5 className="text-sm font-bold text-white line-clamp-2 mb-2 leading-snug pr-6">{p.name}</h5>
-                            
-                            <div className="mt-auto flex items-end justify-between">
-                              <div className="font-bold text-lg" style={{ color: primaryColor }}>${Number(currentPrice).toFixed(2)}</div>
+                            <div className="flex items-center justify-between mt-1">
+                              <div className="font-bold text-base" style={{ color: primaryColor }}>${Number(currentPrice).toFixed(2)}</div>
                               
-                              <div className="flex items-center bg-black/50 border border-white/10 rounded-full p-1 shadow-inner backdrop-blur-md">
-                                <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-all"><Minus size={14}/></button>
-                                <span className="w-8 text-center text-sm font-bold text-white">{qty}</span>
-                                <button onClick={() => addToCart(p.id, p.step_size)} className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-all"><Plus size={14}/></button>
+                              <div className="flex items-center bg-zinc-900 rounded-full border border-white/5">
+                                <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white transition-all"><Minus size={14}/></button>
+                                <span className="w-6 text-center text-sm font-bold text-white">{qty}</span>
+                                <button onClick={() => addToCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white transition-all"><Plus size={14}/></button>
                               </div>
                             </div>
+                            <button onClick={() => removeFromCart(p.id, cart[p.id])} className="absolute top-0 right-0 text-zinc-600 hover:text-red-500 transition-colors p-1"><X size={14} /></button>
                           </div>
-                        </motion.div>
+                        </div>
                       );
                     })}
                   </div>
@@ -2388,7 +2388,7 @@ export default function PublicStore() {
         )}
       </AnimatePresence>
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/95 backdrop-blur-2xl border-t border-white/5 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-950 border-t border-white/5 shadow-[0_-8px_30px_rgba(0,0,0,0.4)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="grid grid-cols-4 h-16">
           <button
             onClick={() => setCurrentPage('home')}
