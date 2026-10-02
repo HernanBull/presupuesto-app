@@ -1031,6 +1031,10 @@ export default function SuperAdminDashboard({ superKey }) {
                               <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Registro</p>
                               <p className="text-xs text-zinc-300">{new Date(item.created_at).toLocaleDateString()}</p>
                             </div>
+                            <div className="col-span-2">
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Email</p>
+                              <p className="text-xs text-zinc-300">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || 'No registrado'; } catch(e) { return 'No registrado'; } })()}</p>
+                            </div>
                           </>
                         ) : (
                           <>
@@ -1105,6 +1109,7 @@ export default function SuperAdminDashboard({ superKey }) {
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">ID</th>
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
                         {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
+                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
                         {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
@@ -1118,6 +1123,7 @@ export default function SuperAdminDashboard({ superKey }) {
                           <td className="py-4 px-4 text-sm font-mono text-zinc-500">{item.id.substring(0,8)}...</td>
                           <td className="py-4 px-4 text-sm font-bold text-white">{item.name}</td>
                           {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
+                          {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || '—'; } catch(e) { return '—'; } })()}</td>}
                           {activeTab === 'merchants' && (
                             <td className="py-4 px-4 text-sm">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
