@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1901,7 +1901,7 @@ export default function PublicStore() {
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
           
           <div 
-            className="w-full h-[90vh] md:h-full md:max-w-[480px] relative z-10 shadow-[0_-20px_50px_rgba(0,0,0,0.7)] md:shadow-2xl flex flex-col overflow-hidden bg-zinc-950 rounded-t-3xl md:rounded-none md:border-l border-white/10"
+            className="w-full h-[100dvh] md:h-full md:max-w-[480px] relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 md:border-l border-white/10"
           >
               {/* Cart Ambient Glow */}
               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[120px] opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: primaryColor }}></div>
@@ -2015,15 +2015,15 @@ export default function PublicStore() {
                         <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Paso 2: Método de Pago</h3>
                         {/* Payment Method Selection */}
                         <div className="space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                          {config?.paymentProfile?.paymentMobile && (
-                           <button onClick={() => setSelectedPaymentMethod('pago_movil')} className={`p-3 rounded-lg border text-sm font-bold transition-all ${selectedPaymentMethod === 'pago_movil' ? 'bg-zinc-200 border-zinc-200 text-black' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`} style={selectedPaymentMethod === 'pago_movil' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}>Pago Móvil</button>
+                           <button onClick={() => setSelectedPaymentMethod('pago_movil')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'pago_movil' ? 'bg-zinc-200 border-zinc-200 text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`} style={selectedPaymentMethod === 'pago_movil' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}><Smartphone size={18} /> Pago Móvil</button>
                          )}
                          {config?.paymentProfile?.zelleActive && (
-                           <button onClick={() => setSelectedPaymentMethod('zelle')} className={`p-3 rounded-lg border text-sm font-bold transition-all ${selectedPaymentMethod === 'zelle' ? 'bg-[#741eed] border-[#741eed] text-white' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}>Zelle</button>
+                           <button onClick={() => setSelectedPaymentMethod('zelle')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'zelle' ? 'bg-[#741eed] border-[#741eed] text-white shadow-lg shadow-[#741eed]/20 scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}><Zap size={18} /> Zelle</button>
                          )}
                          {config?.paymentProfile?.cashActive && (
-                           <button onClick={() => setSelectedPaymentMethod('cash')} className={`p-3 rounded-lg border text-sm font-bold transition-all ${selectedPaymentMethod === 'cash' ? 'bg-white border-white text-black' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}>Efectivo</button>
+                           <button onClick={() => setSelectedPaymentMethod('cash')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'cash' ? 'bg-white border-white text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}><Building2 size={18} /> Efectivo</button>
                          )}
                        </div>
                      </div>
@@ -2191,19 +2191,21 @@ export default function PublicStore() {
                             )}
                           </div>
                           
-                          <div className="flex-1 flex flex-col justify-center relative pr-2">
-                            <h5 className="text-sm font-medium text-white line-clamp-1 mb-1 pr-6">{p.name}</h5>
+                          <div className="flex-1 flex flex-col justify-center relative">
+                            <h5 className="text-sm font-medium text-white line-clamp-2 mb-1 leading-snug">{p.name}</h5>
                             
-                            <div className="flex items-center justify-between mt-1">
-                              <div className="font-bold text-base" style={{ color: primaryColor }}>${Number(currentPrice).toFixed(2)}</div>
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="font-bold text-lg" style={{ color: primaryColor }}>${Number(currentPrice).toFixed(2)}</div>
                               
-                              <div className="flex items-center bg-zinc-900 rounded-full border border-white/5">
-                                <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white transition-all"><Minus size={14}/></button>
-                                <span className="w-6 text-center text-sm font-bold text-white">{qty}</span>
-                                <button onClick={() => addToCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white transition-all"><Plus size={14}/></button>
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => removeFromCart(p.id, cart[p.id])} className="w-10 h-10 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"><Trash2 size={18} /></button>
+                                <div className="flex items-center bg-zinc-900 rounded-full border border-white/10">
+                                  <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white active:bg-white/5 rounded-l-full transition-all"><Minus size={16}/></button>
+                                  <span className="w-6 text-center text-sm font-bold text-white">{qty}</span>
+                                  <button onClick={() => addToCart(p.id, p.step_size)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white active:bg-white/5 rounded-r-full transition-all"><Plus size={16}/></button>
+                                </div>
                               </div>
                             </div>
-                            <button onClick={() => removeFromCart(p.id, cart[p.id])} className="absolute top-0 right-0 text-zinc-600 hover:text-red-500 transition-colors p-1"><X size={14} /></button>
                           </div>
                         </div>
                       );
@@ -2214,8 +2216,8 @@ export default function PublicStore() {
 
               {/* Cart Footer */}
               {totalCartItems > 0 && (
-                <div className="px-8 py-8 bg-zinc-950 border-t border-white/10 z-10 animate-in slide-in-from-bottom-4 duration-300">
-                  <div className="flex justify-between items-end mb-8 bg-white/5 p-6 rounded-3xl border border-white/5">
+                <div className="px-5 md:px-8 py-4 md:py-8 pb-[max(1rem,env(safe-area-inset-bottom))] bg-zinc-950 border-t border-white/10 z-10 animate-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex justify-between items-end mb-4 md:mb-8 bg-white/5 p-4 md:p-6 rounded-2xl md:rounded-3xl border border-white/5">
                     <div>
                       <span className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest block mb-2">Subtotal</span>
                       <span className="text-white text-xs font-light opacity-60">Envío: {shippingCost === 0 ? 'Gratis' : `$${shippingCost.toFixed(2)}`}</span>
