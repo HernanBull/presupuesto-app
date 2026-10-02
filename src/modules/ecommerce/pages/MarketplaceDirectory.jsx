@@ -937,7 +937,8 @@ export default function MarketplaceDirectory() {
           {/* Divider + Copyright */}
           <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-zinc-600 text-[11px]">
-              © {new Date().getFullYear()} AxonMarket · Todos los derechos reservados · Intermediario tecnológico, no vendedor directo.
+              © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124 · Venezuela
+
             </p>
             <div className="flex items-center gap-4">
               <button onClick={() => navigate('/ecommerce/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Términos</button>

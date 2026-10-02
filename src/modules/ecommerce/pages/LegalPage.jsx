@@ -11,7 +11,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: '1. Identificación de las Partes y Objeto',
-        content: `AxonMarket (en adelante, "la Plataforma") es un servicio de intermediación tecnológica operado en la República Bolivariana de Venezuela, que facilita el encuentro entre comerciantes independientes (en adelante, "Comerciantes") y consumidores finales (en adelante, "Compradores").\n\nAxonMarket actúa exclusivamente como intermediario tecnológico y NO es vendedor, fabricante, ni distribuidor de ningún producto o servicio ofertado por los Comerciantes. Cada transacción se realiza directamente entre el Comprador y el Comerciante correspondiente.`
+        content: `AxonMarket es el nombre comercial de Emprendimiento Hernán Perdomo, con RIF J-508056124, con domicilio en la República Bolivariana de Venezuela (en adelante, "la Plataforma"). AxonMarket es un servicio de intermediación tecnológica que facilita el encuentro entre comerciantes independientes (en adelante, "Comerciantes") y consumidores finales (en adelante, "Compradores").\n\nAxonMarket actúa exclusivamente como intermediario tecnológico y NO es vendedor, fabricante, ni distribuidor de ningún producto o servicio ofertado por los Comerciantes. Cada transacción se realiza directamente entre el Comprador y el Comerciante correspondiente.`
       },
       {
         heading: '2. Aceptación de los Términos',
@@ -54,7 +54,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: '1. Responsable del Tratamiento de Datos',
-        content: `AxonMarket, operado en la República Bolivariana de Venezuela, es el responsable del tratamiento de los datos personales recabados a través de la Plataforma, en cumplimiento del Artículo 60 de la Constitución de la República Bolivariana de Venezuela (CRBV) que garantiza el derecho a la protección del honor, vida privada, intimidad, propia imagen, confidencialidad y reputación.`
+        content: `El responsable del tratamiento de los datos personales recabados a través de la Plataforma es:\n\nRazón Social: Emprendimiento Hernán Perdomo\nNombre Comercial: AxonMarket\nRIF: J-508056124\nPaís: República Bolivariana de Venezuela\n\nEl tratamiento se realiza en cumplimiento del Artículo 60 de la Constitución de la República Bolivariana de Venezuela (CRBV) que garantiza el derecho a la protección del honor, vida privada, intimidad, propia imagen, confidencialidad y reputación.`
       },
       {
         heading: '2. Datos Personales que Recopilamos',
@@ -171,7 +171,7 @@ const LEGAL_CONTENT = {
     sections: [
       {
         heading: '1. Operador de la Plataforma',
-        content: `AxonMarket es una plataforma de intermediación tecnológica para comercio electrónico, operada en la República Bolivariana de Venezuela.\n\nPaís de operación: República Bolivariana de Venezuela\nContacto: Disponible a través de los canales de soporte de la Plataforma.`
+        content: `AxonMarket es una plataforma de intermediación tecnológica para comercio electrónico, operada por:\n\nRazón Social: Emprendimiento Hernán Perdomo\nNombre Comercial: AxonMarket\nRIF Jurídico: J-508056124\nPaís de operación: República Bolivariana de Venezuela\nContacto: Disponible a través de los canales de soporte de la Plataforma.`
       },
       {
         heading: '2. Actividad y Naturaleza',
@@ -183,7 +183,7 @@ const LEGAL_CONTENT = {
       },
       {
         heading: '4. Propiedad Intelectual',
-        content: `La marca "AxonMarket", el logotipo, el diseño de la interfaz y todo el contenido propio de la Plataforma son propiedad intelectual de sus titulares. Queda prohibida su reproducción total o parcial sin autorización expresa y por escrito.\n\nEl software que soporta la Plataforma está protegido por las leyes de propiedad intelectual aplicables en Venezuela.`
+        content: `La marca "AxonMarket", el logotipo, el diseño de la interfaz y todo el contenido propio de la Plataforma son propiedad intelectual de Emprendimiento Hernán Perdomo (RIF J-508056124). Queda prohibida su reproducción total o parcial sin autorización expresa y por escrito.\n\nEl software que soporta la Plataforma está protegido por las leyes de propiedad intelectual aplicables en Venezuela.`
       },
       {
         heading: '5. Exención de Responsabilidad por Contenido de Terceros',
@@ -318,7 +318,7 @@ export default function LegalPage() {
             <span className="font-bold tracking-[0.3em] text-white text-sm">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           <p className="text-zinc-600 text-xs">
-            © {new Date().getFullYear()} AxonMarket. Todos los derechos reservados. República Bolivariana de Venezuela.
+            © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124 · República Bolivariana de Venezuela.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
             {Object.entries(LEGAL_CONTENT).map(([key, val]) => (
