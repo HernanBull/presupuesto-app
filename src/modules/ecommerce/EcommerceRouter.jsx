@@ -26,6 +26,7 @@ import PricingPage from './pages/PricingPage';
 import CustomerProfile from './pages/CustomerProfile';
 import CustomerChatsPage from './pages/CustomerChatsPage';
 import OrderPreparation from './pages/OrderPreparation';
+import LegalPage from './pages/LegalPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -291,6 +292,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route path="live/:slug" element={<PublicStore />} />
         <Route path="live" element={<MarketplaceDirectory />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="legal/:tipo" element={<LegalPage />} />
       </Route>
       
       <Route path="picking" element={<OrderPreparation />} />

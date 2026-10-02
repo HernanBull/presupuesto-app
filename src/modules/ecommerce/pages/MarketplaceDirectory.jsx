@@ -47,6 +47,8 @@ export default function MarketplaceDirectory() {
   const [merchantMfaUrl, setMerchantMfaUrl] = useState('');
   const [merchantMfaCode, setMerchantMfaCode] = useState('');
   const [tempWorkspace, setTempWorkspace] = useState(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [merchantTermsAccepted, setMerchantTermsAccepted] = useState(false);
   const [merchantForm, setMerchantForm] = useState({ 
     ownerName: '',
     businessName: '', 
@@ -190,12 +192,14 @@ export default function MarketplaceDirectory() {
         id: authData.user.id,
         name: authForm.name,
         email: authForm.email,
-        password: 'SUPABASE_AUTH', // We don't store passwords anymore
+        password: 'SUPABASE_AUTH',
         doc_id: authForm.docId,
         phone: authForm.phone,
         address: authForm.address,
         status: 'Activo',
-        join_date: new Date().toISOString()
+        join_date: new Date().toISOString(),
+        terms_accepted: true,
+        terms_accepted_at: new Date().toISOString()
       };
 
       const { error } = await supabase.from('ecommerce_customers').insert([newCustomer]);
@@ -880,14 +884,69 @@ export default function MarketplaceDirectory() {
       
       {/* Footer (Desktop Only) */}
       <footer className="hidden md:block bg-zinc-950 border-t border-white/5 mt-20 relative z-10">
-        <div className="max-w-[1400px] mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
-               <ShoppingBag size={16} className="stroke-[2.5]"/>
-             </div>
-             <span className="font-bold text-lg tracking-[0.3em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
-           </div>
-           <p className="text-zinc-500 font-light text-xs tracking-wider uppercase">© {new Date().getFullYear()} Axon SaaS. Ecosistema Descentralizado.</p>
+        <div className="max-w-[1400px] mx-auto px-8 py-14">
+          <div className="grid grid-cols-4 gap-10 mb-10">
+            {/* Brand */}
+            <div className="col-span-1">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-black shadow-lg shadow-amber-900/30">
+                  <ShoppingBag size={18} className="stroke-[2.5]"/>
+                </div>
+                <span className="font-bold text-lg tracking-[0.25em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+              </div>
+              <p className="text-zinc-500 text-xs leading-relaxed">
+                Tu marketplace local. Conectamos compradores con comerciantes independientes en Venezuela.
+              </p>
+              <p className="text-zinc-700 text-[10px] mt-4 uppercase tracking-widest">
+                República Bolivariana de Venezuela
+              </p>
+            </div>
+
+            {/* Plataforma */}
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Plataforma</p>
+              <div className="space-y-3">
+                <button onClick={() => navigate('/ecommerce/live')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Marketplace</button>
+                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('register'); }} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
+                <button onClick={() => navigate('/ecommerce/pricing')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Planes y Precios</button>
+              </div>
+            </div>
+
+            {/* Soporte */}
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Soporte</p>
+              <div className="space-y-3">
+                <button onClick={() => setIsMerchantModalOpen(true)} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Acceso Comerciantes</button>
+                <button onClick={() => setIsAuthModalOpen(true)} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Acceso Compradores</button>
+              </div>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Legal</p>
+              <div className="space-y-3">
+                <button onClick={() => navigate('/ecommerce/legal/terminos')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos de Uso</button>
+                <button onClick={() => navigate('/ecommerce/legal/privacidad')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Privacidad</button>
+                <button onClick={() => navigate('/ecommerce/legal/cookies')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Cookies</button>
+                <button onClick={() => navigate('/ecommerce/legal/comerciantes')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
+                <button onClick={() => navigate('/ecommerce/legal/aviso')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Aviso Legal</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider + Copyright */}
+          <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-zinc-600 text-[11px]">
+              © {new Date().getFullYear()} AxonMarket · Todos los derechos reservados · Intermediario tecnológico, no vendedor directo.
+            </p>
+            <div className="flex items-center gap-4">
+              <button onClick={() => navigate('/ecommerce/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Términos</button>
+              <span className="text-zinc-800">·</span>
+              <button onClick={() => navigate('/ecommerce/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Privacidad</button>
+              <span className="text-zinc-800">·</span>
+              <button onClick={() => navigate('/ecommerce/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Aviso Legal</button>
+            </div>
+          </div>
         </div>
       </footer>
 
@@ -1080,7 +1139,26 @@ export default function MarketplaceDirectory() {
                     </div>
                   )}
 
-                  <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
+                  {authMode === 'register' && (
+                    <div className="flex items-start gap-3 bg-white/3 border border-white/5 rounded-2xl p-4">
+                      <input
+                        type="checkbox"
+                        id="buyer-terms-checkbox"
+                        checked={termsAccepted}
+                        onChange={e => setTermsAccepted(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+                      />
+                      <label htmlFor="buyer-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                        He leído y acepto los{' '}
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/ecommerce/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                        {' '}y la{' '}
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/ecommerce/legal/privacidad'); }} className="text-amber-500 hover:underline font-bold">Política de Privacidad</button>
+                        {' '}de AxonMarket.
+                      </label>
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={authMode === 'register' && !termsAccepted} className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-4 shadow-[0_0_30px_rgba(245,158,11,0.2)] disabled:opacity-40 disabled:cursor-not-allowed">
                     {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'}
                   </button>
 
@@ -1247,7 +1325,21 @@ export default function MarketplaceDirectory() {
                             </div>
                           </div>
 
-                          <div className="flex justify-center w-full [&>div]:w-full [&>div>div]:!w-full [&_iframe]:!w-full">
+                          <div className="flex items-start gap-3 bg-white/3 border border-white/5 rounded-2xl p-4">
+                            <input
+                              type="checkbox"
+                              id="merchant-terms-checkbox"
+                              checked={merchantTermsAccepted}
+                              onChange={e => setMerchantTermsAccepted(e.target.checked)}
+                              className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+                            />
+                            <label htmlFor="merchant-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                              He leído y acepto los{' '}
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/ecommerce/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                              {' '}y los{' '}
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/ecommerce/legal/comerciantes'); }} className="text-amber-500 hover:underline font-bold">Términos para Comerciantes</button>.
+                            </label>
+                          </div>
                             <GoogleLogin
                               onSuccess={handleGoogleMerchantSuccess}
                               onError={() => { console.log('Login Failed'); }}
@@ -1452,7 +1544,7 @@ export default function MarketplaceDirectory() {
                         type="submit" 
                         disabled={
                           merchantLoading || 
-                          (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password)) || 
+                          (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
                           (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.category)) || 
                           (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
                           (merchantRegStep === 4 && (!merchantForm.rif || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
