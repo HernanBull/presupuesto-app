@@ -10,17 +10,40 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'icon-192x192.png', 'icon-512x512.png', 'icon-maskable.png'],
       workbox: {
-        maximumFileSizeToCacheInBytes: 5000000 // 5 MB
+        maximumFileSizeToCacheInBytes: 5000000,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 }
+            }
+          }
+        ]
       },
       manifest: {
-        name: 'axonmarket',
-        short_name: 'axonmarket',
-        description: 'Plataforma integral de Ecommerce y Marketplace',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        name: 'AxonMarket',
+        short_name: 'AxonMarket',
+        description: 'Tu marketplace local — compra, vende y crece con AxonMarket',
+        theme_color: '#09090b',
+        background_color: '#09090b',
         display: 'standalone',
+        orientation: 'portrait',
+        scope: '/',
+        start_url: '/ecommerce/live',
+        lang: 'es',
+        categories: ['shopping', 'business'],
         icons: [
           {
             src: '/icon-192x192.png',
@@ -36,7 +59,16 @@ export default defineConfig({
             src: '/icon-maskable.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
+          }
+        ],
+        screenshots: [
+          {
+            src: '/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'AxonMarket Marketplace'
           }
         ]
       }

@@ -7,6 +7,7 @@ import * as OTPAuth from 'otpauth';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAnalyticsModal from '../components/CustomerAnalyticsModal';
+import PwaInstallBanner from '../components/PwaInstallBanner';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
@@ -616,6 +617,8 @@ export default function MarketplaceDirectory() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="min-h-screen bg-black text-slate-50 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">
+      {/* PWA Install Banner */}
+      <PwaInstallBanner />
       
       {/* Background ambient light */}
       <div className="hidden md:block fixed inset-0 pointer-events-none z-0">

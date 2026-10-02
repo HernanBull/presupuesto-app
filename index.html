@@ -2,11 +2,35 @@
 <html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- ═══ PWA Core ═══ -->
     <link rel="icon" type="image/png" href="/icon-192x192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#09090b" />
+
+    <!-- ═══ Viewport — bloquea zoom manual, habilita safe-area (notch/home-bar) ═══ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+
+    <!-- ═══ iOS / Safari PWA ═══ -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AxonMarket" />
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover" />
-    <title>axonmarket</title>
+    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
+    <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
+
+    <!-- ═══ Android / Chrome extras ═══ -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="AxonMarket" />
+
+    <!-- ═══ SEO & Open Graph ═══ -->
+    <meta name="description" content="Tu marketplace local — compra, vende y crece con AxonMarket" />
+    <meta property="og:title" content="AxonMarket" />
+    <meta property="og:description" content="Tu marketplace local — compra, vende y crece" />
+    <meta property="og:image" content="/icon-512x512.png" />
+    <meta property="og:type" content="website" />
+
+    <title>AxonMarket</title>
   </head>
   <body>
     <div id="root"></div>
