@@ -1237,15 +1237,9 @@ export default function PublicStore() {
       }`}>
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setCurrentPage('home')}>
-            {logoUrl ? (
-              <div className="h-10 w-auto bg-white/5 rounded-xl border border-white/10 p-1 backdrop-blur-md">
-                 <img src={resolveImageUrl(logoUrl)} alt="Logo" className="h-full w-auto object-contain rounded-lg" />
-              </div>
-            ) : (
-              <span className={`text-2xl font-black tracking-tight text-white`}>
-                {config.business_name || 'MI TIENDA'}
-              </span>
-            )}
+            <span className={`text-2xl font-black tracking-tight text-white`}>
+              {config.business_name || 'MI TIENDA'}
+            </span>
             
             {/* Store Status Indicator */}
             {config?.scheduleProfile?.scheduleActive && (
@@ -1727,7 +1721,6 @@ export default function PublicStore() {
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-4">
-             {logoUrl && <img src={resolveImageUrl(logoUrl)} alt="Logo" className="h-8 object-contain grayscale opacity-50" />}
              <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">
                {config.business_name || 'MI TIENDA'} {config.rif && <span className="ml-2 font-mono text-xs opacity-70">{config.rif}</span>}
              </span>
