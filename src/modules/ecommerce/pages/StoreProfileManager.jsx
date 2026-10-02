@@ -11,6 +11,27 @@ export default function StoreProfileManager() {
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false);
   const [authProvider, setAuthProvider] = useState('email');
   const [isResending, setIsResending] = useState(false);
+  const [isRefreshingAuth, setIsRefreshingAuth] = useState(false);
+
+  const handleRefreshAuthStatus = async () => {
+    setIsRefreshingAuth(true);
+    try {
+      await supabase.auth.refreshSession();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsEmailConfirmed(!!user.email_confirmed_at);
+        if (!!user.email_confirmed_at) {
+          alert('¡Tu correo ha sido verificado con éxito!');
+        } else {
+          alert('Tu correo aún no aparece como verificado. Si ya hiciste clic en el enlace, intenta nuevamente en unos segundos.');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshingAuth(false);
+    }
+  };
   
   const handleResendConfirmation = async () => {
     setIsResending(true);
@@ -131,6 +152,14 @@ export default function StoreProfileManager() {
   };
 
   useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setAdminEmail(session.user.email);
+        setIsEmailConfirmed(!!session.user.email_confirmed_at);
+        setAuthProvider(session.user.app_metadata?.provider || 'email');
+      }
+    });
+
     const fetchWorkspace = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -186,6 +215,10 @@ export default function StoreProfileManager() {
       }
     };
     fetchWorkspace();
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [workspaceId]);
 
   const handleChangePassword = async (e) => {
@@ -386,17 +419,27 @@ export default function StoreProfileManager() {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
-                    <MailWarning size={16} />
-                    <span className="text-xs font-bold">Pendiente de Verificación</span>
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/50">
+                      <MailWarning size={16} />
+                      <span className="text-xs font-bold flex-1">Pendiente de Verificación</span>
+                      <button 
+                        onClick={handleRefreshAuthStatus} 
+                        disabled={isRefreshingAuth}
+                        className="ml-2 text-amber-600 dark:text-amber-400 hover:text-amber-700 disabled:opacity-50 transition-colors bg-amber-100/50 dark:bg-amber-800/30 p-1 rounded-md border border-amber-200 dark:border-amber-700/50"
+                        title="Actualizar estado si ya verificaste"
+                      >
+                        <RefreshCw size={14} className={isRefreshingAuth ? 'animate-spin' : ''} />
+                      </button>
+                    </div>
+                    <button 
+                      onClick={handleResendConfirmation} 
+                      disabled={isResending || !adminEmail}
+                      className="text-[10px] text-violet-600 dark:text-violet-400 font-bold hover:underline disabled:opacity-50 text-right w-full block"
+                    >
+                      {isResending ? 'Enviando...' : 'Reenviar enlace de confirmación'}
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleResendConfirmation} 
-                    disabled={isResending || !adminEmail}
-                    className="text-xs text-violet-600 dark:text-violet-400 font-bold hover:underline disabled:opacity-50"
-                  >
-                    {isResending ? 'Enviando...' : 'Reenviar confirmación'}
-                  </button>
                 </>
               )}
             </div>
