@@ -1315,8 +1315,8 @@ export default function SuperAdminDashboard({ superKey }) {
                         <p className="text-sm text-white font-medium">{config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Nombre Comercial</p>
-                        <p className="text-sm text-white font-medium">{selectedDetails.name || 'No registrado'}</p>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Dueño / Propietario</p>
+                        <p className="text-sm text-white font-medium">{config.expediente?.ownerName || selectedDetails.name || 'No registrado'}</p>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Pago Móvil</p>

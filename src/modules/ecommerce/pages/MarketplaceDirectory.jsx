@@ -47,6 +47,7 @@ export default function MarketplaceDirectory() {
   const [merchantMfaCode, setMerchantMfaCode] = useState('');
   const [tempWorkspace, setTempWorkspace] = useState(null);
   const [merchantForm, setMerchantForm] = useState({ 
+    ownerName: '',
     businessName: '', 
     email: '', 
     password: '',
@@ -355,7 +356,7 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep2 = (e) => {
     e.preventDefault();
-    if (merchantForm.businessName) setMerchantRegStep(3);
+    if (merchantForm.businessName && merchantForm.ownerName) setMerchantRegStep(3);
   };
 
   const handleMerchantRegisterStep3 = (e) => {
@@ -477,6 +478,7 @@ export default function MarketplaceDirectory() {
           closeWarningMinutes: merchantForm.closeWarningMinutes
         },
         expediente: {
+          ownerName: merchantForm.ownerName || '',
           legalType: merchantForm.rif?.charAt(0) || 'V',
           rif: merchantForm.rif || 'V-00000000-0',
           state: merchantForm.addressState || 'Por definir',
@@ -1258,8 +1260,12 @@ export default function MarketplaceDirectory() {
                       {merchantRegStep === 2 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                           <div>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Propietario</label>
+                            <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({...merchantForm, ownerName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Juan Pérez" autoFocus />
+                          </div>
+                          <div>
                             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
-                            <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" autoFocus />
+                            <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Tipo de Productos</label>
