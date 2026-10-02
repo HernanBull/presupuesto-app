@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -32,6 +32,52 @@ export default function CustomerProfile() {
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({ bank: '', phone: '', legalAccepted: false });
   
+  const [isEmailConfirmed, setIsEmailConfirmed] = useState(true);
+  const [isRefreshingAuth, setIsRefreshingAuth] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [authProvider, setAuthProvider] = useState('email');
+
+  const handleRefreshAuthStatus = async () => {
+    setIsRefreshingAuth(true);
+    try {
+      await supabase.auth.refreshSession();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsEmailConfirmed(!!user.email_confirmed_at);
+        if (!!user.email_confirmed_at) {
+          alert('¡Tu correo ha sido verificado con éxito!');
+        } else {
+          alert('Tu correo aún no aparece como verificado. Si ya hiciste clic en el enlace, intenta nuevamente en unos segundos.');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsRefreshingAuth(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!currentCustomer?.email) return;
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: currentCustomer.email,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      });
+      if (error) throw error;
+      alert('Correo de confirmación reenviado. Revisa tu bandeja de entrada o spam.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al reenviar el correo: ' + err.message);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
@@ -66,6 +112,22 @@ export default function CustomerProfile() {
   };
 
   useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setIsEmailConfirmed(!!session.user.email_confirmed_at);
+        setAuthProvider(session.user.app_metadata?.provider || 'email');
+      }
+    });
+
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setIsEmailConfirmed(!!user.email_confirmed_at);
+        setAuthProvider(user.app_metadata?.provider || 'email');
+      }
+    };
+    checkSession();
+
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
@@ -94,6 +156,10 @@ export default function CustomerProfile() {
     } else {
       navigate('/ecommerce/live');
     }
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -549,7 +615,38 @@ export default function CustomerProfile() {
            </div>
            <div className="text-center md:text-left">
              <h1 className="text-3xl font-extrabold text-white tracking-tight">{currentCustomer.name}</h1>
-             <p className="text-zinc-400 text-sm font-medium mt-1">{currentCustomer.email}</p>
+             <div className="flex flex-col md:flex-row items-center md:items-start gap-3 mt-2">
+               <p className="text-zinc-400 text-sm font-medium">{currentCustomer.email}</p>
+               
+               {isEmailConfirmed ? (
+                 <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                   <ShieldCheck size={14} />
+                   <span className="text-[10px] font-bold uppercase tracking-wider">Verificado</span>
+                 </div>
+               ) : (
+                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2">
+                   <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                     <MailWarning size={14} />
+                     <span className="text-[10px] font-bold uppercase tracking-wider">No Verificado</span>
+                     <button 
+                       onClick={handleRefreshAuthStatus} 
+                       disabled={isRefreshingAuth}
+                       className="ml-1 text-amber-400 hover:text-amber-300 disabled:opacity-50 transition-colors bg-amber-500/20 p-0.5 rounded border border-amber-500/30"
+                       title="Actualizar estado si ya verificaste"
+                     >
+                       <RefreshCw size={12} className={isRefreshingAuth ? 'animate-spin' : ''} />
+                     </button>
+                   </div>
+                   <button 
+                     onClick={handleResendConfirmation} 
+                     disabled={isResending}
+                     className="text-[10px] text-amber-400 font-bold hover:underline disabled:opacity-50 whitespace-nowrap mt-1 sm:mt-0"
+                   >
+                     {isResending ? 'Enviando...' : 'Reenviar enlace'}
+                   </button>
+                 </div>
+               )}
+             </div>
            </div>
          </div>
       </div>
