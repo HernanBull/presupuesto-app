@@ -1186,6 +1186,7 @@ export default function SuperAdminDashboard({ superKey }) {
                     </tbody>
                   </table>
                 </div>
+              </div>
             </div>
           )}
         </div>
