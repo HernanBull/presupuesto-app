@@ -451,6 +451,7 @@ export default function MarketplaceDirectory() {
       if (delta === null) throw new Error('Código 2FA inválido');
 
       const configPayload = {
+        adminEmail: merchantForm.email,
         business_type: merchantForm.category,
         modules: ['orders', 'inventory', 'analytics', 'product_studio'],
         categories: [merchantForm.category],

@@ -1312,15 +1312,17 @@ export default function SuperAdminDashboard({ superKey }) {
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Teléfono</p>
-                        <p className="text-sm text-white font-medium">{config.phone || config.storefront?.phone || 'No registrado'}</p>
+                        <p className="text-sm text-white font-medium">{config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Cripto (Binance Pay ID)</p>
-                        <p className="text-sm text-white font-medium">{config.binancePayId || 'No registrado'}</p>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Nombre Comercial</p>
+                        <p className="text-sm text-white font-medium">{selectedDetails.name || 'No registrado'}</p>
                       </div>
                       <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Pago Móvil</p>
-                        <p className="text-sm text-white font-medium whitespace-pre-wrap">{config.pagoMovilData || 'No registrado'}</p>
+                        <p className="text-sm text-white font-medium whitespace-pre-wrap">
+                          {config.paymentProfile?.pmPhone ? `${config.paymentProfile.pmBank}\n${config.paymentProfile.pmPhone}\n${config.paymentProfile.pmId}` : 'No registrado'}
+                        </p>
                       </div>
                     </>
                   )
