@@ -7,6 +7,7 @@ import ProfileWizardModal from '../components/ProfileWizardModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
+import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
 
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -1240,27 +1241,6 @@ export default function PublicStore() {
             <span className={`text-2xl font-black tracking-tight text-white`}>
               {config.business_name || 'MI TIENDA'}
             </span>
-            
-            {/* Store Status Indicator */}
-            {config?.scheduleProfile?.scheduleActive && (
-              <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-                storeSchedule.status === 'open' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
-                storeSchedule.status === 'closing' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                'bg-red-500/10 border-red-500/20 text-red-400'
-              }`}>
-                <div className={`w-2 h-2 rounded-full ${
-                  storeSchedule.status === 'open' ? 'bg-emerald-500 animate-pulse' : 
-                  storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' :
-                  'bg-red-500'
-                }`}></div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-bold leading-none uppercase tracking-wider">
-                    {storeSchedule.status === 'open' ? 'Abierto' : storeSchedule.status === 'closing' ? 'Próximo a Cerrar' : 'Cerrado'}
-                  </span>
-                  <span className="text-[8px] opacity-70 leading-none mt-0.5">{storeSchedule.message}</span>
-                </div>
-              </div>
-            )}
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-bold tracking-widest uppercase">
@@ -1337,10 +1317,33 @@ export default function PublicStore() {
                       </div>
                       
                       <div className="pb-1.5 flex-1">
-                        <h1 className="text-lg md:text-2xl font-black text-white tracking-tight flex items-center gap-2 line-clamp-1">
-                          {config.business_name || 'MI TIENDA'}
-                        </h1>
-                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[10px] md:text-xs text-zinc-400 font-medium">
+                        <div className="flex flex-col md:flex-row md:items-center gap-3">
+                          <h1 className="text-lg md:text-2xl font-black text-white tracking-tight flex items-center gap-2 line-clamp-1">
+                            {config.business_name || 'MI TIENDA'}
+                          </h1>
+                          
+                          {/* Store Status Indicator */}
+                          {config?.scheduleProfile?.scheduleActive && (
+                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border w-fit ${
+                              storeSchedule.status === 'open' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
+                              storeSchedule.status === 'closing' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                              'bg-red-500/10 border-red-500/20 text-red-400'
+                            }`}>
+                              <div className={`w-2 h-2 rounded-full ${
+                                storeSchedule.status === 'open' ? 'bg-emerald-500 animate-pulse' : 
+                                storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' :
+                                'bg-red-500'
+                              }`}></div>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold leading-none uppercase tracking-wider">
+                                  {storeSchedule.status === 'open' ? 'Abierto' : storeSchedule.status === 'closing' ? 'Próximo a Cerrar' : 'Cerrado'}
+                                </span>
+                                <span className="text-[8px] opacity-70 leading-none mt-0.5">{storeSchedule.message}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] md:text-xs text-zinc-400 font-medium">
                           <span className="flex items-center gap-0.5 font-bold" style={{ color: primaryColor }}><Star size={10} fill="currentColor" /> 5.0 (200+)</span>
                           <span>•</span>
                           <span className="flex items-center gap-0.5"><Clock size={10} /> 15-30 min</span>
@@ -1720,9 +1723,10 @@ export default function PublicStore() {
 
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-             <span className="font-bold tracking-widest text-zinc-600 uppercase text-sm">
-               {config.business_name || 'MI TIENDA'} {config.rif && <span className="ml-2 font-mono text-xs opacity-70">{config.rif}</span>}
+           <div className="flex items-center gap-3">
+             <img src={logoAxon} alt="Axon Market" className="h-6 w-auto object-contain grayscale opacity-50" />
+             <span className="font-black tracking-widest text-zinc-600 uppercase text-sm">
+               AXON MARKET
              </span>
            </div>
            <p className="text-zinc-600 font-light text-xs tracking-wider uppercase">{texts.footerText}</p>
