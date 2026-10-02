@@ -4,6 +4,7 @@ import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRi
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import ResponsiveModal from '../components/ResponsiveModal';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 
@@ -48,7 +49,7 @@ export default function PublicStore() {
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
+  const [checkoutStep, setCheckoutStep] = useState(1);
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const [checkoutAddress, setCheckoutAddress] = useState('');
   const [checkoutLocation, setCheckoutLocation] = useState(null);
@@ -1039,75 +1040,74 @@ export default function PublicStore() {
     if (!showAuthModal) return null;
     const storeName = config?.business_name || slug || 'la tienda';
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
-          className="w-full max-w-md bg-zinc-950/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.8)] p-8 overflow-hidden relative"
-        >
-          <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors z-20"><X size={20}/></button>
-          <div className="absolute top-0 left-0 w-full h-1" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
-          
-          <div className="flex justify-center mb-8">
-            <div className="w-20 h-20 rounded-[24px] flex items-center justify-center border border-white/10 relative group">
-              <div className="absolute inset-0 blur-xl opacity-30 group-hover:opacity-50 transition-opacity" style={{ backgroundColor: primaryColor }}></div>
-              <Lock size={32} className="text-white relative z-10" />
-            </div>
+      <ResponsiveModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        className="md:max-w-md border border-white/10"
+        contentClassName="p-8 relative"
+      >
+        <div className="absolute top-0 left-0 w-full h-1 z-10" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
+        
+        <div className="flex justify-center mb-8 pt-2">
+          <div className="w-20 h-20 rounded-[24px] flex items-center justify-center border border-white/10 relative group">
+            <div className="absolute inset-0 blur-xl opacity-30 group-hover:opacity-50 transition-opacity" style={{ backgroundColor: primaryColor }}></div>
+            <Lock size={32} className="text-white relative z-10" />
           </div>
+        </div>
 
-          <h1 className="text-2xl font-light text-white text-center mb-2 tracking-tight">Accede Privado</h1>
-          <p className="text-zinc-400 text-center text-sm font-light mb-8">
-            Inicia sesión o regístrate para acceder a los precios exclusivos de <span className="text-white font-normal capitalize">{storeName}</span>.
-          </p>
+        <h1 className="text-2xl font-light text-white text-center mb-2 tracking-tight">Accede Privado</h1>
+        <p className="text-zinc-400 text-center text-sm font-light mb-8">
+          Inicia sesión o regístrate para acceder a los precios de <span className="text-white font-normal capitalize">{storeName}</span>.
+        </p>
 
-          <div className="flex bg-zinc-900 rounded-full p-1 mb-8 border border-white/5">
-            <button onClick={() => setAuthGateMode('login')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'login' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'login' ? primaryColor : '' }}>Ingresar</button>
-            <button onClick={() => setAuthGateMode('register')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'register' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'register' ? primaryColor : '' }}>Crear Cuenta</button>
-          </div>
+        <div className="flex bg-zinc-900 rounded-full p-1 mb-8 border border-white/5">
+          <button onClick={() => setAuthGateMode('login')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'login' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'login' ? primaryColor : '' }}>Ingresar</button>
+          <button onClick={() => setAuthGateMode('register')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'register' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'register' ? primaryColor : '' }}>Crear Cuenta</button>
+        </div>
 
-          <form onSubmit={async (e) => {
-            const success = authGateMode === 'login' ? await handleLogin(e) : await handleRegister(e);
-            if (success) setShowAuthModal(false);
-          }} className="space-y-4">
-            {authGateMode === 'register' && (
-              <div>
-                <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo</label>
-                <input type="text" required value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="Tu nombre" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
-              </div>
-            )}
+        <form onSubmit={async (e) => {
+          const success = authGateMode === 'login' ? await handleLogin(e) : await handleRegister(e);
+          if (success) setShowAuthModal(false);
+        }} className="space-y-4">
+          {authGateMode === 'register' && (
             <div>
-              <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-              <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="tu@correo.com" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+              <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo</label>
+              <input type="text" required value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="Tu nombre" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
-              <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
-            </div>
-            <button
-              type="submit" disabled={authLoading}
-              className="w-full py-4 text-black font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2"
-              style={{ backgroundColor: primaryColor, boxShadow: `0 0 30px ${primaryColor}30` }}
-            >
-              {authLoading ? <Loader2 className="animate-spin" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
-            </button>
-          </form>
+          )}
+          <div>
+            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+            <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="tu@correo.com" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
+            <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+          </div>
+          <button
+            type="submit" disabled={authLoading}
+            className="w-full py-4 text-black font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2"
+            style={{ backgroundColor: primaryColor, boxShadow: `0 0 30px ${primaryColor}30` }}
+          >
+            {authLoading ? <Loader2 className="animate-spin" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
+          </button>
+        </form>
 
-          <div className="mt-6 flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest">
-            <span className="w-1/4 border-b border-white/5"></span>
-            <span>o continuar con</span>
-            <span className="w-1/4 border-b border-white/5"></span>
-          </div>
-          
-          <div className="mt-6 flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => alert('Fallo al conectar con Google')}
-              theme="filled_black"
-              shape="pill"
-              text="continue_with"
-            />
-          </div>
-        </motion.div>
-      </div>
+        <div className="mt-6 flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest">
+          <span className="w-1/4 border-b border-white/5"></span>
+          <span>o continuar con</span>
+          <span className="w-1/4 border-b border-white/5"></span>
+        </div>
+        
+        <div className="mt-6 flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => alert('Fallo al conectar con Google')}
+            theme="filled_black"
+            shape="pill"
+            text="continue_with"
+          />
+        </div>
+      </ResponsiveModal>
     );
   };
 
@@ -1737,170 +1737,166 @@ export default function PublicStore() {
       </footer>
 
       {/* Product Modal */}
-      <AnimatePresence>
+      <ResponsiveModal
+        isOpen={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        className="md:max-w-4xl bg-zinc-950 border border-white/10"
+        contentClassName="p-0 flex flex-col md:flex-row max-h-[85vh] md:max-h-[80vh] overflow-hidden"
+      >
         {selectedProduct && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedProduct(null)} />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
-              className="bg-zinc-950 rounded-[3rem] shadow-[0_0_80px_rgba(0,0,0,0.8)] w-full max-w-4xl relative z-10 overflow-hidden border border-white/10 flex flex-col md:flex-row max-h-[90vh]"
-            >
-              <div className="md:w-1/2 bg-black relative flex items-center justify-center p-12 overflow-hidden">
-                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-                 {selectedProduct.image_url ? (
-                   <img id={`modal-img-${selectedProduct.id}`} src={resolveImageUrl(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
-                 ) : (
-                   <ImageIcon size={80} className="text-zinc-800" />
-                 )}
-                 {selectedProduct.is_offer && (
-                   <div className="absolute top-6 left-6 text-black text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20 shadow-lg" style={{ backgroundColor: primaryColor }}>
-                     Oferta
-                   </div>
-                 )}
-                 <button onClick={() => setSelectedProduct(null)} className="md:hidden absolute top-4 right-4 text-zinc-500 bg-white/5 rounded-full p-2 z-20"><X size={20}/></button>
-              </div>
-              
-              <div className="md:w-1/2 p-8 md:p-12 flex flex-col relative overflow-y-auto">
-                 <button onClick={() => setSelectedProduct(null)} className="hidden md:flex absolute top-6 right-6 text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors z-20"><X size={20}/></button>
-                 
-                 <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">{selectedProduct.category || 'Categoría'}</p>
-                 <h2 className="text-3xl md:text-4xl font-light text-white mb-2 tracking-tight leading-tight">{selectedProduct.name}</h2>
-                 <p className="text-sm text-zinc-400 mb-6">Disponibles en vitrina: <span className="font-bold text-white">{selectedProduct.stock_vitrina || 0}</span> unidades</p>
-                 
-                 <div className="mb-8">
-                   {isUserAllowedToSeePrices ? (
-                     selectedProduct.is_offer ? (
-                       <div className="flex items-center gap-4">
-                         <p className="text-4xl font-black" style={{ color: primaryColor }}>${Number(selectedProduct.discount_price || selectedProduct.price).toFixed(2)}</p>
-                         <p className="text-lg text-zinc-500 line-through">${Number(selectedProduct.price).toFixed(2)}</p>
-                       </div>
-                     ) : (
-                       <p className="text-3xl font-bold" style={{ color: primaryColor }}>${Number(selectedProduct.price).toFixed(2)}</p>
-                     )
-                   ) : (
-                     <button 
-                       onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                       className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-6 py-3 rounded-full transition-colors border border-white/5 inline-flex"
-                     >
-                       <Lock size={16} /> Ver Precio
-                     </button>
-                   )}
+          <>
+            <div className="md:w-1/2 bg-black relative flex items-center justify-center p-8 md:p-12 overflow-hidden min-h-[300px] shrink-0">
+               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+               {selectedProduct.image_url ? (
+                 <img id={`modal-img-${selectedProduct.id}`} src={resolveImageUrl(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
+               ) : (
+                 <ImageIcon size={80} className="text-zinc-800" />
+               )}
+               {selectedProduct.is_offer && (
+                 <div className="absolute top-6 left-6 text-black text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20 shadow-lg" style={{ backgroundColor: primaryColor }}>
+                   Oferta
                  </div>
-                 
-                 <div className="prose prose-invert prose-zinc max-w-none mb-8 font-light text-zinc-400">
-                   <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
-                 </div>
-
-                 {/* REVIEWS SECTION */}
-                 <div className="mb-8 border-t border-white/5 pt-8">
-                   <h3 className="text-xl font-light text-white mb-6">Reseñas del Producto</h3>
-                   
-                   {/* Lista de Reseñas Aprobadas */}
-                   {productReviews.length > 0 ? (
-                     <div className="space-y-4 mb-8">
-                       {productReviews.map(r => (
-                         <div key={r.id} className="bg-white/5 rounded-2xl p-5 border border-white/5">
-                           <div className="flex items-center justify-between mb-2">
-                             <span className="font-bold text-white text-sm">{r.customer_name}</span>
-                             <span className="text-xs text-zinc-500">{new Date(r.created_at).toLocaleDateString()}</span>
-                           </div>
-                           <div className="flex gap-1 mb-3">
-                             {[1,2,3,4,5].map(star => (
-                               <Star key={star} size={12} className={star <= r.rating ? 'fill-amber-400 text-amber-400' : 'fill-white/10 text-transparent'} />
-                             ))}
-                           </div>
-                           <p className="text-sm text-zinc-400 font-light italic">"{r.comment}"</p>
-                           {r.reply && (
-                             <div className="mt-4 bg-zinc-900 rounded-xl p-4 border-l-2" style={{ borderColor: primaryColor }}>
-                               <p className="text-xs font-bold mb-1" style={{ color: primaryColor }}>Respuesta de la Tienda:</p>
-                               <p className="text-sm text-zinc-300 font-light">{r.reply}</p>
-                             </div>
-                           )}
-                         </div>
-                       ))}
+               )}
+            </div>
+            
+            <div className="md:w-1/2 p-6 md:p-10 flex flex-col relative overflow-y-auto custom-scrollbar">
+               <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">{selectedProduct.category || 'Categoría'}</p>
+               <h2 className="text-3xl md:text-4xl font-light text-white mb-2 tracking-tight leading-tight">{selectedProduct.name}</h2>
+               <p className="text-sm text-zinc-400 mb-6">Disponibles en vitrina: <span className="font-bold text-white">{selectedProduct.stock_vitrina || 0}</span> unidades</p>
+               
+               <div className="mb-8">
+                 {isUserAllowedToSeePrices ? (
+                   selectedProduct.is_offer ? (
+                     <div className="flex items-center gap-4">
+                       <p className="text-4xl font-black" style={{ color: primaryColor }}>${Number(selectedProduct.discount_price || selectedProduct.price).toFixed(2)}</p>
+                       <p className="text-lg text-zinc-500 line-through">${Number(selectedProduct.price).toFixed(2)}</p>
                      </div>
                    ) : (
-                     <p className="text-sm text-zinc-500 mb-8 italic">Aún no hay reseñas para este producto. ¡Sé el primero en opinar!</p>
-                   )}
+                     <p className="text-3xl font-bold" style={{ color: primaryColor }}>${Number(selectedProduct.price).toFixed(2)}</p>
+                   )
+                 ) : (
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                     className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-6 py-3 rounded-full transition-colors border border-white/5 inline-flex"
+                   >
+                     <Lock size={16} /> Ver Precio
+                   </button>
+                 )}
+               </div>
+               
+               <div className="prose prose-invert prose-zinc max-w-none mb-8 font-light text-zinc-400">
+                 <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
+               </div>
 
-                   {/* Formulario para dejar reseña */}
-                   <div className="bg-zinc-900 rounded-2xl p-6 border border-white/5">
-                     <h4 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-4">Deja tu opinión</h4>
-                     {reviewSent ? (
-                       <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl p-4 text-sm text-center">
-                         ¡Gracias por tu opinión! Tu reseña ha sido enviada y está pendiente de aprobación.
-                       </div>
-                     ) : (
-                       <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
-                         <div className="flex items-center gap-2">
-                           <span className="text-sm text-zinc-400">Calificación:</span>
-                           <div className="flex gap-1 cursor-pointer">
-                             {[1,2,3,4,5].map(star => (
-                               <Star 
-                                 key={star} 
-                                 size={20} 
-                                 onClick={() => setReviewRating(star)}
-                                 className={star <= reviewRating ? 'fill-amber-400 text-amber-400 hover:scale-110 transition-transform' : 'fill-white/10 text-white/10 hover:fill-amber-400/50 hover:text-amber-400/50 transition-all'} 
-                               />
-                             ))}
+               {/* REVIEWS SECTION */}
+               <div className="mb-8 border-t border-white/5 pt-8">
+                 <h3 className="text-xl font-light text-white mb-6">Reseñas del Producto</h3>
+                 
+                 {/* Lista de Reseñas Aprobadas */}
+                 {productReviews.length > 0 ? (
+                   <div className="space-y-4 mb-8">
+                     {productReviews.map(r => (
+                       <div key={r.id} className="bg-white/5 rounded-2xl p-5 border border-white/5">
+                         <div className="flex items-center justify-between mb-2">
+                           <span className="font-bold text-white text-sm">{r.customer_name}</span>
+                           <span className="text-xs text-zinc-500">{new Date(r.created_at).toLocaleDateString()}</span>
+                         </div>
+                         <div className="flex gap-1 mb-3">
+                           {[1,2,3,4,5].map(star => (
+                             <Star key={star} size={12} className={star <= r.rating ? 'fill-amber-400 text-amber-400' : 'fill-white/10 text-transparent'} />
+                           ))}
+                         </div>
+                         <p className="text-sm text-zinc-400 font-light italic">"{r.comment}"</p>
+                         {r.reply && (
+                           <div className="mt-4 bg-zinc-900 rounded-xl p-4 border-l-2" style={{ borderColor: primaryColor }}>
+                             <p className="text-xs font-bold mb-1" style={{ color: primaryColor }}>Respuesta de la Tienda:</p>
+                             <p className="text-sm text-zinc-300 font-light">{r.reply}</p>
                            </div>
-                         </div>
-                         <textarea 
-                           required
-                           rows="3"
-                           placeholder="¿Qué te pareció este producto?"
-                           value={reviewComment}
-                           onChange={(e) => setReviewComment(e.target.value)}
-                           className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors resize-none"
-                         ></textarea>
-                         <button 
-                           type="submit"
-                           disabled={isSubmittingReview || !reviewComment.trim()}
-                           className="self-end px-6 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                         >
-                           {isSubmittingReview ? 'Enviando...' : 'Enviar Reseña'}
-                         </button>
-                       </form>
-                     )}
+                         )}
+                       </div>
+                     ))}
                    </div>
-                 </div>
+                 ) : (
+                   <p className="text-sm text-zinc-500 mb-8 italic">Aún no hay reseñas para este producto. ¡Sé el primero en opinar!</p>
+                 )}
 
-                 <div className="mt-auto space-y-6 border-t border-white/5 pt-6">
-                   {isUserAllowedToSeePrices ? (
-                     <>
-                       <div className="flex items-center gap-4">
-                         <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Cantidad</span>
-                         <div className="flex items-center bg-zinc-900 border border-white/10 rounded-full p-1">
-                           <button onClick={() => setModalQty(Math.max(1, modalQty - (selectedProduct.step_size||1)))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Minus size={16}/></button>
-                           <span className="w-12 text-center font-bold text-lg">{modalQty}</span>
-                           <button onClick={() => setModalQty(modalQty + (selectedProduct.step_size||1))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Plus size={16}/></button>
+                 {/* Formulario para dejar reseña */}
+                 <div className="bg-zinc-900 rounded-2xl p-6 border border-white/5">
+                   <h4 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-4">Deja tu opinión</h4>
+                   {reviewSent ? (
+                     <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl p-4 text-sm text-center">
+                       ¡Gracias por tu opinión! Tu reseña ha sido enviada y está pendiente de aprobación.
+                     </div>
+                   ) : (
+                     <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+                       <div className="flex items-center gap-2">
+                         <span className="text-sm text-zinc-400">Calificación:</span>
+                         <div className="flex gap-1 cursor-pointer">
+                           {[1,2,3,4,5].map(star => (
+                             <Star 
+                               key={star} 
+                               size={20} 
+                               onClick={() => setReviewRating(star)}
+                               className={star <= reviewRating ? 'fill-amber-400 text-amber-400 hover:scale-110 transition-transform' : 'fill-white/10 text-white/10 hover:fill-amber-400/50 hover:text-amber-400/50 transition-all'} 
+                             />
+                           ))}
                          </div>
                        </div>
-
+                       <textarea 
+                         required
+                         rows="3"
+                         placeholder="¿Qué te pareció este producto?"
+                         value={reviewComment}
+                         onChange={(e) => setReviewComment(e.target.value)}
+                         className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors resize-none"
+                       ></textarea>
                        <button 
-                         onClick={storeClosed ? undefined : addModalToCart}
-                         className={`w-full py-5 rounded-full text-black font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-                         style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
+                         type="submit"
+                         disabled={isSubmittingReview || !reviewComment.trim()}
+                         className="self-end px-6 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                        >
-                         {storeClosed ? <X size={18} /> : <ShoppingBag size={18} />} 
-                         {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Tienda Cerrada' : 'Agregar al Carrito'}
+                         {isSubmittingReview ? 'Enviando...' : 'Enviar Reseña'}
                        </button>
-                     </>
-                   ) : (
+                     </form>
+                   )}
+                 </div>
+               </div>
+
+               <div className="mt-auto space-y-6 border-t border-white/5 pt-6 shrink-0">
+                 {isUserAllowedToSeePrices ? (
+                   <>
+                     <div className="flex items-center gap-4">
+                       <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Cantidad</span>
+                       <div className="flex items-center bg-zinc-900 border border-white/10 rounded-full p-1">
+                         <button onClick={() => setModalQty(Math.max(1, modalQty - (selectedProduct.step_size||1)))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Minus size={16}/></button>
+                         <span className="w-12 text-center font-bold text-lg">{modalQty}</span>
+                         <button onClick={() => setModalQty(modalQty + (selectedProduct.step_size||1))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Plus size={16}/></button>
+                       </div>
+                     </div>
+
                      <button 
-                       onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                       className={`w-full py-5 rounded-full text-white font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all bg-white/5 hover:bg-white/10 border border-white/10`}
+                       onClick={storeClosed ? undefined : addModalToCart}
+                       className={`w-full py-5 rounded-full text-black font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+                       style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
+                     >
+                       {storeClosed ? <X size={18} /> : <ShoppingBag size={18} />} 
+                       {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Tienda Cerrada' : 'Agregar al Carrito'}
+                     </button>
+                   </>
+                 ) : (
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                     className={`w-full py-5 rounded-full text-white font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all bg-white/5 hover:bg-white/10 border border-white/10`}
                      >
                        <Lock size={18} /> 
                        Ingresa para Comprar
-                     </button>
-                   )}
-                 </div>
-              </div>
-            </motion.div>
-          </div>
+                   </button>
+                 )}
+               </div>
+            </div>
+          </>
         )}
-      </AnimatePresence>
+      </ResponsiveModal>
 
       {/* Cart Slide-over Premium (Glassmorphism Dark) */}
       {isCartOpen && (
@@ -1917,7 +1913,7 @@ export default function PublicStore() {
               <div className="px-8 py-8 flex items-center justify-between border-b border-white/10 relative z-10 bg-black/40">
                 <div className="flex items-center gap-4">
                   {isCheckoutMode ? (
-                    <button onClick={() => setIsCheckoutMode(false)} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-white/5 hover:bg-white/10 transition-colors">
+                    <button onClick={() => { if(checkoutStep === 2) setCheckoutStep(1); else setIsCheckoutMode(false); }} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-white/5 hover:bg-white/10 transition-colors">
                       <ArrowLeft size={22} />
                     </button>
                   ) : (
@@ -1930,14 +1926,16 @@ export default function PublicStore() {
                     <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mt-1">{totalCartItems} Ítems seleccionados</p>
                   </div>
                 </div>
-                <button onClick={() => { setIsCartOpen(false); setIsCheckoutMode(false); }} className="text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-all border border-white/5 hover:border-white/20 hover:scale-110"><X size={20} /></button>
+                <button onClick={() => { setIsCartOpen(false); setIsCheckoutMode(false); setCheckoutStep(1); }} className="text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-all border border-white/5 hover:border-white/20 hover:scale-110"><X size={20} /></button>
               </div>
 
               {/* Items Area */}
               <div className="flex-1 overflow-y-auto px-8 py-8 scrollbar-hide relative z-10">
                 {isCheckoutMode ? (
-                  <div className="space-y-6 text-white animate-in fade-in duration-300">
-                     <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Tus Datos</h3>
+                  <div className="text-white">
+                    {checkoutStep === 1 ? (
+                      <div className="space-y-6 animate-in slide-in-from-left-4 duration-300">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Paso 1: Dirección y Envío</h3>
                      
                      {/* Address Input */}
                      <div className="space-y-3 bg-white/5 p-4 rounded-xl border border-white/10">
@@ -2014,10 +2012,13 @@ export default function PublicStore() {
                        {discountError && <p className="text-red-400 text-xs mt-1">{discountError}</p>}
                      </div>
 
-                     {/* Payment Method Selection */}
-                     <div className="pt-4 border-t border-white/10 space-y-3">
-                       <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-3">Método de Pago</h3>
-                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      </div>
+                    ) : (
+                      <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Paso 2: Método de Pago</h3>
+                        {/* Payment Method Selection */}
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                          {config?.paymentProfile?.paymentMobile && (
                            <button onClick={() => setSelectedPaymentMethod('pago_movil')} className={`p-3 rounded-lg border text-sm font-bold transition-all ${selectedPaymentMethod === 'pago_movil' ? 'bg-zinc-200 border-zinc-200 text-black' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`} style={selectedPaymentMethod === 'pago_movil' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}>Pago Móvil</button>
                          )}
@@ -2069,7 +2070,7 @@ export default function PublicStore() {
                                    </div>
                                  ) : (
                                    <div className="space-y-1">
-                                     <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Pago manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
+                                     <input type="text" inputMode="numeric" pattern="[0-9]*" value={paymentReference} onChange={e => setPaymentReference(e.target.value.replace(/\\D/g, ''))} placeholder="Referencia de Pago manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
                                      <p className="text-xs text-red-400 font-bold">{ocrMessage}</p>
                                    </div>
                                  )}
@@ -2160,6 +2161,8 @@ export default function PublicStore() {
                            </div>
                         </div>
                      )}
+                      </div>
+                    )}
                   </div>
                 ) : totalCartItems === 0 ? (
                   <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -2231,15 +2234,26 @@ export default function PublicStore() {
                       {storeSchedule.status === 'closing' ? `No se aceptan pedidos. ${storeSchedule.message}` : `Tienda Cerrada. Horario: ${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}`}
                     </div>
                   ) : isCheckoutMode ? (
-                    <button 
-                      onClick={handleCheckoutSubmit} 
-                      disabled={isSubmittingOrder}
-                      className="w-full py-5 text-black rounded-full text-xs font-bold tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-2xl relative overflow-hidden disabled:opacity-70 disabled:hover:scale-100"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      {isSubmittingOrder ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
-                      <span className="relative z-10 flex items-center gap-2">{isSubmittingOrder ? 'Procesando...' : 'Confirmar y Pagar'}</span>
-                    </button>
+                    checkoutStep === 2 ? (
+                      <button 
+                        onClick={handleCheckoutSubmit} 
+                        disabled={isSubmittingOrder}
+                        className="w-full py-5 text-black rounded-full text-xs font-bold tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-2xl relative overflow-hidden disabled:opacity-70 disabled:hover:scale-100"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        {isSubmittingOrder ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
+                        <span className="relative z-10 flex items-center gap-2">{isSubmittingOrder ? 'Procesando...' : 'Confirmar y Pagar'}</span>
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => setCheckoutStep(2)}
+                        disabled={!checkoutAddress}
+                        className="w-full py-5 text-black rounded-full text-xs font-bold tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-2xl relative overflow-hidden disabled:opacity-70 disabled:hover:scale-100"
+                        style={{ backgroundColor: !checkoutAddress ? '#52525b' : primaryColor }}
+                      >
+                        <span className="relative z-10 flex items-center gap-2">Continuar al Pago <ArrowRight size={18} /></span>
+                      </button>
+                    )
                   ) : (
                     <button 
                       onClick={() => {
@@ -2250,6 +2264,7 @@ export default function PublicStore() {
                            setIsWizardOpen(true);
                          } else {
                            setIsCheckoutMode(true);
+                           setCheckoutStep(1);
                            trackEvent('checkout_start');
                          }
                       }} 
@@ -2264,7 +2279,6 @@ export default function PublicStore() {
               )}
             </div>
           </div>
-        </div>
       )}
 
       <AnimatePresence>
@@ -2289,40 +2303,33 @@ export default function PublicStore() {
       />
 
       {/* Success Modal */}
-      <AnimatePresence>
-        {showSuccessModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSuccessModal(false)}></div>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 text-center border border-slate-200 dark:border-slate-800"
-            >
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="text-emerald-500" size={40} />
-              </div>
-              <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Pedido Exitoso!</h2>
-              <p className="text-slate-600 dark:text-slate-400 mb-8">Tu orden ha sido recibida y está siendo procesada.</p>
-              
-              <div className="space-y-3">
-                <button 
-                  onClick={() => navigate('/ecommerce/live/profile', { state: { tab: 'pedidos' } })}
-                  className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
-                >
-                  Ver estado de mi pedido <ArrowRight size={18} />
-                </button>
-                <button 
-                  onClick={() => setShowSuccessModal(false)}
-                  className="w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors"
-                >
-                  Seguir comprando
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ResponsiveModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
+        contentClassName="p-8 text-center"
+      >
+        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle2 className="text-emerald-500" size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Pedido Exitoso!</h2>
+        <p className="text-slate-600 dark:text-slate-400 mb-8">Tu orden ha sido recibida y está siendo procesada.</p>
+        
+        <div className="space-y-3">
+          <button 
+            onClick={() => navigate('/ecommerce/live/profile', { state: { tab: 'pedidos' } })}
+            className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
+          >
+            Ver estado de mi pedido <ArrowRight size={18} />
+          </button>
+          <button 
+            onClick={() => setShowSuccessModal(false)}
+            className="w-full py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-xl font-bold transition-colors"
+          >
+            Seguir comprando
+          </button>
+        </div>
+      </ResponsiveModal>
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="grid grid-cols-4 h-16">

@@ -746,50 +746,91 @@ export default function SuperAdminDashboard({ superKey }) {
                 </div>
 
                 {deliveryGroups.length > 0 && (
-                  <div className="overflow-x-auto bg-zinc-950/50 border border-white/10 rounded-2xl p-4 mt-6">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-white/10">
-                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
-                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Chat ID</th>
-                          <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {deliveryGroups.map(group => {
-                          const isMaster = group.chat_id === deliveryGroupId;
-                          return (
-                            <tr key={group.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                              <td className="py-3 px-4 text-sm font-bold text-white flex items-center gap-2">
-                                {group.name}
-                                {isMaster && <span className="bg-emerald-500/20 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-500/30">Maestro</span>}
-                              </td>
-                              <td className="py-3 px-4 text-sm font-mono text-zinc-400">{group.chat_id}</td>
-                              <td className="py-3 px-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {!isMaster && (
-                                    <button 
-                                      onClick={() => handleSetMasterGroup(group.chat_id)}
-                                      className="p-2 bg-zinc-800 text-zinc-300 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
-                                      title="Establecer como Grupo Maestro"
-                                    >
-                                      <Check size={16} />
-                                    </button>
-                                  )}
+                  <div className="mt-6">
+                    {/* Mobile Cards */}
+                    <div className="md:hidden flex flex-col gap-3">
+                      {deliveryGroups.map(group => {
+                        const isMaster = group.chat_id === deliveryGroupId;
+                        return (
+                          <div key={group.id} className="bg-zinc-950/50 border border-white/10 rounded-2xl p-4 flex flex-col gap-2">
+                            <div className="flex justify-between items-start">
+                              <div className="font-bold text-white flex flex-col gap-1">
+                                <span>{group.name}</span>
+                                {isMaster && <span className="w-fit bg-emerald-500/20 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-500/30">Maestro</span>}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {!isMaster && (
                                   <button 
-                                    onClick={() => handleDeleteGroup(group.chat_id)}
-                                    className="p-2 bg-zinc-800 text-zinc-300 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                                    title="Eliminar Grupo"
+                                    onClick={() => handleSetMasterGroup(group.chat_id)}
+                                    className="p-2 bg-zinc-800 text-zinc-300 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                                    title="Establecer como Grupo Maestro"
                                   >
-                                    <Trash2 size={16} />
+                                    <Check size={16} />
                                   </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                )}
+                                <button 
+                                  onClick={() => handleDeleteGroup(group.chat_id)}
+                                  className="p-2 bg-zinc-800 text-zinc-300 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                  title="Eliminar Grupo"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="text-xs font-mono text-zinc-400 border-t border-white/5 pt-2 mt-1">
+                              ID: {group.chat_id}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto bg-zinc-950/50 border border-white/10 rounded-2xl p-4">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Chat ID</th>
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {deliveryGroups.map(group => {
+                            const isMaster = group.chat_id === deliveryGroupId;
+                            return (
+                              <tr key={group.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <td className="py-3 px-4 text-sm font-bold text-white flex items-center gap-2">
+                                  {group.name}
+                                  {isMaster && <span className="bg-emerald-500/20 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest border border-emerald-500/30">Maestro</span>}
+                                </td>
+                                <td className="py-3 px-4 text-sm font-mono text-zinc-400">{group.chat_id}</td>
+                                <td className="py-3 px-4 text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {!isMaster && (
+                                      <button 
+                                        onClick={() => handleSetMasterGroup(group.chat_id)}
+                                        className="p-2 bg-zinc-800 text-zinc-300 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                                        title="Establecer como Grupo Maestro"
+                                      >
+                                        <Check size={16} />
+                                      </button>
+                                    )}
+                                    <button 
+                                      onClick={() => handleDeleteGroup(group.chat_id)}
+                                      className="p-2 bg-zinc-800 text-zinc-300 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                      title="Eliminar Grupo"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -867,42 +908,73 @@ export default function SuperAdminDashboard({ superKey }) {
                     Actualizar
                   </button>
                </div>
-               <div className="overflow-x-auto flex-1 bg-zinc-900/50 rounded-2xl border border-white/5 p-4">
-                 <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Fecha / Hora</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Tienda</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Cliente</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Monto</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {liveOrders.map(order => (
-                        <tr key={order.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                          <td className="py-4 px-4 text-sm text-zinc-400">{new Date(order.date).toLocaleString()}</td>
-                          <td className="py-4 px-4 text-sm font-bold text-emerald-400">{order.workspace_name || 'Desconocida'}</td>
-                          <td className="py-4 px-4 text-sm text-white">{order.customer}</td>
-                          <td className="py-4 px-4 text-sm font-mono text-white">${order.total.toFixed(2)}</td>
-                          <td className="py-4 px-4 text-right">
-                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                order.status === 'Completado' || order.status === 'Entregado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
-                                order.status === 'Cancelado' || order.status === 'Perdido' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 
-                                'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                             }`}>
-                               {order.status || 'Pendiente'}
-                             </span>
-                          </td>
+               <div className="flex-1 mt-4">
+                 {/* Mobile Cards */}
+                 <div className="md:hidden flex flex-col gap-3">
+                   {liveOrders.map(order => (
+                     <div key={order.id} className="bg-zinc-900/50 border border-white/5 rounded-2xl p-4 flex flex-col gap-2">
+                       <div className="flex justify-between items-start">
+                         <span className="text-xs text-zinc-400">{new Date(order.date).toLocaleString()}</span>
+                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                            order.status === 'Completado' || order.status === 'Entregado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
+                            order.status === 'Cancelado' || order.status === 'Perdido' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 
+                            'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                         }`}>
+                           {order.status || 'Pendiente'}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-end mt-1">
+                         <div>
+                           <p className="text-sm font-bold text-emerald-400">{order.workspace_name || 'Desconocida'}</p>
+                           <p className="text-xs text-white">{order.customer}</p>
+                         </div>
+                         <p className="text-sm font-mono font-bold text-white">${order.total.toFixed(2)}</p>
+                       </div>
+                     </div>
+                   ))}
+                   {liveOrders.length === 0 && (
+                     <div className="py-8 text-center text-zinc-500 text-sm border border-white/5 rounded-xl">No hay pedidos recientes en la plataforma</div>
+                   )}
+                 </div>
+
+                 {/* Desktop Table */}
+                 <div className="hidden md:block overflow-x-auto bg-zinc-900/50 rounded-2xl border border-white/5 p-4">
+                   <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/10">
+                          <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Fecha / Hora</th>
+                          <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Tienda</th>
+                          <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Cliente</th>
+                          <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Monto</th>
+                          <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Estado</th>
                         </tr>
-                      ))}
-                      {liveOrders.length === 0 && (
-                        <tr>
-                          <td colSpan="5" className="py-12 text-center text-zinc-500">No hay pedidos recientes en la plataforma</td>
-                        </tr>
-                      )}
-                    </tbody>
-                 </table>
+                      </thead>
+                      <tbody>
+                        {liveOrders.map(order => (
+                          <tr key={order.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <td className="py-4 px-4 text-sm text-zinc-400">{new Date(order.date).toLocaleString()}</td>
+                            <td className="py-4 px-4 text-sm font-bold text-emerald-400">{order.workspace_name || 'Desconocida'}</td>
+                            <td className="py-4 px-4 text-sm text-white">{order.customer}</td>
+                            <td className="py-4 px-4 text-sm font-mono text-white">${order.total.toFixed(2)}</td>
+                            <td className="py-4 px-4 text-right">
+                               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  order.status === 'Completado' || order.status === 'Entregado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 
+                                  order.status === 'Cancelado' || order.status === 'Perdido' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 
+                                  'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                               }`}>
+                                 {order.status || 'Pendiente'}
+                               </span>
+                            </td>
+                          </tr>
+                        ))}
+                        {liveOrders.length === 0 && (
+                          <tr>
+                            <td colSpan="5" className="py-12 text-center text-zinc-500">No hay pedidos recientes en la plataforma</td>
+                          </tr>
+                        )}
+                      </tbody>
+                   </table>
+                 </div>
                </div>
             </div>
           ) : (
@@ -929,95 +1001,191 @@ export default function SuperAdminDashboard({ superKey }) {
                 </button>
               </div>
 
-              <div className="overflow-x-auto flex-1">
-                {/* Tables for Merchants / Customers */}
-                <table className="w-full text-left border-collapse min-w-[800px]">
-                  <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">ID</th>
-                      <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
-                      {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
-                      {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
-                      {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
-                      {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
-                      <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Creación</th>
-                      <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).map(item => (
-                      <tr key={item.id} className={`border-b border-white/5 transition-colors group ${item.status === 'Suspendido' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:bg-white/5'}`}>
-                        <td className="py-4 px-4 text-sm font-mono text-zinc-500">{item.id.substring(0,8)}...</td>
-                        <td className="py-4 px-4 text-sm font-bold text-white">{item.name}</td>
-                        {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
+              <div className="flex-1 mt-4">
+                {/* Mobile Cards */}
+                <div className="md:hidden flex flex-col gap-3">
+                  {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).map(item => (
+                    <div key={item.id} className={`bg-zinc-900/50 border border-white/5 rounded-2xl p-4 flex flex-col gap-3 ${item.status === 'Suspendido' ? 'opacity-50 grayscale' : ''}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-white">{item.name}</p>
+                          <p className="text-[10px] text-zinc-500 font-mono">ID: {item.id.substring(0,8)}...</p>
+                        </div>
                         {activeTab === 'merchants' && (
-                          <td className="py-4 px-4 text-sm">
-                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                              item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                            }`}>
-                              {item.status || 'Activo'}
-                            </span>
-                          </td>
+                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                            item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                          }`}>
+                            {item.status || 'Activo'}
+                          </span>
                         )}
-                        {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.email}</td>}
-                        {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.phone || 'N/A'}</td>}
-                        <td className="py-4 px-4 text-sm text-zinc-500">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {activeTab === 'merchants' && (
-                              <>
-                                <button 
-                                  onClick={() => handleViewDetails(item, 'merchant')}
-                                  disabled={isActionLoading}
-                                  className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
-                                  title="Ver Información del Comerciante"
-                                >
-                                  <Search size={18} />
-                                </button>
-                                <button 
-                                  onClick={() => handleToggleSuspend(item)}
-                                  disabled={isActionLoading}
-                                  className={`p-2 rounded-lg transition-colors border ${
-                                    item.status === 'Suspendido' 
-                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500 hover:text-white'
-                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white'
-                                  }`}
-                                  title={item.status === 'Suspendido' ? "Reactivar Tienda" : "Suspender Tienda (Ocultar)"}
-                                >
-                                  {item.status === 'Suspendido' ? <Eye size={18} /> : <EyeOff size={18} />}
-                                </button>
-                              </>
-                            )}
-                            {activeTab === 'customers' && (
-                                <button 
-                                  onClick={() => handleViewDetails(item, 'customer')}
-                                  disabled={isActionLoading}
-                                  className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
-                                  title="Ver Detalles del Cliente"
-                                >
-                                  <Search size={18} />
-                                </button>
-                            )}
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        {activeTab === 'merchants' ? (
+                          <>
+                            <div>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Slug</p>
+                              <p className="text-xs text-zinc-300">{item.store_slug || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Registro</p>
+                              <p className="text-xs text-zinc-300">{new Date(item.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="col-span-2">
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Email</p>
+                              <p className="text-xs text-zinc-300">{item.email}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Teléfono</p>
+                              <p className="text-xs text-zinc-300">{item.phone || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Registro</p>
+                              <p className="text-xs text-zinc-300">{new Date(item.join_date).toLocaleDateString()}</p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-3 mt-1">
+                        {activeTab === 'merchants' && (
+                          <>
                             <button 
-                              onClick={() => handleDeleteClick(item, activeTab === 'merchants' ? 'merchant' : 'customer')}
+                              onClick={() => handleViewDetails(item, 'merchant')}
                               disabled={isActionLoading}
-                              className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/20 opacity-50 group-hover:opacity-100 disabled:opacity-30"
-                              title="Eliminar Definitivamente (Destructivo)"
+                              className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"
                             >
-                              <Trash2 size={18} />
+                              <Search size={16} />
                             </button>
-                          </div>
-                        </td>
+                            <button 
+                              onClick={() => handleToggleSuspend(item)}
+                              disabled={isActionLoading}
+                              className={`p-2 rounded-lg border ${
+                                item.status === 'Suspendido' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                                : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                              }`}
+                            >
+                              {item.status === 'Suspendido' ? <Eye size={16} /> : <EyeOff size={16} />}
+                            </button>
+                          </>
+                        )}
+                        {activeTab === 'customers' && (
+                            <button 
+                              onClick={() => handleViewDetails(item, 'customer')}
+                              disabled={isActionLoading}
+                              className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"
+                            >
+                              <Search size={16} />
+                            </button>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteClick(item, activeTab === 'merchants' ? 'merchant' : 'customer')}
+                          disabled={isActionLoading}
+                          className="p-2 bg-red-500/10 text-red-500 rounded-lg"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).length === 0 && (
+                    <div className="py-8 text-center text-zinc-500 text-sm border border-white/5 rounded-xl">No se encontraron resultados</div>
+                  )}
+                </div>
+
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto bg-zinc-900/50 rounded-2xl border border-white/5 p-4">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">ID</th>
+                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
+                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
+                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
+                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
+                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
+                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Creación</th>
+                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
                       </tr>
-                    ))}
-                    {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).length === 0 && (
-                      <tr>
-                        <td colSpan="8" className="py-12 text-center text-zinc-500">No se encontraron resultados</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).map(item => (
+                        <tr key={item.id} className={`border-b border-white/5 transition-colors group ${item.status === 'Suspendido' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:bg-white/5'}`}>
+                          <td className="py-4 px-4 text-sm font-mono text-zinc-500">{item.id.substring(0,8)}...</td>
+                          <td className="py-4 px-4 text-sm font-bold text-white">{item.name}</td>
+                          {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
+                          {activeTab === 'merchants' && (
+                            <td className="py-4 px-4 text-sm">
+                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                              }`}>
+                                {item.status || 'Activo'}
+                              </span>
+                            </td>
+                          )}
+                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.email}</td>}
+                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.phone || 'N/A'}</td>}
+                          <td className="py-4 px-4 text-sm text-zinc-500">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {activeTab === 'merchants' && (
+                                <>
+                                  <button 
+                                    onClick={() => handleViewDetails(item, 'merchant')}
+                                    disabled={isActionLoading}
+                                    className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
+                                    title="Ver Información del Comerciante"
+                                  >
+                                    <Search size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleToggleSuspend(item)}
+                                    disabled={isActionLoading}
+                                    className={`p-2 rounded-lg transition-colors border ${
+                                      item.status === 'Suspendido' 
+                                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500 hover:text-white'
+                                      : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white'
+                                    }`}
+                                    title={item.status === 'Suspendido' ? "Reactivar Tienda" : "Suspender Tienda (Ocultar)"}
+                                  >
+                                    {item.status === 'Suspendido' ? <Eye size={18} /> : <EyeOff size={18} />}
+                                  </button>
+                                </>
+                              )}
+                              {activeTab === 'customers' && (
+                                  <button 
+                                    onClick={() => handleViewDetails(item, 'customer')}
+                                    disabled={isActionLoading}
+                                    className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
+                                    title="Ver Detalles del Cliente"
+                                  >
+                                    <Search size={18} />
+                                  </button>
+                              )}
+                              <button 
+                                onClick={() => handleDeleteClick(item, activeTab === 'merchants' ? 'merchant' : 'customer')}
+                                disabled={isActionLoading}
+                                className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/20 opacity-50 group-hover:opacity-100 disabled:opacity-30"
+                                title="Eliminar Definitivamente (Destructivo)"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).length === 0 && (
+                        <tr>
+                          <td colSpan="8" className="py-12 text-center text-zinc-500">No se encontraron resultados</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
             </div>
           )}
         </div>

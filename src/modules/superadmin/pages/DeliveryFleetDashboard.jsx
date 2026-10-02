@@ -166,7 +166,54 @@ export default function DeliveryFleetDashboard() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Mobile Cards */}
+          <div className="md:hidden flex flex-col gap-4 mt-4">
+            {filteredDrivers.map(driver => (
+              <div key={driver.id} className={`bg-zinc-950 border border-white/5 rounded-2xl p-4 flex flex-col gap-3 ${driver.banned ? 'opacity-50' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-white border border-white/10 shrink-0">
+                    {(driver.name || '?').charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-white text-sm">{driver.name}</p>
+                    <p className="text-xs text-zinc-500 font-mono">{driver.driver_code}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Agencia</p>
+                    <p className="text-sm text-white">{driver.agencia || 'Independiente'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Vehículo</p>
+                    <p className="text-xs text-zinc-400">{driver.moto} {driver.placa && `- ${driver.placa}`}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(driver.status || 'descansando')}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(driver.status || 'descansando')}`}></span>
+                    {driver.status || 'DESCANSANDO'}
+                  </span>
+                  <select 
+                    value={driver.status || 'descansando'}
+                    onChange={(e) => handleChangeStatus(driver.id, e.target.value)}
+                    className="bg-zinc-900 border border-white/10 text-white text-[10px] uppercase font-bold tracking-widest rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+                  >
+                    <option value="disponible">Disponible</option>
+                    <option value="ocupado">Ocupado</option>
+                    <option value="accidentado">Accidentado</option>
+                    <option value="descansando">Descansando</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+            {filteredDrivers.length === 0 && (
+              <div className="py-8 text-center text-zinc-500 text-sm border border-white/5 rounded-xl">No se encontraron repartidores</div>
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto mt-4">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="border-b border-white/10">

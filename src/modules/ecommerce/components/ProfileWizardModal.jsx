@@ -259,7 +259,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                     <div className="space-y-4">
                       <input type="text" placeholder="Nombre Completo" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
                       <input type="text" placeholder="Cédula o RIF" value={formData.docId} onChange={e => setFormData({...formData, docId: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
-                      <input type="tel" placeholder="Teléfono (Ej. 0414-1234567)" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
+                      <input type="tel" inputMode="numeric" placeholder="Teléfono (Ej. 0414-1234567)" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
                     </div>
                   </motion.div>
                 )}
@@ -280,7 +280,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                         <option value="" className="text-black bg-white">Selecciona un Banco</option>
                         {VZLA_BANKS.map(b => <option key={b} value={b} className="text-black bg-white">{b}</option>)}
                       </select>
-                      <input type="tel" placeholder="Teléfono afiliado" value={formData.payment_phone} onChange={e => setFormData({...formData, payment_phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
+                      <input type="tel" inputMode="numeric" placeholder="Teléfono afiliado" value={formData.payment_phone} onChange={e => setFormData({...formData, payment_phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
                       <input type="text" placeholder="Cédula afiliada" value={formData.payment_cedula} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
                       <input type="text" placeholder="Nombre del titular" value={formData.payment_titular} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
                     </div>

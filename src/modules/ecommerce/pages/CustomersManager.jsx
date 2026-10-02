@@ -199,8 +199,63 @@ export default function CustomersManager() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile View: Cards */}
+        <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {filteredCustomers.length === 0 ? (
+            <div className="py-10 text-center text-slate-500 text-sm">No se encontraron clientes.</div>
+          ) : (
+            filteredCustomers.map(customer => (
+              <div key={customer.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
+                      customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                    }`}>
+                      {customer.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                        {customer.name}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">{customer.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end shrink-0">
+                    {customer.status === 'VIP' && (
+                      <span className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-1">VIP</span>
+                    )}
+                    {customer.status === 'Inactivo' && (
+                      <span className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider mb-1">Inactivo</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2 text-center">
+                    <p className="text-[10px] text-slate-500 mb-0.5">Pedidos</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{customer.totalOrders}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2 text-center">
+                    <p className="text-[10px] text-slate-500 mb-0.5">LTV (Gastado)</p>
+                    <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">${customer.ltv.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap mt-2">
+                  <button onClick={() => openEditor(customer)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold">
+                    <Edit2 size={12} /> Editar
+                  </button>
+                  <button onClick={() => handleDelete(customer.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">
+                    <Trash2 size={12} /> Borrar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
@@ -284,7 +339,7 @@ export default function CustomersManager() {
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm transition-opacity" onClick={closeEditor}></div>
           
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="relative w-full max-w-md h-[100dvh] sm:h-auto bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
                <div>
                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">

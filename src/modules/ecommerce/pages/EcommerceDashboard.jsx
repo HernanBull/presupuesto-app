@@ -166,23 +166,23 @@ export default function EcommerceDashboard() {
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Métricas clave y alertas del rendimiento de tu tienda.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+          <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{stat.title}</p>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{stat.value}</h3>
+                <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 leading-tight">{stat.title}</p>
+                <h3 className="text-lg md:text-2xl font-bold text-slate-800 dark:text-white mt-1">{stat.value}</h3>
               </div>
-              <div className={`p-2.5 rounded-xl ${stat.bg}`}>
+              <div className={`p-1.5 md:p-2.5 rounded-lg md:rounded-xl hidden sm:block ${stat.bg}`}>
                 <stat.icon size={20} className={stat.color} />
               </div>
             </div>
-            <div className="mt-4 flex items-center">
-              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
+            <div className="mt-2 md:mt-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+              <span className={`text-[9px] md:text-xs font-bold px-1.5 py-0.5 rounded-md self-start ${stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
                 {stat.change}
               </span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 ml-2 font-medium">vs mes anterior</span>
+              <span className="text-[9px] md:text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:inline">vs mes anterior</span>
             </div>
           </div>
         ))}
@@ -206,7 +206,7 @@ export default function EcommerceDashboard() {
             </select>
           </div>
           
-          <div className="flex-1 min-h-[300px] w-full mt-4 min-w-0">
+          <div className="flex-1 min-h-[300px] w-full mt-4 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
              {loading ? (
                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
                  <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
@@ -215,28 +215,30 @@ export default function EcommerceDashboard() {
              ) : salesData.length === 0 ? (
                <div className="h-full flex items-center justify-center text-slate-400 text-sm">No hay datos en este periodo</div>
              ) : (
-               <ResponsiveContainer width="99%" height={300}>
-                 <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                   <defs>
-                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                       <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                     </linearGradient>
-                   </defs>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-                   <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#334155" tickLine={false} axisLine={false} dy={10} />
-                   <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                   <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} hide={true} />
-                   <Tooltip 
-                     contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}
-                     itemStyle={{ fontWeight: 600 }}
-                     cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }}
-                   />
-                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '15px' }} iconType="circle" />
-                   <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} />
-                   <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Pedidos" />
-                 </ComposedChart>
-               </ResponsiveContainer>
+               <div className="min-w-[600px] h-full">
+                 <ResponsiveContainer width="100%" height={300}>
+                   <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                     <defs>
+                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                         <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                       </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
+                     <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#334155" tickLine={false} axisLine={false} dy={10} />
+                     <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+                     <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} hide={true} />
+                     <Tooltip 
+                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}
+                       itemStyle={{ fontWeight: 600 }}
+                       cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }}
+                     />
+                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '15px' }} iconType="circle" />
+                     <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} />
+                     <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Pedidos" />
+                   </ComposedChart>
+                 </ResponsiveContainer>
+               </div>
              )}
           </div>
         </div>

@@ -96,7 +96,7 @@ export default function ProductStudio() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row">
-      <div className="w-full md:w-1/2 lg:w-7/12 flex flex-col bg-slate-50 dark:bg-black overflow-y-auto custom-scrollbar h-[calc(100vh-64px)] md:h-screen">
+      <div className="w-full md:w-1/2 lg:w-7/12 flex flex-col bg-slate-50 dark:bg-black md:overflow-y-auto custom-scrollbar md:h-screen">
         <UnifiedProductForm 
           initialData={initialData} 
           onFormChange={setPreviewData}
@@ -105,7 +105,7 @@ export default function ProductStudio() {
       </div>
 
       {/* Right Panel - Live Preview */}
-      <div className="w-full md:w-1/2 lg:w-5/12 bg-slate-100 dark:bg-[#0b1120] flex items-center justify-center p-6 md:p-12 h-[calc(100vh-64px)] md:h-screen sticky top-0 relative overflow-hidden">
+      <div className="w-full md:w-1/2 lg:w-5/12 bg-slate-100 dark:bg-[#0b1120] flex items-center justify-center p-6 md:p-12 md:h-screen md:sticky md:top-0 relative overflow-hidden py-16">
         
         {/* Background Decorative Blobs */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-violet-500/10 rounded-full blur-3xl"></div>

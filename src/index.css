@@ -57,6 +57,8 @@
     /* Global support for Light and Dark mode */
     @apply bg-slate-50 text-slate-900 dark:bg-black dark:text-slate-50;
     min-height: 100vh;
+    touch-action: manipulation; /* Prevent double tap to zoom */
+    overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
   }
   
   .dark body {

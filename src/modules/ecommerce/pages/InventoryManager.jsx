@@ -1097,32 +1097,55 @@ export default function InventoryManager() {
             </div>
             
             <div className="p-0 overflow-y-auto max-h-96">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0">
-                  <tr>
-                    <th className="py-2 px-4 font-semibold text-slate-500">Fecha</th>
-                    <th className="py-2 px-4 font-semibold text-slate-500">Acción</th>
-                    <th className="py-2 px-4 font-semibold text-slate-500">Cant.</th>
-                    <th className="py-2 px-4 font-semibold text-slate-500">Motivo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {historyItem?.history?.length > 0 ? historyItem.history.map((record, i) => (
-                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                      <td className="py-2 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{new Date(record.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short'})}</td>
-                      <td className="py-2 px-4 font-medium text-slate-700 dark:text-slate-300">{record.action}</td>
-                      <td className={`py-2 px-4 font-bold ${record.action.includes('Salida') ? 'text-red-500' : 'text-emerald-500'}`}>
+              {/* Vista Móvil: Tarjetas */}
+              <div className="sm:hidden flex flex-col gap-3 p-4">
+                {historyItem?.history?.length > 0 ? historyItem.history.map((record, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex flex-col gap-2 shadow-sm">
+                    <div className="flex justify-between items-start">
+                      <span className="text-xs text-slate-500 font-mono">{new Date(record.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short'})}</span>
+                      <span className={`text-sm font-bold ${record.action.includes('Salida') ? 'text-red-500' : 'text-emerald-500'}`}>
                         {record.action.includes('Salida') ? '-' : '+'}{record.quantity}
-                      </td>
-                      <td className="py-2 px-4 text-slate-500 text-xs">{record.reason}</td>
-                    </tr>
-                  )).reverse() : (
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm text-slate-700 dark:text-slate-300">{record.action}</p>
+                      <p className="text-xs text-slate-500 mt-1">{record.reason}</p>
+                    </div>
+                  </div>
+                )).reverse() : (
+                  <div className="py-8 text-center text-slate-400 text-sm">No hay movimientos registrados.</div>
+                )}
+              </div>
+
+              {/* Vista Desktop: Tabla */}
+              <div className="hidden sm:block">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0">
                     <tr>
-                      <td colSpan="4" className="py-8 text-center text-slate-400">No hay movimientos registrados.</td>
+                      <th className="py-2 px-4 font-semibold text-slate-500">Fecha</th>
+                      <th className="py-2 px-4 font-semibold text-slate-500">Acción</th>
+                      <th className="py-2 px-4 font-semibold text-slate-500">Cant.</th>
+                      <th className="py-2 px-4 font-semibold text-slate-500">Motivo</th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {historyItem?.history?.length > 0 ? historyItem.history.map((record, i) => (
+                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
+                        <td className="py-2 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">{new Date(record.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short'})}</td>
+                        <td className="py-2 px-4 font-medium text-slate-700 dark:text-slate-300">{record.action}</td>
+                        <td className={`py-2 px-4 font-bold ${record.action.includes('Salida') ? 'text-red-500' : 'text-emerald-500'}`}>
+                          {record.action.includes('Salida') ? '-' : '+'}{record.quantity}
+                        </td>
+                        <td className="py-2 px-4 text-slate-500 text-xs">{record.reason}</td>
+                      </tr>
+                    )).reverse() : (
+                      <tr>
+                        <td colSpan="4" className="py-8 text-center text-slate-400">No hay movimientos registrados.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -1159,24 +1182,49 @@ export default function InventoryManager() {
                       </span>
                     </div>
                     <div className="p-4">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr>
-                            <th className="pb-2 text-slate-500 font-semibold">Producto</th>
-                            <th className="pb-2 text-slate-500 font-semibold text-center">Stock Actual</th>
-                            <th className="pb-2 text-emerald-600 dark:text-emerald-400 font-semibold text-center">Pedir</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                          {shoppingList[supplier].map(item => (
-                            <tr key={item.id}>
-                              <td className="py-2 text-slate-800 dark:text-slate-200 font-medium">{item.name} <span className="text-[10px] text-slate-400 ml-2">{item.id}</span></td>
-                              <td className="py-2 text-slate-600 dark:text-slate-400 text-center">{item.stock}</td>
-                              <td className="py-2 text-emerald-600 dark:text-emerald-400 font-bold text-center">{item.qtyToOrder}</td>
+                      {/* Vista Móvil: Tarjetas */}
+                      <div className="sm:hidden flex flex-col gap-3">
+                        {shoppingList[supplier].map(item => (
+                          <div key={item.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                            <div>
+                              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{item.name}</p>
+                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.id}</p>
+                            </div>
+                            <div className="flex gap-4 text-center">
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Stock</p>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">{item.stock}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-emerald-600 uppercase font-bold">Pedir</p>
+                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{item.qtyToOrder}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Vista Desktop: Tabla */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr>
+                              <th className="pb-2 text-slate-500 font-semibold">Producto</th>
+                              <th className="pb-2 text-slate-500 font-semibold text-center">Stock Actual</th>
+                              <th className="pb-2 text-emerald-600 dark:text-emerald-400 font-semibold text-center">Pedir</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                            {shoppingList[supplier].map(item => (
+                              <tr key={item.id}>
+                                <td className="py-2 text-slate-800 dark:text-slate-200 font-medium">{item.name} <span className="text-[10px] text-slate-400 ml-2">{item.id}</span></td>
+                                <td className="py-2 text-slate-600 dark:text-slate-400 text-center">{item.stock}</td>
+                                <td className="py-2 text-emerald-600 dark:text-emerald-400 font-bold text-center">{item.qtyToOrder}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 ))

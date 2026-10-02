@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
+import ResponsiveModal from '../components/ResponsiveModal';
 
 const initialOrders = [];
 
@@ -560,25 +561,26 @@ export default function OrdersManager() {
       </div>
 
       {/* Modal Detalles del Pedido */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center px-0 md:px-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedOrder(null)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full md:max-w-lg rounded-t-3xl md:rounded-2xl shadow-2xl relative z-10 border-t md:border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom md:zoom-in-95 duration-300 max-h-[90dvh]">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start bg-slate-50 dark:bg-slate-950/50">
-              <div>
-                <h3 className="font-black text-lg text-slate-800 dark:text-white">Pedido {selectedOrder.id}</h3>
-                <p className="text-xs text-slate-500">{selectedOrder.date}</p>
-              </div>
-              <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+      <ResponsiveModal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={selectedOrder ? `Pedido ${selectedOrder.id}` : ''}
+        className="md:max-w-2xl"
+      >
+        {selectedOrder && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-start -mt-2">
+              <p className="text-xs text-slate-500">{selectedOrder.date}</p>
+              <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${
                 columns.find(c => c.id === selectedOrder.status)?.bg
               } ${columns.find(c => c.id === selectedOrder.status)?.color}`}>
                 {selectedOrder.status}
               </span>
             </div>
             
-            <div className="p-5 md:p-6 space-y-5 overflow-y-auto">
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cliente y Entrega</h4>
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Cliente y Entrega</h4>
+              <div className="bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-slate-100 dark:border-white/5">
                 <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1">
                   {selectedOrder.isMobile ? <Smartphone size={14} className="text-violet-500" /> : null}
                   {selectedOrder.customer}
@@ -588,191 +590,177 @@ export default function OrdersManager() {
                 </p>
                 
                 {(selectedOrder.shippingInfo && selectedOrder.shippingInfo.location) && (
-                   <a href={`https://maps.google.com/?q=${selectedOrder.shippingInfo.location.lat},${selectedOrder.shippingInfo.location.lng}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 mt-3 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-1.5 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors">
-                     <MapPin size={14} /> Ver en Google Maps
+                   <a href={`https://maps.google.com/?q=${selectedOrder.shippingInfo.location.lat},${selectedOrder.shippingInfo.location.lng}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-4 text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-3 py-2 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors w-full justify-center md:w-auto">
+                     <MapPin size={16} /> Ver en Google Maps
                    </a>
                 )}
                 
                 {/* Nuevos campos de E-commerce avanzado */}
                 {(selectedOrder.booking_date || selectedOrder.table_number || selectedOrder.order_type) && (
-                  <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-lg text-sm text-indigo-900 dark:text-indigo-200">
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-xl text-sm text-amber-900 dark:text-amber-200">
                     {selectedOrder.order_type && <p><span className="font-bold">Tipo:</span> {selectedOrder.order_type}</p>}
                     {selectedOrder.booking_date && <p><span className="font-bold">Cita:</span> {selectedOrder.booking_date} {selectedOrder.booking_time}</p>}
                     {selectedOrder.table_number && <p><span className="font-bold">Mesa:</span> {selectedOrder.table_number}</p>}
                   </div>
                 )}
               </div>
+            </div>
               
-               {(selectedOrder.paymentMethod === 'pago_movil' || selectedOrder.paymentMethod === 'zelle') && (
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago ({selectedOrder.paymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'})</h4>
-                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
-                     <div className="flex-1 space-y-2">
-                        <div className="flex justify-between text-sm items-center">
-                          <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
-                            {selectedOrder.paymentDetails?.ref && (
-                              <button onClick={() => { navigator.clipboard.writeText(selectedOrder.paymentDetails.ref); alert('Copiado: ' + selectedOrder.paymentDetails.ref); }} className="text-slate-400 hover:text-violet-500 p-1 rounded transition-colors" title="Copiar Referencia">
-                                <Copy size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        {selectedOrder.paymentMethod === 'pago_movil' && (
-                           <>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">Banco:</span>
-                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">Titular:</span>
-                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.titular || selectedOrder.customer || 'N/A'}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">CI/RIF:</span>
-                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.docId || 'N/A'}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>
-                                <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.phone || 'N/A'}</span>
-                              </div>
-                           </>
-                        )}
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-500 dark:text-slate-400">Estado:</span>
-                          {selectedOrder.paymentStatus === 'pending' ? (
-                            <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
-                          ) : selectedOrder.paymentStatus === 'review' ? (
-                            <span className="text-orange-600 dark:text-orange-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> En Revisión</span>
-                          ) : selectedOrder.paymentStatus === 'fraud' ? (
-                            <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> Fraude</span>
-                          ) : selectedOrder.paymentStatus === 'approved' ? (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
-                          ) : (
-                            <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><X size={14}/> Rechazado</span>
+            {(selectedOrder.paymentMethod === 'pago_movil' || selectedOrder.paymentMethod === 'zelle') && (
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Detalles del Pago ({selectedOrder.paymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'})</h4>
+                <div className="bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-slate-100 dark:border-white/5 flex flex-col sm:flex-row gap-4">
+                   <div className="flex-1 space-y-2">
+                      <div className="flex justify-between text-sm items-center">
+                        <span className="text-slate-500 dark:text-slate-400">Referencia:</span>
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.ref || 'N/A'}</span>
+                          {selectedOrder.paymentDetails?.ref && (
+                            <button onClick={() => { navigator.clipboard.writeText(selectedOrder.paymentDetails.ref); alert('Copiado: ' + selectedOrder.paymentDetails.ref); }} className="text-slate-400 hover:text-amber-500 p-1 rounded transition-colors" title="Copiar Referencia">
+                              <Copy size={16} />
+                            </button>
                           )}
                         </div>
-                     </div>
-                     {selectedOrder.paymentDetails?.capture && (
-                       <a href={selectedOrder.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-full sm:w-24 h-32 bg-slate-200 dark:bg-slate-700 rounded-lg overflow-hidden flex-shrink-0 relative group block cursor-pointer">
-                         <img src={selectedOrder.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
-                         <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <FileImage size={24} className="text-white" />
-                         </div>
-                       </a>
-                     )}
-                  </div>
-                  {selectedOrder.paymentStatus === 'pending' && (
-                    <div className="mt-3 flex gap-2">
-                       <button onClick={() => openChat(selectedOrder)} className="flex-1 bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:hover:bg-violet-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <MessageSquare size={16} /> Abrir Chat de Resolución
-                       </button>
-                       <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <Check size={16} /> Confirmar Pago
-                       </button>
-                       <button onClick={() => verifyPayment(selectedOrder.id, 'review')} className="flex-1 bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <AlertCircle size={16} /> Revisión (Tercero)
-                       </button>
-                    </div>
-                  )}
-                  {selectedOrder.paymentStatus === 'review' && (
-                    <div className="mt-3 flex gap-2">
-                       <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="flex-1 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <Check size={16} /> Marcar Válido
-                       </button>
-                       <button onClick={() => verifyPayment(selectedOrder.id, 'fraud')} className="flex-1 bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 transition-colors">
-                         <AlertCircle size={16} /> Denunciar Fraude
-                       </button>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {selectedOrder.paymentMethod === 'cash' && (
-                 <div>
-                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Método de Pago</h4>
-                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
-                     <span className="font-bold text-slate-800 dark:text-white">Pago en Efectivo / Delivery</span>
-                     <span className="text-xs text-slate-500 mt-1">El cliente pagará al recibir el pedido.</span>
+                      </div>
+                      {selectedOrder.paymentMethod === 'pago_movil' && (
+                         <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-500 dark:text-slate-400">Banco:</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.bank || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-500 dark:text-slate-400">Titular:</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.titular || selectedOrder.customer || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-500 dark:text-slate-400">CI/RIF:</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.docId || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-500 dark:text-slate-400">Teléfono:</span>
+                              <span className="font-bold text-slate-800 dark:text-white">{selectedOrder.paymentDetails?.phone || 'N/A'}</span>
+                            </div>
+                         </>
+                      )}
+                      <div className="flex justify-between text-sm items-center pt-2 mt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-slate-500 dark:text-slate-400">Estado:</span>
+                        {selectedOrder.paymentStatus === 'pending' ? (
+                          <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1"><Clock size={14}/> Por Verificar</span>
+                        ) : selectedOrder.paymentStatus === 'review' ? (
+                          <span className="text-orange-600 dark:text-orange-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> En Revisión</span>
+                        ) : selectedOrder.paymentStatus === 'fraud' ? (
+                          <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><AlertCircle size={14}/> Fraude</span>
+                        ) : selectedOrder.paymentStatus === 'approved' ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 size={14}/> Aprobado</span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1"><X size={14}/> Rechazado</span>
+                        )}
+                      </div>
                    </div>
-                 </div>
-              )}
-
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
-                <div className="space-y-2">
-                  {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm">
-                      <span className="text-slate-700 dark:text-slate-300">{item.name} x{item.quantity}</span>
-                      <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {selectedOrder.shippingInfo?.cost !== undefined && (
-                     <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-sm">
-                       <span className="text-slate-600 dark:text-slate-400">Envío</span>
-                       <span className="font-bold text-slate-800 dark:text-white">${Number(selectedOrder.shippingInfo.cost).toFixed(2)}</span>
-                     </div>
-                  )}
-                  <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-base">
-                    <span className="font-bold text-slate-800 dark:text-white">Total Pagado</span>
-                    <span className="font-black text-violet-600 dark:text-violet-400">${selectedOrder.total.toFixed(2)}</span>
+                   {selectedOrder.paymentDetails?.capture && (
+                     <a href={selectedOrder.paymentDetails.capture} target="_blank" rel="noreferrer" className="w-full sm:w-28 h-40 bg-slate-200 dark:bg-zinc-800 rounded-xl overflow-hidden flex-shrink-0 relative group block cursor-pointer">
+                       <img src={selectedOrder.paymentDetails.capture} alt="Capture" className="w-full h-full object-cover" />
+                       <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <FileImage size={24} className="text-white" />
+                       </div>
+                     </a>
+                   )}
+                </div>
+                {selectedOrder.paymentStatus === 'pending' && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
+                     <button onClick={() => openChat(selectedOrder)} className="w-full bg-violet-100 text-violet-700 hover:bg-violet-200 dark:bg-violet-900/20 dark:text-violet-400 dark:hover:bg-violet-900/40 p-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-95">
+                       <MessageSquare size={16} /> Abrir Chat
+                     </button>
+                     <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40 p-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-95">
+                       <Check size={16} /> Aprobar Pago
+                     </button>
+                     <button onClick={() => verifyPayment(selectedOrder.id, 'review')} className="w-full bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/40 p-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-95">
+                       <AlertCircle size={16} /> Duda/Tercero
+                     </button>
                   </div>
+                )}
+                {selectedOrder.paymentStatus === 'review' && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                     <button onClick={() => verifyPayment(selectedOrder.id, 'approve')} className="w-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40 p-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-95">
+                       <Check size={16} /> Marcar Válido
+                     </button>
+                     <button onClick={() => verifyPayment(selectedOrder.id, 'fraud')} className="w-full bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 p-3 rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-95">
+                       <AlertCircle size={16} /> Denunciar Fraude
+                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {selectedOrder.paymentMethod === 'cash' && (
+               <div>
+                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1"><CreditCard size={14}/> Método de Pago</h4>
+                 <div className="bg-slate-50 dark:bg-zinc-900/50 p-6 rounded-xl border border-slate-100 dark:border-white/5 flex flex-col items-center justify-center text-center">
+                   <span className="font-extrabold text-slate-800 dark:text-white text-lg">Efectivo / Contra Entrega</span>
+                   <span className="text-sm text-slate-500 mt-2">El cliente pagará al recibir el pedido en destino.</span>
+                 </div>
+               </div>
+            )}
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
+              <div className="bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-slate-100 dark:border-white/5 space-y-3">
+                {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-200 dark:border-white/5 pb-2 last:border-0 last:pb-0">
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">{item.name} <span className="text-slate-400">x{item.quantity}</span></span>
+                    <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                  </div>
+                ))}
+                {selectedOrder.shippingInfo?.cost !== undefined && (
+                   <div className="pt-3 flex justify-between items-center text-sm">
+                     <span className="text-slate-600 dark:text-slate-400 font-medium">Costo de Envío</span>
+                     <span className="font-bold text-slate-800 dark:text-white">${Number(selectedOrder.shippingInfo.cost).toFixed(2)}</span>
+                   </div>
+                )}
+                <div className="pt-3 flex justify-between items-center text-base">
+                  <span className="font-extrabold text-slate-800 dark:text-white">Total a Pagar</span>
+                  <span className="font-black text-amber-600 dark:text-amber-500 text-lg">${selectedOrder.total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
-            
-            <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <button 
-                onClick={() => setSelectedOrder(null)}
-                className="px-6 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 rounded-xl text-sm font-bold transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </ResponsiveModal>
 
       {/* Modal QR Code */}
-      {showQrModal && (
-        <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center px-0 md:px-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowQrModal(false)}></div>
-          <div className="bg-white dark:bg-slate-900 w-full md:max-w-sm rounded-t-3xl md:rounded-3xl shadow-2xl relative z-10 p-8 flex flex-col items-center text-center animate-in slide-in-from-bottom md:zoom-in-95 duration-300 border-t md:border border-slate-200 dark:border-slate-800">
-             <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400 mb-4 shadow-inner">
-               <Smartphone size={32} />
-             </div>
-             <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Vincular Dispositivo</h3>
-             <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono móvil para abrir la App de Picking.</p>
-             
-             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm mb-8 relative group">
-               {/* Genera la URL dinámicamente. Si estás en localhost, asume tu IP local de Wi-Fi */}
-               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
-                 window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/ecommerce/picking'
-               }`} alt="QR Code" className="w-48 h-48 object-contain" />
-               <a 
-                 href="/ecommerce/picking" 
-                 target="_blank" 
-                 className="absolute inset-0 bg-black/50 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl"
-               >
-                 Abrir URL Directa
-               </a>
-             </div>
-             
-             <div className="w-full mb-6 p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-medium text-left border border-amber-200 dark:border-amber-700">
-               <AlertCircle size={14} className="inline mr-1 mb-0.5" />
-               Asegúrate de ejecutar el servidor con <strong>--host</strong> (ej: <code>npm run dev -- --host</code>) para que tu teléfono tenga acceso por Wi-Fi.
-             </div>
-             
-             <button 
-               onClick={() => setShowQrModal(false)}
-               className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold transition-colors"
-             >
-               Cerrar
-             </button>
+      <ResponsiveModal
+        isOpen={showQrModal}
+        onClose={() => setShowQrModal(false)}
+        title="App de Picking"
+        className="md:max-w-sm"
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-500 mb-4 shadow-inner">
+            <Smartphone size={32} />
+          </div>
+          <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Vincular Dispositivo</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono para preparar los pedidos.</p>
+          
+          <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-8 relative group">
+            {/* Genera la URL dinámicamente. */}
+            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
+              window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/ecommerce/picking'
+            }`} alt="QR Code" className="w-48 h-48 object-contain" />
+            <a 
+              href="/ecommerce/picking" 
+              target="_blank" 
+              className="absolute inset-0 bg-black/60 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-sm"
+            >
+              Abrir URL Directa
+            </a>
+          </div>
+          
+          <div className="w-full p-4 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-medium text-left border border-amber-200 dark:border-amber-500/20">
+            <AlertCircle size={14} className="inline mr-1 -mt-0.5" />
+            Asegúrate de ejecutar el servidor con <strong>--host</strong> (ej: <code>npm run dev -- --host</code>) para que tu teléfono tenga acceso por Wi-Fi.
           </div>
         </div>
-      )}
+      </ResponsiveModal>
     </div>
   );
 }
