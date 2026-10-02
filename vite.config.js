@@ -15,9 +15,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5000000 // 5 MB
       },
       manifest: {
-        name: 'Presupuesto App',
-        short_name: 'Presupuesto',
-        description: 'Aplicación integral de Ecommerce y Delivery',
+        name: 'Axon Market',
+        short_name: 'Axon Market',
+        description: 'Plataforma integral de Ecommerce y Marketplace',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
