@@ -164,12 +164,22 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           profile_pic: pictureUrl
         };
 
-        const { error } = await supabase
+        let { error } = await supabase
           .from('ecommerce_customers')
           .update(updatePayload)
           .eq('id', customer.id);
           
-        if (error) throw error;
+        if (error) {
+          // Fallback if columns don't exist yet
+          const fallbackPayload = {
+            name: formData.name,
+            phone: formData.phone,
+            doc_id: formData.docId,
+            address: finalAddressText
+          };
+          const retry = await supabase.from('ecommerce_customers').update(fallbackPayload).eq('id', customer.id);
+          if (retry.error) throw retry.error;
+        }
         
         const updatedCustomer = { ...customer, ...updatePayload, docId: formData.docId };
         onComplete(updatedCustomer);

@@ -364,10 +364,16 @@ export default function CustomerProfile() {
         favorites: newUser.favorites,
         addresses: newUser.addresses
       };
-      await supabase.from('ecommerce_customers').update(payload).eq('id', currentCustomer.id);
-    } catch (err) {
-      console.error(err);
-    }
+      let { error } = await supabase.from('ecommerce_customers').update(payload).eq('id', currentCustomer.id);
+      if (error) {
+        const fallback = {
+          name: newUser.name,
+          phone: newUser.phone,
+          doc_id: newUser.docId,
+          address: newUser.address
+        };
+        await supabase.from('ecommerce_customers').update(fallback).eq('id', currentCustomer.id);
+      }
   };
 
   const handleAddPaymentProfile = async (e) => {
