@@ -399,7 +399,7 @@ export function LandingPage({ onLoginClick }) {
       {/* Dev Quick Access Bar */}
       <div className="bg-zinc-900 border-b border-white/10 text-white px-4 py-2 flex justify-center items-center gap-8 z-[60] relative font-bold text-xs tracking-widest uppercase w-full">
          <span className="text-amber-500 hidden sm:inline-block">Acceso Directo a Módulos:</span>
-         <a href="/ecommerce" className="hover:text-amber-500 transition-all flex items-center gap-2">
+         <a href="/" className="hover:text-amber-500 transition-all flex items-center gap-2">
             <ShoppingBag size={14} /> E-Commerce
          </a>
          <span className="w-1 h-1 rounded-full bg-white/20 hidden sm:block"></span>

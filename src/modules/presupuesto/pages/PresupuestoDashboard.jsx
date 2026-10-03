@@ -168,7 +168,7 @@ export default function PresupuestoDashboard({ session, toggleTheme, theme }) {
               Salir
             </button>
             <Link 
-              to="/ecommerce"
+              to="/"
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-lg text-xs font-bold hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
             >
               Ir a E-commerce

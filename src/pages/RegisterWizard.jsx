@@ -186,7 +186,7 @@ export const RegisterWizard = () => {
       localStorage.setItem('storeSlug', generatedSlug);
 
       setTimeout(() => {
-        window.location.href = '/ecommerce'; 
+        window.location.href = '/'; 
       }, 4500);
 
     } catch (err) {

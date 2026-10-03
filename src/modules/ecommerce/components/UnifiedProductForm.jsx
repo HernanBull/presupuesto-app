@@ -274,7 +274,7 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
 
       <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-40">
         <div className="max-w-4xl mx-auto flex justify-end gap-4">
-          <button type="button" onClick={() => navigate('/ecommerce')} className="px-6 py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <button type="button" onClick={() => navigate('/')} className="px-6 py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             Descartar
           </button>
           <button 
