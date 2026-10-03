@@ -158,6 +158,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           name: formData.name,
           phone: formData.phone,
           doc_id: formData.docId,
+          address: finalAddressText,
           addresses: existingAddresses,
           payment_profile: paymentProfile,
           profile_picture: pictureUrl

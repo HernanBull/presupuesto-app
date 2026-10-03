@@ -1684,7 +1684,7 @@ export default function MarketplaceDirectory() {
         isOpen={isWizardOpen} 
         onClose={() => setIsWizardOpen(false)} 
         customer={currentCustomer}
-        canClose={false}
+        canClose={true}
         onComplete={(updatedCustomer) => {
           localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
           setCurrentCustomer(updatedCustomer);
