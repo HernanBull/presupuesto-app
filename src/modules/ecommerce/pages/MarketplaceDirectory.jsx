@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare } from 'lucide-react';
+import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,6 +21,27 @@ const resolveImageUrl = (url) => {
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
+const PasswordRequirements = ({ password }) => {
+  const reqs = [
+    { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
+    { label: 'Una mayúscula', met: /[A-Z]/.test(password) },
+    { label: 'Una minúscula', met: /[a-z]/.test(password) },
+    { label: 'Un número', met: /[0-9]/.test(password) },
+    { label: 'Un carácter especial (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
+  ];
+  if (!password) return null;
+  return (
+    <div className="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {reqs.map((req, i) => (
+        <div key={i} className="flex items-center gap-2">
+          {req.met ? <CheckCircle size={14} className="text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
+          <span className={`text-[10px] font-medium ${req.met ? 'text-emerald-500' : 'text-zinc-500'}`}>{req.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function MarketplaceDirectory() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +59,9 @@ export default function MarketplaceDirectory() {
   const [newPassword, setNewPassword] = useState('');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
 
   // Merchant Auth State
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
@@ -75,6 +99,8 @@ export default function MarketplaceDirectory() {
   });
   const [merchantLoading, setMerchantLoading] = useState(false);
   const [showMerchantPassword, setShowMerchantPassword] = useState(false);
+  const [showMerchantConfirmPassword, setShowMerchantConfirmPassword] = useState(false);
+  const [merchantConfirmPassword, setMerchantConfirmPassword] = useState('');
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
   const [loadingTextIndex, setLoadingTextIndex] = useState(0);
   const loadingTexts = ["Configurando tu base de datos...", "Asociando métodos de pago...", "Desplegando tu vitrina..."];
@@ -187,6 +213,21 @@ export default function MarketplaceDirectory() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (authForm.password !== authConfirmPassword) {
+      alert("Las contraseñas no coinciden.");
+      return;
+    }
+    const passReqs = [
+      authForm.password.length >= 8,
+      /[A-Z]/.test(authForm.password),
+      /[a-z]/.test(authForm.password),
+      /[0-9]/.test(authForm.password),
+      /[^A-Za-z0-9]/.test(authForm.password)
+    ];
+    if (passReqs.some(r => !r)) {
+      alert("La contraseña no cumple con los requisitos mínimos de seguridad.");
+      return;
+    }
     try {
       const authData = await registerUser(authForm.email, authForm.password, { name: authForm.name });
       
@@ -401,6 +442,21 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep1 = (e) => {
     e.preventDefault();
+    if (merchantForm.password !== merchantConfirmPassword) {
+      alert("Las contraseñas no coinciden.");
+      return;
+    }
+    const passReqs = [
+      merchantForm.password.length >= 8,
+      /[A-Z]/.test(merchantForm.password),
+      /[a-z]/.test(merchantForm.password),
+      /[0-9]/.test(merchantForm.password),
+      /[^A-Za-z0-9]/.test(merchantForm.password)
+    ];
+    if (passReqs.some(r => !r)) {
+      alert("La contraseña no cumple con los requisitos mínimos de seguridad.");
+      return;
+    }
     if (merchantForm.email && merchantForm.password) setMerchantRegStep(2);
   };
 
@@ -1188,8 +1244,31 @@ export default function MarketplaceDirectory() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
-                    <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                    <div className="relative">
+                      <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                        {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
+
+                  {authMode === 'register' && (
+                    <>
+                      <PasswordRequirements password={authForm.password} />
+                      <div className="mt-4">
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                        <div className="relative">
+                          <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" />
+                          <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                            {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                        {authConfirmPassword && authConfirmPassword !== authForm.password && (
+                          <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   {authMode === 'login' && (
                     <div className="flex justify-end">
@@ -1374,6 +1453,21 @@ export default function MarketplaceDirectory() {
                                 {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                               </button>
                             </div>
+                          </div>
+
+                          <PasswordRequirements password={merchantForm.password} />
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                            <div className="relative">
+                              <input type={showMerchantConfirmPassword ? "text" : "password"} required value={merchantConfirmPassword} onChange={e => setMerchantConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" />
+                              <button type="button" onClick={() => setShowMerchantConfirmPassword(!showMerchantConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                                {showMerchantConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                            {merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password && (
+                              <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
+                            )}
                           </div>
 
                           <div className="relative py-2">
