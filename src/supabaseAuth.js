@@ -4,7 +4,10 @@ export const registerUser = async (email, password, metadata = {}) => {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: metadata }
+    options: { 
+      data: metadata,
+      emailRedirectTo: window.location.origin + '/perfil'
+    }
   });
   if (error) throw error;
   return data;

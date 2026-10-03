@@ -35,6 +35,7 @@ export default function CustomerProfile() {
   const [isEmailConfirmed, setIsEmailConfirmed] = useState(false);
   const [isRefreshingAuth, setIsRefreshingAuth] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [authProvider, setAuthProvider] = useState('email');
 
   const handleRefreshAuthStatus = async () => {
@@ -47,8 +48,10 @@ export default function CustomerProfile() {
         if (!!user.email_confirmed_at) {
           alert('¡Tu correo ha sido verificado con éxito!');
         } else {
-          alert('Tu correo aún no aparece como verificado. Si ya hiciste clic en el enlace, intenta nuevamente en unos segundos.');
+          alert('Tu correo aún no aparece como verificado. Si ya hiciste clic en el enlace desde otro dispositivo (como tu celular), por favor cierra sesión y vuelve a ingresar para actualizar el estado.');
         }
+      } else {
+        alert('No se detecta una sesión activa. Si confirmaste el correo en otro dispositivo, por favor cierra sesión y vuelve a ingresar.');
       }
     } catch (err) {
       console.error(err);
@@ -65,7 +68,7 @@ export default function CustomerProfile() {
         type: 'signup',
         email: currentCustomer.email,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: window.location.origin + '/perfil'
         }
       });
       if (error) throw error;
@@ -447,6 +450,7 @@ export default function CustomerProfile() {
         alert("La imagen es muy pesada. Máximo 2MB.");
         return;
       }
+      setIsUploadingPhoto(true);
       try {
         const fileExt = file.name.split('.').pop();
         const fileName = `profiles/${currentCustomer.id}_${Date.now()}.${fileExt}`;
@@ -463,6 +467,8 @@ export default function CustomerProfile() {
       } catch (err) {
         console.error(err);
         alert("Error al subir la foto a Supabase Storage: " + (err.message || "Desconocido") + ". Verifica que el bucket 'ecommerce' exista.");
+      } finally {
+        setIsUploadingPhoto(false);
       }
     }
   };
@@ -628,14 +634,16 @@ export default function CustomerProfile() {
          <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row items-center gap-6">
            <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-black rounded-full flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0 relative overflow-hidden group">
              <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay z-10 pointer-events-none"></div>
-             {currentCustomer.profilePic ? (
+             {isUploadingPhoto ? (
+               <Loader2 size={32} className="animate-spin text-amber-500 z-30" />
+             ) : currentCustomer.profilePic ? (
                <img src={currentCustomer.profilePic} alt="Perfil" className="w-full h-full object-cover" />
              ) : (
                <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
              )}
              <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-20">
-               <span className="text-white text-xs font-bold text-center px-2">Cambiar<br/>Foto</span>
-               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+               <span className="text-white text-xs font-bold text-center px-2">{isUploadingPhoto ? 'Subiendo...' : 'Cambiar Foto'}</span>
+               <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
              </label>
            </div>
            <div className="text-center md:text-left">
