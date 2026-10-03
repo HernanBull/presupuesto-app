@@ -51,10 +51,12 @@ export default function MarketplaceDirectory() {
   const [merchantTermsAccepted, setMerchantTermsAccepted] = useState(false);
   const [merchantForm, setMerchantForm] = useState({ 
     ownerName: '',
+    contactPhone: '',
+    contactEmail: '',
     businessName: '', 
     email: '', 
     password: '',
-    category: 'Viveres',
+    category: 'Víveres',
     scheduleActive: true,
     scheduleOpen: '08:00',
     scheduleClose: '18:00',
@@ -397,7 +399,7 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep2 = (e) => {
     e.preventDefault();
-    if (merchantForm.businessName && merchantForm.ownerName) setMerchantRegStep(3);
+    if (merchantForm.businessName && merchantForm.ownerName && merchantForm.contactPhone && merchantForm.contactEmail) setMerchantRegStep(3);
   };
 
   const handleMerchantRegisterStep3 = (e) => {
@@ -447,12 +449,24 @@ export default function MarketplaceDirectory() {
       const { error } = await supabase.from('workspaces').insert([newWorkspace]);
       if (error) throw error;
 
+      const { error: contactError } = await supabase.from('merchant_contacts').insert([{
+        id: authData.user.id,
+        full_name: merchantForm.ownerName,
+        phone: merchantForm.contactPhone,
+        email: merchantForm.contactEmail
+      }]);
+      if (contactError) console.error("Error guardando contacto:", contactError);
+
       setTempWorkspace({ id: newWorkspace.id, slug: generatedSlug });
       setMerchantRegStep(6);
       setMerchantLoading(false);
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Error de conexión');
+      if (err.message && err.message.includes('Error sending confirmation email')) {
+        alert('Se creó el usuario pero falló el envío del email de confirmación. Revisa tu dominio verificado en Resend o desactiva "Confirm Email" en Supabase.');
+      } else {
+        alert(err.message || 'Error de conexión');
+      }
       setMerchantLoading(false);
     }
   };
@@ -1391,22 +1405,27 @@ export default function MarketplaceDirectory() {
                       {merchantRegStep === 2 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Propietario</label>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo del Contacto</label>
                             <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({...merchantForm, ownerName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Juan Pérez" autoFocus />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Teléfono de Contacto</label>
+                            <input type="tel" required value={merchantForm.contactPhone} onChange={e => setMerchantForm({...merchantForm, contactPhone: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. 04141234567" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo de Contacto</label>
+                            <input type="email" required value={merchantForm.contactEmail} onChange={e => setMerchantForm({...merchantForm, contactEmail: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="contacto@empresa.com" />
                           </div>
                           <div>
                             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
                             <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Tipo de Productos</label>
+                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Categoría Principal</label>
                             <select required value={merchantForm.category} onChange={e => setMerchantForm({...merchantForm, category: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light appearance-none">
-                              <option value="Viveres">Víveres / Automercado</option>
-                              <option value="Ropa">Ropa y Accesorios</option>
-                              <option value="Comida Rapida">Comida Rápida / Restaurante</option>
-                              <option value="Tecnologia">Tecnología / Electrónica</option>
-                              <option value="Servicios">Servicios</option>
-                              <option value="General">Otro / Variedades</option>
+                              {categories.slice(1).map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                              ))}
                             </select>
                           </div>
                         </motion.div>
@@ -1581,7 +1600,7 @@ export default function MarketplaceDirectory() {
                         disabled={
                           merchantLoading || 
                           (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
-                          (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.category)) || 
+                          (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactPhone || !merchantForm.contactEmail || !merchantForm.category)) || 
                           (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
                           (merchantRegStep === 4 && (!merchantForm.rif || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
                           (merchantRegStep === 5 && (isMobile ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
