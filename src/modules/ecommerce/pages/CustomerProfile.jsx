@@ -636,8 +636,8 @@ export default function CustomerProfile() {
              <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay z-10 pointer-events-none"></div>
              {isUploadingPhoto ? (
                <Loader2 size={32} className="animate-spin text-amber-500 z-30" />
-             ) : currentCustomer.profilePic ? (
-               <img src={currentCustomer.profilePic} alt="Perfil" className="w-full h-full object-cover" />
+             ) : (currentCustomer.profilePic || currentCustomer.profile_pic) ? (
+               <img src={currentCustomer.profilePic || currentCustomer.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
              ) : (
                <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
              )}

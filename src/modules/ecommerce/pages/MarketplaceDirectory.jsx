@@ -281,7 +281,7 @@ export default function MarketplaceDirectory() {
         
       if (error && error.code !== 'PGRST116') throw error;
 
-      const user = customerData ? { ...customerData, docId: customerData.doc_id, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
+      const user = customerData ? { ...customerData, docId: customerData.doc_id, profilePic: customerData.profile_pic, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
       
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
