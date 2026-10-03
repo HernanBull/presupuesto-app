@@ -115,7 +115,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           const filePath = `profiles/${fileName}`;
           
           const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, imageFile);
-          if (!uploadError) {
+          if (uploadError) {
+            alert('Error Storage Supabase: ' + uploadError.message + '. Asegúrate de crear el bucket "ecommerce" en Supabase Storage y darle permisos públicos.');
+          } else {
             const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
             if (data && data.publicUrl) pictureUrl = data.publicUrl;
           }

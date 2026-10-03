@@ -32,7 +32,7 @@ export default function CustomerProfile() {
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [newPayment, setNewPayment] = useState({ bank: '', phone: '', legalAccepted: false });
   
-  const [isEmailConfirmed, setIsEmailConfirmed] = useState(true);
+  const [isEmailConfirmed, setIsEmailConfirmed] = useState(false);
   const [isRefreshingAuth, setIsRefreshingAuth] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [authProvider, setAuthProvider] = useState('email');
@@ -366,6 +366,7 @@ export default function CustomerProfile() {
       };
       let { error } = await supabase.from('ecommerce_customers').update(payload).eq('id', currentCustomer.id);
       if (error) {
+        alert("Advertencia de Base de Datos: La columna 'profile_pic' no existe. Los datos se guardarán, pero la foto se perderá. Por favor, ejecuta el script SQL para añadir las nuevas columnas.");
         const fallback = {
           name: newUser.name,
           phone: newUser.phone,
@@ -461,7 +462,7 @@ export default function CustomerProfile() {
         alert("¡Foto de perfil actualizada!");
       } catch (err) {
         console.error(err);
-        alert("Error al subir la foto.");
+        alert("Error al subir la foto a Supabase Storage: " + (err.message || "Desconocido") + ". Verifica que el bucket 'ecommerce' exista.");
       }
     }
   };
