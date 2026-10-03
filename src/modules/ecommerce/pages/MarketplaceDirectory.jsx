@@ -303,6 +303,11 @@ export default function MarketplaceDirectory() {
         const { error } = await supabase.from('ecommerce_customers').insert([newUser]);
         if (error) throw error;
         user = newUser;
+
+        // Send Welcome Email
+        supabase.functions.invoke('send-welcome-email', {
+          body: { email: newUser.email, name: newUser.name }
+        }).catch(e => console.error('Error sending welcome email:', e));
       }
       
       const mappedUser = { ...user, docId: user.doc_id, orders: [] };

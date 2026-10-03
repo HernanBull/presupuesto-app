@@ -520,6 +520,11 @@ export default function PublicStore() {
         };
         await supabase.from('ecommerce_customers').insert([payload]);
         user = payload;
+        
+        // Send Welcome Email
+        supabase.functions.invoke('send-welcome-email', {
+          body: { email: user.email, name: user.name }
+        }).catch(e => console.error('Error sending welcome email:', e));
       }
       
       const mappedUser = { ...user, docId: user.doc_id, orders: [] };
