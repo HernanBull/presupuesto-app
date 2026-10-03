@@ -359,7 +359,10 @@ export default function CustomerProfile() {
         doc_id: newUser.docId,
         address: newUser.address,
         wishlist: newUser.wishlist,
-        payment_profile: newUser.payment_profile
+        payment_profile: newUser.payment_profile,
+        profile_pic: newUser.profilePic,
+        favorites: newUser.favorites,
+        addresses: newUser.addresses
       };
       await supabase.from('ecommerce_customers').update(payload).eq('id', currentCustomer.id);
     } catch (err) {
@@ -427,16 +430,30 @@ export default function CustomerProfile() {
     }
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result;
-        await updateCustomerData({ profilePic: base64String });
-        setProfileForm(prev => ({ ...prev, profilePic: base64String }));
-      };
-      reader.readAsDataURL(file);
+      if (file.size > 2 * 1024 * 1024) {
+        alert("La imagen es muy pesada. Máximo 2MB.");
+        return;
+      }
+      try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `profiles/${currentCustomer.id}_${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage.from('ecommerce').upload(fileName, file, { upsert: true });
+        if (uploadError) throw uploadError;
+        
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        const publicUrl = data.publicUrl;
+
+        await updateCustomerData({ profilePic: publicUrl });
+        setProfileForm(prev => ({ ...prev, profilePic: publicUrl }));
+        alert("¡Foto de perfil actualizada!");
+      } catch (err) {
+        console.error(err);
+        alert("Error al subir la foto.");
+      }
     }
   };
 
@@ -579,16 +596,14 @@ export default function CustomerProfile() {
               className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors"
             >
               <ArrowLeft size={16} /> 
-              <span className="hidden sm:inline">Volver al Marketplace</span>
-              <span className="sm:hidden">Volver</span>
+              <span className="hidden sm:inline">Volver</span>
             </button>
             <button 
               onClick={handleLogout}
               className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase bg-red-500/10 text-red-500 border border-red-500/20 px-3 sm:px-4 py-2 rounded-full hover:bg-red-500/20 transition-colors"
             >
               <LogOut size={16} /> 
-              <span className="hidden sm:inline">Cerrar Sesión</span>
-              <span className="sm:hidden">Salir</span>
+              <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
         </div>
