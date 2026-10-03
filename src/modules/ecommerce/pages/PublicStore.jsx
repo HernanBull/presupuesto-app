@@ -503,7 +503,9 @@ export default function PublicStore() {
         .eq('email', email)
         .maybeSingle();
         
+      let isNewUser = false;
       if (!user) {
+        isNewUser = true;
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
         const payload = {
           id,
@@ -525,7 +527,7 @@ export default function PublicStore() {
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       
-      if (!mappedUser.phone || !mappedUser.docId || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+      if (isNewUser) {
         setIsWizardOpen(true);
       }
 

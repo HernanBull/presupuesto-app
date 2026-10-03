@@ -272,7 +272,9 @@ export default function MarketplaceDirectory() {
       
       let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).maybeSingle();
       
+      let isNewUser = false;
       if (!user) {
+        isNewUser = true;
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
         const newUser = {
           id,
@@ -296,7 +298,7 @@ export default function MarketplaceDirectory() {
       setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
       
-      if (!mappedUser.phone || !mappedUser.doc_id || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+      if (isNewUser) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
         navigate(`/${pendingStoreSlug}`);
@@ -335,7 +337,7 @@ export default function MarketplaceDirectory() {
     }
   };
 
-  const handleGoogleMerchantSuccess = (credentialResponse) => {
+  const handleGoogleMerchantSuccess = async (credentialResponse) => {
     try {
       const base64Url = credentialResponse.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -344,9 +346,26 @@ export default function MarketplaceDirectory() {
       }).join(''));
       const payload = JSON.parse(jsonPayload);
       if (payload.email) {
-        const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
-        setMerchantForm({ ...merchantForm, email: payload.email, password: randomPassword });
-        setMerchantRegStep(2);
+        // Verificar si la tienda ya existe
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('*')
+          .eq('config->>adminEmail', payload.email)
+          .maybeSingle();
+
+        if (wsData) {
+          // Ya existe, Iniciar Sesión Directamente
+          localStorage.setItem('activeWorkspace', wsData.id);
+          localStorage.setItem('storeSlug', wsData.store_slug || '');
+          setTimeout(() => {
+            navigate('/');
+          }, 500);
+        } else {
+          // No existe, Registrar nueva tienda
+          const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
+          setMerchantForm({ ...merchantForm, email: payload.email, password: randomPassword });
+          setMerchantRegStep(2);
+        }
       }
     } catch (err) {
       console.error('Error decoding google credential', err);
