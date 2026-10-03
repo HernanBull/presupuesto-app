@@ -161,7 +161,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           address: finalAddressText,
           addresses: existingAddresses,
           payment_profile: paymentProfile,
-          profile_picture: pictureUrl
+          profile_pic: pictureUrl
         };
 
         const { error } = await supabase
@@ -242,12 +242,16 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
             className="bg-[#111111] border border-white/10 rounded-3xl p-8 shadow-2xl relative w-full max-w-md z-10 overflow-hidden max-h-[90vh] overflow-y-auto"
           >
             {canClose && (
-              <button onClick={onClose} className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors p-2">
-                <X size={20} />
-              </button>
+              <div className="absolute top-4 right-4 z-20">
+                <button onClick={onClose} className="bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-full p-2 transition-all backdrop-blur-md border border-white/5 hover:border-red-500/30">
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
             )}
 
-            {renderStepIndicator()}
+            <div className="mt-8 mb-6">
+              {renderStepIndicator()}
+            </div>
 
             <div className="min-h-[200px] flex flex-col justify-center">
               <AnimatePresence mode="wait">
