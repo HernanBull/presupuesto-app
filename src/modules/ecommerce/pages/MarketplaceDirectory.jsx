@@ -199,9 +199,7 @@ export default function MarketplaceDirectory() {
         phone: authForm.phone,
         address: authForm.address,
         status: 'Activo',
-        join_date: new Date().toISOString(),
-        terms_accepted: true,
-        terms_accepted_at: new Date().toISOString()
+        join_date: new Date().toISOString()
       };
 
       const { error } = await supabase.from('ecommerce_customers').insert([newCustomer]);
