@@ -27,11 +27,13 @@ function App() {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [showLogin, setShowLogin] = useState(false);
 
-  // Aislar E-commerce y Delivery para pruebas sin autenticación
-  const isEcommerceRoute = window.location.pathname.startsWith('/ecommerce');
+  // Aislar módulos para pruebas sin autenticación
   const isDeliveryRoute = window.location.pathname.startsWith('/delivery');
-
   const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
+  const isPresupuestoRoute = window.location.pathname.startsWith('/presupuesto');
+
+  // El E-commerce ahora es el core de la aplicación (Directorio Raíz)
+  const isEcommerceRoute = !isDeliveryRoute && !isSuperAdminRoute && !isPresupuestoRoute;
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -78,7 +80,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route 
-              path="/ecommerce/*" 
+              path="/*" 
               element={<EcommerceRouter session={null} theme={theme} toggleTheme={toggleTheme} />} 
             />
           </Routes>
@@ -137,7 +139,7 @@ function App() {
     // Axon Market es la página principal del MVP.
     // La LandingPage queda oculta; redirigimos al marketplace público.
     if (!isEcommerceRoute && !isDeliveryRoute && !isSuperAdminRoute) {
-      window.location.replace('/ecommerce/live');
+      window.location.replace('/');
       return <div style={{ minHeight: '100vh', background: '#000' }} />;
     }
   }
@@ -147,7 +149,6 @@ function App() {
       <AppToaster />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/ecommerce/live" replace />} />
           <Route 
             path="/presupuesto/*" 
             element={<PresupuestoDashboard session={session} theme={theme} toggleTheme={toggleTheme} />} 

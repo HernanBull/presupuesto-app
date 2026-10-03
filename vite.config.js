@@ -41,7 +41,7 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
-        start_url: '/ecommerce/live',
+        start_url: '/',
         lang: 'es',
         categories: ['shopping', 'business'],
         icons: [

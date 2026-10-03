@@ -95,18 +95,18 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   const navItems = [
     { name: 'Dashboard', path: '/ecommerce', icon: LayoutDashboard, exact: true },
-    { name: 'Analítica', path: '/ecommerce/analytics', icon: BarChart3 },
-    { name: 'Productos', path: '/ecommerce/products', icon: ShoppingBag },
+    { name: 'Analítica', path: '/analytics', icon: BarChart3 },
+    { name: 'Productos', path: '/products', icon: ShoppingBag },
     { name: 'Inventario', path: '/ecommerce/inventory', icon: PackageSearch },
-    { name: 'Pedidos', path: '/ecommerce/orders', icon: ShoppingCart },
-    { name: 'Soporte', path: '/ecommerce/support', icon: LifeBuoy },
-    { name: 'Preparación', path: '/ecommerce/preparation', icon: Box },
-    { name: 'Reseñas', path: '/ecommerce/reviews', icon: MessageSquare },
-    { name: 'Promociones', path: '/ecommerce/promotions', icon: Tag },
-    { name: 'Ofertas Flash', path: '/ecommerce/offers', icon: Zap },
-    { name: 'Notificaciones', path: '/ecommerce/notifications', icon: Bell },
-    { name: 'Perfil Tienda', path: '/ecommerce/store-profile', icon: Settings },
-    { name: 'Ubicación', path: '/ecommerce/location', icon: MapPin },
+    { name: 'Pedidos', path: '/orders', icon: ShoppingCart },
+    { name: 'Soporte', path: '/support', icon: LifeBuoy },
+    { name: 'Preparación', path: '/preparation', icon: Box },
+    { name: 'Reseñas', path: '/reviews', icon: MessageSquare },
+    { name: 'Promociones', path: '/promotions', icon: Tag },
+    { name: 'Ofertas Flash', path: '/offers', icon: Zap },
+    { name: 'Notificaciones', path: '/notifications', icon: Bell },
+    { name: 'Perfil Tienda', path: '/store-profile', icon: Settings },
+    { name: 'Ubicación', path: '/location', icon: MapPin },
 
   ];
 
@@ -159,7 +159,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <button 
             onClick={() => {
               const slug = localStorage.getItem('storeSlug');
-              if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
+              if (slug) window.open(`/${slug}`, '_blank');
               else alert('No se encontró el enlace de tu tienda.');
             }}
             className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 hover:bg-amber-200 dark:hover:bg-amber-500/20 transition-colors text-sm font-semibold rounded-xl"
@@ -170,7 +170,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             onClick={() => {
               localStorage.removeItem('activeWorkspace');
               localStorage.removeItem('storeSlug');
-              navigate('/ecommerce/live');
+              navigate('/');
             }}
             className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors text-sm font-semibold"
           >
@@ -197,7 +197,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <button onClick={toggleTheme} className="text-slate-400 hover:text-amber-500 p-2">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/ecommerce/live'); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
+          <button onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/'); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
             <ArrowLeft size={18} />
           </button>
           
@@ -218,7 +218,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                         if(n.type === 'stock_alert') {
                           navigate('/ecommerce/inventory');
                         } else if(n.product_id) {
-                          navigate(`/ecommerce/product-studio/${n.product_id}`);
+                          navigate(`/product-studio/${n.product_id}`);
                         }
                         setShowNotifications(false);
                       }}
@@ -242,7 +242,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                 )}
                   </div>
                   <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
-                    <button onClick={() => { setShowNotifications(false); navigate('/ecommerce/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
+                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
                       Ver todas las notificaciones
                     </button>
                   </div>
@@ -279,7 +279,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                             if(n.type === 'stock_alert') {
                               navigate('/ecommerce/inventory');
                             } else if(n.product_id) {
-                              navigate(`/ecommerce/product-studio/${n.product_id}`);
+                              navigate(`/product-studio/${n.product_id}`);
                             }
                             setShowNotifications(false);
                           }}
@@ -303,7 +303,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                     )}
                   </div>
                   <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
-                    <button onClick={() => { setShowNotifications(false); navigate('/ecommerce/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
+                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
                       Ver todas las notificaciones
                     </button>
                   </div>
@@ -428,7 +428,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               <button
                 onClick={() => {
                   const slug = localStorage.getItem('storeSlug');
-                  if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
+                  if (slug) window.open(`/${slug}`, '_blank');
                   else alert('No se encontró el enlace de tu tienda.');
                   setShowMoreDrawer(false);
                 }}
@@ -440,7 +440,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                 onClick={() => {
                   localStorage.removeItem('activeWorkspace');
                   localStorage.removeItem('storeSlug');
-                  navigate('/ecommerce/live');
+                  navigate('/');
                 }}
                 className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-semibold text-sm rounded-xl active:bg-slate-200 transition-colors"
               >

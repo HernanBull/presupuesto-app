@@ -744,10 +744,10 @@ export default function OrdersManager() {
           <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-8 relative group">
             {/* Genera la URL dinámicamente. */}
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
-              window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/ecommerce/picking'
+              window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/picking'
             }`} alt="QR Code" className="w-48 h-48 object-contain" />
             <a 
-              href="/ecommerce/picking" 
+              href="/picking" 
               target="_blank" 
               className="absolute inset-0 bg-black/60 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-sm"
             >

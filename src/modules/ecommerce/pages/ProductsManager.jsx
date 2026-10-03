@@ -72,9 +72,9 @@ export default function ProductsManager() {
 
   const openEditor = (product = null) => {
     if (product) {
-      navigate(`/ecommerce/product-studio/${product.id}`);
+      navigate(`/product-studio/${product.id}`);
     } else {
-      navigate('/ecommerce/product-studio');
+      navigate('/product-studio');
     }
   };
 

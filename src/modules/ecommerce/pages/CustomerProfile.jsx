@@ -154,7 +154,7 @@ export default function CustomerProfile() {
       });
       fetchOrders(parsed.email);
     } else {
-      navigate('/ecommerce/live');
+      navigate('/');
     }
 
     return () => {
@@ -538,7 +538,7 @@ export default function CustomerProfile() {
 
   const handleLogout = () => {
     localStorage.removeItem('ecommerce_current_customer');
-    navigate('/ecommerce/live');
+    navigate('/');
   };
   
   const submitRating = () => {
@@ -566,7 +566,7 @@ export default function CustomerProfile() {
       {/* Navbar Premium */}
       <nav className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/ecommerce/live')}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all">
               <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
@@ -575,7 +575,7 @@ export default function CustomerProfile() {
           
           <div className="flex items-center gap-2 sm:gap-6">
             <button 
-              onClick={() => navigate('/ecommerce/live')}
+              onClick={() => navigate('/')}
               className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors"
             >
               <ArrowLeft size={16} /> 
@@ -1024,7 +1024,7 @@ export default function CustomerProfile() {
                         <Package size={48} className="mx-auto text-zinc-600 mb-4" />
                         <h3 className="text-lg font-bold text-white">{orders.length > 0 ? "No hay pedidos con estos filtros" : "No tienes pedidos"}</h3>
                         <p className="text-zinc-500 text-sm mt-2">{orders.length > 0 ? "Prueba cambiando el estado o la fecha." : "Tus futuras compras aparecerán aquí."}</p>
-                        {orders.length === 0 && <button onClick={() => navigate('/ecommerce/live')} className="mt-6 px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
+                        {orders.length === 0 && <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
                       </div>
                     );
                   }
@@ -1180,7 +1180,7 @@ export default function CustomerProfile() {
                           <div className="flex items-center justify-between mt-4">
                             <span className="font-black text-amber-500 text-lg">${product.productPrice?.toFixed(2)}</span>
                             <button 
-                              onClick={() => navigate(`/ecommerce/live/${product.storeSlug}`)}
+                              onClick={() => navigate(`/${product.storeSlug}`)}
                               className="px-4 py-2 bg-amber-500 text-black rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all"
                             >
                               Ver Tienda
@@ -1209,7 +1209,7 @@ export default function CustomerProfile() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {parsedFavorites.map(store => (
-                      <div key={store.slug} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl flex items-center gap-4 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group cursor-pointer" onClick={() => navigate(`/ecommerce/live/${store.slug}`)}>
+                      <div key={store.slug} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl flex items-center gap-4 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group cursor-pointer" onClick={() => navigate(`/${store.slug}`)}>
                         <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center shadow-inner border border-amber-500/20">
                            <Store size={24} />
                         </div>

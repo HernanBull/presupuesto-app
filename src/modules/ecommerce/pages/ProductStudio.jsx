@@ -84,7 +84,7 @@ export default function ProductStudio() {
       const { error } = await query;
       
       if (!error) {
-        navigate('/ecommerce/products');
+        navigate('/products');
       } else {
         alert("Error al guardar el producto: " + error.message);
       }

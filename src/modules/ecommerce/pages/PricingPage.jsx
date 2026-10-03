@@ -9,7 +9,7 @@ export default function PricingPage() {
   const handleStartTrial = (planName) => {
     // Para simplificar, navegamos a la Landing y le indicamos que abra el registro de comercio
     // Puedes leer este state en MarketplaceDirectory si deseas pre-seleccionar el plan.
-    navigate('/ecommerce/live', { state: { openMerchantRegister: true, selectedPlan: planName } });
+    navigate('/', { state: { openMerchantRegister: true, selectedPlan: planName } });
   };
 
   return (
@@ -24,13 +24,13 @@ export default function PricingPage() {
       {/* Navbar Minimalista */}
       <nav className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5">
         <div className="max-w-[1200px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/ecommerce/live')}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)]">
               <Zap size={20} className="stroke-[2.5]" />
             </div>
             <span className="font-bold text-xl tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
-          <button onClick={() => navigate('/ecommerce/live')} className="text-sm font-bold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
+          <button onClick={() => navigate('/')} className="text-sm font-bold tracking-widest uppercase text-zinc-400 hover:text-white transition-colors">
             Volver al Inicio
           </button>
         </div>

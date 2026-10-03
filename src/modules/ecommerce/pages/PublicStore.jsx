@@ -1005,7 +1005,7 @@ export default function PublicStore() {
         <Store size={48} className="text-zinc-700 mb-2" />
         <h2 className="text-3xl text-zinc-300">Tienda no encontrada</h2>
         <p className="text-zinc-500">La URL ingresada no corresponde a ningún comercio.</p>
-        <button onClick={() => navigate('/ecommerce/live')} className="mt-4 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 transition-colors">Volver al Directorio</button>
+        <button onClick={() => navigate('/')} className="mt-4 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 transition-colors">Volver al Directorio</button>
       </div>
     );
   }
@@ -1250,7 +1250,7 @@ export default function PublicStore() {
           </div>
           
           <div className="flex items-center gap-6">
-             <button onClick={() => navigate('/ecommerce/live')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
+             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
                <ArrowLeft size={16} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
@@ -1447,7 +1447,7 @@ export default function PublicStore() {
                           {isMerchantOwner && (
                             <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
                               <button 
-                                onClick={(e) => { e.stopPropagation(); navigate(`/ecommerce/product-studio/${p.id}`); }}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
                                 className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
                               >
                                 <Pen size={14} /> Editar
@@ -1570,7 +1570,7 @@ export default function PublicStore() {
                     {isMerchantOwner && (
                       <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); navigate(`/ecommerce/product-studio/${p.id}`); }}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
                           className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
                         >
                           <Pen size={14} /> Editar
@@ -1702,7 +1702,7 @@ export default function PublicStore() {
                         {isMerchantOwner && (
                           <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); navigate(`/ecommerce/product-studio/${p.id}`); }}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
                               className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
                             >
                               <Pen size={14} /> Editar
@@ -2316,7 +2316,7 @@ export default function PublicStore() {
         
         <div className="space-y-3">
           <button 
-            onClick={() => navigate('/ecommerce/live/profile', { state: { tab: 'pedidos' } })}
+            onClick={() => navigate('/profile', { state: { tab: 'pedidos' } })}
             className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
           >
             Ver estado de mi pedido <ArrowRight size={18} />

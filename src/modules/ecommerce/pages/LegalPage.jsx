@@ -217,7 +217,7 @@ export default function LegalPage() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <p className="text-zinc-400 mb-4">Página legal no encontrada.</p>
-          <button onClick={() => navigate('/ecommerce/live')} className="text-amber-500 hover:underline">
+          <button onClick={() => navigate('/')} className="text-amber-500 hover:underline">
             Volver al inicio
           </button>
         </div>
@@ -270,7 +270,7 @@ export default function LegalPage() {
             {Object.entries(LEGAL_CONTENT).map(([key, val]) => (
               <Link
                 key={key}
-                to={`/ecommerce/legal/${key}`}
+                to={`/legal/${key}`}
                 className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 ${
                   tipo === key
                     ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
@@ -325,7 +325,7 @@ export default function LegalPage() {
             {Object.entries(LEGAL_CONTENT).map(([key, val]) => (
               <Link
                 key={key}
-                to={`/ecommerce/legal/${key}`}
+                to={`/legal/${key}`}
                 className={`text-xs transition-colors ${tipo === key ? 'text-amber-500 font-bold' : 'text-zinc-500 hover:text-white'}`}
               >
                 {val.title.split(' ').slice(0, 3).join(' ')}
@@ -333,7 +333,7 @@ export default function LegalPage() {
             ))}
           </div>
           <button
-            onClick={() => navigate('/ecommerce/live')}
+            onClick={() => navigate('/')}
             className="inline-flex items-center gap-2 text-xs text-zinc-500 hover:text-amber-500 transition-colors mt-2"
           >
             <ExternalLink size={12} />

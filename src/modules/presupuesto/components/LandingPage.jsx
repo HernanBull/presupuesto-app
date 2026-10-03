@@ -407,7 +407,7 @@ export function LandingPage({ onLoginClick }) {
             <Truck size={14} /> Delivery
          </a>
          <span className="w-1 h-1 rounded-full bg-white/20 hidden sm:block"></span>
-         <a href="/ecommerce/live" className="hover:text-amber-500 transition-all flex items-center gap-2">
+         <a href="/" className="hover:text-amber-500 transition-all flex items-center gap-2">
             <Store size={14} /> Action Market
          </a>
       </div>
@@ -491,7 +491,7 @@ export function LandingPage({ onLoginClick }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 
                 <div 
-                  onClick={() => window.location.href = '/ecommerce/live'}
+                  onClick={() => window.location.href = '/'}
                   className="group bg-zinc-950 border border-white/5 rounded-3xl p-8 cursor-pointer hover:bg-zinc-800 hover:border-amber-500/30 transition-all duration-500 flex flex-col items-center"
                 >
                   <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mb-6 group-hover:bg-amber-500/20 transition-colors">

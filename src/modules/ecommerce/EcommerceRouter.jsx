@@ -37,7 +37,7 @@ const MerchantGuard = () => {
   localStorage.removeItem('ecommerce_user');
 
   if (!isMerchantLogged) {
-    return <Navigate to="/ecommerce/live" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
@@ -287,10 +287,10 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
     <Routes>
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
-        <Route path="live/profile" element={<CustomerProfile />} />
-        <Route path="live/chats" element={<CustomerChatsPage />} />
-        <Route path="live/:slug" element={<PublicStore />} />
-        <Route path="live" element={<MarketplaceDirectory />} />
+        <Route path="profile" element={<CustomerProfile />} />
+        <Route path="chats" element={<CustomerChatsPage />} />
+        <Route path=":slug" element={<PublicStore />} />
+        <Route index element={<MarketplaceDirectory />} />
         <Route path="pricing" element={<PricingPage />} />
         <Route path="legal/:tipo" element={<LegalPage />} />
       </Route>

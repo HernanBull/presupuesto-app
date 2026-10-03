@@ -214,7 +214,7 @@ export default function MarketplaceDirectory() {
       if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
-        navigate(`/ecommerce/live/${pendingStoreSlug}`);
+        navigate(`/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
     } catch (err) {
@@ -246,7 +246,7 @@ export default function MarketplaceDirectory() {
       if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
-        navigate(`/ecommerce/live/${pendingStoreSlug}`);
+        navigate(`/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
     } catch (err) {
@@ -299,7 +299,7 @@ export default function MarketplaceDirectory() {
       if (!mappedUser.phone || !mappedUser.doc_id || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
-        navigate(`/ecommerce/live/${pendingStoreSlug}`);
+        navigate(`/${pendingStoreSlug}`);
         setPendingStoreSlug(null);
       }
     } catch (err) {
@@ -647,7 +647,7 @@ export default function MarketplaceDirectory() {
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3 mb-2" onClick={() => navigate('/ecommerce/live/profile')}>
+          <div className="flex items-center justify-between gap-3 mb-2" onClick={() => navigate('/profile')}>
             {/* IZQUIERDA: Avatar e Info */}
             <div className="flex items-center gap-3">
               {/* Avatar */}
@@ -747,7 +747,7 @@ export default function MarketplaceDirectory() {
              )}
              
              {currentCustomer ? (
-               <button onClick={() => navigate('/ecommerce/live/profile')} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full hover:bg-amber-500/20 transition-colors">
+               <button onClick={() => navigate('/profile')} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full hover:bg-amber-500/20 transition-colors">
                  <User size={16}/> <span>{currentCustomer.name}</span>
                </button>
              ) : (
@@ -845,7 +845,7 @@ export default function MarketplaceDirectory() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {/* Same filtered stores rendered as grid for desktop */}
             {filteredStores.map((store) => (
-              <div key={store.id} onClick={() => navigate(`/ecommerce/live/${store.store_slug}`)} className="bg-zinc-900 rounded-[1.5rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
+              <div key={store.id} onClick={() => navigate(`/${store.store_slug}`)} className="bg-zinc-900 rounded-[1.5rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
                   {/* Reuse horizontal card design for grid */}
                   <div className="h-40 w-full relative bg-zinc-950 overflow-hidden">
                     {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
@@ -906,9 +906,9 @@ export default function MarketplaceDirectory() {
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Plataforma</p>
               <div className="space-y-3">
-                <button onClick={() => navigate('/ecommerce/live')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Marketplace</button>
+                <button onClick={() => navigate('/')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Marketplace</button>
                 <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('register'); }} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
-                <button onClick={() => navigate('/ecommerce/pricing')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Planes y Precios</button>
+                <button onClick={() => navigate('/pricing')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Planes y Precios</button>
               </div>
             </div>
 
@@ -925,11 +925,11 @@ export default function MarketplaceDirectory() {
             <div>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Legal</p>
               <div className="space-y-3">
-                <button onClick={() => navigate('/ecommerce/legal/terminos')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos de Uso</button>
-                <button onClick={() => navigate('/ecommerce/legal/privacidad')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Privacidad</button>
-                <button onClick={() => navigate('/ecommerce/legal/cookies')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Cookies</button>
-                <button onClick={() => navigate('/ecommerce/legal/comerciantes')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
-                <button onClick={() => navigate('/ecommerce/legal/aviso')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Aviso Legal</button>
+                <button onClick={() => navigate('/legal/terminos')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos de Uso</button>
+                <button onClick={() => navigate('/legal/privacidad')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Privacidad</button>
+                <button onClick={() => navigate('/legal/cookies')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Cookies</button>
+                <button onClick={() => navigate('/legal/comerciantes')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
+                <button onClick={() => navigate('/legal/aviso')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Aviso Legal</button>
               </div>
             </div>
           </div>
@@ -941,11 +941,11 @@ export default function MarketplaceDirectory() {
 
             </p>
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/ecommerce/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Términos</button>
+              <button onClick={() => navigate('/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Términos</button>
               <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/ecommerce/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Privacidad</button>
+              <button onClick={() => navigate('/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Privacidad</button>
               <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/ecommerce/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Aviso Legal</button>
+              <button onClick={() => navigate('/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Aviso Legal</button>
             </div>
           </div>
         </div>
@@ -987,7 +987,7 @@ export default function MarketplaceDirectory() {
            </button>
 
            <button onClick={() => {
-              if(currentCustomer) navigate('/ecommerce/live/chats');
+              if(currentCustomer) navigate('/chats');
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
            }} className={`flex-1 flex flex-col items-center gap-1 p-2 transition-colors ${!currentCustomer ? 'text-amber-500' : 'text-zinc-500 hover:text-amber-500'}`}>
              <MessageSquare size={22} />
@@ -1062,7 +1062,7 @@ export default function MarketplaceDirectory() {
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => navigate(`/ecommerce/live/${storeSlug}`)} className="w-full mt-6 py-4 bg-white/5 text-white rounded-2xl text-xs font-bold tracking-[0.2em] uppercase border border-white/10 hover:bg-amber-500 hover:border-amber-500 hover:text-black hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-white/5 text-white rounded-2xl text-xs font-bold tracking-[0.2em] uppercase border border-white/10 hover:bg-amber-500 hover:border-amber-500 hover:text-black hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2">
                           Completar Pedido <ArrowRight size={14} />
                         </button>
                       </div>
@@ -1151,9 +1151,9 @@ export default function MarketplaceDirectory() {
                       />
                       <label htmlFor="buyer-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
                         He leído y acepto los{' '}
-                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/ecommerce/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
                         {' '}y la{' '}
-                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/ecommerce/legal/privacidad'); }} className="text-amber-500 hover:underline font-bold">Política de Privacidad</button>
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/privacidad'); }} className="text-amber-500 hover:underline font-bold">Política de Privacidad</button>
                         {' '}de AxonMarket.
                       </label>
                     </div>
@@ -1336,9 +1336,9 @@ export default function MarketplaceDirectory() {
                             />
                             <label htmlFor="merchant-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
                               He leído y acepto los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/ecommerce/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
                               {' '}y los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/ecommerce/legal/comerciantes'); }} className="text-amber-500 hover:underline font-bold">Términos para Comerciantes</button>.
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/comerciantes'); }} className="text-amber-500 hover:underline font-bold">Términos para Comerciantes</button>.
                             </label>
                           </div>
                             <GoogleLogin
@@ -1613,7 +1613,7 @@ export default function MarketplaceDirectory() {
           setCurrentCustomer(updatedCustomer);
           setIsWizardOpen(false);
           if (pendingStoreSlug) {
-            navigate(`/ecommerce/live/${pendingStoreSlug}`);
+            navigate(`/${pendingStoreSlug}`);
             setPendingStoreSlug(null);
           }
         }} 

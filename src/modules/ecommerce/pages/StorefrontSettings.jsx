@@ -115,8 +115,8 @@ export default function StorefrontSettings() {
         <div className="flex gap-3">
           <button onClick={() => {
               const slug = localStorage.getItem('storeSlug');
-              if (slug) window.open(`/ecommerce/live/${slug}`, '_blank');
-              else window.open('/ecommerce/live', '_blank');
+              if (slug) window.open(`/${slug}`, '_blank');
+              else window.open('/', '_blank');
             }} className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
             <Globe size={18} />
             Visitar Tienda
