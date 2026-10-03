@@ -221,7 +221,11 @@ export default function MarketplaceDirectory() {
       }
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Error al registrarse');
+      let errorMsg = err.message || 'Error al registrarse';
+      if (errorMsg.includes('For security purposes, you can only request this after')) {
+        errorMsg = 'Por seguridad anti-spam, debes esperar 1 minuto antes de volver a intentarlo.';
+      }
+      alert(errorMsg);
     }
   };
 
@@ -464,6 +468,8 @@ export default function MarketplaceDirectory() {
       console.error(err);
       if (err.message && err.message.includes('Error sending confirmation email')) {
         alert('Se creó el usuario pero falló el envío del email de confirmación. Revisa tu dominio verificado en Resend o desactiva "Confirm Email" en Supabase.');
+      } else if (err.message && err.message.includes('For security purposes, you can only request this after')) {
+        alert('Por seguridad anti-spam, debes esperar 1 minuto antes de volver a intentarlo.');
       } else {
         alert(err.message || 'Error de conexión');
       }
