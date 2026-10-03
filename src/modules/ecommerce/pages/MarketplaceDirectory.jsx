@@ -1349,7 +1349,6 @@ export default function MarketplaceDirectory() {
                               size="large"
                               width="100%"
                             />
-                          </div>
                         </motion.div>
                       )}
                       
