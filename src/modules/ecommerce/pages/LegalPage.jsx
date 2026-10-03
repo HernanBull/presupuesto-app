@@ -70,7 +70,7 @@ const getLegalContent = () => ({
       },
       {
         heading: '5. Compartición de Datos con Terceros',
-        content: `AxonMarket puede compartir sus datos personales con:\n\n• Comerciantes de la Plataforma: únicamente los datos necesarios para procesar su pedido (nombre, dirección de entrega, teléfono de contacto).\n• Proveedores de servicios tecnológicos: como Supabase (base de datos segura) y servicios de autenticación, bajo acuerdos de confidencialidad estrictos.\n\nAxonMarket NO vende, alquila ni comercializa sus datos personales a terceros con fines publicitarios.`
+        content: `AxonMarket puede compartir sus datos personales con:\n\n• Comerciantes de la Plataforma: únicamente los datos necesarios para procesar su pedido (nombre, dirección de entrega, teléfono de contacto).\n• Proveedores de servicios tecnológicos: proveedores de infraestructura en la nube y servicios de autenticación, bajo acuerdos de confidencialidad estrictos.\n\nAxonMarket NO vende, alquila ni comercializa sus datos personales a terceros con fines publicitarios.`
       },
       {
         heading: '6. Derechos del Usuario sobre sus Datos',
@@ -101,7 +101,7 @@ const getLegalContent = () => ({
       },
       {
         heading: '2. Datos que Almacenamos en su Dispositivo',
-        content: `AxonMarket almacena la siguiente información en su dispositivo:\n\n• Sesión de autenticación de Supabase: datos cifrados de su sesión activa (necesario para mantenerlo conectado).\n• ecommerce_current_customer: información básica de su perfil de cliente para evitar cargarlo repetidamente del servidor.\n• activeWorkspace / storeSlug: identificador de la tienda activa (solo para Comerciantes).\n• axon_pwa_banner_dismissed_until: fecha hasta la que no se mostrará el banner de instalación de la app.\n• Carrito de compras temporal: los productos que ha seleccionado se guardan localmente para preservar su selección.`
+        content: `AxonMarket almacena la siguiente información en su dispositivo:\n\n• Sesión de autenticación: datos cifrados de su sesión activa (necesario para mantenerlo conectado).\n• ecommerce_current_customer: información básica de su perfil de cliente para evitar cargarlo repetidamente del servidor.\n• activeWorkspace / storeSlug: identificador de la tienda activa (solo para Comerciantes).\n• axon_pwa_banner_dismissed_until: fecha hasta la que no se mostrará el banner de instalación de la app.\n• Carrito de compras temporal: los productos que ha seleccionado se guardan localmente para preservar su selección.`
       },
       {
         heading: '3. Clasificación por Tipo y Propósito',
@@ -109,7 +109,7 @@ const getLegalContent = () => ({
       },
       {
         heading: '4. Servicios de Terceros',
-        content: `AxonMarket puede integrar servicios de terceros que establecen sus propias cookies:\n\n• Google (autenticación con Google): gestiona el proceso de inicio de sesión con su cuenta Google. Consulte la Política de Privacidad de Google.\n• Supabase: plataforma de base de datos que gestiona tokens de autenticación seguros.`
+        content: `AxonMarket puede integrar servicios de terceros que establecen sus propias cookies:\n\n• Proveedores de Identidad (ej. inicio de sesión único): gestionan el proceso de inicio de sesión de forma segura. Consulte la Política de Privacidad del proveedor correspondiente.\n• Proveedores de Infraestructura: plataformas seguras que gestionan la base de datos y los tokens de sesión de la aplicación.`
       },
       {
         heading: '5. Control de sus Datos de Almacenamiento',
