@@ -272,9 +272,18 @@ export default function MarketplaceDirectory() {
       
       let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).maybeSingle();
       
-      let isNewUser = false;
-      if (!user) {
-        isNewUser = true;
+      if (authMode === 'login') {
+        if (!user) {
+          alert('No tienes una cuenta registrada con este correo. Por favor, regístrate primero.');
+          setAuthMode('register');
+          return;
+        }
+      } else if (authMode === 'register') {
+        if (user) {
+          alert('Este correo ya está registrado. Por favor, inicia sesión.');
+          setAuthMode('login');
+          return;
+        }
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
         const newUser = {
           id,
@@ -298,7 +307,7 @@ export default function MarketplaceDirectory() {
       setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
       
-      if (isNewUser) {
+      if (authMode === 'register') {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
         navigate(`/${pendingStoreSlug}`);
@@ -328,7 +337,7 @@ export default function MarketplaceDirectory() {
       localStorage.setItem('storeSlug', wsData.store_slug || '');
       
       setTimeout(() => {
-        navigate('/ecommerce');
+        navigate('/dashboard');
       }, 500);
     } catch (err) {
       console.error(err);
@@ -353,18 +362,26 @@ export default function MarketplaceDirectory() {
           .eq('config->>adminEmail', payload.email)
           .maybeSingle();
 
-        if (wsData) {
-          // Ya existe, Iniciar Sesión Directamente
-          localStorage.setItem('activeWorkspace', wsData.id);
-          localStorage.setItem('storeSlug', wsData.store_slug || '');
-          setTimeout(() => {
-            navigate('/');
-          }, 500);
-        } else {
-          // No existe, Registrar nueva tienda
-          const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
-          setMerchantForm({ ...merchantForm, email: payload.email, password: randomPassword });
-          setMerchantRegStep(2);
+        if (merchantAuthMode === 'login') {
+          if (wsData) {
+            localStorage.setItem('activeWorkspace', wsData.id);
+            localStorage.setItem('storeSlug', wsData.store_slug || '');
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 500);
+          } else {
+            alert('No se encontró una tienda asociada a este correo de Google. Por favor, crea tu tienda primero.');
+            setMerchantAuthMode('register');
+          }
+        } else if (merchantAuthMode === 'register') {
+          if (wsData) {
+            alert('Ya existe una tienda con este correo de Google. Por favor, inicia sesión.');
+            setMerchantAuthMode('login');
+          } else {
+            const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
+            setMerchantForm({ ...merchantForm, email: payload.email, password: randomPassword });
+            setMerchantRegStep(2);
+          }
         }
       }
     } catch (err) {
@@ -530,7 +547,7 @@ export default function MarketplaceDirectory() {
       setMerchantLoading(false);
 
       setTimeout(() => {
-        navigate('/ecommerce');
+        navigate('/dashboard');
       }, 3500);
     } catch (err) {
       console.error(err);
@@ -1614,6 +1631,24 @@ export default function MarketplaceDirectory() {
                           <>Acceder al ERP <ArrowRight size={16} /></>
                         )}
                       </button>
+
+                      <div className="relative py-2 mt-4">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-zinc-800"></div>
+                        </div>
+                        <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                          <span className="bg-zinc-950 px-2 text-zinc-500">o continúa con</span>
+                        </div>
+                      </div>
+
+                      <GoogleLogin
+                        onSuccess={handleGoogleMerchantSuccess}
+                        onError={() => { alert('Fallo al conectar con Google'); }}
+                        theme="filled_black"
+                        shape="pill"
+                        size="large"
+                        width="100%"
+                      />
                     </>
                   )}
                 </form>

@@ -1152,7 +1152,7 @@ export default function PublicStore() {
             <span>Modo Administrador Activo - Estás viendo tu tienda</span>
           </div>
           <button 
-            onClick={() => navigate('/ecommerce')} 
+            onClick={() => navigate('/dashboard')} 
             className="bg-black/90 text-amber-500 px-4 py-1.5 rounded-full hover:bg-black transition-colors flex items-center gap-2 shadow-sm"
           >
              <LayoutTemplate size={12} /> Volver al Panel

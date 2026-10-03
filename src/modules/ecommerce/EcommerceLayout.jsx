@@ -94,10 +94,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   }, [theme]);
 
   const navItems = [
-    { name: 'Dashboard', path: '/ecommerce', icon: LayoutDashboard, exact: true },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
     { name: 'Analítica', path: '/analytics', icon: BarChart3 },
     { name: 'Productos', path: '/products', icon: ShoppingBag },
-    { name: 'Inventario', path: '/ecommerce/inventory', icon: PackageSearch },
+    { name: 'Inventario', path: '/inventory', icon: PackageSearch },
     { name: 'Pedidos', path: '/orders', icon: ShoppingCart },
     { name: 'Soporte', path: '/support', icon: LifeBuoy },
     { name: 'Preparación', path: '/preparation', icon: Box },
@@ -216,7 +216,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                       onClick={() => {
                         markAsRead(n.id);
                         if(n.type === 'stock_alert') {
-                          navigate('/ecommerce/inventory');
+                          navigate('/inventory');
                         } else if(n.product_id) {
                           navigate(`/product-studio/${n.product_id}`);
                         }
@@ -277,7 +277,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                           onClick={() => {
                             markAsRead(n.id);
                             if(n.type === 'stock_alert') {
-                              navigate('/ecommerce/inventory');
+                              navigate('/inventory');
                             } else if(n.product_id) {
                               navigate(`/product-studio/${n.product_id}`);
                             }

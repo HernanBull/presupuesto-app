@@ -261,7 +261,7 @@ export default function EcommerceDashboard() {
                    <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1 mb-3">
                      {lowStockCount} producto(s) están por agotarse en la vitrina.
                    </p>
-                   <button onClick={() => navigate('/ecommerce/inventory')} className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+                   <button onClick={() => navigate('/inventory')} className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
                      Revisar inventario
                    </button>
                  </div>

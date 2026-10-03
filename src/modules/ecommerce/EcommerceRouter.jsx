@@ -302,7 +302,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route element={<EcommerceLayout theme={theme} toggleTheme={toggleTheme} />}>
           {/* Rutas Protegidas por PIN */}
           <Route element={<AdminGuard />}>
-            <Route index element={<EcommerceDashboard />} />
+            <Route path="dashboard" element={<EcommerceDashboard />} />
             <Route path="analytics" element={<AnalyticsManager />} />
             <Route path="store-profile" element={<StoreProfileManager />} />
           </Route>
