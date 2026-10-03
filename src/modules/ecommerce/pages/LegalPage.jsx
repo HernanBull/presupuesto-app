@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Shield, FileText, Cookie, Store, Info, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const LEGAL_CONTENT = {
+const getLegalContent = () => ({
   terminos: {
     icon: <FileText size={28} />,
     title: 'Términos y Condiciones de Uso',
@@ -199,12 +199,13 @@ const LEGAL_CONTENT = {
       }
     ]
   }
-};
+});
 
 export default function LegalPage() {
   const { tipo } = useParams();
   const navigate = useNavigate();
 
+  const LEGAL_CONTENT = getLegalContent();
   const content = LEGAL_CONTENT[tipo];
 
   useEffect(() => {
