@@ -309,6 +309,12 @@ export default function SuperAdminDashboard({ superKey }) {
     if (confirmText.trim().toUpperCase() !== 'ELIMINAR') return;
     setIsActionLoading(true);
     try {
+      // 1. Borrar cuenta real en auth.users mediante Edge Function
+      await supabase.functions.invoke('delete-user', { 
+        body: { userId: itemToDelete.id } 
+      });
+
+      // 2. Borrar datos en las tablas públicas
       if (itemToDelete.type === 'merchant') {
         await supabase.from('ecommerce_products').delete().eq('workspace_id', itemToDelete.id);
         const { error } = await supabase.from('workspaces').delete().eq('id', itemToDelete.id);
