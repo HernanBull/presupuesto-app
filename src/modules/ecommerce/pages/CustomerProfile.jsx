@@ -374,6 +374,9 @@ export default function CustomerProfile() {
         };
         await supabase.from('ecommerce_customers').update(fallback).eq('id', currentCustomer.id);
       }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleAddPaymentProfile = async (e) => {
