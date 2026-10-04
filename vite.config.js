@@ -3,9 +3,28 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+import fs from 'fs'
+import path from 'path'
+
+const generateVersionFile = () => {
+  return {
+    name: 'generate-version-file',
+    writeBundle() {
+      const version = Date.now().toString()
+      const versionInfo = { version }
+      fs.writeFileSync(
+        path.resolve(__dirname, 'dist', 'version.json'),
+        JSON.stringify(versionInfo, null, 2)
+      )
+      console.log('Version file generated with version:', version)
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    generateVersionFile(),
     tailwindcss(),
     react(),
     VitePWA({
