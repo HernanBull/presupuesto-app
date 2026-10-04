@@ -698,9 +698,9 @@ export default function MarketplaceDirectory() {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
       
-      alert('Se ha enviado un enlace a tu correo electrónico para restablecer tu contraseña.');
-      if (type === 'customer') setAuthMode('login');
-      else setMerchantAuthMode('login');
+      alert('Se ha enviado un código de 6 dígitos a tu correo electrónico para restablecer tu contraseña.');
+      if (type === 'customer') setAuthMode('reset');
+      else setMerchantAuthMode('reset');
     } catch (err) {
       alert(err.message || 'Error al solicitar recuperación');
     }
@@ -708,17 +708,35 @@ export default function MarketplaceDirectory() {
 
   const handleResetPassword = async (e, type) => {
     e.preventDefault();
+    const email = type === 'customer' ? authForm.email : merchantForm.email;
+    
+    if (!recoveryCode || !newPassword) {
+      return alert('Por favor ingresa el código y la nueva contraseña.');
+    }
+    
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
+      // Paso 1: Verificar el código OTP
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: recoveryCode,
+        type: 'recovery'
+      });
+      if (verifyError) throw verifyError;
+
+      // Paso 2: Actualizar la contraseña ahora que estamos autenticados por la recuperación
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
       
-      alert('Contraseña actualizada con éxito');
+      alert('Contraseña actualizada con éxito. Por favor inicia sesión.');
       setRecoveryCode('');
       setNewPassword('');
+      // Desloguearse para forzar el inicio de sesión limpio con la nueva clave
+      await supabase.auth.signOut();
+
       if (type === 'customer') setAuthMode('login');
       else setMerchantAuthMode('login');
     } catch (err) {
-      alert(err.message || 'Error al restablecer');
+      alert(err.message || 'Error al restablecer la contraseña. Verifica que el código sea correcto y no haya expirado.');
     }
   };
 
