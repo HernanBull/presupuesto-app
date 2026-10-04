@@ -147,6 +147,11 @@ export default function PublicStore() {
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
+      if (parsed.profilePic && !parsed.profile_pic) {
+        parsed.profile_pic = parsed.profilePic;
+        delete parsed.profilePic;
+        localStorage.setItem('ecommerce_current_customer', JSON.stringify(parsed));
+      }
       setCurrentCustomer(parsed);
       if (!parsed.phone || (!parsed.docId && !parsed.doc_id) || !parsed.address || !parsed.name || parsed.name === parsed.email.split('@')[0] || parsed.name === parsed.email) {
         setIsWizardOpen(true);

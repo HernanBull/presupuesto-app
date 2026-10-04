@@ -187,6 +187,11 @@ export default function MarketplaceDirectory() {
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
+      if (parsed.profilePic && !parsed.profile_pic) {
+        parsed.profile_pic = parsed.profilePic;
+        delete parsed.profilePic;
+        localStorage.setItem('ecommerce_current_customer', JSON.stringify(parsed));
+      }
       setCurrentCustomer(parsed);
       if (!parsed.phone || (!parsed.docId && !parsed.doc_id) || !parsed.address || !parsed.name || parsed.name === parsed.email.split('@')[0] || parsed.name === parsed.email) {
         setIsWizardOpen(true);
@@ -281,7 +286,7 @@ export default function MarketplaceDirectory() {
         
       if (error && error.code !== 'PGRST116') throw error;
 
-      const user = customerData ? { ...customerData, docId: customerData.doc_id, profilePic: customerData.profile_pic, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
+      const user = customerData ? { ...customerData, docId: customerData.doc_id, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
       
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');

@@ -40,7 +40,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     payment_phone: '',
     payment_cedula: '',
     payment_titular: '',
-    profile_picture: ''
+    profile_pic: ''
   });
   
   const [imageFile, setImageFile] = useState(null);
@@ -80,7 +80,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         payment_phone: paymentProfile.phone || '',
         payment_cedula: paymentProfile.cedula || '',
         payment_titular: paymentProfile.titular || '',
-        profile_picture: customer.profile_picture || ''
+        profile_pic: customer.profile_pic || ''
       });
       setStep(0);
     }
@@ -106,7 +106,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     } else {
       setIsSubmitting(true);
       try {
-        let pictureUrl = formData.profile_picture;
+        let pictureUrl = formData.profile_pic;
         
         // Upload picture if selected
         if (imageFile) {
@@ -383,8 +383,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                     <div className="flex flex-col items-center justify-center">
                       <label className="w-32 h-32 rounded-full border-2 border-dashed border-zinc-600 flex items-center justify-center cursor-pointer hover:border-pink-500 transition-colors overflow-hidden relative group">
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                        {imagePreview || formData.profile_picture ? (
-                           <img src={imagePreview || formData.profile_picture} alt="Perfil" className="w-full h-full object-cover" />
+                        {imagePreview || formData.profile_pic ? (
+                           <img src={imagePreview || formData.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
                         ) : (
                            <User size={40} className="text-zinc-600 group-hover:text-pink-500 transition-colors" />
                         )}

@@ -26,7 +26,7 @@ export default function CustomerProfile() {
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ 
-    name: '', docId: '', phone: '', address: '', profilePic: '' 
+    name: '', docId: '', phone: '', address: '', profile_pic: '' 
   });
   const [paymentProfiles, setPaymentProfiles] = useState([]);
   const [isAddingPayment, setIsAddingPayment] = useState(false);
@@ -169,6 +169,13 @@ export default function CustomerProfile() {
       if (!pProfile) pProfile = [];
       parsed.payment_profile = pProfile;
       
+      // Phase 4: Migrate old profilePic to profile_pic if it exists
+      if (parsed.profilePic && !parsed.profile_pic) {
+        parsed.profile_pic = parsed.profilePic;
+        delete parsed.profilePic;
+        localStorage.setItem('ecommerce_current_customer', JSON.stringify(parsed));
+      }
+      
       setCurrentCustomer(parsed);
       setPaymentProfiles(pProfile);
       setProfileForm({
@@ -176,7 +183,7 @@ export default function CustomerProfile() {
         docId: parsed.docId || '',
         phone: parsed.phone || '',
         address: parsed.address || '',
-        profilePic: parsed.profilePic || ''
+        profile_pic: parsed.profile_pic || ''
       });
       fetchOrders(parsed.email);
     } else {
@@ -387,7 +394,7 @@ export default function CustomerProfile() {
         address: newUser.address,
         wishlist: newUser.wishlist,
         payment_profile: newUser.payment_profile,
-        profile_pic: newUser.profilePic,
+        profile_pic: newUser.profile_pic,
         favorites: newUser.favorites,
         addresses: newUser.addresses
       };
@@ -485,8 +492,8 @@ export default function CustomerProfile() {
         const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
         const publicUrl = data.publicUrl;
 
-        await updateCustomerData({ profilePic: publicUrl });
-        setProfileForm(prev => ({ ...prev, profilePic: publicUrl }));
+        await updateCustomerData({ profile_pic: publicUrl });
+        setProfileForm(prev => ({ ...prev, profile_pic: publicUrl }));
         alert("¡Foto de perfil actualizada!");
       } catch (err) {
         console.error(err);
@@ -660,8 +667,8 @@ export default function CustomerProfile() {
              <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay z-10 pointer-events-none"></div>
              {isUploadingPhoto ? (
                <Loader2 size={32} className="animate-spin text-amber-500 z-30" />
-             ) : (currentCustomer.profilePic || currentCustomer.profile_pic) ? (
-               <img src={currentCustomer.profilePic || currentCustomer.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
+             ) : currentCustomer.profile_pic ? (
+               <img src={currentCustomer.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
              ) : (
                <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
              )}
