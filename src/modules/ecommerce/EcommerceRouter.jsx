@@ -27,6 +27,7 @@ import CustomerProfile from './pages/CustomerProfile';
 import CustomerChatsPage from './pages/CustomerChatsPage';
 import OrderPreparation from './pages/OrderPreparation';
 import LegalPage from './pages/LegalPage';
+import AuthCallback from './pages/AuthCallback';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -285,6 +286,8 @@ const AdminGuard = () => {
 export default function EcommerceRouter({ theme, toggleTheme }) {
   return (
     <Routes>
+      <Route path="auth/callback" element={<AuthCallback />} />
+      
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
         <Route path="profile" element={<CustomerProfile />} />

@@ -21,7 +21,7 @@ const resolveImageUrl = (url) => {
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
-const PasswordRequirements = ({ password }) => {
+const PasswordRequirements = ({ password = '' }) => {
   const reqs = [
     { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
     { label: 'Una mayúscula', met: /[A-Z]/.test(password) },
@@ -29,13 +29,13 @@ const PasswordRequirements = ({ password }) => {
     { label: 'Un número', met: /[0-9]/.test(password) },
     { label: 'Un carácter especial (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
   ];
-  if (!password) return null;
+  
   return (
     <div className="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
       {reqs.map((req, i) => (
         <div key={i} className="flex items-center gap-2">
-          {req.met ? <CheckCircle size={14} className="text-emerald-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
-          <span className={`text-[10px] font-medium ${req.met ? 'text-emerald-500' : 'text-zinc-500'}`}>{req.label}</span>
+          {req.met ? <CheckCircle size={14} className="text-amber-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
+          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-500'}`}>{req.label}</span>
         </div>
       ))}
     </div>

@@ -68,7 +68,7 @@ export default function CustomerProfile() {
         type: 'signup',
         email: currentCustomer.email,
         options: {
-          emailRedirectTo: window.location.origin + '/perfil'
+          emailRedirectTo: window.location.origin + '/auth/callback'
         }
       });
       if (error) throw error;
@@ -131,6 +131,29 @@ export default function CustomerProfile() {
     };
     checkSession();
 
+    let pollInterval;
+    const startPolling = () => {
+      pollInterval = setInterval(async () => {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error || !session) return;
+          // Forzar refresh de la sesión para obtener los datos actualizados de Supabase
+          const { data, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && data.user && data.user.email_confirmed_at) {
+            setIsEmailConfirmed(true);
+            clearInterval(pollInterval);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }, 5000);
+    };
+    
+    // Iniciar polling solo si no se sabe todavía o si checkSession inicial da false.
+    // Lo más seguro es iniciarlo y si en el checkSession se confirma, lo limpiamos, o depender de isEmailConfirmed.
+    // Usaremos un timer simple que se limpia on unmount.
+    startPolling();
+
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
@@ -161,6 +184,7 @@ export default function CustomerProfile() {
     }
 
     return () => {
+      if (pollInterval) clearInterval(pollInterval);
       authListener?.subscription?.unsubscribe();
     };
   }, [navigate]);

@@ -12,10 +12,15 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await req.json()
+    const { userId, superKey } = await req.json()
 
     if (!userId) {
       throw new Error("El campo 'userId' es obligatorio.")
+    }
+
+    const EXPECTED_KEY = Deno.env.get('SUPERADMIN_KEY') || 'cac2003';
+    if (superKey !== EXPECTED_KEY) {
+      throw new Error("No autorizado. SuperKey inválida.")
     }
 
     // Create a Supabase client with the Service Role key

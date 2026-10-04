@@ -6,7 +6,7 @@ export const registerUser = async (email, password, metadata = {}) => {
     password,
     options: { 
       data: metadata,
-      emailRedirectTo: window.location.origin + '/perfil'
+      emailRedirectTo: window.location.origin + '/auth/callback'
     }
   });
   if (error) throw error;

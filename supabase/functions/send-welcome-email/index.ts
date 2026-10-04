@@ -36,7 +36,29 @@ serve(async (req) => {
               <!-- Header -->
               <tr>
                 <td align="center" style="padding: 40px; border-bottom: 1px solid #222222;">
-                  <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 2px;">AXON<span style="color: #f59e0b; font-weight: 300;">MARKET</span></h1>
+                  <table cellpadding="0" cellspacing="0" style="margin: 0 auto; display: inline-block;">
+                    <tr>
+                      <td valign="middle" style="padding-right: 16px;">
+                        <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect width="42" height="42" rx="12" fill="url(#paint0_linear)"/>
+                          <g transform="translate(10, 10) scale(0.9)" stroke="#000000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M16 10a4 4 0 0 1-8 0" />
+                          </g>
+                          <defs>
+                            <linearGradient id="paint0_linear" x1="0" y1="0" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+                              <stop stop-color="#fbbf24"/>
+                              <stop offset="1" stop-color="#d97706"/>
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                      </td>
+                      <td valign="middle">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 32px; letter-spacing: 2px;">AXON<span style="color: #f59e0b; font-weight: 300;">MARKET</span></h1>
+                      </td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
               

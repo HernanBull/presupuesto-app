@@ -263,6 +263,17 @@ export default function PublicStore() {
       setIsCartOpen(false);
       return;
     }
+
+    // Bloqueo de compras para correos no verificados
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && !user.email_confirmed_at) {
+        alert("Tu correo electrónico no ha sido verificado. Debes verificarlo desde tu perfil o revisando tu bandeja de entrada antes de poder realizar compras.");
+        return;
+      }
+    } catch (e) {
+      console.error("Error verificando estado del correo:", e);
+    }
     if (!selectedPaymentMethod) {
       alert("Por favor selecciona un método de pago");
       return;
@@ -665,6 +676,18 @@ export default function PublicStore() {
       setIsWizardOpen(true);
       return;
     }
+
+    // Bloqueo estricto: Verificar confirmación de correo antes de añadir al carrito
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && !user.email_confirmed_at) {
+        alert("Para añadir productos al carrito y comprar, primero debes verificar tu correo electrónico. Por favor, revisa tu bandeja de entrada o verifica desde tu perfil.");
+        return;
+      }
+    } catch (e) {
+      console.error("Error verificando estado del correo:", e);
+    }
+
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
