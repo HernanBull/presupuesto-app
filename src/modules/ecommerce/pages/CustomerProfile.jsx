@@ -19,10 +19,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: shadowUrl,
 });
 
+import ProfileWizardModal from '../components/ProfileWizardModal';
+
 export default function CustomerProfile() {
   const navigate = useNavigate();
   const location = useLocation();
   const [currentCustomer, setCurrentCustomer] = useState(null);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ 
@@ -186,6 +189,12 @@ export default function CustomerProfile() {
         profile_pic: parsed.profile_pic || ''
       });
       fetchOrders(parsed.email);
+
+      // Check if profile is incomplete and show wizard
+      const isProfileIncomplete = !parsed.docId || !parsed.name || !parsed.phone || !parsed.addresses || parsed.addresses.length === 0 || !parsed.payment_profile || parsed.payment_profile.length === 0 || !parsed.profile_pic;
+      if (isProfileIncomplete) {
+        setIsWizardOpen(true);
+      }
     } else {
       navigate('/');
     }
@@ -848,7 +857,7 @@ export default function CustomerProfile() {
                     
                     <div className="pt-6 flex gap-4 border-t border-white/10 mt-6">
                       <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancelar</button>
-                      <button type="submit" disabled={!profileForm.legalAccepted} className="px-8 py-3 bg-amber-500 text-black rounded-xl font-bold hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)]">Guardar Cambios</button>
+                      <button type="submit" className="px-8 py-3 bg-amber-500 text-black rounded-xl font-bold hover:bg-amber-400 transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)]">Guardar Cambios</button>
                     </div>
                   </form>
                 )}
@@ -1514,6 +1523,29 @@ export default function CustomerProfile() {
           </motion.div>
         </div>
       )}
+
+      {/* Profile Wizard Modal */}
+      <ProfileWizardModal 
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        customer={currentCustomer}
+        canClose={false}
+        onComplete={(updatedCustomer) => {
+          setCurrentCustomer(updatedCustomer);
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
+          
+          setPaymentProfiles(updatedCustomer.payment_profile || []);
+          setProfileForm({
+            name: updatedCustomer.name || '',
+            docId: updatedCustomer.docId || '',
+            phone: updatedCustomer.phone || '',
+            address: updatedCustomer.address || '',
+            profile_pic: updatedCustomer.profile_pic || ''
+          });
+          
+          setIsWizardOpen(false);
+        }}
+      />
     </div>
   );
 }
