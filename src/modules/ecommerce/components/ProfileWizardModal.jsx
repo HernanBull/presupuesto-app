@@ -92,7 +92,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     // Validate current step
     if (step === 0 && (!formData.name || !formData.docId || !formData.phone)) return alert('Completa los datos personales');
     if (step === 1 && (!formData.payment_bank || !formData.payment_phone || !formData.payment_cedula || !formData.payment_titular)) return alert('Completa los datos de pago móvil');
-    if (step === 2 && !formData.addressDetail) return alert('Ingresa tu dirección de entrega');
+    if (step === 2 && (!formData.addressSector || !formData.addressDetail)) return alert('Ingresa tu sector y dirección exacta de entrega');
 
     if (step < 3) {
       if (step === 0) {
@@ -104,6 +104,10 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       }
       setStep(step + 1);
     } else {
+      if (!imageFile && !formData.profile_pic) {
+        alert('Debes subir una foto de perfil obligatoriamente para identificarte al momento de la entrega.');
+        return;
+      }
       setIsSubmitting(true);
       try {
         let pictureUrl = formData.profile_pic;
