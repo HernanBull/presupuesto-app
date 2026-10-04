@@ -478,9 +478,31 @@ export default function MarketplaceDirectory() {
     if (merchantForm.email && merchantForm.password) setMerchantRegStep(2);
   };
 
-  const handleMerchantRegisterStep2 = (e) => {
+  const handleMerchantRegisterStep2 = async (e) => {
     e.preventDefault();
-    if (merchantForm.businessName && merchantForm.ownerName && merchantForm.contactPhone && merchantForm.contactEmail) setMerchantRegStep(3);
+    if (merchantForm.businessName && merchantForm.ownerName && merchantForm.contactPhone && merchantForm.contactEmail) {
+      setMerchantLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('workspaces')
+          .select('name')
+          .ilike('name', merchantForm.businessName.trim());
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          alert('Este nombre de negocio ya está registrado por otro comerciante. Por favor, elige uno diferente.');
+          setMerchantLoading(false);
+          return;
+        }
+        
+        setMerchantRegStep(3);
+      } catch (err) {
+        console.error('Error verificando nombre del negocio:', err);
+        alert('Hubo un error verificando la disponibilidad del nombre. Por favor intenta de nuevo.');
+      }
+      setMerchantLoading(false);
+    }
   };
 
   const handleMerchantRegisterStep3 = (e) => {
