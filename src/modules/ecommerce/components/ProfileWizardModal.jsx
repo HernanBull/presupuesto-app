@@ -367,26 +367,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                       <div className="p-3 bg-orange-500/10 text-orange-400 rounded-xl"><MapPin size={24} /></div>
                       <h3 className="text-xl font-bold text-white">Libreta de Direcciones</h3>
                     </div>
-                    {isMobile && (
-                      <button onClick={handleDetectLocation} disabled={isDetectingLocation} className="w-full mb-4 bg-orange-500/20 text-orange-400 py-3 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-orange-500/30 transition-colors">
-                        {isDetectingLocation ? <Loader2 size={18} className="animate-spin"/> : <Navigation size={18}/>}
-                        Detectar Ubicación (GPS)
-                      </button>
-                    )}
                     
-                    <p className="text-zinc-400 text-xs mb-4">Puedes tocar el mapa para ajustar el punto exacto de entrega.</p>
-                    <div className="w-full h-48 rounded-xl overflow-hidden mb-4 border border-white/10 z-0 relative">
-                      <MapContainer center={[formData.lat, formData.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
-                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-                        <LocationPickerMarker 
-                          position={[formData.lat, formData.lng]} 
-                          setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
-                          setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
-                        />
-                      </MapContainer>
-                    </div>
-
-                    <div className="space-y-4">
+                    <div className="space-y-4 mb-6">
                       <div>
                         <label className="block text-xs font-bold text-zinc-400 mb-1">Urbanización / Zona</label>
                         <select 
@@ -431,12 +413,57 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-zinc-400 mb-1">Calle / Casa / Piso <span className="font-normal text-zinc-500">(Opcional con GPS)</span></label>
-                        <textarea 
+                        <input 
+                          type="text"
                           placeholder="Ej. Calle 4, Casa 12" 
                           value={formData.addressDetail}
                           onChange={e => setFormData({...formData, addressDetail: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500 h-24 resize-none"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500"
                         />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex flex-col sm:flex-row gap-3 items-end">
+                        <div className="flex-1 w-full space-y-2">
+                          <label className="text-xs font-bold text-zinc-400 mb-2">Punto GPS (Opcional)</label>
+                          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between h-[52px]">
+                             {formData.lat && formData.lng ? (
+                               <span className="font-mono text-sm text-amber-500">
+                                 {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)}
+                               </span>
+                             ) : (
+                               <span className="text-sm text-zinc-600 italic">No fijado en el mapa</span>
+                             )}
+                          </div>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={handleDetectLocation}
+                          disabled={isDetectingLocation}
+                          className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 h-[52px]"
+                        >
+                          {isDetectingLocation ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
+                          Usar GPS
+                        </button>
+                      </div>
+                      
+                      <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 relative z-0">
+                        <MapContainer 
+                          center={[formData.lat, formData.lng]} 
+                          zoom={15} 
+                          style={{ height: '100%', width: '100%' }}
+                        >
+                          <TileLayer 
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                          />
+                          <LocationPickerMarker 
+                            position={[formData.lat, formData.lng]} 
+                            setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
+                            setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
+                          />
+                        </MapContainer>
                       </div>
                     </div>
                   </motion.div>
