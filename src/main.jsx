@@ -38,8 +38,11 @@ const checkVersion = async () => {
           }
         }
         
-        // 3. Force Hard Reload
-        window.location.reload(true);
+        // 3. Force Hard Reload safely for PWAs
+        document.body.innerHTML = '<div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: #000; color: #fff; font-family: sans-serif; font-size: 1.2rem; font-weight: bold;">Actualizando aplicación...</div>';
+        setTimeout(() => {
+          window.location.replace(window.location.href);
+        }, 500);
       }
     }
   } catch (err) {
@@ -65,7 +68,10 @@ if ('serviceWorker' in navigator) {
     if (refreshing) return;
     refreshing = true;
     console.log('Service Worker controller changed! Forcing reload...');
-    window.location.reload(true);
+    document.body.innerHTML = '<div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: #000; color: #fff; font-family: sans-serif; font-size: 1.2rem; font-weight: bold;">Actualizando aplicación...</div>';
+    setTimeout(() => {
+      window.location.replace(window.location.href);
+    }, 500);
   });
 }
 
