@@ -15,16 +15,42 @@ const checkVersion = async () => {
         currentVersion = data.version; // Initialize
       } else if (currentVersion !== data.version) {
         console.log('New version detected! Forcing reload...');
-        // Clear caches to ensure new assets are fetched
-        if ('caches' in window) {
-          const cacheKeys = await caches.keys();
-          await Promise.all(cacheKeys.map(key => caches.delete(key)));
+        
+        // 1. Unregister all Service Workers
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+              await registration.unregister();
+            }
+          } catch(e) {
+            console.error('Error unregistering SW', e);
+          }
         }
+
+        // 2. Clear all Caches
+        if ('caches' in window) {
+          try {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(key => caches.delete(key)));
+          } catch(e) {
+            console.error('Error clearing caches', e);
+          }
+        }
+        
+        // 3. Force Hard Reload
         window.location.reload(true);
       }
     }
   } catch (err) {
     console.error('Failed to check version', err);
+  }
+
+  // Force the Service Worker itself to check for updates
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg) reg.update();
+    });
   }
 };
 
