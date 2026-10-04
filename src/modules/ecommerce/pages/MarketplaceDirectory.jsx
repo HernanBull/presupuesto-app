@@ -209,7 +209,18 @@ export default function MarketplaceDirectory() {
       window.history.replaceState({}, document.title); // clear state to avoid reopening on refresh
     }
 
-    return () => window.removeEventListener('cart_updated', loadGlobalCart);
+    // Detect password recovery magic link
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('reset');
+        setIsAuthModalOpen(true);
+      }
+    });
+
+    return () => {
+      if (authListener?.subscription) authListener.subscription.unsubscribe();
+      window.removeEventListener('cart_updated', loadGlobalCart);
+    };
   }, [location.state]);
 
   const totalCartItems = Object.values(globalCart).reduce((acc, store) => {
@@ -710,24 +721,30 @@ export default function MarketplaceDirectory() {
     e.preventDefault();
     const email = type === 'customer' ? authForm.email : merchantForm.email;
     
-    if (!recoveryCode || !newPassword) {
-      return alert('Por favor ingresa el código y la nueva contraseña.');
+    if (!newPassword) {
+      return alert('Por favor ingresa la nueva contraseña.');
     }
     
     try {
-      // Paso 1: Verificar el código OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email,
-        token: recoveryCode,
-        type: 'recovery'
-      });
-      if (verifyError) throw verifyError;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        if (!recoveryCode) return alert('Por favor ingresa el código de 6 dígitos que enviamos a tu correo.');
+        
+        // Paso 1: Verificar el código OTP
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email,
+          token: recoveryCode,
+          type: 'recovery'
+        });
+        if (verifyError) throw verifyError;
+      }
 
       // Paso 2: Actualizar la contraseña ahora que estamos autenticados por la recuperación
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
       
-      alert('Contraseña actualizada con éxito. Por favor inicia sesión.');
+      alert('Contraseña actualizada con éxito. Por favor inicia sesión con tu nueva clave.');
       setRecoveryCode('');
       setNewPassword('');
       // Desloguearse para forzar el inicio de sesión limpio con la nueva clave
@@ -1291,8 +1308,8 @@ export default function MarketplaceDirectory() {
                   {authMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos</label>
-                        <input type="text" required value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
@@ -1468,8 +1485,8 @@ export default function MarketplaceDirectory() {
                   {merchantAuthMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos</label>
-                        <input type="text" required value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
