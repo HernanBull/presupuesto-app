@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2 } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -30,6 +30,27 @@ const resolveImageUrl = (url) => {
   if (!url) return '';
   if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
   return `https://axonmarket-api.onrender.com${url}`;
+};
+
+const PasswordRequirements = ({ password = '' }) => {
+  const reqs = [
+    { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
+    { label: 'Una mayúscula', met: /[A-Z]/.test(password) },
+    { label: 'Una minúscula', met: /[a-z]/.test(password) },
+    { label: 'Un número', met: /[0-9]/.test(password) },
+    { label: 'Un carácter especial (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
+  ];
+  
+  return (
+    <div className="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {reqs.map((req, i) => (
+        <div key={i} className="flex items-center gap-2">
+          {req.met ? <CheckCircle size={14} className="text-amber-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
+          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-500'}`}>{req.label}</span>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 export default function PublicStore() {
@@ -95,6 +116,10 @@ export default function PublicStore() {
   const [authLoading, setAuthLoading] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [productReviews, setProductReviews] = useState([]);
   const [reviewRating, setReviewRating] = useState(5);
@@ -176,6 +201,14 @@ export default function PublicStore() {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (authForm.password !== authConfirmPassword) {
+      alert("Las contraseñas no coinciden");
+      return false;
+    }
+    if (!termsAccepted) {
+      alert("Debes aceptar los Términos de Uso y Política de Privacidad");
+      return false;
+    }
     setAuthLoading(true);
     try {
       // Check if email already exists
@@ -1112,11 +1145,52 @@ export default function PublicStore() {
           </div>
           <div>
             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
-            <input type="password" required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+            <div className="relative">
+              <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
+                {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
+          
+          {authGateMode === 'register' && (
+            <>
+              <PasswordRequirements password={authForm.password} />
+              <div className="mt-4">
+                <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                <div className="relative">
+                  <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'} />
+                  <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
+                    {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {authConfirmPassword && authConfirmPassword !== authForm.password && (
+                  <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
+                )}
+              </div>
+              
+              <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-4 mt-4">
+                <input
+                  type="checkbox"
+                  id="store-terms-checkbox"
+                  checked={termsAccepted}
+                  onChange={e => setTermsAccepted(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+                />
+                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                  He leído y acepto los{' '}
+                  <span className="font-bold transition-colors" style={{ color: primaryColor }}>Términos de Uso</span>
+                  {' '}y la{' '}
+                  <span className="font-bold transition-colors" style={{ color: primaryColor }}>Política de Privacidad</span>
+                  {' '}de AxonMarket.
+                </label>
+              </div>
+            </>
+          )}
+
           <button
-            type="submit" disabled={authLoading}
-            className="w-full py-4 text-black font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2"
+            type="submit" disabled={authLoading || (authGateMode === 'register' && !termsAccepted)}
+            className="w-full py-4 text-black font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: primaryColor, boxShadow: `0 0 30px ${primaryColor}30` }}
           >
             {authLoading ? <Loader2 className="animate-spin" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
