@@ -2,6 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+function LocationPickerMarker({ position, setPosition, setAddressDetail }) {
+  const map = useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      setPosition({ lat, lng });
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.display_name) setAddressDetail(data.display_name);
+        }).catch(()=>{});
+    }
+  });
+
+  useEffect(() => {
+    if (position && map) {
+      map.flyTo(position, 16, { animate: true });
+    }
+  }, [position, map]);
+
+  return position ? <Marker position={position} /> : null;
+}
 
 const VZLA_BANKS = [
   '0102 - Banco de Venezuela',
@@ -40,7 +75,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     payment_phone: '',
     payment_cedula: '',
     payment_titular: '',
-    profile_pic: ''
+    profile_pic: '',
+    lat: 10.1833,
+    lng: -67.4500
   });
   
   const [imageFile, setImageFile] = useState(null);
@@ -70,6 +107,14 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       }
       if (!defaultAddress && customer.address) defaultAddress = customer.address;
 
+      let defaultLat = 10.1833;
+      let defaultLng = -67.4500;
+      if (Array.isArray(customer.addresses) && customer.addresses.length > 0) {
+        const addr = customer.addresses.find(a => a.isDefault) || customer.addresses[0];
+        if (addr.lat) defaultLat = addr.lat;
+        if (addr.lng) defaultLng = addr.lng;
+      }
+
       setFormData({
         name: isDefaultName ? '' : (defaultName || ''),
         phone: customer.phone || '',
@@ -80,7 +125,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         payment_phone: paymentProfile.phone || '',
         payment_cedula: paymentProfile.cedula || '',
         payment_titular: paymentProfile.titular || '',
-        profile_pic: customer.profile_pic || ''
+        profile_pic: customer.profile_pic || '',
+        lat: defaultLat,
+        lng: defaultLng
       });
       setStep(0);
     }
@@ -148,6 +195,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
             id: Date.now().toString(),
             name: 'Principal',
             address: finalAddressText,
+            lat: formData.lat,
+            lng: formData.lng,
             isDefault: true
           });
         } else {
@@ -155,8 +204,12 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           const defaultIndex = existingAddresses.findIndex(a => a.isDefault);
           if (defaultIndex >= 0) {
             existingAddresses[defaultIndex].address = finalAddressText;
+            existingAddresses[defaultIndex].lat = formData.lat;
+            existingAddresses[defaultIndex].lng = formData.lng;
           } else {
             existingAddresses[0].address = finalAddressText;
+            existingAddresses[0].lat = formData.lat;
+            existingAddresses[0].lng = formData.lng;
           }
         }
 
@@ -211,9 +264,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await res.json();
           const addr = data.display_name || `Lat: ${latitude}, Lng: ${longitude}`;
-          setFormData({ ...formData, addressDetail: addr });
+          setFormData({ ...formData, addressDetail: addr, lat: latitude, lng: longitude });
         } catch(e) {
-          setFormData({ ...formData, addressDetail: `${latitude}, ${longitude}` });
+          setFormData({ ...formData, addressDetail: `${latitude}, ${longitude}`, lat: latitude, lng: longitude });
         }
         setIsDetectingLocation(false);
       },
@@ -320,6 +373,19 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                         Detectar Ubicación (GPS)
                       </button>
                     )}
+                    
+                    <p className="text-zinc-400 text-xs mb-4">Puedes tocar el mapa para ajustar el punto exacto de entrega.</p>
+                    <div className="w-full h-48 rounded-xl overflow-hidden mb-4 border border-white/10 z-0 relative">
+                      <MapContainer center={[formData.lat, formData.lng]} zoom={15} style={{ height: '100%', width: '100%' }}>
+                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+                        <LocationPickerMarker 
+                          position={[formData.lat, formData.lng]} 
+                          setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
+                          setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
+                        />
+                      </MapContainer>
+                    </div>
+
                     <div className="space-y-4">
                       <div>
                         <label className="block text-xs font-bold text-zinc-400 mb-1">Urbanización / Zona</label>
