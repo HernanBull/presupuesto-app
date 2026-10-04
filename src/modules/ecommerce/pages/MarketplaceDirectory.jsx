@@ -767,8 +767,8 @@ export default function MarketplaceDirectory() {
             <div className="flex items-center gap-3">
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-amber-500/30 flex-shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
-                {currentCustomer.profilePic || currentCustomer.photoUrl ? (
-                    <img src={currentCustomer.profilePic || resolveImageUrl(currentCustomer.photoUrl)} alt={currentCustomer.name} className="w-full h-full object-cover" />
+                {currentCustomer.profilePic || currentCustomer.profile_pic ? (
+                    <img src={currentCustomer.profilePic || currentCustomer.profile_pic} alt={currentCustomer.name} className="w-full h-full object-cover" />
                 ) : (
                     <span className="text-amber-500 font-bold text-lg uppercase">
                       {currentCustomer.name ? currentCustomer.name.charAt(0) : 'U'}
