@@ -76,8 +76,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     payment_cedula: '',
     payment_titular: '',
     profile_pic: '',
-    lat: 10.1833,
-    lng: -67.4500
+    lat: null,
+    lng: null
   });
   
   const [imageFile, setImageFile] = useState(null);
@@ -107,8 +107,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       }
       if (!defaultAddress && customer.address) defaultAddress = customer.address;
 
-      let defaultLat = 10.1833;
-      let defaultLng = -67.4500;
+      let defaultLat = null;
+      let defaultLng = null;
       if (Array.isArray(customer.addresses) && customer.addresses.length > 0) {
         const addr = customer.addresses.find(a => a.isDefault) || customer.addresses[0];
         if (addr.lat) defaultLat = addr.lat;
@@ -450,8 +450,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                       
                       <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 relative z-0">
                         <MapContainer 
-                          center={[formData.lat, formData.lng]} 
-                          zoom={15} 
+                          center={formData.lat && formData.lng ? [formData.lat, formData.lng] : [10.1833, -67.4500]} 
+                          zoom={formData.lat && formData.lng ? 16 : 12} 
                           style={{ height: '100%', width: '100%' }}
                         >
                           <TileLayer 
@@ -459,7 +459,7 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
                           />
                           <LocationPickerMarker 
-                            position={[formData.lat, formData.lng]} 
+                            position={formData.lat && formData.lng ? [formData.lat, formData.lng] : null} 
                             setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
                             setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
                           />
