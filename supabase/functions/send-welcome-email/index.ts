@@ -136,11 +136,11 @@ serve(async (req) => {
     } else {
       throw new Error(data.message || 'Error enviando email vía Resend')
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error(err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     })
   }
 })

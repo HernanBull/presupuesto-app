@@ -1,0 +1,1631 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "element-1",
+      "type": "rectangle",
+      "x": 300,
+      "y": 20,
+      "width": 800,
+      "height": 60,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "#10b981",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8798,
+      "version": 1,
+      "versionNonce": 1998,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-2",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-2",
+      "type": "text",
+      "x": 310,
+      "y": 26,
+      "width": 780,
+      "height": 48,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 2417,
+      "version": 1,
+      "versionNonce": 1921,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "AxonMarket - Ecosistema Interno del Comerciante (B2B)",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-1"
+    },
+    {
+      "id": "element-3",
+      "type": "rectangle",
+      "x": 550,
+      "y": 150,
+      "width": 300,
+      "height": 80,
+      "strokeColor": "#059669",
+      "backgroundColor": "#ecfdf5",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8254,
+      "version": 1,
+      "versionNonce": 1004,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-4",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-4",
+      "type": "text",
+      "x": 560,
+      "y": 170,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#059669",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 5653,
+      "version": 1,
+      "versionNonce": 6035,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Panel de Control Central\n(EcommerceLayout B2B)",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-3"
+    },
+    {
+      "id": "element-5",
+      "type": "rectangle",
+      "x": 100,
+      "y": 280,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "#3b82f6",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 6576,
+      "version": 1,
+      "versionNonce": 777,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-6",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-6",
+      "type": "text",
+      "x": 110,
+      "y": 282,
+      "width": 260,
+      "height": 36,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6093,
+      "version": 1,
+      "versionNonce": 4027,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "1. Gestión Operativa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-5"
+    },
+    {
+      "id": "element-7",
+      "type": "rectangle",
+      "x": 100,
+      "y": 340,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#eff6ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 9825,
+      "version": 1,
+      "versionNonce": 1892,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-8",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-8",
+      "type": "text",
+      "x": 110,
+      "y": 354,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 5576,
+      "version": 1,
+      "versionNonce": 4227,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Orders Manager\n(Kanban: Validación de Pago)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-7"
+    },
+    {
+      "id": "element-9",
+      "type": "rectangle",
+      "x": 100,
+      "y": 430,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#eff6ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 4129,
+      "version": 1,
+      "versionNonce": 6527,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-10",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-10",
+      "type": "text",
+      "x": 110,
+      "y": 444,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 2915,
+      "version": 1,
+      "versionNonce": 1100,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Order Preparation\n(Estación de Empaque / Picking)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-9"
+    },
+    {
+      "id": "element-11",
+      "type": "rectangle",
+      "x": 100,
+      "y": 520,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#eff6ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8028,
+      "version": 1,
+      "versionNonce": 3993,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-12",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-12",
+      "type": "text",
+      "x": 110,
+      "y": 534,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 3,
+      "version": 1,
+      "versionNonce": 4161,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Integración Delivery\n(Despacho One-Click Telegram)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-11"
+    },
+    {
+      "id": "element-13",
+      "type": "arrow",
+      "x": 550,
+      "y": 190,
+      "width": 170,
+      "height": 180,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6595,
+      "version": 1,
+      "versionNonce": 3711,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -170,
+          180
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-3",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-7",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-14",
+      "type": "arrow",
+      "x": 240,
+      "y": 400,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 9601,
+      "version": 1,
+      "versionNonce": 3700,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-7",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-9",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-15",
+      "type": "arrow",
+      "x": 240,
+      "y": 490,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 3182,
+      "version": 1,
+      "versionNonce": 8109,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-9",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-11",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-16",
+      "type": "rectangle",
+      "x": 420,
+      "y": 280,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "#8b5cf6",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 7706,
+      "version": 1,
+      "versionNonce": 8179,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-17",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-17",
+      "type": "text",
+      "x": 430,
+      "y": 282,
+      "width": 260,
+      "height": 36,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6081,
+      "version": 1,
+      "versionNonce": 7985,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "2. Inventario y Catálogo (ERP)",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-16"
+    },
+    {
+      "id": "element-18",
+      "type": "rectangle",
+      "x": 420,
+      "y": 340,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#f5f3ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8039,
+      "version": 1,
+      "versionNonce": 1677,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-19",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-19",
+      "type": "text",
+      "x": 430,
+      "y": 354,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 2164,
+      "version": 1,
+      "versionNonce": 885,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Product Studio Unificado\n(Creación B2B, Metadatos JSON)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-18"
+    },
+    {
+      "id": "element-20",
+      "type": "rectangle",
+      "x": 420,
+      "y": 430,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#f5f3ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 127,
+      "version": 1,
+      "versionNonce": 5981,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-21",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-21",
+      "type": "text",
+      "x": 430,
+      "y": 444,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 2147,
+      "version": 1,
+      "versionNonce": 3297,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Inventory Manager\n(KARDEX Inmutable, Multialmacén)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-20"
+    },
+    {
+      "id": "element-22",
+      "type": "rectangle",
+      "x": 420,
+      "y": 520,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#f5f3ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 3044,
+      "version": 1,
+      "versionNonce": 7013,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-23",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-23",
+      "type": "text",
+      "x": 430,
+      "y": 534,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6906,
+      "version": 1,
+      "versionNonce": 4597,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Control Avanzado\n(Mermas, Caducidad, Recetas)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-22"
+    },
+    {
+      "id": "element-24",
+      "type": "rectangle",
+      "x": 420,
+      "y": 610,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#f5f3ff",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 7914,
+      "version": 1,
+      "versionNonce": 8663,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-25",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-25",
+      "type": "text",
+      "x": 430,
+      "y": 624,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 4154,
+      "version": 1,
+      "versionNonce": 7042,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Costo Promedio Ponderado\n(CPP Automático)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-24"
+    },
+    {
+      "id": "element-26",
+      "type": "arrow",
+      "x": 700,
+      "y": 230,
+      "width": 140,
+      "height": 110,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 7427,
+      "version": 1,
+      "versionNonce": 2835,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -140,
+          110
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-3",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-18",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-27",
+      "type": "arrow",
+      "x": 560,
+      "y": 400,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 1667,
+      "version": 1,
+      "versionNonce": 8851,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-18",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-20",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-28",
+      "type": "arrow",
+      "x": 560,
+      "y": 490,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6758,
+      "version": 1,
+      "versionNonce": 2643,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-20",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-22",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-29",
+      "type": "arrow",
+      "x": 560,
+      "y": 580,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 5456,
+      "version": 1,
+      "versionNonce": 8053,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-22",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-24",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-30",
+      "type": "rectangle",
+      "x": 740,
+      "y": 280,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "#f59e0b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8475,
+      "version": 1,
+      "versionNonce": 3924,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-31",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-31",
+      "type": "text",
+      "x": 750,
+      "y": 282,
+      "width": 260,
+      "height": 36,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 4374,
+      "version": 1,
+      "versionNonce": 766,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "3. Marketing y Social Proof",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-30"
+    },
+    {
+      "id": "element-32",
+      "type": "rectangle",
+      "x": 740,
+      "y": 340,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#fffbeb",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1033,
+      "version": 1,
+      "versionNonce": 2384,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-33",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-33",
+      "type": "text",
+      "x": 750,
+      "y": 354,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 2561,
+      "version": 1,
+      "versionNonce": 7277,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Offers Manager\n(Control de Ofertas Flash)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-32"
+    },
+    {
+      "id": "element-34",
+      "type": "rectangle",
+      "x": 740,
+      "y": 430,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#fffbeb",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 2814,
+      "version": 1,
+      "versionNonce": 4466,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-35",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-35",
+      "type": "text",
+      "x": 750,
+      "y": 444,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 153,
+      "version": 1,
+      "versionNonce": 6421,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Reviews Manager\n(Moderación y Respuesta de Reseñas)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-34"
+    },
+    {
+      "id": "element-36",
+      "type": "arrow",
+      "x": 700,
+      "y": 230,
+      "width": 180,
+      "height": 110,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 4465,
+      "version": 1,
+      "versionNonce": 1198,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          180,
+          110
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-3",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-32",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-37",
+      "type": "arrow",
+      "x": 880,
+      "y": 400,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 409,
+      "version": 1,
+      "versionNonce": 9136,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-32",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-34",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-38",
+      "type": "rectangle",
+      "x": 1060,
+      "y": 280,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "#ef4444",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 1707,
+      "version": 1,
+      "versionNonce": 3832,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-39",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-39",
+      "type": "text",
+      "x": 1070,
+      "y": 282,
+      "width": 260,
+      "height": 36,
+      "strokeColor": "#ffffff",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6274,
+      "version": 1,
+      "versionNonce": 54,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "4. Sistema y Analítica",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-38"
+    },
+    {
+      "id": "element-40",
+      "type": "rectangle",
+      "x": 1060,
+      "y": 340,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#fef2f2",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 8965,
+      "version": 1,
+      "versionNonce": 1150,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-41",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-41",
+      "type": "text",
+      "x": 1070,
+      "y": 354,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 5133,
+      "version": 1,
+      "versionNonce": 5980,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Configuración de Tienda\n(Horarios, GPS, Identidad)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-40"
+    },
+    {
+      "id": "element-42",
+      "type": "rectangle",
+      "x": 1060,
+      "y": 430,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#fef2f2",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 3949,
+      "version": 1,
+      "versionNonce": 5455,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-43",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-43",
+      "type": "text",
+      "x": 1070,
+      "y": 444,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 4798,
+      "version": 1,
+      "versionNonce": 7834,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Motor de Notificaciones\n(Alertas Stock Vacío en TB)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-42"
+    },
+    {
+      "id": "element-44",
+      "type": "rectangle",
+      "x": 1060,
+      "y": 520,
+      "width": 280,
+      "height": 60,
+      "strokeColor": "#000000",
+      "backgroundColor": "#fef2f2",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "roundness": {
+        "type": 3
+      },
+      "seed": 565,
+      "version": 1,
+      "versionNonce": 9664,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "element-45",
+          "type": "text"
+        }
+      ],
+      "updated": 1791146803326,
+      "link": null
+    },
+    {
+      "id": "element-45",
+      "type": "text",
+      "x": 1070,
+      "y": 534,
+      "width": 260,
+      "height": 32,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "solid",
+      "strokeWidth": 1,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 6156,
+      "version": 1,
+      "versionNonce": 1640,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803326,
+      "link": null,
+      "text": "Analytics Manager\n(Embudos, Ventas Diarias)",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "element-44"
+    },
+    {
+      "id": "element-46",
+      "type": "arrow",
+      "x": 850,
+      "y": 190,
+      "width": 210,
+      "height": 180,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 298,
+      "version": 1,
+      "versionNonce": 480,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803327,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          210,
+          180
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-3",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-40",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-47",
+      "type": "arrow",
+      "x": 1200,
+      "y": 400,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 7730,
+      "version": 1,
+      "versionNonce": 5847,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803327,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-40",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-42",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    },
+    {
+      "id": "element-48",
+      "type": "arrow",
+      "x": 1200,
+      "y": 490,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#000000",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "seed": 1330,
+      "version": 1,
+      "versionNonce": 3907,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1791146803327,
+      "link": null,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ],
+      "startBinding": {
+        "elementId": "element-42",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "element-44",
+        "focus": 0,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "currentItemFontFamily": 1
+  }
+}

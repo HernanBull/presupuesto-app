@@ -31,18 +31,22 @@ serve(async (req) => {
     const { data, error } = await supabase.auth.admin.deleteUser(userId);
 
     if (error) {
-      throw error;
+      if (error.status === 404 || error.message.toLowerCase().includes('not found')) {
+        console.warn('Usuario no encontrado en auth.users, probablemente ya eliminado:', userId);
+      } else {
+        throw error;
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'Usuario eliminado exitosamente de auth.users', data }), {
+    return new Response(JSON.stringify({ success: true, message: 'Usuario procesado exitosamente', data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error deleting user:', err)
     return new Response(JSON.stringify({ error: err.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     })
   }
 })

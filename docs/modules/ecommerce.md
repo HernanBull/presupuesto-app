@@ -212,3 +212,13 @@ Revisar la documentación completa en: [Arquitectura de Submódulos de E-commerc
 - **Descripción:** (Corrección Arquitectónica de Ruteo Aislado)
   - **Fallo solucionado:** Navegar al SuperAdmin desde el botón del directorio principal (`MarketplaceDirectory.jsx`) provocaba una "pantalla negra" estática debido a que la función `navigate('/superadmin')` de `react-router-dom` fallaba al buscar la ruta en el contexto aislado del módulo E-commerce.
   - **Solución implementada:** Se forzó un salto de enrutador raíz (full page load) reemplazando la lógica por `window.location.href = '/superadmin'`, lo que permite a `App.jsx` reevaluar y montar el router principal correcto del SuperAdmin sin bloqueos.
+
+- **Fecha y Hora:** 2026-10-04 10:30:00
+- **Versión:** 9.5.0
+- **Descripción:** (Refactorización de Registro, Seguridad y Experiencia de Usuario B2C/B2B)
+  - **Estandarización de Perfiles:** Se unificó la nomenclatura de las fotos de perfil a `profile_pic` de forma global para evitar variables fantasma en `CustomerProfile.jsx` y el Wizard de Registro.
+  - **Seguridad en Registro:** Se corrigió un "bypass" en el registro de clientes y comerciantes (`MarketplaceDirectory.jsx`) causado por el "Email Enumeration Protection" de Supabase. Ahora el sistema detecta correctamente correos ya existentes y bloquea el inicio de sesión automático si la cuenta requiere verificación por correo (`session: null`).
+  - **Evitar Nombres Duplicados (B2B):** Se inyectó una validación en tiempo real en el Paso 2 del registro de comerciantes (`MarketplaceDirectory.jsx`). Ahora hace una consulta `ilike` a `workspaces` y bloquea el registro si el nombre del negocio (Slug potencial) ya existe, previniendo colisiones de enrutamiento.
+  - **Wizard Obligatorio y Mapa Interactivo (B2C):** Se reforzó `ProfileWizardModal.jsx` exigiendo ubicación exacta y foto obligatoria antes de finalizar. Se integró exitosamente `react-leaflet` en el Wizard de clientes, ofreciendo un mapa interactivo sin coordenadas por defecto, forzando la solicitud explícita del GPS para mayor precisión.
+  - **Flujo OTP de Recuperación:** Se reescribió `handleResetPassword` para utilizar el flujo OTP correcto (`verifyOtp`) de Supabase, en lugar de intentar forzar un `updateUser` sin sesión. Adicionalmente, el frontend ahora detecta Enlaces Mágicos de recuperación en la URL y hace que el input del código de 6 dígitos sea opcional para el usuario final.
+  - **Recolector de Basura de Usuarios:** Se generó `cleanup_cron.sql`, un script pg_cron para Supabase que purga automáticamente a los usuarios que tengan más de 24 horas sin haber verificado su correo, limpiando la tabla `auth.users`.

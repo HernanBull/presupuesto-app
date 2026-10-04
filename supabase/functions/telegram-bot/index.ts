@@ -47,9 +47,9 @@ serve(async (req) => {
 
     // Otherwise, assume it's an Update from Telegram Webhook
     return await handleTelegramUpdate(body, supabase);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: err.message }), { status: 200, headers: corsHeaders });
   }
 })
 

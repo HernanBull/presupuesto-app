@@ -9,7 +9,7 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export default function ResponsiveModal({ isOpen, onClose, title, children, className, contentClassName }) {
+export default function ResponsiveModal({ isOpen, onClose, title, children, className, contentClassName, showCloseButton = true }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -70,17 +70,19 @@ export default function ResponsiveModal({ isOpen, onClose, title, children, clas
             {title && (
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
                 <h2 className="text-lg font-extrabold text-slate-800 dark:text-white">{title}</h2>
-                <button
-                  onClick={onClose}
-                  className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-50 hover:bg-slate-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-full transition-colors active:scale-95"
-                >
-                  <X size={20} />
-                </button>
+                {showCloseButton && (
+                  <button
+                    onClick={onClose}
+                    className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-50 hover:bg-slate-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-full transition-colors active:scale-95"
+                  >
+                    <X size={20} />
+                  </button>
+                )}
               </div>
             )}
             
             {/* Close button if no title but we still need a way to close (floating) */}
-            {!title && (
+            {!title && showCloseButton && (
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 z-50 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-white/50 hover:bg-slate-100 dark:bg-black/20 dark:hover:bg-white/10 backdrop-blur-md rounded-full transition-colors active:scale-95"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import ResponsiveModal from './ResponsiveModal';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -296,31 +297,17 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
   );
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-          
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="bg-[#111111] border border-white/10 rounded-3xl p-8 shadow-2xl relative w-full max-w-md z-10 overflow-hidden max-h-[90vh] overflow-y-auto"
-          >
-            {canClose && (
-              <div className="absolute top-4 right-4 z-20">
-                <button onClick={onClose} className="bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 rounded-full p-2 transition-all backdrop-blur-md border border-white/5 hover:border-red-500/30">
-                  <X size={18} strokeWidth={2.5} />
-                </button>
-              </div>
-            )}
-
-            <div className="mt-8 mb-6">
-              {renderStepIndicator()}
-            </div>
+    <ResponsiveModal
+      isOpen={isOpen}
+      onClose={canClose ? onClose : () => {}}
+      title="Completa tu Perfil"
+      showCloseButton={canClose}
+      className="md:max-w-md !bg-[#111111] border border-white/10"
+      contentClassName="p-8 relative"
+    >
+      <div className="mb-6 mt-2">
+        {renderStepIndicator()}
+      </div>
 
             <div className="min-h-[200px] flex flex-col justify-center">
               <AnimatePresence mode="wait">
@@ -519,9 +506,6 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                 )}
               </button>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </ResponsiveModal>
   );
 }

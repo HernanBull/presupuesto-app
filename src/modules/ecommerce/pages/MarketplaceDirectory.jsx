@@ -1280,11 +1280,10 @@ export default function MarketplaceDirectory() {
         )}
       </AnimatePresence>
 
-      {/* Auth Modal (Instantáneo Nativo) */}
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="absolute inset-0 bg-zinc-950/95" onClick={() => setIsAuthModalOpen(false)} />
-          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-white/10 animate-in zoom-in-95 duration-150">
+          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-white/10 animate-in zoom-in-95 duration-150">
               <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-light text-white flex items-center gap-3 tracking-tight">
@@ -1421,11 +1420,10 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-      {/* Merchant Registration Modal (Instantáneo Nativo) */}
       {isMerchantModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="absolute inset-0 bg-zinc-950/95" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
-          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-hidden border border-amber-500/20 animate-in zoom-in-95 duration-150">
+          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-amber-500/20 animate-in zoom-in-95 duration-150">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
               
               <div className="p-8 pb-6 flex items-center justify-between">
