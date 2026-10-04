@@ -991,7 +991,7 @@ export default function MarketplaceDirectory() {
                 const isActive = activeCategory === cat.id;
                 return (
                   <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
-                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 transform-gpu backface-hidden will-change-transform ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
                       <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
                     </div>
                     <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
@@ -1005,7 +1005,7 @@ export default function MarketplaceDirectory() {
                 const isActive = activeCategory === cat.id;
                 return (
                   <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
-                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 transform-gpu backface-hidden will-change-transform ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
                       <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
                     </div>
                     <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
