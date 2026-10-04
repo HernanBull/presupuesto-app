@@ -236,6 +236,12 @@ export default function MarketplaceDirectory() {
     try {
       const authData = await registerUser(authForm.email, authForm.password, { name: authForm.name });
       
+      if (authData?.user?.identities && authData.user.identities.length === 0) {
+        alert("Este correo ya está registrado en nuestra plataforma. Por favor, inicia sesión.");
+        setAuthMode('login');
+        return;
+      }
+
       const newCustomer = {
         id: authData.user.id,
         name: authForm.name,
@@ -249,7 +255,14 @@ export default function MarketplaceDirectory() {
       };
 
       const { error } = await supabase.from('ecommerce_customers').insert([newCustomer]);
-      if (error) throw error;
+      if (error && error.code !== '23505') throw error;
+
+      if (!authData?.session) {
+        alert("¡Registro exitoso! Por favor revisa tu bandeja de entrada o spam para confirmar tu correo electrónico. No podrás continuar hasta que lo verifiques.");
+        setIsAuthModalOpen(false);
+        setAuthMode('login');
+        return;
+      }
 
       const user = { ...newCustomer, docId: newCustomer.doc_id, orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
@@ -486,6 +499,13 @@ export default function MarketplaceDirectory() {
     try {
       const authData = await registerUser(merchantForm.email, merchantForm.password, { name: merchantForm.businessName });
       
+      if (authData?.user?.identities && authData.user.identities.length === 0) {
+        alert("Este correo ya está registrado. Por favor, inicia sesión en lugar de crear una nueva cuenta.");
+        setMerchantAuthMode('login');
+        setMerchantLoading(false);
+        return;
+      }
+      
       const generatedSlug = merchantForm.businessName
         .toLowerCase()
         .normalize('NFD')
@@ -515,7 +535,7 @@ export default function MarketplaceDirectory() {
       };
 
       const { error } = await supabase.from('workspaces').insert([newWorkspace]);
-      if (error) throw error;
+      if (error && error.code !== '23505') throw error;
 
       const { error: contactError } = await supabase.from('merchant_contacts').insert([{
         id: authData.user.id,
@@ -523,7 +543,15 @@ export default function MarketplaceDirectory() {
         phone: merchantForm.contactPhone,
         email: merchantForm.contactEmail
       }]);
-      if (contactError) console.error("Error guardando contacto:", contactError);
+      if (contactError && contactError.code !== '23505') console.error("Error guardando contacto:", contactError);
+
+      if (!authData?.session) {
+        alert("¡Cuenta creada! Por favor revisa tu correo electrónico (bandeja de entrada o spam) para verificar tu cuenta antes de continuar.");
+        setMerchantLoading(false);
+        setIsMerchantModalOpen(false);
+        setMerchantAuthMode('login');
+        return;
+      }
 
       setTempWorkspace({ id: newWorkspace.id, slug: generatedSlug });
       setMerchantRegStep(6);
