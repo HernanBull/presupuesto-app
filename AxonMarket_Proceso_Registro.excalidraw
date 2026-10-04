@@ -1,0 +1,1087 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "text_1kmlgi2dw",
+      "type": "text",
+      "x": 600,
+      "y": 50,
+      "width": 1080,
+      "height": 48,
+      "strokeColor": "#f59e0b",
+      "fontSize": 40,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "text": "AxonMarket: Flujo de Autenticación y Registro"
+    },
+    {
+      "id": "text_qdi5jq9bw",
+      "type": "text",
+      "x": 700,
+      "y": 110,
+      "width": 676.8,
+      "height": 28.799999999999997,
+      "strokeColor": "#ced4da",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "text": "Lógica de Onboarding de Clientes y Comerciantes"
+    },
+    {
+      "id": "text_39e14f7r8",
+      "type": "text",
+      "x": 200,
+      "y": 200,
+      "width": 288,
+      "height": 36,
+      "strokeColor": "#10b981",
+      "fontSize": 30,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "FLUJO DE CLIENTE"
+    },
+    {
+      "id": "rect_s9d8zsdd6",
+      "type": "rectangle",
+      "x": 100,
+      "y": 280,
+      "width": 280,
+      "height": 80,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_kldwysjvs",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_kldwysjvs",
+      "type": "text",
+      "x": 110,
+      "y": 306.6666666666667,
+      "width": 260,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Cliente abre Auth Modal\n(MarketplaceDirectory)",
+      "containerId": "rect_s9d8zsdd6"
+    },
+    {
+      "id": "arrow_276vtm1hx",
+      "type": "arrow",
+      "x": 240,
+      "y": 360,
+      "width": 0,
+      "height": 50,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "rect_vz9q55qxd",
+      "type": "rectangle",
+      "x": 0,
+      "y": 410,
+      "width": 220,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#0f172a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_3y4fqeyyl",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_3y4fqeyyl",
+      "type": "text",
+      "x": 10,
+      "y": 431.6666666666667,
+      "width": 200,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Registro Email/Pass",
+      "containerId": "rect_vz9q55qxd"
+    },
+    {
+      "id": "rect_gb02y475k",
+      "type": "rectangle",
+      "x": 260,
+      "y": 410,
+      "width": 220,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#0f172a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_srs3yhitv",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_srs3yhitv",
+      "type": "text",
+      "x": 270,
+      "y": 431.6666666666667,
+      "width": 200,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Google OAuth",
+      "containerId": "rect_gb02y475k"
+    },
+    {
+      "id": "arrow_oqbcm1ejh",
+      "type": "arrow",
+      "x": 240,
+      "y": 360,
+      "width": 130,
+      "height": 20,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          30
+        ],
+        [
+          -130,
+          30
+        ],
+        [
+          -130,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "arrow_24rpatyuo",
+      "type": "arrow",
+      "x": 240,
+      "y": 360,
+      "width": 130,
+      "height": 20,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          30
+        ],
+        [
+          130,
+          30
+        ],
+        [
+          130,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "arrow_3boion27h",
+      "type": "arrow",
+      "x": 370,
+      "y": 480,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_sjryhu7ik",
+      "type": "rectangle",
+      "x": 260,
+      "y": 520,
+      "width": 220,
+      "height": 80,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_6fyp98xm7",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_6fyp98xm7",
+      "type": "text",
+      "x": 270,
+      "y": 546.6666666666666,
+      "width": 200,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Extraer JWT\n(Verifica si existe email)",
+      "containerId": "rect_sjryhu7ik"
+    },
+    {
+      "id": "arrow_ndys6cgw7",
+      "type": "arrow",
+      "x": 370,
+      "y": 600,
+      "width": 130,
+      "height": 60,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          -130,
+          40
+        ],
+        [
+          -130,
+          60
+        ]
+      ]
+    },
+    {
+      "id": "arrow_ieff3igon",
+      "type": "arrow",
+      "x": 110,
+      "y": 480,
+      "width": 0,
+      "height": 180,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          180
+        ]
+      ]
+    },
+    {
+      "id": "rect_ztozcp80s",
+      "type": "rectangle",
+      "x": 100,
+      "y": 660,
+      "width": 280,
+      "height": 90,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#312e81",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_84o8gof2m",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_84o8gof2m",
+      "type": "text",
+      "x": 110,
+      "y": 691.6666666666666,
+      "width": 260,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Supabase Auth signUp\n(Crea 'ecommerce_customers')",
+      "containerId": "rect_ztozcp80s"
+    },
+    {
+      "id": "arrow_lm0fwzvka",
+      "type": "arrow",
+      "x": 240,
+      "y": 750,
+      "width": 0,
+      "height": 50,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "rect_49d3iw6ny",
+      "type": "rectangle",
+      "x": 100,
+      "y": 800,
+      "width": 280,
+      "height": 80,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_5g9k0ged8",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_5g9k0ged8",
+      "type": "text",
+      "x": 110,
+      "y": 826.6666666666666,
+      "width": 260,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Edge Function\n'send-welcome-email'",
+      "containerId": "rect_49d3iw6ny"
+    },
+    {
+      "id": "arrow_o5bm88ea4",
+      "type": "arrow",
+      "x": 240,
+      "y": 880,
+      "width": 0,
+      "height": 50,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "rect_8oc7oyh6n",
+      "type": "rectangle",
+      "x": 100,
+      "y": 930,
+      "width": 280,
+      "height": 90,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#022c22",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_eyle2pzv4",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_eyle2pzv4",
+      "type": "text",
+      "x": 110,
+      "y": 961.6666666666666,
+      "width": 260,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "¿Perfil Incompleto?\nLanza ProfileWizardModal\n(Teléfono, DNI, Dirección)",
+      "containerId": "rect_8oc7oyh6n"
+    },
+    {
+      "id": "text_65tzr8nu7",
+      "type": "text",
+      "x": 900,
+      "y": 200,
+      "width": 540,
+      "height": 36,
+      "strokeColor": "#f59e0b",
+      "fontSize": 30,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "FLUJO DE COMERCIANTE (6 PASOS)"
+    },
+    {
+      "id": "rect_fyd0ecgen",
+      "type": "rectangle",
+      "x": 800,
+      "y": 280,
+      "width": 400,
+      "height": 80,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#451a03",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_96131al54",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_96131al54",
+      "type": "text",
+      "x": 810,
+      "y": 306.6666666666667,
+      "width": 380,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Comerciante abre Merchant Modal\nClick en 'Vender'",
+      "containerId": "rect_fyd0ecgen"
+    },
+    {
+      "id": "arrow_d7xzzjzse",
+      "type": "arrow",
+      "x": 1000,
+      "y": 360,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_mapqupd7u",
+      "type": "rectangle",
+      "x": 850,
+      "y": 400,
+      "width": 300,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#1c1917",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_axc3265d4",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_axc3265d4",
+      "type": "text",
+      "x": 860,
+      "y": 421.6666666666667,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 1: Credenciales\n(Email, Password, Términos)",
+      "containerId": "rect_mapqupd7u"
+    },
+    {
+      "id": "arrow_h2l3w38pf",
+      "type": "arrow",
+      "x": 1000,
+      "y": 470,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ]
+    },
+    {
+      "id": "rect_89y7xm6pg",
+      "type": "rectangle",
+      "x": 850,
+      "y": 500,
+      "width": 300,
+      "height": 80,
+      "strokeColor": "#495057",
+      "backgroundColor": "#1c1917",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_p22frlopq",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_p22frlopq",
+      "type": "text",
+      "x": 860,
+      "y": 526.6666666666666,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 2: Datos del Negocio\nVerificación Unicidad Nombre",
+      "containerId": "rect_89y7xm6pg"
+    },
+    {
+      "id": "arrow_fouju3jy5",
+      "type": "arrow",
+      "x": 1000,
+      "y": 580,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ]
+    },
+    {
+      "id": "rect_gl8a4axug",
+      "type": "rectangle",
+      "x": 850,
+      "y": 610,
+      "width": 300,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#1c1917",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_9ucbfcy65",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_9ucbfcy65",
+      "type": "text",
+      "x": 860,
+      "y": 631.6666666666666,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 3: Horarios y Días Laborables",
+      "containerId": "rect_gl8a4axug"
+    },
+    {
+      "id": "arrow_a6x91bqgb",
+      "type": "arrow",
+      "x": 1000,
+      "y": 680,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ]
+    },
+    {
+      "id": "rect_cu6c8rxco",
+      "type": "rectangle",
+      "x": 850,
+      "y": 710,
+      "width": 300,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#1c1917",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_e8tub4pwa",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_e8tub4pwa",
+      "type": "text",
+      "x": 860,
+      "y": 731.6666666666666,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 4: Legal y Pago Móvil\n(RIF, Teléfono, Banco)",
+      "containerId": "rect_cu6c8rxco"
+    },
+    {
+      "id": "arrow_ibljp8iqm",
+      "type": "arrow",
+      "x": 1000,
+      "y": 780,
+      "width": 0,
+      "height": 30,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          30
+        ]
+      ]
+    },
+    {
+      "id": "rect_qtajv6ujk",
+      "type": "rectangle",
+      "x": 850,
+      "y": 810,
+      "width": 300,
+      "height": 70,
+      "strokeColor": "#495057",
+      "backgroundColor": "#1c1917",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_s19mo6ez7",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_s19mo6ez7",
+      "type": "text",
+      "x": 860,
+      "y": 831.6666666666666,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 5: Ubicación Física / GPS",
+      "containerId": "rect_qtajv6ujk"
+    },
+    {
+      "id": "arrow_wx0sp234p",
+      "type": "arrow",
+      "x": 1000,
+      "y": 880,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_y4wfhsiru",
+      "type": "rectangle",
+      "x": 800,
+      "y": 920,
+      "width": 400,
+      "height": 110,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#312e81",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_170maj8bi",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_170maj8bi",
+      "type": "text",
+      "x": 810,
+      "y": 961.6666666666666,
+      "width": 380,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Creación en BDD\n- signUp en Auth\n- Crea Workspace (Genera slug)\n- Crea Contacto",
+      "containerId": "rect_y4wfhsiru"
+    },
+    {
+      "id": "arrow_4mkvgqiia",
+      "type": "arrow",
+      "x": 1000,
+      "y": 1030,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_909s2u4uk",
+      "type": "rectangle",
+      "x": 800,
+      "y": 1070,
+      "width": 400,
+      "height": 100,
+      "strokeColor": "#ef4444",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_0owwamrwr",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_0owwamrwr",
+      "type": "text",
+      "x": 810,
+      "y": 1106.6666666666667,
+      "width": 380,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Paso 6: Configuración 2FA (MFA)\nGenera TOTP Base32\nEscaneo de QR -> Validación código",
+      "containerId": "rect_909s2u4uk"
+    },
+    {
+      "id": "arrow_4f9svu4nt",
+      "type": "arrow",
+      "x": 1000,
+      "y": 1170,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#495057",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_idnw3biql",
+      "type": "rectangle",
+      "x": 850,
+      "y": 1210,
+      "width": 300,
+      "height": 70,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_xzkstmsgg",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_xzkstmsgg",
+      "type": "text",
+      "x": 860,
+      "y": 1231.6666666666667,
+      "width": 280,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Redirección a ERP Dashboard\n(/dashboard)",
+      "containerId": "rect_idnw3biql"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#121212",
+    "theme": "dark"
+  }
+}

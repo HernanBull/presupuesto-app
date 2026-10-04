@@ -1,0 +1,1105 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "text_veibtihv9",
+      "type": "text",
+      "x": 1000,
+      "y": 50,
+      "width": 1399.1999999999998,
+      "height": 52.8,
+      "strokeColor": "#3b82f6",
+      "fontSize": 44,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "text": "AxonMarket: Bot de Telegram de Logística (Deliveries)"
+    },
+    {
+      "id": "text_1yyucp60e",
+      "type": "text",
+      "x": 1080,
+      "y": 110,
+      "width": 863.9999999999999,
+      "height": 28.799999999999997,
+      "strokeColor": "#94a3b8",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "text": "Supabase Edge Functions / Máquina de Estados de Repartidores"
+    },
+    {
+      "id": "text_xrrky227o",
+      "type": "text",
+      "x": 100,
+      "y": 200,
+      "width": 561.6,
+      "height": 31.2,
+      "strokeColor": "#3b82f6",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "1. REGISTRO Y GESTIÓN DEL REPARTIDOR"
+    },
+    {
+      "id": "rect_5a6zzfkx3",
+      "type": "rectangle",
+      "x": 50,
+      "y": 260,
+      "width": 350,
+      "height": 80,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#1e3a8a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_kl48khc7d",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_kl48khc7d",
+      "type": "text",
+      "x": 60,
+      "y": 289.3333333333333,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Comando /registrar\n(Inicia Máquina de Estados)",
+      "containerId": "rect_5a6zzfkx3"
+    },
+    {
+      "id": "arrow_z0ir78kz7",
+      "type": "arrow",
+      "x": 225,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_896jgm5ej",
+      "type": "rectangle",
+      "x": 50,
+      "y": 380,
+      "width": 350,
+      "height": 260,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_rxlb3thka",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_rxlb3thka",
+      "type": "text",
+      "x": 60,
+      "y": 499.3333333333333,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_896jgm5ej"
+    },
+    {
+      "id": "rect_2101p3zod",
+      "type": "rectangle",
+      "x": 70,
+      "y": 400,
+      "width": 310,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_55qxhxdgo",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_55qxhxdgo",
+      "type": "text",
+      "x": 80,
+      "y": 410.6666666666667,
+      "width": 290,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "WAITING_NAME",
+      "containerId": "rect_2101p3zod"
+    },
+    {
+      "id": "rect_86ttkll51",
+      "type": "rectangle",
+      "x": 70,
+      "y": 450,
+      "width": 310,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_9n8p1k0mx",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_9n8p1k0mx",
+      "type": "text",
+      "x": 80,
+      "y": 460.6666666666667,
+      "width": 290,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "WAITING_PHONE",
+      "containerId": "rect_86ttkll51"
+    },
+    {
+      "id": "rect_dvw1q4gwp",
+      "type": "rectangle",
+      "x": 70,
+      "y": 500,
+      "width": 310,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_gnzla7dfg",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_gnzla7dfg",
+      "type": "text",
+      "x": 80,
+      "y": 510.6666666666667,
+      "width": 290,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "WAITING_MOTO",
+      "containerId": "rect_dvw1q4gwp"
+    },
+    {
+      "id": "rect_np2vx2za4",
+      "type": "rectangle",
+      "x": 70,
+      "y": 550,
+      "width": 310,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_g8jrdxv5x",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_g8jrdxv5x",
+      "type": "text",
+      "x": 80,
+      "y": 560.6666666666666,
+      "width": 290,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "WAITING_AGENCY",
+      "containerId": "rect_np2vx2za4"
+    },
+    {
+      "id": "arrow_7r5y1r26b",
+      "type": "arrow",
+      "x": 225,
+      "y": 640,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_lgvyxavgn",
+      "type": "rectangle",
+      "x": 50,
+      "y": 680,
+      "width": 350,
+      "height": 80,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_wdz97atnv",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_wdz97atnv",
+      "type": "text",
+      "x": 60,
+      "y": 709.3333333333334,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Driver Creado en BD\nAsignado ID (REP-XXXX) e Inactivo",
+      "containerId": "rect_lgvyxavgn"
+    },
+    {
+      "id": "arrow_ljl4vmvru",
+      "type": "arrow",
+      "x": 400,
+      "y": 720,
+      "width": 80,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          80,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rect_vcmva8ly8",
+      "type": "rectangle",
+      "x": 480,
+      "y": 660,
+      "width": 280,
+      "height": 120,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_vbw0l5bj9",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_vbw0l5bj9",
+      "type": "text",
+      "x": 490,
+      "y": 709.3333333333334,
+      "width": 260,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Teclado Persistente Telegram\n🟢 Disponible\n🔴 Ocupado\n🚑 Accidente\n💤 Descansando",
+      "containerId": "rect_vcmva8ly8"
+    },
+    {
+      "id": "text_cqvm854p7",
+      "type": "text",
+      "x": 900,
+      "y": 200,
+      "width": 514.8,
+      "height": 31.2,
+      "strokeColor": "#f59e0b",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "2. DIFUSIÓN DE VIAJES (DESDE APP)"
+    },
+    {
+      "id": "rect_x8nzokmly",
+      "type": "rectangle",
+      "x": 900,
+      "y": 260,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#451a03",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_xftrjehti",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_xftrjehti",
+      "type": "text",
+      "x": 910,
+      "y": 289.3333333333333,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Frontend envía orden a\nEdge Function 'telegram-bot'",
+      "containerId": "rect_x8nzokmly"
+    },
+    {
+      "id": "arrow_vfttzzoy5",
+      "type": "arrow",
+      "x": 1090,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_dsq0xq0zn",
+      "type": "rectangle",
+      "x": 900,
+      "y": 380,
+      "width": 380,
+      "height": 180,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_495psyoe3",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_495psyoe3",
+      "type": "text",
+      "x": 910,
+      "y": 459.3333333333333,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Cifrado de Seguridad (Broadcast)\n\nSe envía al Grupo Maestro.\nMuestra zona y distancia.\nOCULTA dirección exacta y teléfono.",
+      "containerId": "rect_dsq0xq0zn"
+    },
+    {
+      "id": "arrow_sm9w4iptq",
+      "type": "arrow",
+      "x": 1090,
+      "y": 560,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_kgdvg6172",
+      "type": "rectangle",
+      "x": 900,
+      "y": 600,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_6hmllaq8t",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_6hmllaq8t",
+      "type": "text",
+      "x": 910,
+      "y": 629.3333333333334,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Inserción en BDD\n'delivery_pending_trips'",
+      "containerId": "rect_kgdvg6172"
+    },
+    {
+      "id": "arrow_3qju7fsuc",
+      "type": "arrow",
+      "x": 1090,
+      "y": 680,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_42sazr37f",
+      "type": "rectangle",
+      "x": 900,
+      "y": 720,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#1e3a8a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_30h9s6ine",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_30h9s6ine",
+      "type": "text",
+      "x": 910,
+      "y": 749.3333333333334,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Botón Inline: '🚗 Aceptar Viaje'\nCallback: /start accept_ORD-XXX",
+      "containerId": "rect_42sazr37f"
+    },
+    {
+      "id": "text_aw0som6d1",
+      "type": "text",
+      "x": 1450,
+      "y": 200,
+      "width": 405.59999999999997,
+      "height": 31.2,
+      "strokeColor": "#10b981",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "3. ASIGNACIÓN Y CONDUCCIÓN"
+    },
+    {
+      "id": "arrow_e8k6gzwq4",
+      "type": "arrow",
+      "x": 1280,
+      "y": 760,
+      "width": 170,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          170,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rect_ne397v522",
+      "type": "rectangle",
+      "x": 1450,
+      "y": 260,
+      "width": 400,
+      "height": 180,
+      "strokeColor": "#ef4444",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_n1f8v895p",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_n1f8v895p",
+      "type": "text",
+      "x": 1460,
+      "y": 339.3333333333333,
+      "width": 380,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Validaciones de Aceptación\n\n1. ¿El viaje sigue pendiente?\n2. ¿El driver está '🟢 Disponible'?\n3. ¿El driver NO tiene viajes activos?\n4. ¿La agencia permite viajes?",
+      "containerId": "rect_ne397v522"
+    },
+    {
+      "id": "arrow_lkb92wixo",
+      "type": "arrow",
+      "x": 1650,
+      "y": 440,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_npp5e11qm",
+      "type": "rectangle",
+      "x": 1450,
+      "y": 480,
+      "width": 400,
+      "height": 160,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_3vuu9k6p7",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_3vuu9k6p7",
+      "type": "text",
+      "x": 1460,
+      "y": 549.3333333333334,
+      "width": 380,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Revelación de Datos (Vía Privada)\n\nEl bot envía mensaje directo al Driver:\n- Dirección Exacta\n- Teléfono del Cliente\n- PIN Secreto (6 dígitos)",
+      "containerId": "rect_npp5e11qm"
+    },
+    {
+      "id": "arrow_ngdr9vmea",
+      "type": "arrow",
+      "x": 1650,
+      "y": 640,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_pms9gwzf1",
+      "type": "rectangle",
+      "x": 1450,
+      "y": 680,
+      "width": 400,
+      "height": 90,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_3t346xc9d",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_3t346xc9d",
+      "type": "text",
+      "x": 1460,
+      "y": 714.3333333333334,
+      "width": 380,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Pasa de 'pending_trips' a 'active_trips'\nNotifica al Grupo que el viaje fue tomado",
+      "containerId": "rect_pms9gwzf1"
+    },
+    {
+      "id": "arrow_j4dafwy8k",
+      "type": "arrow",
+      "x": 1650,
+      "y": 770,
+      "width": 200,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -200,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "arrow_av78e5ppa",
+      "type": "arrow",
+      "x": 1650,
+      "y": 770,
+      "width": 200,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          200,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_72b74losg",
+      "type": "rectangle",
+      "x": 1250,
+      "y": 810,
+      "width": 350,
+      "height": 140,
+      "strokeColor": "#ef4444",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_f4ve2k6in",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_f4ve2k6in",
+      "type": "text",
+      "x": 1260,
+      "y": 869.3333333333334,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "🚨 Abortar Viaje\n(/start cancel_...)\n\n- Pide Motivo (Mecánica, Accidente)\n- Regresa a Pending Trips\n- Alerta Roja al Grupo Maestro",
+      "containerId": "rect_72b74losg"
+    },
+    {
+      "id": "rect_zcqnj0e8e",
+      "type": "rectangle",
+      "x": 1700,
+      "y": 810,
+      "width": 350,
+      "height": 140,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_0wjv3l0u1",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_0wjv3l0u1",
+      "type": "text",
+      "x": 1710,
+      "y": 869.3333333333334,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "✅ Completar Viaje\n(/start complete_...)\n\n- Marca driver_confirmed = 1\n- Espera que cliente confirme (App)\n- Cierra Viaje -> Paga Comisión",
+      "containerId": "rect_zcqnj0e8e"
+    },
+    {
+      "id": "text_6hussqmdv",
+      "type": "text",
+      "x": 900,
+      "y": 1000,
+      "width": 702,
+      "height": 31.2,
+      "strokeColor": "#a855f7",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "4. SISTEMA DE CONFIRMACIÓN DUAL (ANTI-FRAUDE)"
+    },
+    {
+      "id": "arrow_dutrlvrxd",
+      "type": "arrow",
+      "x": 1875,
+      "y": 950,
+      "width": 800,
+      "height": 110,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          80
+        ],
+        [
+          -800,
+          80
+        ],
+        [
+          -800,
+          110
+        ]
+      ]
+    },
+    {
+      "id": "rect_pvnlth7is",
+      "type": "rectangle",
+      "x": 900,
+      "y": 1060,
+      "width": 500,
+      "height": 180,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ud9oo8455",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ud9oo8455",
+      "type": "text",
+      "x": 910,
+      "y": 1139.3333333333333,
+      "width": 480,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Lógica de Handshake Dual\n\n1. Repartidor marca en Telegram (driver_confirmed=1)\n2. Cliente marca en la App (customer_confirmed=1)\n\nSólo cuando AMBOS son verdaderos:\n- Se destruye 'active_trips'\n- Se cambia status a 'Entregado'\n- El driver gana la 'delivery_base_fee'",
+      "containerId": "rect_pvnlth7is"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#0f172a",
+    "theme": "dark"
+  }
+}

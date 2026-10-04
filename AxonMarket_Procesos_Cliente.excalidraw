@@ -1,0 +1,1165 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "text_fd50k09yb",
+      "type": "text",
+      "x": 600,
+      "y": 50,
+      "width": 1128,
+      "height": 48,
+      "strokeColor": "#f59e0b",
+      "fontSize": 40,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "text": "AxonMarket: Mapa de Funcionalidades del Cliente"
+    },
+    {
+      "id": "text_862vegsm4",
+      "type": "text",
+      "x": 670,
+      "y": 110,
+      "width": 619.1999999999999,
+      "height": 28.799999999999997,
+      "strokeColor": "#94a3b8",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "text": "Recorrido End-to-End del Consumer App (PWA)"
+    },
+    {
+      "id": "text_14kersyug",
+      "type": "text",
+      "x": 100,
+      "y": 200,
+      "width": 390,
+      "height": 31.2,
+      "strokeColor": "#f59e0b",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "1. DISCOVERY Y NAVEGACIÓN"
+    },
+    {
+      "id": "rect_6c0vj806f",
+      "type": "rectangle",
+      "x": 50,
+      "y": 260,
+      "width": 350,
+      "height": 90,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_z8dbl4xjq",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_z8dbl4xjq",
+      "type": "text",
+      "x": 60,
+      "y": 293,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Marketplace Directory\n(Inicio de la PWA)",
+      "containerId": "rect_6c0vj806f"
+    },
+    {
+      "id": "arrow_blo40uohn",
+      "type": "arrow",
+      "x": 225,
+      "y": 350,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_zxkyj8dnk",
+      "type": "rectangle",
+      "x": 50,
+      "y": 390,
+      "width": 350,
+      "height": 250,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_df7mihygv",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_df7mihygv",
+      "type": "text",
+      "x": 60,
+      "y": 503,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_zxkyj8dnk"
+    },
+    {
+      "id": "rect_qo20ypy06",
+      "type": "rectangle",
+      "x": 70,
+      "y": 410,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_k4c5vcs73",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_k4c5vcs73",
+      "type": "text",
+      "x": 80,
+      "y": 423,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Búsqueda Global (Tiendas/Prods)",
+      "containerId": "rect_qo20ypy06"
+    },
+    {
+      "id": "rect_vt541s5dr",
+      "type": "rectangle",
+      "x": 70,
+      "y": 475,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_c034fr5kw",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_c034fr5kw",
+      "type": "text",
+      "x": 80,
+      "y": 488,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Filtro por Categorías (Visual Grid)",
+      "containerId": "rect_vt541s5dr"
+    },
+    {
+      "id": "rect_yy69rrqsd",
+      "type": "rectangle",
+      "x": 70,
+      "y": 540,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_fwbdxyt1g",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_fwbdxyt1g",
+      "type": "text",
+      "x": 80,
+      "y": 553,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Instalación PWA (Banner Nativo)",
+      "containerId": "rect_yy69rrqsd"
+    },
+    {
+      "id": "rect_e357ajzr0",
+      "type": "rectangle",
+      "x": 70,
+      "y": 605,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_fk7qz8vd0",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_fk7qz8vd0",
+      "type": "text",
+      "x": 80,
+      "y": 618,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Bottom Nav (Inicio, Carrito, Gastos)",
+      "containerId": "rect_e357ajzr0"
+    },
+    {
+      "id": "arrow_04qj4rhmn",
+      "type": "arrow",
+      "x": 400,
+      "y": 300,
+      "width": 100,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          100,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "text_3to6j3ery",
+      "type": "text",
+      "x": 550,
+      "y": 200,
+      "width": 374.4,
+      "height": 31.2,
+      "strokeColor": "#10b981",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "2. EXPERIENCIA DE TIENDA"
+    },
+    {
+      "id": "rect_i8imdc9rp",
+      "type": "rectangle",
+      "x": 500,
+      "y": 260,
+      "width": 350,
+      "height": 90,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ai1xkohxk",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ai1xkohxk",
+      "type": "text",
+      "x": 510,
+      "y": 293,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Public Store\n(Tienda del Comerciante)",
+      "containerId": "rect_i8imdc9rp"
+    },
+    {
+      "id": "arrow_7gulzg2o7",
+      "type": "arrow",
+      "x": 675,
+      "y": 350,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_2xly98p4c",
+      "type": "rectangle",
+      "x": 500,
+      "y": 390,
+      "width": 350,
+      "height": 280,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ymeuhgpyo",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ymeuhgpyo",
+      "type": "text",
+      "x": 510,
+      "y": 518,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_2xly98p4c"
+    },
+    {
+      "id": "rect_6mtn2033j",
+      "type": "rectangle",
+      "x": 520,
+      "y": 410,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_n5imvhjt3",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_n5imvhjt3",
+      "type": "text",
+      "x": 530,
+      "y": 423,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Catálogo Dinámico (UI Pers.)",
+      "containerId": "rect_6mtn2033j"
+    },
+    {
+      "id": "rect_bpa6dbsdu",
+      "type": "rectangle",
+      "x": 520,
+      "y": 475,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_wcp4a9y4u",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_wcp4a9y4u",
+      "type": "text",
+      "x": 530,
+      "y": 488,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Ofertas Flash (Con cronómetro)",
+      "containerId": "rect_bpa6dbsdu"
+    },
+    {
+      "id": "rect_rw5yi9oqg",
+      "type": "rectangle",
+      "x": 520,
+      "y": 540,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_g1x50zaqd",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_g1x50zaqd",
+      "type": "text",
+      "x": 530,
+      "y": 553,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Product Modal (Añadir al Carrito)",
+      "containerId": "rect_rw5yi9oqg"
+    },
+    {
+      "id": "rect_01a77sthg",
+      "type": "rectangle",
+      "x": 520,
+      "y": 605,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_zpj77nomr",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_zpj77nomr",
+      "type": "text",
+      "x": 530,
+      "y": 618,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Private Gateway (Precios Ocultos)",
+      "containerId": "rect_01a77sthg"
+    },
+    {
+      "id": "arrow_ptn9jqfwp",
+      "type": "arrow",
+      "x": 675,
+      "y": 670,
+      "width": 0,
+      "height": 50,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          50
+        ]
+      ]
+    },
+    {
+      "id": "text_s18k53och",
+      "type": "text",
+      "x": 550,
+      "y": 750,
+      "width": 358.8,
+      "height": 31.2,
+      "strokeColor": "#3b82f6",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "3. COMPRA Y SEGUIMIENTO"
+    },
+    {
+      "id": "rect_my30vj81t",
+      "type": "rectangle",
+      "x": 500,
+      "y": 800,
+      "width": 350,
+      "height": 90,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#1e3a8a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ckoice0y9",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ckoice0y9",
+      "type": "text",
+      "x": 510,
+      "y": 833,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Carrito & Checkout Modal\n(Por Tienda)",
+      "containerId": "rect_my30vj81t"
+    },
+    {
+      "id": "arrow_65bd9msz8",
+      "type": "arrow",
+      "x": 675,
+      "y": 890,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_uqbroijjb",
+      "type": "rectangle",
+      "x": 500,
+      "y": 930,
+      "width": 350,
+      "height": 200,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_v45w0cjgu",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_v45w0cjgu",
+      "type": "text",
+      "x": 510,
+      "y": 1018,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_uqbroijjb"
+    },
+    {
+      "id": "rect_lbt4uaiyd",
+      "type": "rectangle",
+      "x": 520,
+      "y": 950,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_w94iscnm2",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_w94iscnm2",
+      "type": "text",
+      "x": 530,
+      "y": 963,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Calculadora de Subtotal + Propinas",
+      "containerId": "rect_lbt4uaiyd"
+    },
+    {
+      "id": "rect_kg0x8wm4v",
+      "type": "rectangle",
+      "x": 520,
+      "y": 1015,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#451a03",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_p0o0vvpo8",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_p0o0vvpo8",
+      "type": "text",
+      "x": 530,
+      "y": 1028,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Validación de Perfil (ProfileWizard)",
+      "containerId": "rect_kg0x8wm4v"
+    },
+    {
+      "id": "rect_ronrtpd9a",
+      "type": "rectangle",
+      "x": 520,
+      "y": 1080,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_142v9wuzu",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_142v9wuzu",
+      "type": "text",
+      "x": 530,
+      "y": 1093,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Envío por WhatsApp o Supabase BD",
+      "containerId": "rect_ronrtpd9a"
+    },
+    {
+      "id": "text_9ut4c6dio",
+      "type": "text",
+      "x": 950,
+      "y": 200,
+      "width": 249.6,
+      "height": 31.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "4. ÁREA PERSONAL"
+    },
+    {
+      "id": "arrow_6u9wvjmln",
+      "type": "arrow",
+      "x": 850,
+      "y": 300,
+      "width": 100,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          100,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rect_kurp7522v",
+      "type": "rectangle",
+      "x": 950,
+      "y": 260,
+      "width": 350,
+      "height": 90,
+      "strokeColor": "#334155",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_uaki7g0h9",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_uaki7g0h9",
+      "type": "text",
+      "x": 960,
+      "y": 293,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Auth Modal & Profile Wizard\n(Seguridad y KYC)",
+      "containerId": "rect_kurp7522v"
+    },
+    {
+      "id": "arrow_xgcfk8r98",
+      "type": "arrow",
+      "x": 1125,
+      "y": 350,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_uhp4poffr",
+      "type": "rectangle",
+      "x": 950,
+      "y": 390,
+      "width": 350,
+      "height": 200,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_5w5lc3i9l",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_5w5lc3i9l",
+      "type": "text",
+      "x": 960,
+      "y": 478,
+      "width": 330,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_uhp4poffr"
+    },
+    {
+      "id": "rect_wpydgx4yw",
+      "type": "rectangle",
+      "x": 970,
+      "y": 410,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_4fbwvebk3",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_4fbwvebk3",
+      "type": "text",
+      "x": 980,
+      "y": 423,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Google OAuth / Email Auth",
+      "containerId": "rect_wpydgx4yw"
+    },
+    {
+      "id": "rect_x399x11th",
+      "type": "rectangle",
+      "x": 970,
+      "y": 475,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_fc47d4e63",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_fc47d4e63",
+      "type": "text",
+      "x": 980,
+      "y": 488,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Gestión de Datos (DNI, Tel, Dir)",
+      "containerId": "rect_x399x11th"
+    },
+    {
+      "id": "rect_t59elb93m",
+      "type": "rectangle",
+      "x": 970,
+      "y": 540,
+      "width": 310,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_9h5rgj8u6",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_9h5rgj8u6",
+      "type": "text",
+      "x": 980,
+      "y": 553,
+      "width": 290,
+      "height": 21.599999999999998,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Mis Gastos (Historial de Compras)",
+      "containerId": "rect_t59elb93m"
+    },
+    {
+      "id": "arrow_71sz54dnd",
+      "type": "arrow",
+      "x": 830,
+      "y": 1040,
+      "width": 290,
+      "height": 450,
+      "strokeColor": "#f59e0b",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "dashed",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          290,
+          0
+        ],
+        [
+          290,
+          -450
+        ]
+      ]
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#0f172a",
+    "theme": "dark"
+  }
+}

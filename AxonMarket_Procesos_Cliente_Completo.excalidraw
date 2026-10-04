@@ -1,0 +1,2150 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "text_k7y5vjbrq",
+      "type": "text",
+      "x": 1200,
+      "y": 50,
+      "width": 1293.6,
+      "height": 52.8,
+      "strokeColor": "#f59e0b",
+      "fontSize": 44,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "text": "AxonMarket: Ecosistema Completo del Cliente (PWA)"
+    },
+    {
+      "id": "text_z2i4plwbp",
+      "type": "text",
+      "x": 1280,
+      "y": 110,
+      "width": 907.1999999999999,
+      "height": 28.799999999999997,
+      "strokeColor": "#94a3b8",
+      "fontSize": 24,
+      "fontFamily": 1,
+      "textAlign": "left",
+      "text": "Diagrama Exhaustivo de Arquitectura de Funciones del Consumidor"
+    },
+    {
+      "id": "text_fk7ohy2do",
+      "type": "text",
+      "x": 100,
+      "y": 200,
+      "width": 390,
+      "height": 31.2,
+      "strokeColor": "#f59e0b",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "1. IDENTIDAD Y ONBOARDING"
+    },
+    {
+      "id": "rect_r97vxy7wm",
+      "type": "rectangle",
+      "x": 50,
+      "y": 260,
+      "width": 350,
+      "height": 80,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_447xeafw3",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_447xeafw3",
+      "type": "text",
+      "x": 60,
+      "y": 289.3333333333333,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Autenticación Base (Auth Modal)\nEmail/Pass & Google OAuth",
+      "containerId": "rect_r97vxy7wm"
+    },
+    {
+      "id": "arrow_ja13y8z7p",
+      "type": "arrow",
+      "x": 225,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_lq4r9xikg",
+      "type": "rectangle",
+      "x": 50,
+      "y": 380,
+      "width": 350,
+      "height": 80,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_u35y1qrtm",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_u35y1qrtm",
+      "type": "text",
+      "x": 60,
+      "y": 409.3333333333333,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Supabase Auth & Sessions\n(Genera Token JWT y Envía Correo)",
+      "containerId": "rect_lq4r9xikg"
+    },
+    {
+      "id": "arrow_rp937ypvc",
+      "type": "arrow",
+      "x": 225,
+      "y": 460,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_cypcgdjuz",
+      "type": "rectangle",
+      "x": 50,
+      "y": 500,
+      "width": 350,
+      "height": 80,
+      "strokeColor": "#f59e0b",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_tv0a89af4",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_tv0a89af4",
+      "type": "text",
+      "x": 60,
+      "y": 529.3333333333334,
+      "width": 330,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "ProfileWizard (Control de Acceso)\n(Fuerza DNI, Teléfono y Ubicación)",
+      "containerId": "rect_cypcgdjuz"
+    },
+    {
+      "id": "text_ergp14bt8",
+      "type": "text",
+      "x": 600,
+      "y": 200,
+      "width": 421.2,
+      "height": 31.2,
+      "strokeColor": "#10b981",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "2. ECOSISTEMA (MARKETPLACE)"
+    },
+    {
+      "id": "rect_10nzcbxlc",
+      "type": "rectangle",
+      "x": 550,
+      "y": 260,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_o16ltf86v",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_o16ltf86v",
+      "type": "text",
+      "x": 560,
+      "y": 289.3333333333333,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Marketplace Directory (Ruta: /)\n(Vitrina Global de AxonMarket)",
+      "containerId": "rect_10nzcbxlc"
+    },
+    {
+      "id": "arrow_mvo16uoqm",
+      "type": "arrow",
+      "x": 740,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_4thjtojrn",
+      "type": "rectangle",
+      "x": 550,
+      "y": 380,
+      "width": 380,
+      "height": 350,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_8qan5wjxi",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_8qan5wjxi",
+      "type": "text",
+      "x": 560,
+      "y": 544.3333333333334,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_4thjtojrn"
+    },
+    {
+      "id": "rect_cj2rt0unb",
+      "type": "rectangle",
+      "x": 570,
+      "y": 400,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_nu12rnau0",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_nu12rnau0",
+      "type": "text",
+      "x": 580,
+      "y": 414.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Barra de Búsqueda de Tiendas y Productos",
+      "containerId": "rect_cj2rt0unb"
+    },
+    {
+      "id": "rect_zwm2nsypn",
+      "type": "rectangle",
+      "x": 570,
+      "y": 470,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ljreii32i",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ljreii32i",
+      "type": "text",
+      "x": 580,
+      "y": 484.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Grid de Categorías Interactivos (Hardware Accel)",
+      "containerId": "rect_zwm2nsypn"
+    },
+    {
+      "id": "rect_n6dkdu8of",
+      "type": "rectangle",
+      "x": 570,
+      "y": 540,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_7zexxd4pl",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_7zexxd4pl",
+      "type": "text",
+      "x": 580,
+      "y": 554.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Lista de Comercios Destacados/Activos",
+      "containerId": "rect_n6dkdu8of"
+    },
+    {
+      "id": "rect_ecx0zkrd2",
+      "type": "rectangle",
+      "x": 570,
+      "y": 610,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_k7nasaw1s",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_k7nasaw1s",
+      "type": "text",
+      "x": 580,
+      "y": 624.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Instalación PWA (Smart Banners iOS/Android)",
+      "containerId": "rect_ecx0zkrd2"
+    },
+    {
+      "id": "rect_rlgtexj9x",
+      "type": "rectangle",
+      "x": 570,
+      "y": 680,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_46wvv11si",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_46wvv11si",
+      "type": "text",
+      "x": 580,
+      "y": 694.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Bottom Navigation (Inicio, Carrito, Chats)",
+      "containerId": "rect_rlgtexj9x"
+    },
+    {
+      "id": "text_s4j120ccc",
+      "type": "text",
+      "x": 1100,
+      "y": 200,
+      "width": 374.4,
+      "height": 31.2,
+      "strokeColor": "#3b82f6",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "3. EXPERIENCIA DE TIENDA"
+    },
+    {
+      "id": "arrow_u0nqfih64",
+      "type": "arrow",
+      "x": 930,
+      "y": 300,
+      "width": 170,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          170,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rect_7tp8lqovn",
+      "type": "rectangle",
+      "x": 1100,
+      "y": 260,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#3b82f6",
+      "backgroundColor": "#1e3a8a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_pcmg2pno1",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_pcmg2pno1",
+      "type": "text",
+      "x": 1110,
+      "y": 289.3333333333333,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Public Store (Ruta: /:slug)\n(UI Dinámica generada por el Comerciante)",
+      "containerId": "rect_7tp8lqovn"
+    },
+    {
+      "id": "arrow_cjd6jn6b8",
+      "type": "arrow",
+      "x": 1290,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_j4imwkz4h",
+      "type": "rectangle",
+      "x": 1100,
+      "y": 380,
+      "width": 380,
+      "height": 420,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_n1dkm3fx0",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_n1dkm3fx0",
+      "type": "text",
+      "x": 1110,
+      "y": 579.3333333333334,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_j4imwkz4h"
+    },
+    {
+      "id": "rect_ktioqr8i1",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 400,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_h6av1sywu",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_h6av1sywu",
+      "type": "text",
+      "x": 1130,
+      "y": 414.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Cabecera: Banner, Logo y Estado (Abierto/Cerrado)",
+      "containerId": "rect_ktioqr8i1"
+    },
+    {
+      "id": "rect_lhwqql0vj",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 470,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_froi3y3zz",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_froi3y3zz",
+      "type": "text",
+      "x": 1130,
+      "y": 484.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Catálogo de Productos y Búsqueda Local",
+      "containerId": "rect_lhwqql0vj"
+    },
+    {
+      "id": "rect_t1k3yas9f",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 540,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#450a0a",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_1x9463d5k",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_1x9463d5k",
+      "type": "text",
+      "x": 1130,
+      "y": 554.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Private Gateway (Bloqueo de precios sin sesión)",
+      "containerId": "rect_t1k3yas9f"
+    },
+    {
+      "id": "rect_lzkjxpfvk",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 610,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_18evn1a1u",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_18evn1a1u",
+      "type": "text",
+      "x": 1130,
+      "y": 624.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Ofertas Flash (Cronómetro de Descuentos)",
+      "containerId": "rect_lzkjxpfvk"
+    },
+    {
+      "id": "rect_2bbiht9kp",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 680,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_cte42z3in",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_cte42z3in",
+      "type": "text",
+      "x": 1130,
+      "y": 694.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Product Modal: Info Detallada y Variantes",
+      "containerId": "rect_2bbiht9kp"
+    },
+    {
+      "id": "rect_59qzuk4tx",
+      "type": "rectangle",
+      "x": 1120,
+      "y": 750,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_0eiaaxxto",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_0eiaaxxto",
+      "type": "text",
+      "x": 1130,
+      "y": 764.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Gestión de Wishlist (Agregar/Quitar Guardados)",
+      "containerId": "rect_59qzuk4tx"
+    },
+    {
+      "id": "text_kw49qe6aw",
+      "type": "text",
+      "x": 1600,
+      "y": 200,
+      "width": 358.8,
+      "height": 31.2,
+      "strokeColor": "#10b981",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "4. CHECKOUT Y LOGÍSTICA"
+    },
+    {
+      "id": "arrow_50jp1wm00",
+      "type": "arrow",
+      "x": 1480,
+      "y": 300,
+      "width": 120,
+      "height": 0,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          120,
+          0
+        ]
+      ]
+    },
+    {
+      "id": "rect_uxsucwrkb",
+      "type": "rectangle",
+      "x": 1600,
+      "y": 260,
+      "width": 380,
+      "height": 80,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_0we25366r",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_0we25366r",
+      "type": "text",
+      "x": 1610,
+      "y": 289.3333333333333,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Proceso de Pago (Checkout Modal)\n(Carritos guardados por Comercio)",
+      "containerId": "rect_uxsucwrkb"
+    },
+    {
+      "id": "arrow_vjw3lzc69",
+      "type": "arrow",
+      "x": 1790,
+      "y": 340,
+      "width": 0,
+      "height": 40,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          40
+        ]
+      ]
+    },
+    {
+      "id": "rect_jon1xbg5e",
+      "type": "rectangle",
+      "x": 1600,
+      "y": 380,
+      "width": 380,
+      "height": 420,
+      "strokeColor": "#334155",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_hfcz1jzc4",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_hfcz1jzc4",
+      "type": "text",
+      "x": 1610,
+      "y": 579.3333333333334,
+      "width": 360,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_jon1xbg5e"
+    },
+    {
+      "id": "rect_4f1g26krf",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 400,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_yspftywih",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_yspftywih",
+      "type": "text",
+      "x": 1630,
+      "y": 414.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Gestor de Cantidades y Remoción",
+      "containerId": "rect_4f1g26krf"
+    },
+    {
+      "id": "rect_pyofic4r7",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 470,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_x2gknpkm3",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_x2gknpkm3",
+      "type": "text",
+      "x": 1630,
+      "y": 484.3333333333333,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Selector de Propina (Tips Integrados)",
+      "containerId": "rect_pyofic4r7"
+    },
+    {
+      "id": "rect_jw1b0w3cn",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 540,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_folfhqgak",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_folfhqgak",
+      "type": "text",
+      "x": 1630,
+      "y": 554.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Cálculo en Tiempo Real (Delivery + Total)",
+      "containerId": "rect_jw1b0w3cn"
+    },
+    {
+      "id": "rect_37orw8j99",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 610,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_0xwngnqme",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_0xwngnqme",
+      "type": "text",
+      "x": 1630,
+      "y": 624.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Métodos de Pago (Efectivo/Binance/Pago Móvil)",
+      "containerId": "rect_37orw8j99"
+    },
+    {
+      "id": "rect_5l2preo6u",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 680,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_d439d5drn",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_d439d5drn",
+      "type": "text",
+      "x": 1630,
+      "y": 694.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Subida de Comprobante de Pago (Supabase Storage)",
+      "containerId": "rect_5l2preo6u"
+    },
+    {
+      "id": "rect_5atplxjn4",
+      "type": "rectangle",
+      "x": 1620,
+      "y": 750,
+      "width": 340,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_cf36ah4j7",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_cf36ah4j7",
+      "type": "text",
+      "x": 1630,
+      "y": 764.3333333333334,
+      "width": 320,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Envío Dual: Creación en BDD + WhatsApp/Telegram",
+      "containerId": "rect_5atplxjn4"
+    },
+    {
+      "id": "text_k0qwtioot",
+      "type": "text",
+      "x": 600,
+      "y": 900,
+      "width": 889.1999999999999,
+      "height": 31.2,
+      "strokeColor": "#a855f7",
+      "fontSize": 26,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "5. PANEL DE CONTROL PERSONAL (CUSTOMER PROFILE: /profile)"
+    },
+    {
+      "id": "arrow_219q2ivor",
+      "type": "arrow",
+      "x": 225,
+      "y": 580,
+      "width": 325,
+      "height": 360,
+      "strokeColor": "#334155",
+      "strokeWidth": 2,
+      "roughness": 0,
+      "strokeStyle": "solid",
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          360
+        ],
+        [
+          325,
+          360
+        ]
+      ]
+    },
+    {
+      "id": "rect_1oduz4i6f",
+      "type": "rectangle",
+      "x": 550,
+      "y": 960,
+      "width": 1430,
+      "height": 350,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 3,
+      "strokeStyle": "dashed",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_p7cg1a9pm",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_p7cg1a9pm",
+      "type": "text",
+      "x": 560,
+      "y": 1124.3333333333333,
+      "width": 1410,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_1oduz4i6f"
+    },
+    {
+      "id": "rect_pf14qjb5l",
+      "type": "rectangle",
+      "x": 580,
+      "y": 1000,
+      "width": 320,
+      "height": 280,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_33mfz5zxc",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_33mfz5zxc",
+      "type": "text",
+      "x": 590,
+      "y": 1129.3333333333333,
+      "width": 300,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_pf14qjb5l"
+    },
+    {
+      "id": "text_o1io5qvw8",
+      "type": "text",
+      "x": 600,
+      "y": 1020,
+      "width": 252,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "Tab: Datos Personales"
+    },
+    {
+      "id": "rect_ldbkrtljt",
+      "type": "rectangle",
+      "x": 600,
+      "y": 1060,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_8yhc6kptf",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_8yhc6kptf",
+      "type": "text",
+      "x": 610,
+      "y": 1070.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Edición de Perfil (DNI, Tel)",
+      "containerId": "rect_ldbkrtljt"
+    },
+    {
+      "id": "rect_pm7y9d8zx",
+      "type": "rectangle",
+      "x": 600,
+      "y": 1110,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_sc72asmoy",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_sc72asmoy",
+      "type": "text",
+      "x": 610,
+      "y": 1120.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Subida de Foto de Perfil (Storage)",
+      "containerId": "rect_pm7y9d8zx"
+    },
+    {
+      "id": "rect_3vtuvcm3l",
+      "type": "rectangle",
+      "x": 600,
+      "y": 1160,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ym9dq0q7s",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ym9dq0q7s",
+      "type": "text",
+      "x": 610,
+      "y": 1170.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Gestión de Cuentas Pago Móvil",
+      "containerId": "rect_3vtuvcm3l"
+    },
+    {
+      "id": "rect_ihfkkgcj0",
+      "type": "rectangle",
+      "x": 600,
+      "y": 1210,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_qoem0caxf",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_qoem0caxf",
+      "type": "text",
+      "x": 610,
+      "y": 1220.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Verificación OTP y Enlaces",
+      "containerId": "rect_ihfkkgcj0"
+    },
+    {
+      "id": "rect_uuim1xi3m",
+      "type": "rectangle",
+      "x": 930,
+      "y": 1000,
+      "width": 320,
+      "height": 280,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_vkui9m90p",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_vkui9m90p",
+      "type": "text",
+      "x": 940,
+      "y": 1129.3333333333333,
+      "width": 300,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_uuim1xi3m"
+    },
+    {
+      "id": "text_9dyh3hj6n",
+      "type": "text",
+      "x": 950,
+      "y": 1020,
+      "width": 252,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "Tab: Historial & Chat"
+    },
+    {
+      "id": "rect_zkmu0hgrg",
+      "type": "rectangle",
+      "x": 950,
+      "y": 1060,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_ga7vnj6px",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_ga7vnj6px",
+      "type": "text",
+      "x": 960,
+      "y": 1070.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Listado Histórico de Pedidos",
+      "containerId": "rect_zkmu0hgrg"
+    },
+    {
+      "id": "rect_qy86g2tc5",
+      "type": "rectangle",
+      "x": 950,
+      "y": 1110,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_zexiuhb78",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_zexiuhb78",
+      "type": "text",
+      "x": 960,
+      "y": 1120.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Estado en Tiempo Real (WebSocket)",
+      "containerId": "rect_qy86g2tc5"
+    },
+    {
+      "id": "rect_had5dlr6k",
+      "type": "rectangle",
+      "x": 950,
+      "y": 1160,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#10b981",
+      "backgroundColor": "#064e3b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_h9xratvkh",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_h9xratvkh",
+      "type": "text",
+      "x": 960,
+      "y": 1170.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Chat Nativo Cliente-Vendedor (Imágenes)",
+      "containerId": "rect_had5dlr6k"
+    },
+    {
+      "id": "rect_rf28ywdxz",
+      "type": "rectangle",
+      "x": 950,
+      "y": 1210,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_m7c21fwdr",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_m7c21fwdr",
+      "type": "text",
+      "x": 960,
+      "y": 1220.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Confirmación de Recepción & Reseñas",
+      "containerId": "rect_rf28ywdxz"
+    },
+    {
+      "id": "rect_mebv6nzn0",
+      "type": "rectangle",
+      "x": 1280,
+      "y": 1000,
+      "width": 320,
+      "height": 280,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_aopweut9j",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_aopweut9j",
+      "type": "text",
+      "x": 1290,
+      "y": 1129.3333333333333,
+      "width": 300,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_mebv6nzn0"
+    },
+    {
+      "id": "text_b15yo3bh0",
+      "type": "text",
+      "x": 1300,
+      "y": 1020,
+      "width": 264,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "Tab: Direcciones / GPS"
+    },
+    {
+      "id": "rect_i3s6mt6ko",
+      "type": "rectangle",
+      "x": 1300,
+      "y": 1060,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_zqnzzu15k",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_zqnzzu15k",
+      "type": "text",
+      "x": 1310,
+      "y": 1070.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Libreta de Direcciones Múltiples",
+      "containerId": "rect_i3s6mt6ko"
+    },
+    {
+      "id": "rect_pdlzt57zo",
+      "type": "rectangle",
+      "x": 1300,
+      "y": 1110,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_l9bxa23sd",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_l9bxa23sd",
+      "type": "text",
+      "x": 1310,
+      "y": 1120.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Selección de Dirección por Defecto",
+      "containerId": "rect_pdlzt57zo"
+    },
+    {
+      "id": "rect_g0h4prf8s",
+      "type": "rectangle",
+      "x": 1300,
+      "y": 1160,
+      "width": 280,
+      "height": 55,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_dz7wvi26c",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_dz7wvi26c",
+      "type": "text",
+      "x": 1310,
+      "y": 1178.1666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Módulo React-Leaflet (Mapas)\nClick para fijar Lat/Lng",
+      "containerId": "rect_g0h4prf8s"
+    },
+    {
+      "id": "rect_b8hoq99l0",
+      "type": "rectangle",
+      "x": 1300,
+      "y": 1225,
+      "width": 280,
+      "height": 40,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_dsftpypxe",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_dsftpypxe",
+      "type": "text",
+      "x": 1310,
+      "y": 1235.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Extracción Automática GPS",
+      "containerId": "rect_b8hoq99l0"
+    },
+    {
+      "id": "rect_5vgmawdro",
+      "type": "rectangle",
+      "x": 1630,
+      "y": 1000,
+      "width": 320,
+      "height": 280,
+      "strokeColor": "#a855f7",
+      "backgroundColor": "#1e1b4b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_mmk8nhlru",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_mmk8nhlru",
+      "type": "text",
+      "x": 1640,
+      "y": 1129.3333333333333,
+      "width": 300,
+      "height": 19.2,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "",
+      "containerId": "rect_5vgmawdro"
+    },
+    {
+      "id": "text_signv2d7w",
+      "type": "text",
+      "x": 1650,
+      "y": 1020,
+      "width": 312,
+      "height": 24,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 20,
+      "fontFamily": 3,
+      "textAlign": "left",
+      "text": "Tab: Favoritos & Guardados"
+    },
+    {
+      "id": "rect_xvdk49ly0",
+      "type": "rectangle",
+      "x": 1650,
+      "y": 1060,
+      "width": 280,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_2355vp5eb",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_2355vp5eb",
+      "type": "text",
+      "x": 1660,
+      "y": 1075.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Lista de Tiendas Favoritas (Directorio Rápido)",
+      "containerId": "rect_xvdk49ly0"
+    },
+    {
+      "id": "rect_u3xbmwid9",
+      "type": "rectangle",
+      "x": 1650,
+      "y": 1130,
+      "width": 280,
+      "height": 50,
+      "strokeColor": "#334155",
+      "backgroundColor": "#1e293b",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "roundness": {
+        "type": 3,
+        "value": 20
+      },
+      "boundElements": [
+        {
+          "id": "text_cn49rdxo1",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "id": "text_cn49rdxo1",
+      "type": "text",
+      "x": 1660,
+      "y": 1145.6666666666667,
+      "width": 260,
+      "height": 16.8,
+      "strokeColor": "#f8f9fa",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "text": "Wishlist de Productos Inter-Tiendas",
+      "containerId": "rect_u3xbmwid9"
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#0f172a",
+    "theme": "dark"
+  }
+}

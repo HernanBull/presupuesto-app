@@ -262,17 +262,13 @@ async function handleTelegramUpdate(update, supabase) {
       await sendMessageToChat(chatId, "¡Entendido! Ahora dime, ¿Qué <b>Modelo de Vehículo</b> conduces? (Ej. Bera SBR)");
     } else if (state.step === 'WAITING_MOTO') {
       state.moto = text;
-      state.step = 'WAITING_AGENCY';
-      await supabase.from('platform_settings').upsert({ key: botStateKey, value: JSON.stringify(state) }, { onConflict: 'key' });
-      await sendMessageToChat(chatId, "Excelente. Por último, ¿A qué <b>Agencia de Delivery</b> perteneces? (Ej. MotoYa, Independiente, etc):");
-    } else if (state.step === 'WAITING_AGENCY') {
-      state.agencia = text;
       const driverCode = 'REP-' + Math.floor(1000 + Math.random() * 9000);
+      const defaultAgency = 'Agencia Principal';
 
       if (!driverData) {
-        await supabase.from('delivery_drivers').insert([{ id: chatId, driver_code: driverCode, name: state.fullName, cedula: '', telefono: state.telefono, age: '', moto: state.moto, placa: '', agencia: state.agencia, status: 'inactivo' }]);
+        await supabase.from('delivery_drivers').insert([{ id: chatId, driver_code: driverCode, name: state.fullName, cedula: '', telefono: state.telefono, age: '', moto: state.moto, placa: '', agencia: defaultAgency, status: 'inactivo' }]);
       } else {
-        await supabase.from('delivery_drivers').update({ driver_code: driverCode, name: state.fullName, telefono: state.telefono, moto: state.moto, agencia: state.agencia, status: 'inactivo' }).eq('id', chatId);
+        await supabase.from('delivery_drivers').update({ driver_code: driverCode, name: state.fullName, telefono: state.telefono, moto: state.moto, agencia: defaultAgency, status: 'inactivo' }).eq('id', chatId);
       }
       
       await supabase.from('platform_settings').delete().eq('key', botStateKey); // Clear state
