@@ -62,6 +62,8 @@ export default function StoreProfileManager() {
   const [coverUrl, setCoverUrl] = useState('');
   
   // Cambio de contraseña
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -173,6 +175,7 @@ export default function StoreProfileManager() {
         if (ws) {
           if (ws.name) setStoreName(ws.name);
           if (ws.config) {
+            if (ws.config.generatedPassword) setGeneratedPassword(ws.config.generatedPassword);
             if (ws.config.currency) setCurrency(ws.config.currency);
             if (ws.config.description) setDescription(ws.config.description);
             if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
@@ -444,6 +447,82 @@ export default function StoreProfileManager() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Contraseña / Key */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-lg">
+              <Lock size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Cambio de Contraseña</h3>
+              <p className="text-xs text-slate-500 mt-1">Administra tu contraseña para iniciar sesión con correo electrónico.</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 mb-6 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl">
+            <div>
+              <p className="text-sm font-bold text-slate-800 dark:text-white">Contraseña generada (Key):</p>
+              <p className="text-lg font-mono mt-1 text-slate-600 dark:text-slate-300">
+                {showKey ? (generatedPassword || 'No definida') : '••••••••••••'}
+              </p>
+            </div>
+            <button type="button" onClick={() => setShowKey(!showKey)} className="px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 rounded-lg transition-colors">
+              {showKey ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
+
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="flex flex-col gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950/50">
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Contraseña Actual</label>
+                  <input 
+                    type="password" 
+                    value={currentPassword} 
+                    onChange={e => setCurrentPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Nueva Contraseña</label>
+                  <input 
+                    type="password" 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Confirmar Nueva</label>
+                  <input 
+                    type="password" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
+                  />
+                </div>
+              </div>
+
+              {passwordStatus.msg && (
+                <div className={`p-3 rounded-lg text-sm font-medium ${passwordStatus.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
+                  {passwordStatus.msg}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <button type="submit" disabled={isChangingPassword} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-70">
+                  {isChangingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
+                </button>
+              </div>
+
+            </div>
+          </form>
         </section>
 
         {/* Info de Tienda */}
@@ -807,69 +886,7 @@ export default function StoreProfileManager() {
           </div>
         </section>
 
-        {/* Cambio de Contraseña */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-slate-50 dark:bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-lg">
-              <Lock size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Cambio de Contraseña</h3>
-              <p className="text-xs text-slate-500 mt-1">Cambia la contraseña maestra de acceso a esta tienda.</p>
-            </div>
-          </div>
-          
-          <form onSubmit={handleChangePassword} className="space-y-4">
-            <div className="flex flex-col gap-4 p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950/50">
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Contraseña Actual</label>
-                  <input 
-                    type="password" 
-                    value={currentPassword} 
-                    onChange={e => setCurrentPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Nueva Contraseña</label>
-                  <input 
-                    type="password" 
-                    value={newPassword} 
-                    onChange={e => setNewPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-bold text-slate-800 dark:text-white mb-1 block">Confirmar Nueva</label>
-                  <input 
-                    type="password" 
-                    value={confirmPassword} 
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                    className="w-full px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-violet-500" 
-                  />
-                </div>
-              </div>
 
-              {passwordStatus.msg && (
-                <div className={`p-3 rounded-lg text-sm font-medium ${passwordStatus.type === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>
-                  {passwordStatus.msg}
-                </div>
-              )}
-
-              <div className="flex justify-end pt-2">
-                <button type="submit" disabled={isChangingPassword} className="bg-slate-800 hover:bg-slate-900 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white px-5 py-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-70">
-                  {isChangingPassword ? 'Cambiando...' : 'Cambiar Contraseña'}
-                </button>
-              </div>
-
-            </div>
-          </form>
-        </section>
 
       </div>
     </div>

@@ -640,6 +640,7 @@ export default function MarketplaceDirectory() {
 
       const configPayload = {
         adminEmail: merchantForm.email,
+        generatedPassword: merchantForm.password,
         business_type: merchantForm.category,
         modules: ['orders', 'inventory', 'analytics', 'product_studio'],
         categories: [merchantForm.category],
