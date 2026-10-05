@@ -9,6 +9,12 @@ import BotControlPanel from './BotControlPanel';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
+const safeParseConfig = (configData) => {
+  if (!configData) return {};
+  if (typeof configData === 'object') return configData;
+  try { return JSON.parse(configData); } catch (e) { return {}; }
+};
+
 export default function SuperAdminDashboard({ superKey }) {
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'merchants', 'customers', 'monitor'
   const [merchants, setMerchants] = useState([]);
@@ -178,7 +184,7 @@ export default function SuperAdminDashboard({ superKey }) {
           const masterGroup = settingsData.find(s => s.key === 'delivery_master_group_id');
           const savedGroups = settingsData.find(s => s.key === 'telegram_groups');
           if (masterGroup) setDeliveryGroupId(masterGroup.value || '');
-          if (savedGroups) setDeliveryGroups(JSON.parse(savedGroups.value || '[]'));
+          if (savedGroups) try { setDeliveryGroups(JSON.parse(savedGroups.value || '[]')); } catch(e) { setDeliveryGroups([]); }
         }
         const { data: driversData } = await supabase.from('delivery_drivers').select('*');
         setDrivers(driversData || []);
@@ -214,7 +220,7 @@ export default function SuperAdminDashboard({ superKey }) {
           
           let email = '-';
           try {
-            const config = JSON.parse(w.config || '{}');
+            const config = safeParseConfig(w.config);
             email = config.adminEmail || config.contact?.email || '-';
           } catch(e) {}
           
@@ -336,7 +342,7 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(true);
     try {
       let configObj = {};
-      try { configObj = typeof merchant.config === 'string' ? JSON.parse(merchant.config) : (merchant.config || {}); } catch(e){}
+      configObj = safeParseConfig(merchant.config);
       
       const newVerifiedStatus = !configObj.is_verified;
       configObj.is_verified = newVerifiedStatus;
@@ -1141,7 +1147,7 @@ export default function SuperAdminDashboard({ superKey }) {
                             </div>
                             <div className="col-span-2">
                               <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Email</p>
-                              <p className="text-xs text-zinc-300">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || 'No registrado'; } catch(e) { return 'No registrado'; } })()}</p>
+                              <p className="text-xs text-zinc-300">{safeParseConfig(item.config).adminEmail || safeParseConfig(item.config).contact?.email || 'No registrado'}</p>
                             </div>
                           </>
                         ) : (
@@ -1176,13 +1182,13 @@ export default function SuperAdminDashboard({ superKey }) {
                               onClick={() => handleToggleVerification(item)}
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
-                                (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })()
+                                safeParseConfig(item.config).is_verified
                                 ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30'
                                 : 'bg-zinc-800 text-zinc-400 border-white/5 hover:text-white'
                               }`}
-                              title={(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? "Quitar Verificación" : "Marcar como Verificada"}
+                              title={safeParseConfig(item.config).is_verified ? "Quitar Verificación" : "Marcar como Verificada"}
                             >
-                              {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+                              {safeParseConfig(item.config).is_verified ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
                             </button>
                             <button 
                               onClick={() => handleToggleSuspend(item)}
@@ -1257,9 +1263,9 @@ export default function SuperAdminDashboard({ superKey }) {
                           {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-center">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
+                                safeParseConfig(item.config).is_verified ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
                               }`}>
-                                {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? 'Verificada' : 'No'}
+                                {safeParseConfig(item.config).is_verified ? 'Verificada' : 'No'}
                               </span>
                             </td>
                           )}
@@ -1282,13 +1288,13 @@ export default function SuperAdminDashboard({ superKey }) {
                                     onClick={() => handleToggleVerification(item)}
                                     disabled={isActionLoading}
                                     className={`p-2 rounded-lg transition-colors border ${
-                                      (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })()
+                                      safeParseConfig(item.config).is_verified
                                       ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 hover:bg-indigo-500 hover:text-white'
                                       : 'bg-zinc-800 text-zinc-400 border-white/5 hover:bg-zinc-700 hover:text-white'
                                     }`}
-                                    title={(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? "Quitar Verificación" : "Marcar como Verificada"}
+                                    title={safeParseConfig(item.config).is_verified ? "Quitar Verificación" : "Marcar como Verificada"}
                                   >
-                                    {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+                                    {safeParseConfig(item.config).is_verified ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
                                   </button>
                                   <button 
                                     onClick={() => handleToggleSuspend(item)}
@@ -1447,10 +1453,7 @@ export default function SuperAdminDashboard({ superKey }) {
                 </div>
                 
                 {selectedDetails.type === 'merchant' && (() => {
-                  let config = {};
-                  try {
-                    config = JSON.parse(selectedDetails.config || '{}');
-                  } catch(e) {}
+                  const config = safeParseConfig(selectedDetails.config);
                   
                   return (
                     <>
