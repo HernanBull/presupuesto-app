@@ -52,6 +52,7 @@ export default function MarketplaceDirectory() {
 
   // Auth State
   const [currentCustomer, setCurrentCustomer] = useState(null);
+  const [currentMerchant, setCurrentMerchant] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('register');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
@@ -171,6 +172,16 @@ export default function MarketplaceDirectory() {
         } catch(e) {}
       }
       
+      
+      // Also fetch if there is a logged-in merchant
+      const wsId = localStorage.getItem('activeWorkspace');
+      const storeSlug = localStorage.getItem('storeSlug');
+      if (wsId) {
+        supabase.from('workspaces').select('name').eq('id', wsId).single().then(({data}) => {
+           if (data) setCurrentMerchant({ id: wsId, slug: storeSlug, name: data.name });
+        });
+      }
+
       const { data, error } = await supabase.from('workspaces').select('*').eq('status', 'Activo');
       if (!error && data) {
         const newCache = JSON.stringify(data);
@@ -977,7 +988,14 @@ export default function MarketplaceDirectory() {
           </div>
 
           <div className="flex items-center gap-6">
-             {!currentCustomer && (
+             {currentMerchant ? (
+               <>
+                 <button onClick={() => navigate('/dashboard')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full hover:bg-emerald-500/20 transition-colors">
+                   <Store size={16}/> <span>{currentMerchant.name} (Admin)</span>
+                 </button>
+                 <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
+               </>
+             ) : !currentCustomer && (
                <>
                  <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
                    <Store size={16} /> Vender
@@ -990,7 +1008,7 @@ export default function MarketplaceDirectory() {
                <button onClick={() => navigate('/profile')} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full hover:bg-amber-500/20 transition-colors">
                  <User size={16}/> <span>{currentCustomer.name}</span>
                </button>
-             ) : (
+             ) : !currentMerchant && (
                <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
                  <User size={16} /> <span>Entrar</span>
                </button>
@@ -1052,7 +1070,17 @@ export default function MarketplaceDirectory() {
         </section>
 
         {/* Vender Banner (Mobile Only) */}
-        {!currentCustomer && (
+        {currentMerchant ? (
+          <div className="md:hidden mt-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-[0_10px_30px_rgba(16,185,129,0.3)] cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <div>
+              <h4 className="text-black font-black text-lg">Panel de Control</h4>
+              <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
+            </div>
+            <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black">
+              <Store size={24} />
+            </div>
+          </div>
+        ) : !currentCustomer && (
           <div className="md:hidden mt-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-[0_10px_30px_rgba(245,158,11,0.3)]">
             <div className="flex flex-col">
               <span className="text-black font-black text-lg leading-tight">Haz crecer tu negocio</span>
@@ -1065,7 +1093,7 @@ export default function MarketplaceDirectory() {
         )}
 
         {/* Cliente Banner (Mobile Only) */}
-        {!currentCustomer && (
+        {!currentMerchant && !currentCustomer && (
           <div className="md:hidden mt-4 bg-zinc-900 border border-white/10 rounded-[1.5rem] p-5 flex items-center justify-between shadow-lg">
             <div className="flex flex-col">
               <span className="text-white font-bold text-base leading-tight">¿Ya eres cliente?</span>
