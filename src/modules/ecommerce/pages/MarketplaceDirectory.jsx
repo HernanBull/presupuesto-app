@@ -88,7 +88,8 @@ export default function MarketplaceDirectory() {
     workingDays: {
       lunes: true, martes: true, miercoles: true, jueves: true, viernes: true, sabado: false, domingo: false
     },
-    rif: '',
+    rifPrefix: 'V',
+    rifNumber: '',
     pagoMovilPhone: '',
     pagoMovilBank: '',
     pagoMovilId: '',
@@ -523,7 +524,7 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep4 = (e) => {
     e.preventDefault();
-    if (merchantForm.rif && merchantForm.pagoMovilPhone && merchantForm.pagoMovilBank) setMerchantRegStep(5);
+    if (merchantForm.rifNumber && merchantForm.pagoMovilPhone && merchantForm.pagoMovilBank) setMerchantRegStep(5);
   };
 
   const handleMerchantRegisterStep5 = async (e) => {
@@ -646,7 +647,7 @@ export default function MarketplaceDirectory() {
           paymentMobile: true,
           pmBank: merchantForm.pagoMovilBank,
           pmPhone: merchantForm.pagoMovilPhone,
-          pmId: merchantForm.pagoMovilId || merchantForm.rif,
+          pmId: merchantForm.pagoMovilId || `${merchantForm.rifPrefix}-${merchantForm.rifNumber}`,
           zelleActive: false,
           zelleEmail: '',
           zelleName: '',
@@ -665,8 +666,8 @@ export default function MarketplaceDirectory() {
         },
         expediente: {
           ownerName: merchantForm.ownerName || '',
-          legalType: merchantForm.rif?.charAt(0) || 'V',
-          rif: merchantForm.rif || 'V-00000000-0',
+          legalType: merchantForm.rifPrefix || 'V',
+          rif: merchantForm.rifNumber ? `${merchantForm.rifPrefix}-${merchantForm.rifNumber}` : 'V-00000000-0',
           state: merchantForm.addressState || 'Por definir',
           city: merchantForm.addressCity || 'Por definir',
           address: merchantForm.addressLine || '',
@@ -1701,7 +1702,27 @@ export default function MarketplaceDirectory() {
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                           <div>
                             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">RIF (Jurídico o Personal)</label>
-                            <input type="text" required value={merchantForm.rif} onChange={e => setMerchantForm({...merchantForm, rif: e.target.value.toUpperCase()})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="J-12345678-9 o V-12345678" />
+                            <div className="flex gap-2">
+                              <select 
+                                value={merchantForm.rifPrefix} 
+                                onChange={e => setMerchantForm({...merchantForm, rifPrefix: e.target.value})} 
+                                className="w-[80px] bg-zinc-900 border border-white/5 rounded-2xl px-4 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light appearance-none text-center"
+                              >
+                                <option value="V">V</option>
+                                <option value="J">J</option>
+                                <option value="E">E</option>
+                                <option value="G">G</option>
+                                <option value="P">P</option>
+                              </select>
+                              <input 
+                                type="text" 
+                                required 
+                                value={merchantForm.rifNumber} 
+                                onChange={e => setMerchantForm({...merchantForm, rifNumber: e.target.value.replace(/[^0-9-]/g, '')})} 
+                                className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" 
+                                placeholder="12345678 o 12345678-9" 
+                              />
+                            </div>
                           </div>
                           <div className="bg-white/5 p-4 rounded-2xl space-y-3">
                             <p className="text-xs text-amber-500 font-bold tracking-wider">DATOS PARA RECIBIR PAGO MÓVIL</p>
@@ -1793,7 +1814,7 @@ export default function MarketplaceDirectory() {
                           (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
                           (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactPhone || !merchantForm.contactEmail || !merchantForm.category)) || 
                           (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
-                          (merchantRegStep === 4 && (!merchantForm.rif || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
+                          (merchantRegStep === 4 && (!merchantForm.rifNumber || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
                           (merchantRegStep === 5 && (isMobile ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
                           (merchantRegStep === 6 && merchantMfaCode.length < 6)
                         }
