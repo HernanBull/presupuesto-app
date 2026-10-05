@@ -29,7 +29,9 @@ export default function CustomerProfile() {
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState('');
   const [profileForm, setProfileForm] = useState({ 
@@ -453,6 +455,15 @@ export default function CustomerProfile() {
   
   const handleChangePassword = async (e) => {
     e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg('Error: Las contraseñas nuevas no coinciden');
+      return;
+    }
+    if (currentCustomer.password && currentCustomer.password !== currentPassword) {
+      setPasswordMsg('Error: Contraseña actual incorrecta');
+      return;
+    }
     if (newPassword.length < 6) {
       setPasswordMsg('La contraseña debe tener al menos 6 caracteres');
       return;
@@ -469,7 +480,9 @@ export default function CustomerProfile() {
       
       setCurrentCustomer(prev => ({...prev, password: newPassword}));
       setPasswordMsg('¡Contraseña cambiada exitosamente!');
+      setCurrentPassword('');
       setNewPassword('');
+      setConfirmPassword('');
     } catch (error) {
       console.error(error);
       setPasswordMsg('Error al cambiar contraseña');
@@ -835,14 +848,26 @@ export default function CustomerProfile() {
                     
                     <div className="border-t border-white/10 pt-6 mb-6">
                       <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Lock size={18} className="text-amber-500" /> Cambiar Contraseña</h3>
-                      <form onSubmit={handleChangePassword} className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row gap-4 items-end">
-                        <div className="flex-1 w-full">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Nueva Contraseña</label>
-                          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                      <form onSubmit={handleChangePassword} className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Contraseña Actual</label>
+                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Nueva Contraseña</label>
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Confirmar Nueva</label>
+                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                          </div>
                         </div>
-                        <button type="submit" disabled={isChangingPassword || !newPassword} className="px-6 py-2.5 bg-zinc-800 text-amber-500 rounded-xl font-bold hover:bg-zinc-700 disabled:opacity-50 transition-colors whitespace-nowrap w-full sm:w-auto">
-                          {isChangingPassword ? 'Cambiando...' : 'Actualizar'}
-                        </button>
+                        <div className="flex justify-end pt-2">
+                          <button type="submit" disabled={isChangingPassword || !newPassword} className="px-6 py-2.5 bg-zinc-800 text-amber-500 rounded-xl font-bold hover:bg-zinc-700 disabled:opacity-50 transition-colors">
+                            {isChangingPassword ? 'Cambiando...' : 'Actualizar Contraseña'}
+                          </button>
+                        </div>
                       </form>
                       {passwordMsg && <p className={`mt-3 text-sm font-medium ${passwordMsg.includes('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{passwordMsg}</p>}
                     </div>

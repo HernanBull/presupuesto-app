@@ -247,7 +247,12 @@ export default function StoreProfileManager() {
         return;
       }
       
-      // Removido chequeo adminPin. Supabase maneja la seguridad de la sesion.
+      
+      if (ws.config.generatedPassword && ws.config.generatedPassword !== currentPassword) {
+        setPasswordStatus({ type: 'error', msg: 'Contraseña actual incorrecta' });
+        setIsChangingPassword(false);
+        return;
+      }
 
       
       // Actualizar en Supabase Auth
