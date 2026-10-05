@@ -215,7 +215,7 @@ export default function MarketplaceDirectory() {
 
     // Auto-open merchant register if navigated from Pricing
     if (location.state && location.state.openMerchantRegister) {
-      setMerchantAuthMode('register');
+      setMerchantAuthMode('pitch');
       setIsMerchantModalOpen(true);
       // Opcional: const selectedPlan = location.state.selectedPlan;
       window.history.replaceState({}, document.title); // clear state to avoid reopening on refresh
@@ -1023,7 +1023,7 @@ export default function MarketplaceDirectory() {
                </>
              ) : !currentCustomer && (
                <>
-                 <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
+                 <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
                    <Store size={16} /> Vender
                  </button>
                  <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
@@ -1112,7 +1112,7 @@ export default function MarketplaceDirectory() {
               <span className="text-black font-black text-lg leading-tight">Haz crecer tu negocio</span>
               <span className="text-black/80 text-xs font-medium mt-1">Crea tu tienda virtual gratis</span>
             </div>
-            <button onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-lg active:scale-95 transition-transform">
+            <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-lg active:scale-95 transition-transform">
               Vender
             </button>
           </div>
@@ -1208,7 +1208,7 @@ export default function MarketplaceDirectory() {
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Plataforma</p>
               <div className="space-y-3">
                 <button onClick={() => navigate('/')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Marketplace</button>
-                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('register'); }} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
+                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('pitch'); }} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
                 <button onClick={() => navigate('/pricing')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Planes y Precios</button>
               </div>
             </div>
@@ -1529,51 +1529,19 @@ export default function MarketplaceDirectory() {
                       <Store size={24} className="text-amber-500" />
                     </div>
                     <h2 className="text-3xl font-light text-white tracking-tight">
-                      {merchantAuthMode === 'register' ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
+                      {(merchantAuthMode === 'register' || merchantAuthMode === 'pitch') ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
-                  {merchantAuthMode === 'register' ? (
-                    <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-amber-500 font-black tracking-widest uppercase text-[10px] bg-amber-500/20 px-2 py-1 rounded-full">Suscripción Premium</span>
-                        <div className="flex items-end gap-1.5">
-                          <span className="text-zinc-500 line-through text-xs font-medium">$120</span>
-                          <span className="text-white font-black text-2xl leading-none">$40</span>
-                          <span className="text-zinc-400 text-[10px] font-bold mb-1">/ MES</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2 mb-3">
-                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
-                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
-                          <span><strong>Tu Tienda Virtual 24/7</strong> lista para vender sin necesidad de pagar nóminas, empleados o desarrollo.</span>
-                        </p>
-                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
-                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
-                          <span><strong>Cero Comisiones por Venta:</strong> Recibe el 100% de tu dinero directo a tus cuentas (Pago Móvil / Zelle).</span>
-                        </p>
-                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
-                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
-                          <span><strong>Atención Automatizada:</strong> Catálogo Web Dinámico y Bot Inteligente de Delivery en Telegram.</span>
-                        </p>
-                      </div>
-                      <div className="bg-black/20 rounded-xl p-3 border border-amber-500/10">
-                        <p className="text-zinc-400 text-[9px] leading-relaxed text-justify">
-                          * Tu mensualidad incluye hasta <strong className="text-white">1,000 pedidos procesados/mes</strong>. Al superar este volumen, aplica un micro-cargo de <strong className="text-amber-500">$0.10 por cada pedido extra</strong>. Esto garantiza la alta disponibilidad y velocidad de tu infraestructura global (Bases de datos en Supabase, Servidores Edge Functions y Red de Cloudflare).
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-zinc-500 font-light text-sm mt-4">
-                      Accede a tu infraestructura de ventas.
-                    </p>
-                  )}
+                  <p className="text-zinc-500 font-light text-sm mt-4">
+                    {merchantAuthMode === 'pitch' ? 'Descubre cómo transformar tu negocio.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
+                  </p>
                 </div>
                 <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full p-2 transition-colors self-start">
                   <X size={20} />
                 </button>
               </div>
 
-              {(merchantAuthMode !== 'register' || merchantRegStep === 1) && (
+              {merchantAuthMode !== 'pitch' && (merchantAuthMode !== 'register' || merchantRegStep === 1) && (
                 <div className="px-8 pb-4">
                   <div className="flex bg-zinc-900 rounded-full p-1 border border-white/5">
                     <button
@@ -1598,6 +1566,71 @@ export default function MarketplaceDirectory() {
                     >
                       Iniciar Sesión
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {merchantAuthMode === 'pitch' && (
+                <div className="p-8 pt-0">
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/20 blur-3xl rounded-full"></div>
+                    
+                    <div className="flex items-center justify-between mb-5 relative z-10">
+                      <span className="text-amber-500 font-black tracking-widest uppercase text-xs bg-amber-500/20 px-3 py-1.5 rounded-full">Suscripción Premium</span>
+                      <div className="flex items-end gap-2">
+                        <span className="text-zinc-500 line-through text-sm font-medium">$60</span>
+                        <span className="text-white font-black text-4xl leading-none">$40</span>
+                        <span className="text-zinc-400 text-xs font-bold mb-1">/ MES</span>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4 mb-6 relative z-10">
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        </div>
+                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
+                          <strong className="text-white">Adiós a los dolores de cabeza:</strong> Automatiza tus pedidos sin depender de respuestas manuales de WhatsApp ni enredos con conversiones de divisas.
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        </div>
+                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
+                          <strong className="text-white">0% Comisiones por Venta:</strong> Las apps de delivery te quitan hasta un 30%. Aquí recibes tu dinero completo directo a tus cuentas.
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        </div>
+                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
+                          <strong className="text-white">Tu Tienda Virtual 24/7:</strong> Catálogo web profesional listo para vender y Bot con Inteligencia Artificial para atención automática.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-black/30 rounded-2xl p-4 border border-amber-500/10 relative z-10">
+                      <p className="text-zinc-400 text-xs leading-relaxed text-justify">
+                        * Tu mensualidad incluye hasta <strong className="text-white">1,000 ventas procesadas al mes</strong>. Al superar este volumen, aplica un micro-cargo de <strong className="text-amber-500">$0.10 por cada venta extra</strong> para mantener tu infraestructura global rápida y siempre en línea, sin importar el tráfico.
+                      </p>
+                    </div>
+                    
+                    <button 
+                      onClick={() => setMerchantAuthMode('register')}
+                      className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-black text-sm tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:bg-amber-400 hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] flex items-center justify-center gap-3 relative z-10"
+                    >
+                      Comenzar Ahora <ArrowRight size={18} />
+                    </button>
+                    
+                    <div className="mt-4 text-center relative z-10">
+                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-white font-medium transition-colors">
+                        Ya tengo una tienda. <span className="text-amber-500 underline">Iniciar sesión</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
