@@ -604,12 +604,38 @@ export default function MarketplaceDirectory() {
       setMerchantMfaSecret(secret.base32);
       setMerchantMfaUrl(totp.toString());
       
+      const initialConfig = {
+        adminEmail: merchantForm.email,
+        business_type: merchantForm.category,
+        categories: [merchantForm.category],
+        paymentProfile: {
+          pmBank: merchantForm.pagoMovilBank,
+          pmPhone: merchantForm.pagoMovilPhone,
+          pmId: merchantForm.pagoMovilId || `${merchantForm.rifPrefix}-${merchantForm.rifNumber}`
+        },
+        expediente: {
+          ownerName: merchantForm.ownerName || '',
+          legalType: merchantForm.rifPrefix || 'V',
+          rif: merchantForm.rifNumber ? `${merchantForm.rifPrefix}-${merchantForm.rifNumber}` : 'V-00000000-0',
+          state: merchantForm.addressState || 'Por definir',
+          city: merchantForm.addressCity || 'Por definir',
+          address: merchantForm.addressLine || '',
+          gps: merchantForm.gpsCoords,
+          whatsapp: merchantForm.contactPhone || merchantForm.pagoMovilPhone || '',
+        },
+        contact: {
+          phone: merchantForm.contactPhone,
+          email: merchantForm.contactEmail
+        },
+        is_verified: false
+      };
+
       const newWorkspace = {
         id: authData.user.id,
         name: merchantForm.businessName,
         store_slug: generatedSlug,
         status: 'Pendiente',
-        config: { is_verified: false }
+        config: initialConfig
       };
 
       const { error } = await supabase.from('workspaces').insert([newWorkspace]);
