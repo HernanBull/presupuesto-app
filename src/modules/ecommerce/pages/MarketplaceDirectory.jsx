@@ -1776,11 +1776,16 @@ export default function MarketplaceDirectory() {
                             </div>
                           ) : (
                             <>
-                              <div className="bg-zinc-800/50 p-4 rounded-2xl text-center space-y-2 mb-2">
+                              <div className="bg-zinc-800/50 p-4 rounded-2xl text-center space-y-3 mb-4">
                                 <p className="text-xs text-zinc-400">Como estás desde una computadora, ingresa tu dirección manualmente.</p>
-                                <button type="button" onClick={handleDetectGPS} className="text-amber-500 text-xs hover:underline flex items-center justify-center gap-1 mx-auto">
+                                <button type="button" onClick={handleDetectGPS} className="text-amber-500 text-xs hover:underline flex items-center justify-center gap-1 mx-auto font-bold">
                                   <MapPin size={12} /> Intentar usar GPS de todas formas
                                 </button>
+                                <div className="border-t border-white/5 pt-3 mt-1">
+                                  <p className="text-[10px] text-zinc-500 leading-relaxed">
+                                    <strong className="text-amber-500">💡 Tip:</strong> Puedes continuar y más adelante registrar tu ubicación GPS exacta ingresando al perfil de tu tienda desde un teléfono móvil.
+                                  </p>
+                                </div>
                                 {merchantForm.gpsCoords && <p className="text-xs text-emerald-500 font-bold mt-2">¡Ubicación GPS Guardada!</p>}
                               </div>
                               <div className="flex gap-2">
