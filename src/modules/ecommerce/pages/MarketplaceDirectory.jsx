@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle } from 'lucide-react';
+import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1105,7 +1105,14 @@ export default function MarketplaceDirectory() {
                   </div>
                   <div className="p-5 space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-white font-bold text-lg line-clamp-1 group-hover:text-amber-400 transition-colors">{store.name}</h4>
+                      <h4 className="text-white font-bold text-lg line-clamp-1 group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                        {store.name}
+                        {store.config?.is_verified && (
+                          <div title="Comercio Verificado" className="inline-flex">
+                            <ShieldCheck size={16} className="text-blue-500 fill-blue-500/20" />
+                          </div>
+                        )}
+                      </h4>
                     </div>
                     <p className="text-zinc-400 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
                     <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/5">

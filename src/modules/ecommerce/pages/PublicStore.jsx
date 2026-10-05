@@ -1360,8 +1360,13 @@ export default function PublicStore() {
       }`}>
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setCurrentPage('home')}>
-            <span className={`text-2xl font-black tracking-tight text-white`}>
+            <span className={`text-2xl font-black tracking-tight text-white flex items-center gap-2`}>
               {config.business_name || 'MI TIENDA'}
+              {config.is_verified && (
+                <div title="Comercio Verificado" className="inline-flex mt-1">
+                  <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
+                </div>
+              )}
             </span>
           </div>
           
@@ -1442,6 +1447,11 @@ export default function PublicStore() {
                         <div className="flex flex-col md:flex-row md:items-center gap-3">
                           <h1 className="text-lg md:text-2xl font-black text-white tracking-tight flex items-center gap-2 line-clamp-1">
                             {config.business_name || 'MI TIENDA'}
+                            {config.is_verified && (
+                              <div title="Comercio Verificado" className="inline-flex">
+                                <ShieldCheck size={22} className="text-blue-500 fill-blue-500/20" />
+                              </div>
+                            )}
                           </h1>
                           
                           {/* Store Status Indicator */}

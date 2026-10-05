@@ -283,6 +283,27 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsDetailsOpen(true);
   };
 
+  const handleToggleVerification = async (merchant) => {
+    setIsActionLoading(true);
+    try {
+      let configObj = {};
+      try { configObj = typeof merchant.config === 'string' ? JSON.parse(merchant.config) : (merchant.config || {}); } catch(e){}
+      
+      const newVerifiedStatus = !configObj.is_verified;
+      configObj.is_verified = newVerifiedStatus;
+      
+      const { error } = await supabase.from('workspaces').update({ config: configObj }).eq('id', merchant.id);
+      if (!error) {
+        fetchData();
+      } else {
+        alert('Error al cambiar verificación: ' + error.message);
+      }
+    } catch(e) {
+      alert('Error de conexión');
+    }
+    setIsActionLoading(false);
+  };
+
   const handleToggleSuspend = async (merchant) => {
     setIsActionLoading(true);
     const newStatus = merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido';
@@ -1083,6 +1104,18 @@ export default function SuperAdminDashboard({ superKey }) {
                               <Search size={16} />
                             </button>
                             <button 
+                              onClick={() => handleToggleVerification(item)}
+                              disabled={isActionLoading}
+                              className={`p-2 rounded-lg border ${
+                                (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })()
+                                ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30'
+                                : 'bg-zinc-800 text-zinc-400 border-white/5 hover:text-white'
+                              }`}
+                              title={(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? "Quitar Verificación" : "Marcar como Verificada"}
+                            >
+                              {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+                            </button>
+                            <button 
                               onClick={() => handleToggleSuspend(item)}
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
@@ -1129,6 +1162,7 @@ export default function SuperAdminDashboard({ superKey }) {
                         {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
                         {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
                         {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
+                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-center">Verificación</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Creación</th>
@@ -1151,6 +1185,15 @@ export default function SuperAdminDashboard({ superKey }) {
                               </span>
                             </td>
                           )}
+                          {activeTab === 'merchants' && (
+                            <td className="py-4 px-4 text-center">
+                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
+                              }`}>
+                                {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? 'Verificada' : 'No'}
+                              </span>
+                            </td>
+                          )}
                           {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.email}</td>}
                           {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.phone || 'N/A'}</td>}
                           <td className="py-4 px-4 text-sm text-zinc-500">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
@@ -1165,6 +1208,18 @@ export default function SuperAdminDashboard({ superKey }) {
                                     title="Ver Información del Comerciante"
                                   >
                                     <Search size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleToggleVerification(item)}
+                                    disabled={isActionLoading}
+                                    className={`p-2 rounded-lg transition-colors border ${
+                                      (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })()
+                                      ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 hover:bg-indigo-500 hover:text-white'
+                                      : 'bg-zinc-800 text-zinc-400 border-white/5 hover:bg-zinc-700 hover:text-white'
+                                    }`}
+                                    title={(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? "Quitar Verificación" : "Marcar como Verificada"}
+                                  >
+                                    {(() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
                                   </button>
                                   <button 
                                     onClick={() => handleToggleSuspend(item)}
