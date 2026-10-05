@@ -1529,11 +1529,11 @@ export default function MarketplaceDirectory() {
                       <Store size={24} className="text-amber-500" />
                     </div>
                     <h2 className="text-3xl font-light text-white tracking-tight">
-                      {(merchantAuthMode === 'register' || merchantAuthMode === 'pitch') ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
+                      {merchantAuthMode === 'pitch' ? 'El Control Total de tu Negocio' : merchantAuthMode === 'register' ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
                   <p className="text-zinc-500 font-light text-sm mt-4">
-                    {merchantAuthMode === 'pitch' ? 'Descubre cómo transformar tu negocio.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
+                    {merchantAuthMode === 'pitch' ? 'Tu propia tienda en la nube con inventario ERP, pagos directos y delivery automatizado.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
                   </p>
                 </div>
                 <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full p-2 transition-colors self-start">
@@ -1576,11 +1576,14 @@ export default function MarketplaceDirectory() {
                     <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/20 blur-3xl rounded-full"></div>
                     
                     <div className="flex items-center justify-between mb-5 relative z-10">
-                      <span className="text-amber-500 font-black tracking-widest uppercase text-xs bg-amber-500/20 px-3 py-1.5 rounded-full">Suscripción Premium</span>
-                      <div className="flex items-end gap-2">
-                        <span className="text-zinc-500 line-through text-sm font-medium">$60</span>
-                        <span className="text-white font-black text-4xl leading-none">$40</span>
-                        <span className="text-zinc-400 text-xs font-bold mb-1">/ MES</span>
+                      <span className="text-amber-500 font-black tracking-widest uppercase text-xs bg-amber-500/20 px-3 py-1.5 rounded-full">TODO EN UNO · 0% COMISIÓN</span>
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-end gap-2">
+                          <span className="text-zinc-500 line-through text-sm font-medium">$60</span>
+                          <span className="text-white font-black text-4xl leading-none">$40</span>
+                          <span className="text-zinc-400 text-xs font-bold mb-1">/ MES</span>
+                        </div>
+                        <p className="text-amber-400 text-[10px] text-right mt-1 font-medium">Se paga solo con tus primeros 2 pedidos</p>
                       </div>
                     </div>
                     
@@ -1590,7 +1593,7 @@ export default function MarketplaceDirectory() {
                           <span className="text-amber-500 font-bold text-sm">✓</span>
                         </div>
                         <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Adiós a los dolores de cabeza:</strong> Automatiza tus pedidos sin depender de respuestas manuales de WhatsApp ni enredos con conversiones de divisas.
+                          <strong className="text-white">0% Comisiones y Pago Móvil Directo:</strong> Las apps tradicionales te quitan hasta un 30%. Aquí el cliente sube su captura y referencia de Pago Móvil, y tú recibes el 100% del dinero directo en tu cuenta bancaria sin retenciones.
                         </p>
                       </div>
                       
@@ -1599,7 +1602,7 @@ export default function MarketplaceDirectory() {
                           <span className="text-amber-500 font-bold text-sm">✓</span>
                         </div>
                         <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">0% Comisiones por Venta:</strong> Las apps de delivery te quitan hasta un 30%. Aquí recibes tu dinero completo directo a tus cuentas.
+                          <strong className="text-white">Mini-ERP, Inventario y Analítica en Tiempo Real:</strong> Aloja tu vitrina 24/7 en la nube. Sube productos, controla existencias, lanza ofertas y mide exactamente cuánto estás vendiendo desde un solo panel.
                         </p>
                       </div>
                       
@@ -1608,14 +1611,23 @@ export default function MarketplaceDirectory() {
                           <span className="text-amber-500 font-bold text-sm">✓</span>
                         </div>
                         <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Tu Tienda Virtual 24/7:</strong> Catálogo web profesional listo para vender y Bot con Inteligencia Artificial para atención automática.
+                          <strong className="text-white">Despacho Automático con Red de Couriers (vía Bot):</strong> Al verificar el pago del cliente con un clic, nuestro Bot de Telegram alerta automáticamente a los repartidores cercanos con el GPS exacto del comprador.
+                        </p>
+                      </div>
+
+                      <div className="flex gap-3 items-start">
+                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        </div>
+                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
+                          <strong className="text-white">Precios de Anaquel = Más Ventas:</strong> Al no pagar comisiones por cada carrito, mantienes tus precios reales sin inflarlos, fidelizando a tus clientes frente a la competencia.
                         </p>
                       </div>
                     </div>
                     
                     <div className="bg-black/30 rounded-2xl p-4 border border-amber-500/10 relative z-10">
                       <p className="text-zinc-400 text-xs leading-relaxed text-justify">
-                        * Tu mensualidad incluye hasta <strong className="text-white">1,000 ventas procesadas al mes</strong>. Al superar este volumen, aplica un micro-cargo de <strong className="text-amber-500">$0.10 por cada venta extra</strong> para mantener tu infraestructura global rápida y siempre en línea, sin importar el tráfico.
+                        * Tu plan incluye <strong className="text-amber-400 font-semibold">1,000 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-400 font-semibold">ahorras más de $3,000 USD/mes</strong> frente a otras apps). Al superar las 1,000 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
                       </p>
                     </div>
                     
@@ -1623,8 +1635,12 @@ export default function MarketplaceDirectory() {
                       onClick={() => setMerchantAuthMode('register')}
                       className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-black text-sm tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:bg-amber-400 hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] flex items-center justify-center gap-3 relative z-10"
                     >
-                      Comenzar Ahora <ArrowRight size={18} />
+                      ACTIVAR MI VITRINA SIN COMISIONES <ArrowRight size={18} />
                     </button>
+
+                    <p className="text-xs text-neutral-400 text-center mt-4 relative z-10">
+                      🔒 Sin contratos forzosos · Dinero 100% directo a tu banco
+                    </p>
                     
                     <div className="mt-4 text-center relative z-10">
                       <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-white font-medium transition-colors">
