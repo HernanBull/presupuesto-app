@@ -49,7 +49,7 @@ export default function SuperAdminDashboard({ superKey }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'merchants') {
+      if (activeTab === 'merchants' || activeTab === 'pending_merchants') {
         const { data } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
         setMerchants(data || []);
       } else if (activeTab === 'customers') {
@@ -413,7 +413,7 @@ export default function SuperAdminDashboard({ superKey }) {
   };
 
   const downloadCSV = () => {
-    const dataToExport = activeTab === 'merchants' ? filteredMerchants : filteredCustomers;
+    const dataToExport = (activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers;
     if (!dataToExport || dataToExport.length === 0) return;
 
     let headers = [];
@@ -478,10 +478,14 @@ export default function SuperAdminDashboard({ superKey }) {
     return null;
   };
 
-  const filteredMerchants = merchants.filter(m => 
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (m.store_slug && m.store_slug.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredMerchants = merchants.filter(m => {
+    const matches = m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (m.store_slug && m.store_slug.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (activeTab === 'pending_merchants') {
+      return matches && m.status === 'Pendiente';
+    }
+    return matches && m.status !== 'Pendiente';
+  });
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -562,6 +566,14 @@ export default function SuperAdminDashboard({ superKey }) {
             }`}
           >
             <Truck size={18} /> Delivery Bot
+          </button>
+          <button 
+            onClick={() => setActiveTab('pending_merchants')}
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
+              activeTab === 'pending_merchants' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            <ShieldAlert size={18} /> Pre-registros
           </button>
           <button 
             onClick={() => setActiveTab('merchants')}
@@ -1043,14 +1055,14 @@ export default function SuperAdminDashboard({ superKey }) {
               <div className="flex-1 mt-4">
                 {/* Mobile Cards */}
                 <div className="md:hidden flex flex-col gap-3">
-                  {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).map(item => (
+                  {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).map(item => (
                     <div key={item.id} className={`bg-zinc-900/50 border border-white/5 rounded-2xl p-4 flex flex-col gap-3 ${item.status === 'Suspendido' ? 'opacity-50 grayscale' : ''}`}>
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="font-bold text-white">{item.name}</p>
                           <p className="text-[10px] text-zinc-500 font-mono">ID: {item.id.substring(0,8)}...</p>
                         </div>
-                        {activeTab === 'merchants' && (
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                           <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                             item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                           }`}>
@@ -1094,7 +1106,7 @@ export default function SuperAdminDashboard({ superKey }) {
                       </div>
                       
                       <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-3 mt-1">
-                        {activeTab === 'merchants' && (
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                           <>
                             <button 
                               onClick={() => handleViewDetails(item, 'merchant')}
@@ -1147,7 +1159,7 @@ export default function SuperAdminDashboard({ superKey }) {
                       </div>
                     </div>
                   ))}
-                  {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).length === 0 && (
+                  {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).length === 0 && (
                     <div className="py-8 text-center text-zinc-500 text-sm border border-white/5 rounded-xl">No se encontraron resultados</div>
                   )}
                 </div>
@@ -1159,10 +1171,10 @@ export default function SuperAdminDashboard({ superKey }) {
                       <tr className="border-b border-white/10">
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">ID</th>
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
-                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
-                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
-                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
-                        {activeTab === 'merchants' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-center">Verificación</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-center">Verificación</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
                         {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
                         <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Creación</th>
@@ -1170,13 +1182,13 @@ export default function SuperAdminDashboard({ superKey }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).map(item => (
+                      {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).map(item => (
                         <tr key={item.id} className={`border-b border-white/5 transition-colors group ${item.status === 'Suspendido' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:bg-white/5'}`}>
                           <td className="py-4 px-4 text-sm font-mono text-zinc-500">{item.id.substring(0,8)}...</td>
                           <td className="py-4 px-4 text-sm font-bold text-white">{item.name}</td>
-                          {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
-                          {activeTab === 'merchants' && <td className="py-4 px-4 text-sm text-zinc-400">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || '—'; } catch(e) { return '—'; } })()}</td>}
-                          {activeTab === 'merchants' && (
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-zinc-400">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || '—'; } catch(e) { return '—'; } })()}</td>}
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-sm">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                 item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
@@ -1185,7 +1197,7 @@ export default function SuperAdminDashboard({ superKey }) {
                               </span>
                             </td>
                           )}
-                          {activeTab === 'merchants' && (
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-center">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
                                 (() => { try { return JSON.parse(item.config || '{}').is_verified; } catch(e) { return false; } })() ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
@@ -1199,7 +1211,7 @@ export default function SuperAdminDashboard({ superKey }) {
                           <td className="py-4 px-4 text-sm text-zinc-500">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {activeTab === 'merchants' && (
+                              {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                                 <>
                                   <button 
                                     onClick={() => handleViewDetails(item, 'merchant')}
@@ -1257,7 +1269,7 @@ export default function SuperAdminDashboard({ superKey }) {
                           </td>
                         </tr>
                       ))}
-                      {(activeTab === 'merchants' ? filteredMerchants : filteredCustomers).length === 0 && (
+                      {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).length === 0 && (
                         <tr>
                           <td colSpan="8" className="py-12 text-center text-zinc-500">No se encontraron resultados</td>
                         </tr>
