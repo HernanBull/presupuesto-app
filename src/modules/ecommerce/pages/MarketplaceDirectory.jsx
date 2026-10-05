@@ -1662,7 +1662,7 @@ export default function MarketplaceDirectory() {
                     </button>
                   </div>
                 </form>
-              ) : (
+              ) : merchantAuthMode !== 'pitch' ? (
                 <form onSubmit={merchantAuthMode === 'register' ? (
                   merchantRegStep === 1 ? handleMerchantRegisterStep1 : 
                   merchantRegStep === 2 ? handleMerchantRegisterStep2 : 
@@ -2041,7 +2041,7 @@ export default function MarketplaceDirectory() {
                     </>
                   )}
                 </form>
-              )}
+              ) : null}
             </div>
           </div>
         )}
