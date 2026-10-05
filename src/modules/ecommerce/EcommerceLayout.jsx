@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
@@ -72,16 +72,19 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       .catch(console.error);
   };
 
+  const [workspaceStatus, setWorkspaceStatus] = useState(null);
+
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      supabase.from('workspaces').select('name').eq('id', wsId).single()
+      supabase.from('workspaces').select('name, status').eq('id', wsId).single()
         .then(({ data, error }) => {
-          if (!error && data && data.name) {
-            setStoreName(data.name);
+          if (!error && data) {
+            setStoreName(data.name || 'Tienda');
+            setWorkspaceStatus(data.status || 'Activo');
           }
         })
-        .catch(err => console.error("Error fetching store name:", err));
+        .catch(err => console.error("Error fetching store info:", err));
     }
   }, []);
 
@@ -118,6 +121,30 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     navItems[3], // Inventario
   ];
   const secondaryNavItems = navItems.filter((_, i) => ![0, 4, 2, 3].includes(i));
+
+  if (workspaceStatus === 'Pendiente') {
+    return (
+      <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 font-sans items-center justify-center p-6 text-center">
+        <div className="max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 p-8 rounded-3xl shadow-2xl">
+          <div className="bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert size={32} />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-4">
+            Cuenta en Revisión
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+            Tu tienda ha sido pre-registrada con éxito. Para proteger la seguridad de nuestros clientes, un representante de AxonMarket debe verificar tu negocio y procesar tu suscripción. Nos pondremos en contacto contigo pronto.
+          </p>
+          <button 
+            onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/'); }}
+            className="w-full bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <ArrowLeft size={16} /> Volver al Inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">

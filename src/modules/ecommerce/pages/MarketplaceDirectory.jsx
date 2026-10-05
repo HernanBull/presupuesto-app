@@ -597,8 +597,8 @@ export default function MarketplaceDirectory() {
         id: authData.user.id,
         name: merchantForm.businessName,
         store_slug: generatedSlug,
-        status: 'Activo',
-        config: {}
+        status: 'Pendiente',
+        config: { is_verified: false }
       };
 
       const { error } = await supabase.from('workspaces').insert([newWorkspace]);
