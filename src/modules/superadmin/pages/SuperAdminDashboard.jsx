@@ -14,6 +14,7 @@ export default function SuperAdminDashboard({ superKey }) {
   const [merchants, setMerchants] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [liveOrders, setLiveOrders] = useState([]);
+  const [billingData, setBillingData] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deliveryGroupId, setDeliveryGroupId] = useState('');
@@ -181,6 +182,54 @@ export default function SuperAdminDashboard({ superKey }) {
         }
         const { data: driversData } = await supabase.from('delivery_drivers').select('*');
         setDrivers(driversData || []);
+      } else if (activeTab === 'billing') {
+        // Fetch workspaces
+        const { data: activeWorkspaces } = await supabase.from('workspaces').select('id, name, store_slug, config').eq('status', 'Activo');
+        
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+        // Get delivered orders for this month
+        const { data: deliveredOrders } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('workspace_id')
+          .eq('status', 'Entregado')
+          .gte('date', startOfMonth)
+          .lte('date', endOfMonth);
+
+        const orderCounts = {};
+        if (deliveredOrders) {
+          deliveredOrders.forEach(o => {
+            if (!orderCounts[o.workspace_id]) orderCounts[o.workspace_id] = 0;
+            orderCounts[o.workspace_id]++;
+          });
+        }
+
+        const billingList = (activeWorkspaces || []).map(w => {
+          const count = orderCounts[w.id] || 0;
+          const limit = 500;
+          const excess = Math.max(0, count - limit);
+          const totalTariff = excess * 0.10;
+          
+          let email = '-';
+          try {
+            const config = JSON.parse(w.config || '{}');
+            email = config.adminEmail || config.contact?.email || '-';
+          } catch(e) {}
+          
+          return {
+            ...w,
+            deliveredCount: count,
+            excess,
+            totalTariff,
+            email
+          };
+        });
+
+        // Sort by highest excess/tariff first
+        billingList.sort((a, b) => b.totalTariff - a.totalTariff);
+        setBillingData(billingList);
       }
     } catch (e) {
       console.error(e);
@@ -582,6 +631,14 @@ export default function SuperAdminDashboard({ superKey }) {
             }`}
           >
             <Store size={18} /> Tiendas
+          </button>
+          <button 
+            onClick={() => setActiveTab('billing')}
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
+              activeTab === 'billing' ? 'bg-amber-600 text-white shadow-[0_0_20px_rgba(217,119,6,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            <span className="text-amber-500">💸</span> Facturación
           </button>
           <button 
             onClick={() => setActiveTab('customers')}
