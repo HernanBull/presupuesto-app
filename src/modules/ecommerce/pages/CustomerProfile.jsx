@@ -29,6 +29,9 @@ export default function CustomerProfile() {
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState('');
   const [profileForm, setProfileForm] = useState({ 
     name: '', docId: '', phone: '', address: '', profile_pic: '' 
   });
@@ -447,6 +450,33 @@ export default function CustomerProfile() {
     await updateCustomerData({ payment_profile: updatedProfiles });
   };
 
+  
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setPasswordMsg('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+    setIsChangingPassword(true);
+    setPasswordMsg('');
+    try {
+      const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
+      if (authError) throw authError;
+
+      // Update in DB so "Mostrar" shows the new one
+      const { error: dbError } = await supabase.from('ecommerce_customers').update({ password: newPassword }).eq('id', user.id);
+      if (dbError) throw dbError;
+      
+      setCurrentCustomer(prev => ({...prev, password: newPassword}));
+      setPasswordMsg('¡Contraseña cambiada exitosamente!');
+      setNewPassword('');
+    } catch (error) {
+      console.error(error);
+      setPasswordMsg('Error al cambiar contraseña');
+    }
+    setIsChangingPassword(false);
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     await updateCustomerData(profileForm);
@@ -800,6 +830,21 @@ export default function CustomerProfile() {
                           {showPassword ? (currentCustomer.password || 'No definida') : '••••••••'}
                         </p>
                       </div>
+                    </div>
+
+                    
+                    <div className="border-t border-white/10 pt-6 mb-6">
+                      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Lock size={18} className="text-amber-500" /> Cambiar Contraseña</h3>
+                      <form onSubmit={handleChangePassword} className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row gap-4 items-end">
+                        <div className="flex-1 w-full">
+                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Nueva Contraseña</label>
+                          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Mínimo 6 caracteres" className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                        </div>
+                        <button type="submit" disabled={isChangingPassword || !newPassword} className="px-6 py-2.5 bg-zinc-800 text-amber-500 rounded-xl font-bold hover:bg-zinc-700 disabled:opacity-50 transition-colors whitespace-nowrap w-full sm:w-auto">
+                          {isChangingPassword ? 'Cambiando...' : 'Actualizar'}
+                        </button>
+                      </form>
+                      {passwordMsg && <p className={`mt-3 text-sm font-medium ${passwordMsg.includes('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{passwordMsg}</p>}
                     </div>
 
                     <div className="border-t border-white/10 pt-6">

@@ -247,13 +247,22 @@ export default function StoreProfileManager() {
         return;
       }
       
-      if (ws.config.adminPin !== currentPassword && ws.config.adminEmail !== currentPassword) {
-        setPasswordStatus({ type: 'error', msg: 'Contraseña actual incorrecta' });
+      // Removido chequeo adminPin. Supabase maneja la seguridad de la sesion.
+
+      
+      // Actualizar en Supabase Auth
+      const { error: authError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      if (authError) {
+        setPasswordStatus({ type: 'error', msg: 'Error al actualizar contraseña en el sistema: ' + authError.message });
         setIsChangingPassword(false);
         return;
       }
 
-      const updatedConfig = { ...ws.config, adminPin: newPassword };
+      // Actualizar en la DB
+      const updatedConfig = { ...ws.config, generatedPassword: newPassword };
+
       const { error: updateErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
 
       if (!updateErr) {
