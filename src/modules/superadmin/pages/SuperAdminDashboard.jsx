@@ -306,7 +306,7 @@ export default function SuperAdminDashboard({ superKey }) {
 
   const handleToggleSuspend = async (merchant) => {
     setIsActionLoading(true);
-    const newStatus = merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido';
+    const newStatus = merchant.status === 'Pendiente' ? 'Activo' : (merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido');
     try {
       const { error } = await supabase.from('workspaces').update({ status: newStatus }).eq('id', merchant.id);
       if (!error) {
@@ -1052,7 +1052,7 @@ export default function SuperAdminDashboard({ superKey }) {
                         </div>
                         {activeTab === 'merchants' && (
                           <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                            item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                           }`}>
                             {item.status || 'Activo'}
                           </span>
@@ -1119,12 +1119,12 @@ export default function SuperAdminDashboard({ superKey }) {
                               onClick={() => handleToggleSuspend(item)}
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
-                                item.status === 'Suspendido' 
+                                item.status === 'Suspendido' || item.status === 'Pendiente'
                                 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
                                 : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
                               }`}
                             >
-                              {item.status === 'Suspendido' ? <Eye size={16} /> : <EyeOff size={16} />}
+                              {item.status === 'Suspendido' || item.status === 'Pendiente' ? <Eye size={16} /> : <EyeOff size={16} />}
                             </button>
                           </>
                         )}
@@ -1179,7 +1179,7 @@ export default function SuperAdminDashboard({ superKey }) {
                           {activeTab === 'merchants' && (
                             <td className="py-4 px-4 text-sm">
                               <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                               }`}>
                                 {item.status || 'Activo'}
                               </span>
@@ -1225,13 +1225,13 @@ export default function SuperAdminDashboard({ superKey }) {
                                     onClick={() => handleToggleSuspend(item)}
                                     disabled={isActionLoading}
                                     className={`p-2 rounded-lg transition-colors border ${
-                                      item.status === 'Suspendido' 
+                                      item.status === 'Suspendido' || item.status === 'Pendiente'
                                       ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500 hover:text-white'
                                       : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white'
                                     }`}
-                                    title={item.status === 'Suspendido' ? "Reactivar Tienda" : "Suspender Tienda (Ocultar)"}
+                                    title={item.status === 'Suspendido' ? "Reactivar Tienda" : item.status === 'Pendiente' ? "Aprobar Tienda (Activar)" : "Suspender Tienda (Ocultar)"}
                                   >
-                                    {item.status === 'Suspendido' ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    {item.status === 'Suspendido' || item.status === 'Pendiente' ? <Eye size={18} /> : <EyeOff size={18} />}
                                   </button>
                                 </>
                               )}

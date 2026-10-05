@@ -1806,18 +1806,12 @@ export default function MarketplaceDirectory() {
 
                       {merchantRegStep === 5 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          {isMobile ? (
-                            <div className="bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl text-center space-y-4 my-8">
-                              <p className="text-sm text-amber-500">Vemos que estás desde tu teléfono. Autoriza el acceso para detectar tu ubicación exacta mediante GPS.</p>
-                              <button type="button" onClick={handleDetectGPS} className="w-full bg-amber-500 text-black py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-                                <MapPin size={20} /> Obtener mi ubicación actual
-                              </button>
-                              {merchantForm.gpsCoords && <p className="text-sm text-emerald-500 font-bold mt-2">¡Ubicación GPS Guardada!</p>}
-                            </div>
+                          {false ? (
+                            null
                           ) : (
                             <>
                               <div className="bg-zinc-800/50 p-4 rounded-2xl text-center space-y-3 mb-4">
-                                <p className="text-xs text-zinc-400">Como estás desde una computadora, ingresa tu dirección manualmente.</p>
+                                <p className="text-xs text-zinc-400">Ingresa tu dirección manualmente para que podamos visitarte.</p>
                                 <button type="button" onClick={handleDetectGPS} className="text-amber-500 text-xs hover:underline flex items-center justify-center gap-1 mx-auto font-bold">
                                   <MapPin size={12} /> Intentar usar GPS de todas formas
                                 </button>
@@ -1829,10 +1823,10 @@ export default function MarketplaceDirectory() {
                                 {merchantForm.gpsCoords && <p className="text-xs text-emerald-500 font-bold mt-2">¡Ubicación GPS Guardada!</p>}
                               </div>
                               <div className="flex gap-2">
-                                <input type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Estado (Opcional)" />
-                                <input type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Ciudad (Opcional)" />
+                                <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Estado (Obligatorio)" />
+                                <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Ciudad (Obligatorio)" />
                               </div>
-                              <textarea value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px]" placeholder="Dirección detallada (Opcional)"></textarea>
+                              <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px]" placeholder="Dirección detallada (Obligatorio)"></textarea>
                             </>
                           )}
                         </motion.div>
