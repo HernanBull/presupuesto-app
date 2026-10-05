@@ -492,6 +492,23 @@ export default function CustomerProfile() {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (profileForm.name && profileForm.name !== currentCustomer.name) {
+       const { data } = await supabase.from('ecommerce_customers').select('id').ilike('name', profileForm.name.trim()).neq('id', currentCustomer.id).maybeSingle();
+       if (data) {
+           alert('Ese nombre ya está registrado por otra persona. Usa uno distinto.');
+           return;
+       }
+    }
+    
+    if (profileForm.docId && profileForm.docId !== currentCustomer.docId) {
+       const { data } = await supabase.from('ecommerce_customers').select('id').eq('doc_id', profileForm.docId.trim()).neq('id', currentCustomer.id).maybeSingle();
+       if (data) {
+           alert('Esa cédula/documento ya está registrada en otra cuenta.');
+           return;
+       }
+    }
+
     await updateCustomerData(profileForm);
     setIsEditingProfile(false);
   };

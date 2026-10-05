@@ -157,6 +157,25 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         return;
       }
       setIsSubmitting(true);
+
+      if (formData.name && formData.name !== customer.name) {
+         const { data } = await supabase.from('ecommerce_customers').select('id').ilike('name', formData.name.trim()).neq('id', customer.id).maybeSingle();
+         if (data) {
+             alert('Ese nombre ya está registrado por otra persona. Usa uno distinto.');
+             setIsSubmitting(false);
+             return;
+         }
+      }
+      
+      if (formData.docId && formData.docId !== customer.doc_id) {
+         const { data } = await supabase.from('ecommerce_customers').select('id').eq('doc_id', formData.docId.trim()).neq('id', customer.id).maybeSingle();
+         if (data) {
+             alert('Esa cédula/documento ya está registrada en otra cuenta.');
+             setIsSubmitting(false);
+             return;
+         }
+      }
+
       try {
         let pictureUrl = formData.profile_pic;
         
