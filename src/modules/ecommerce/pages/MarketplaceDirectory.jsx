@@ -246,6 +246,9 @@ export default function MarketplaceDirectory() {
       return;
     }
     try {
+      // Limpiar cualquier sesión expirada (JWT) que haya quedado en caché antes de registrar
+      await supabase.auth.signOut();
+      
       const authData = await registerUser(authForm.email, authForm.password, { name: authForm.name });
       
       if (authData?.user?.identities && authData.user.identities.length === 0) {
@@ -531,6 +534,9 @@ export default function MarketplaceDirectory() {
     e.preventDefault();
     setMerchantLoading(true);
     try {
+      // Limpiar cualquier sesión expirada (JWT) que haya quedado en caché antes de registrar
+      await supabase.auth.signOut();
+      
       const authData = await registerUser(merchantForm.email, merchantForm.password, { name: merchantForm.businessName });
       
       if (authData?.user?.identities && authData.user.identities.length === 0) {
