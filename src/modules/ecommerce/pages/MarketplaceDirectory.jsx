@@ -1611,7 +1611,7 @@ export default function MarketplaceDirectory() {
                           <span className="text-amber-500 font-bold text-sm">✓</span>
                         </div>
                         <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Despacho Automático con Red de Couriers (vía Bot):</strong> Al verificar el pago del cliente con un clic, nuestro Bot de Telegram alerta automáticamente a los repartidores cercanos con el GPS exacto del comprador.
+                          <strong className="text-white">Despacho Automático con Red de Couriers:</strong> Al verificar el pago del cliente con un clic, nuestra plataforma alerta automáticamente a nuestra red de repartidores aliados con el GPS exacto del comprador.
                         </p>
                       </div>
 
@@ -1627,7 +1627,7 @@ export default function MarketplaceDirectory() {
                     
                     <div className="bg-black/30 rounded-2xl p-4 border border-amber-500/10 relative z-10">
                       <p className="text-zinc-400 text-xs leading-relaxed text-justify">
-                        * Tu plan incluye <strong className="text-amber-400 font-semibold">1,000 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-400 font-semibold">ahorras más de $3,000 USD/mes</strong> frente a otras apps). Al superar las 1,000 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
+                        * Tu plan incluye <strong className="text-amber-400 font-semibold">500 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-400 font-semibold">ahorras más de $1,500 USD/mes</strong> frente a otras apps). Al superar las 500 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
                       </p>
                     </div>
                     
