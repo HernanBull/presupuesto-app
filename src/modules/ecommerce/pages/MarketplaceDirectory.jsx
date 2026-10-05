@@ -1534,16 +1534,33 @@ export default function MarketplaceDirectory() {
                   </div>
                   {merchantAuthMode === 'register' ? (
                     <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-amber-500 font-black tracking-widest uppercase text-[10px] bg-amber-500/20 px-2 py-1 rounded-full">Licencia Comercial</span>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-amber-500 font-black tracking-widest uppercase text-[10px] bg-amber-500/20 px-2 py-1 rounded-full">Suscripción Premium</span>
                         <div className="flex items-end gap-1.5">
                           <span className="text-zinc-500 line-through text-xs font-medium">$120</span>
-                          <span className="text-white font-black text-xl leading-none">$40</span>
+                          <span className="text-white font-black text-2xl leading-none">$40</span>
+                          <span className="text-zinc-400 text-[10px] font-bold mb-1">/ MES</span>
                         </div>
                       </div>
-                      <p className="text-zinc-300 font-light text-xs leading-relaxed">
-                        Pago único y de por vida. <strong className="text-white">Cero comisiones por ventas</strong>. Obtén tu infraestructura digital completa y recibe los pagos directo en tus cuentas sin intermediarios.
-                      </p>
+                      <div className="space-y-2 mb-3">
+                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
+                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
+                          <span><strong>Tu Tienda Virtual 24/7</strong> lista para vender sin necesidad de pagar nóminas, empleados o desarrollo.</span>
+                        </p>
+                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
+                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
+                          <span><strong>Cero Comisiones por Venta:</strong> Recibe el 100% de tu dinero directo a tus cuentas (Pago Móvil / Zelle).</span>
+                        </p>
+                        <p className="text-zinc-300 font-light text-[11px] leading-relaxed flex gap-2 items-start">
+                          <span className="text-amber-500 mt-0.5 font-bold">✓</span>
+                          <span><strong>Atención Automatizada:</strong> Catálogo Web Dinámico y Bot Inteligente de Delivery en Telegram.</span>
+                        </p>
+                      </div>
+                      <div className="bg-black/20 rounded-xl p-3 border border-amber-500/10">
+                        <p className="text-zinc-400 text-[9px] leading-relaxed text-justify">
+                          * Tu mensualidad incluye hasta <strong className="text-white">1,000 pedidos procesados/mes</strong>. Al superar este volumen, aplica un micro-cargo de <strong className="text-amber-500">$0.10 por cada pedido extra</strong>. Esto garantiza la alta disponibilidad y velocidad de tu infraestructura global (Bases de datos en Supabase, Servidores Edge Functions y Red de Cloudflare).
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-zinc-500 font-light text-sm mt-4">
