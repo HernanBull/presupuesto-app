@@ -28,6 +28,7 @@ export default function CustomerProfile() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [profileForm, setProfileForm] = useState({ 
     name: '', docId: '', phone: '', address: '', profile_pic: '' 
   });
@@ -787,6 +788,17 @@ export default function CustomerProfile() {
                       <div>
                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Phone size={14} className="text-amber-500"/> Teléfono</label>
                         <p className="text-white font-semibold text-lg">{currentCustomer.phone || '-'}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2"><Lock size={14} className="text-amber-500"/> Contraseña</span>
+                          <button onClick={() => setShowPassword(!showPassword)} className="text-amber-500 hover:text-amber-400 text-[10px]">
+                            {showPassword ? 'Ocultar' : 'Mostrar'}
+                          </button>
+                        </label>
+                        <p className="text-white font-semibold text-lg">
+                          {showPassword ? (currentCustomer.password || 'No definida') : '••••••••'}
+                        </p>
                       </div>
                     </div>
 
