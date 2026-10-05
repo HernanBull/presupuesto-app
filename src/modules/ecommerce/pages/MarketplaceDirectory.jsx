@@ -1532,9 +1532,24 @@ export default function MarketplaceDirectory() {
                       {merchantAuthMode === 'register' ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
-                  <p className="text-zinc-500 font-light text-sm mt-4">
-                    {merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
-                  </p>
+                  {merchantAuthMode === 'register' ? (
+                    <div className="mt-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.05)]">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-amber-500 font-black tracking-widest uppercase text-[10px] bg-amber-500/20 px-2 py-1 rounded-full">Licencia Comercial</span>
+                        <div className="flex items-end gap-1.5">
+                          <span className="text-zinc-500 line-through text-xs font-medium">$120</span>
+                          <span className="text-white font-black text-xl leading-none">$40</span>
+                        </div>
+                      </div>
+                      <p className="text-zinc-300 font-light text-xs leading-relaxed">
+                        Pago único y de por vida. <strong className="text-white">Cero comisiones por ventas</strong>. Obtén tu infraestructura digital completa y recibe los pagos directo en tus cuentas sin intermediarios.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-zinc-500 font-light text-sm mt-4">
+                      Accede a tu infraestructura de ventas.
+                    </p>
+                  )}
                 </div>
                 <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full p-2 transition-colors self-start">
                   <X size={20} />
