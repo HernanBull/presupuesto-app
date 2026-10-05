@@ -229,6 +229,19 @@ export default function PublicStore() {
         return false;
       }
 
+      const finalName = authForm.name ? authForm.name.trim() : authForm.email.split('@')[0];
+      const { data: existingName } = await supabase
+        .from('ecommerce_customers')
+        .select('id')
+        .ilike('name', finalName)
+        .maybeSingle();
+
+      if (existingName) {
+        alert('Este nombre de usuario ya está registrado por otra persona. Por favor, elige uno distinto para evitar cuentas duplicadas.');
+        setAuthLoading(false);
+        return false;
+      }
+
       const id = 'CUS-' + Math.floor(Math.random() * 1000000);
       const payload = {
         id,
@@ -1459,7 +1472,7 @@ export default function PublicStore() {
                           {config.rif && (
                             <>
                               <span>•</span>
-                              <span>{config.rif}</span>
+                              <span>RIF: {config.rif}</span>
                             </>
                           )}
                         </div>

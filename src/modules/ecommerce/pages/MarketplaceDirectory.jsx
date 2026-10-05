@@ -257,6 +257,18 @@ export default function MarketplaceDirectory() {
         return;
       }
 
+      const finalName = authForm.name ? authForm.name.trim() : authForm.email.split('@')[0];
+      const { data: existingName } = await supabase
+        .from('ecommerce_customers')
+        .select('id')
+        .ilike('name', finalName)
+        .maybeSingle();
+
+      if (existingName) {
+        alert('Este nombre de usuario ya está registrado por otra persona. Por favor, elige uno distinto para evitar cuentas duplicadas.');
+        return;
+      }
+
       const newCustomer = {
         id: authData.user.id,
         name: authForm.name,
@@ -525,9 +537,24 @@ export default function MarketplaceDirectory() {
     if (!merchantForm.scheduleActive || (merchantForm.scheduleOpen && merchantForm.scheduleClose)) setMerchantRegStep(4);
   };
 
-  const handleMerchantRegisterStep4 = (e) => {
+  const handleMerchantRegisterStep4 = async (e) => {
     e.preventDefault();
-    if (merchantForm.rifNumber && merchantForm.pagoMovilPhone && merchantForm.pagoMovilBank) setMerchantRegStep(5);
+    if (merchantForm.rifNumber && merchantForm.pagoMovilPhone && merchantForm.pagoMovilBank) {
+      setMerchantLoading(true);
+      const fullRif = merchantForm.rifPrefix + merchantForm.rifNumber;
+      try {
+        const { data, error } = await supabase.from('workspaces').select('id').eq('config->>rif', fullRif);
+        if (data && data.length > 0) {
+          alert('Este RIF ya está registrado en otra tienda.');
+          setMerchantLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Error verificando RIF:", err);
+      }
+      setMerchantLoading(false);
+      setMerchantRegStep(5);
+    }
   };
 
   const handleMerchantRegisterStep5 = async (e) => {
