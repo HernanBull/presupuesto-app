@@ -1789,10 +1789,10 @@ export default function MarketplaceDirectory() {
                                 {merchantForm.gpsCoords && <p className="text-xs text-emerald-500 font-bold mt-2">¡Ubicación GPS Guardada!</p>}
                               </div>
                               <div className="flex gap-2">
-                                <input type="text" required={!isMobile} value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Estado (Ej. Miranda)" />
-                                <input type="text" required={!isMobile} value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Ciudad (Ej. Caracas)" />
+                                <input type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Estado (Opcional)" />
+                                <input type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Ciudad (Opcional)" />
                               </div>
-                              <textarea required={!isMobile} value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px]" placeholder="Dirección detallada (Calle, Edificio, Local...)"></textarea>
+                              <textarea value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px]" placeholder="Dirección detallada (Opcional)"></textarea>
                             </>
                           )}
                         </motion.div>
@@ -1821,7 +1821,6 @@ export default function MarketplaceDirectory() {
                           (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactPhone || !merchantForm.contactEmail || !merchantForm.category)) || 
                           (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
                           (merchantRegStep === 4 && (!merchantForm.rifNumber || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
-                          (merchantRegStep === 5 && (isMobile ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
                           (merchantRegStep === 6 && merchantMfaCode.length < 6)
                         }
                         className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 disabled:opacity-50 flex items-center justify-center gap-3"
