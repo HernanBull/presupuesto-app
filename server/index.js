@@ -578,26 +578,14 @@ app.get('/api/market/stores', async (req, res) => {
 app.get('/api/ecommerce/products', async (req, res) => {
   const workspaceId = req.query.workspaceId || req.query.workspace_id;
   try {
-    let products;
+    let query = supabase.from('ecommerce_products').select('*');
     if (workspaceId) {
-      products = (await db.execute({ sql: `
-        SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
-        FROM ecommerce_products p
-        LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
-        WHERE p.workspace_id = ?
-        GROUP BY p.id
-        ORDER BY p.created_at DESC
-      `, args: [workspaceId] })).rows;
-    } else {
-      products = (await db.execute({ sql: `
-        SELECT p.*, COALESCE(AVG(r.rating), 0) AS avg_rating, COUNT(r.id) AS review_count
-        FROM ecommerce_products p
-        LEFT JOIN ecommerce_reviews r ON p.id = r.product_id AND r.status = 'Aprobado'
-        GROUP BY p.id
-        ORDER BY p.created_at DESC
-      `, args: [] })).rows;
+      query = query.eq('workspace_id', workspaceId);
     }
-    res.json(products);
+    const { data: products, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    
+    res.json(products || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -29,7 +29,7 @@ function App() {
 
   // Aislar módulos para pruebas sin autenticación
   const isDeliveryRoute = window.location.pathname.startsWith('/delivery');
-  const isSuperAdminRoute = window.location.pathname.startsWith('/superadmin');
+  const isSuperAdminRoute = window.location.pathname.startsWith('/axs-vault-99xqz');
   const isPresupuestoRoute = window.location.pathname.startsWith('/presupuesto');
 
   // El E-commerce ahora es el core de la aplicación (Directorio Raíz)
@@ -113,7 +113,7 @@ function App() {
         <AppToaster />
         <BrowserRouter>
           <Routes>
-            <Route path="/superadmin/*" element={<SuperAdminRouter session={session} />} />
+            <Route path="/axs-vault-99xqz/*" element={<SuperAdminRouter session={session} />} />
           </Routes>
         </BrowserRouter>
       </>

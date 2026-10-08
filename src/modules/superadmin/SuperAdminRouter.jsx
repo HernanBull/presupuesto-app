@@ -100,7 +100,7 @@ export default function SuperAdminRouter({ session }) {
   return (
     <Routes>
       <Route index element={<SuperAdminDashboard />} />
-      <Route path="*" element={<Navigate to="/superadmin" />} />
+      <Route path="*" element={<Navigate to="/axs-vault-99xqz" />} />
     </Routes>
   );
 }
