@@ -911,7 +911,7 @@ export default function MarketplaceDirectory() {
       <div className="md:hidden sticky top-0 z-50 bg-gradient-to-b from-zinc-950 to-zinc-900 border-b border-white/5 pt-6 pb-4 px-5">
         {!currentCustomer ? (
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 select-none cursor-default" onDoubleClick={() => window.location.href = '/superadmin'}>
+            <div className="flex items-center gap-2 select-none cursor-default">
               <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
                 <ShoppingBag size={16} className="stroke-[2.5]"/>
               </div>
@@ -990,7 +990,6 @@ export default function MarketplaceDirectory() {
         <div className="max-w-[1400px] mx-auto px-6 h-20 w-full flex items-center justify-between">
           <div className="flex items-center gap-3 group">
             <div 
-              onClick={() => window.location.href = '/superadmin'}
               className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all cursor-pointer"
             >
               <ShoppingBag size={20} className="stroke-[2.5]" />
@@ -1274,7 +1273,7 @@ export default function MarketplaceDirectory() {
 
            {/* Floating Action Button */}
            <div className="flex-1 flex justify-center relative -top-6">
-             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} onDoubleClick={() => window.location.href = '/superadmin'} className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-zinc-950">
+             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-zinc-950">
                <ShoppingBag size={24} className="stroke-[2.5]" />
              </div>
            </div>

@@ -113,7 +113,7 @@ function App() {
         <AppToaster />
         <BrowserRouter>
           <Routes>
-            <Route path="/superadmin/*" element={<SuperAdminRouter />} />
+            <Route path="/superadmin/*" element={<SuperAdminRouter session={session} />} />
           </Routes>
         </BrowserRouter>
       </>

@@ -1,94 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import { QRCodeCanvas } from 'qrcode.react';
-import { ShieldAlert, ArrowRight, Loader2, Key, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Loader2, ShieldCheck, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../modules/presupuesto/utils/supabaseClient'; // Adjust path if needed
 
-export default function SuperAdminRouter() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [key, setKey] = useState('');
-  const [error, setError] = useState('');
+export default function SuperAdminRouter({ session }) {
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Login States
-  const [captchaQ, setCaptchaQ] = useState({ a: 0, b: 0 });
-  const [captchaA, setCaptchaA] = useState('');
-  const [captchaPassed, setCaptchaPassed] = useState(false);
-  const [password, setPassword] = useState('');
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const savedKey = localStorage.getItem('superadmin_key');
-    const expectedKey = import.meta.env.VITE_SUPERADMIN_KEY || 'cac2003';
-    
-    if (savedKey === expectedKey) {
-      setKey(savedKey);
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    } else {
-      localStorage.removeItem('superadmin_key');
-      generateCaptcha();
-      setIsLoading(false);
-    }
-  }, []);
-
-  const generateCaptcha = () => {
-    setCaptchaQ({ a: Math.floor(Math.random() * 10) + 1, b: Math.floor(Math.random() * 10) + 1 });
-    setCaptchaA('');
-  };
-
-  const handleVerifyCaptcha = (e) => {
-    e && e.preventDefault();
-    if (parseInt(captchaA) === (captchaQ.a + captchaQ.b)) {
-      setCaptchaPassed(true);
-      setError('');
-    } else {
-      setError('Captcha incorrecto. Intenta de nuevo.');
-      generateCaptcha();
-    }
-  };
-
-  const handleLogin = async (e) => {
-    e && e.preventDefault();
-    
-    // Rate limit check
-    const lockout = localStorage.getItem('admin_lockout');
-    if (lockout && new Date().getTime() < parseInt(lockout)) {
-      const minutesLeft = Math.ceil((parseInt(lockout) - new Date().getTime()) / 60000);
-      setError(`Demasiados intentos. Intenta en ${minutesLeft} minutos.`);
-      return;
-    }
-    if (lockout) localStorage.removeItem('admin_lockout');
-
-    if (!password) return;
-    
-    setIsAuthenticating(true);
-    
-    // Simular un pequeño retraso de red por UX
-    await new Promise(r => setTimeout(r, 600));
-
-    const expectedKey = import.meta.env.VITE_SUPERADMIN_KEY || 'cac2003';
-
-    if (password === expectedKey) {
-      setIsAuthenticated(true);
-      setKey(password);
-      localStorage.setItem('superadmin_key', password);
-      localStorage.removeItem('admin_attempts');
-    } else {
-      const attempts = parseInt(localStorage.getItem('admin_attempts') || '0') + 1;
-      if (attempts >= 3) {
-        localStorage.setItem('admin_lockout', (new Date().getTime() + 5 * 60000).toString());
-        localStorage.removeItem('admin_attempts');
-        setError('Sistema bloqueado por 5 minutos.');
-      } else {
-        localStorage.setItem('admin_attempts', attempts.toString());
-        setError(`Contraseña incorrecta. Intentos restantes: ${3 - attempts}`);
+    const checkRole = async () => {
+      if (!session?.user) {
+        setIsLoading(false);
+        return;
       }
-    }
-    
-    setIsAuthenticating(false);
-  };
+
+      try {
+        // Query the user_roles table
+        const { data, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (roleError) throw roleError;
+
+        if (data?.role === 'superadmin') {
+          setIsSuperadmin(true);
+        } else {
+          setError('Tu cuenta no tiene los privilegios necesarios.');
+        }
+      } catch (err) {
+        console.error('Error verifying superadmin role:', err);
+        setError('Acceso Denegado. No eres Superadministrador.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkRole();
+  }, [session]);
 
   if (isLoading) {
     return (
@@ -98,111 +51,47 @@ export default function SuperAdminRouter() {
     );
   }
 
-  if (!isAuthenticated) {
+  // Si no hay sesión iniciada en Supabase, mostramos error
+  if (!session) {
     return (
       <div className="min-h-screen bg-black text-slate-50 flex items-center justify-center p-4 font-sans relative overflow-hidden">
-        {/* Decorative Background Elements */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-
         <div className="w-full max-w-md bg-zinc-950/80 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center relative z-10">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-600 via-purple-600 to-red-600"></div>
-          
-          
-          <AnimatePresence mode="wait">
-            {!captchaPassed ? (
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl">
+              <ShieldAlert size={40} />
+            </div>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">No Autenticado</h1>
+          <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+            Debes iniciar sesión con tu cuenta de administrador en la página principal para acceder aquí.
+          </p>
+          <button onClick={() => window.location.href = '/'} className="w-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all flex items-center justify-center gap-2">
+            <Home size={18} /> Volver al Inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-              <motion.div
-                key="captcha"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl">
-                    <ShieldAlert size={40} />
-                  </div>
-                </div>
-                <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">Zona Restringida</h1>
-                <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-                  Sistema de autenticación Passwordless. Demuestra que eres humano para proceder a la bóveda.
-                </p>
-
-                <form onSubmit={handleVerifyCaptcha} className="space-y-6">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-mono font-black text-white mb-6 drop-shadow-lg">{captchaQ.a} + {captchaQ.b}</span>
-                    <input 
-                      type="number" 
-                      value={captchaA} 
-                      onChange={(e) => { setCaptchaA(e.target.value); setError(''); }}
-                      placeholder="?" 
-                      className="w-24 bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors text-center font-mono text-2xl"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                  {error && <p className="text-red-500 text-xs font-bold uppercase tracking-wider animate-pulse">{error}</p>}
-                  <button 
-                    type="submit" 
-                    disabled={!captchaA}
-                    className="w-full bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    Verificar Humano <ArrowRight size={18} />
-                  </button>
-                </form>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="password"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="flex justify-center mb-6">
-                  <div className="p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl">
-                    <Key size={40} />
-                  </div>
-                </div>
-                <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">Autenticación Segura</h1>
-                <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
-                  Ingresa la contraseña de seguridad para acceder al panel.
-                </p>
-
-                <form onSubmit={handleLogin} className="space-y-6">
-                  <div>
-                    <input 
-                      type="password" 
-                      value={password} 
-                      onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                      placeholder="••••••••" 
-                      className="w-full bg-black/50 border border-indigo-500/30 rounded-2xl px-6 py-5 text-white focus:outline-none focus:border-indigo-500 transition-colors text-center font-mono text-2xl tracking-[0.2em] placeholder-zinc-700"
-                      autoFocus
-                      required
-                    />
-                  </div>
-                  {error && <p className="text-red-500 text-xs font-bold uppercase tracking-wider animate-pulse">{error}</p>}
-                  <button 
-                    type="submit" 
-                    disabled={!password || isAuthenticating}
-                    className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isAuthenticating ? <Loader2 size={18} className="animate-spin" /> : <>Validar y Entrar <ShieldCheck size={18} /></>}
-                  </button>
-                  <div className="pt-4 text-center">
-                    <button 
-                      type="button" 
-                      onClick={() => { setCaptchaPassed(false); generateCaptcha(); setPassword(''); setError(''); }}
-                      className="text-xs text-zinc-500 hover:text-white font-bold uppercase tracking-widest transition-colors focus:outline-none"
-                    >
-                      Volver atrás
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
+  // Si tiene sesión pero NO es superadmin
+  if (!isSuperadmin) {
+    return (
+      <div className="min-h-screen bg-black text-slate-50 flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        <div className="w-full max-w-md bg-zinc-950/80 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center relative z-10">
+          <div className="flex justify-center mb-6">
+            <div className="p-4 bg-red-500/10 text-red-500 rounded-2xl">
+              <ShieldAlert size={40} />
+            </div>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-white mb-2 uppercase">Acceso Denegado</h1>
+          <p className="text-red-400 font-bold mb-4">{error}</p>
+          <p className="text-zinc-500 text-sm mb-8 leading-relaxed">
+            Esta zona está restringida únicamente para personal autorizado de nivel 4 (Superadmin). Todos los intentos de acceso son registrados.
+          </p>
+          <button onClick={() => window.location.href = '/'} className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all flex items-center justify-center gap-2">
+            <ArrowRight size={18} /> Salir de Aquí
+          </button>
         </div>
       </div>
     );
@@ -210,7 +99,7 @@ export default function SuperAdminRouter() {
 
   return (
     <Routes>
-      <Route index element={<SuperAdminDashboard superKey={key} />} />
+      <Route index element={<SuperAdminDashboard />} />
       <Route path="*" element={<Navigate to="/superadmin" />} />
     </Routes>
   );
