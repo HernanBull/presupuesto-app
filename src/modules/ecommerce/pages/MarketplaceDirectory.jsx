@@ -849,10 +849,12 @@ export default function MarketplaceDirectory() {
     
     let favorites = Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites : (typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
     
-    if (favorites.some(f => f.slug === store.slug)) {
-      favorites = favorites.filter(f => f.slug !== store.slug);
+    const targetSlug = store.store_slug || store.slug;
+    
+    if (favorites.some(f => f.slug === targetSlug)) {
+      favorites = favorites.filter(f => f.slug !== targetSlug);
     } else {
-      favorites.push({ slug: store.slug, name: store.name });
+      favorites.push({ slug: targetSlug, name: store.name });
     }
     
     const updatedUser = { ...currentCustomer, favorites };
@@ -860,11 +862,7 @@ export default function MarketplaceDirectory() {
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedUser));
 
     try {
-      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers/${currentCustomer.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...updatedUser })
-      });
+      await supabase.from('ecommerce_customers').update({ favorites }).eq('id', currentCustomer.id);
     } catch (err) {
       console.error(err);
     }
@@ -1168,10 +1166,7 @@ export default function MarketplaceDirectory() {
                       </h4>
                     </div>
                     <p className="text-zinc-400 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
-                    <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/5">
-                      <div className="flex items-center gap-1 text-amber-500">
-                        <Star size={12} fill="currentColor"/><Star size={12} fill="currentColor"/><Star size={12} fill="currentColor"/><Star size={12} fill="currentColor"/><Star size={12} fill="currentColor"/>
-                      </div>
+                    <div className="flex items-center justify-end pt-4 mt-2 border-t border-white/5">
                       <span className="text-xs text-zinc-500 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
                     </div>
                   </div>
