@@ -1476,9 +1476,22 @@ export default function PublicStore() {
                           )}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] md:text-xs text-zinc-400 font-medium">
-                          <span className="flex items-center gap-0.5 font-bold" style={{ color: primaryColor }}><Star size={10} fill="currentColor" /> 5.0 (200+)</span>
-                          <span>•</span>
                           <span className="flex items-center gap-0.5"><Clock size={10} /> 15-30 min</span>
+                          {config.expediente?.gps && config.expediente.gps.lat && (
+                            <>
+                              <span>•</span>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`https://www.google.com/maps/search/?api=1&query=${config.expediente.gps.lat},${config.expediente.gps.lng}`, '_blank');
+                                }}
+                                className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                              >
+                                <MapPin size={10} /> 
+                                <span>Ubicación</span>
+                              </button>
+                            </>
+                          )}
                           {config.rif && (
                             <>
                               <span>•</span>
