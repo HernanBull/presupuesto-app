@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import * as OTPAuth from 'otpauth';
+import { QRCodeSVG } from 'qrcode.react';
 import { AlertCircle, LogOut } from 'lucide-react';
 import EcommerceLayout from './EcommerceLayout';
 import EcommerceDashboard from './pages/EcommerceDashboard';
@@ -63,6 +64,10 @@ const AdminGuard = () => {
   const [mfaCode, setMfaCode] = React.useState('');
   const [mfaError, setMfaError] = React.useState('');
   
+  const [isSettingUp2FA, setIsSettingUp2FA] = React.useState(false);
+  const [setup2FASecret, setSetup2FASecret] = React.useState('');
+  const [setup2FAUrl, setSetup2FAUrl] = React.useState('');
+  
   const [recoverySuccess, setRecoverySuccess] = React.useState(false);
   const [newPin, setNewPin] = React.useState('');
   const [updatingPin, setUpdatingPin] = React.useState(false);
@@ -93,6 +98,7 @@ const AdminGuard = () => {
     // Si cambia de ruta dentro del área protegida, vuelve a pedir el PIN
     setIsUnlocked(false);
     setShow2FA(false);
+    setIsSettingUp2FA(false);
     setRecoverySuccess(false);
     setMfaCode('');
     setMfaError('');
@@ -125,10 +131,12 @@ const AdminGuard = () => {
     }
   };
 
-  const handleVerify2FA = (e) => {
+  const handleVerify2FA = async (e) => {
     e.preventDefault();
-    if (!mfaSecret) {
-      setMfaError('No tienes configurado el 2FA en tu tienda.');
+    const activeSecret = isSettingUp2FA ? setup2FASecret : mfaSecret;
+
+    if (!activeSecret) {
+      setMfaError('Error inesperado con la clave 2FA.');
       return;
     }
 
@@ -138,7 +146,7 @@ const AdminGuard = () => {
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
-        secret: OTPAuth.Secret.fromBase32(mfaSecret)
+        secret: OTPAuth.Secret.fromBase32(activeSecret)
       });
       
       const delta = totp.validate({ token: mfaCode, window: 10 });
@@ -146,6 +154,16 @@ const AdminGuard = () => {
         setMfaError('Código 2FA incorrecto');
         setMfaCode('');
       } else {
+        if (isSettingUp2FA) {
+          const wsId = localStorage.getItem('activeWorkspace');
+          const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+          if (!fetchErr) {
+            const updatedConfig = { ...(ws?.config || {}), mfaSecret: activeSecret };
+            await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', wsId);
+            setMfaSecret(activeSecret);
+          }
+          setIsSettingUp2FA(false);
+        }
         setRecoverySuccess(true);
       }
     } catch (err) {
@@ -199,7 +217,7 @@ const AdminGuard = () => {
           {recoverySuccess ? 'Verificación Exitosa' : (show2FA ? 'Recuperación por 2FA' : 'Acceso Restringido')}
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
-          {recoverySuccess ? 'Puedes ver tu PIN actual o establecer uno nuevo a continuación.' : (show2FA ? 'Ingresa el código de 6 dígitos de tu aplicación autenticadora.' : 'Ingresa el PIN de administrador para ver este módulo.')}
+          {recoverySuccess ? 'Puedes ver tu PIN actual o establecer uno nuevo a continuación.' : (show2FA ? (isSettingUp2FA ? 'Aún no configurabas el 2FA. Asegura tu cuenta ahora para recuperar tu PIN.' : 'Ingresa el código de 6 dígitos de tu aplicación autenticadora.') : 'Ingresa el PIN de administrador para ver este módulo.')}
         </p>
         
         {recoverySuccess ? (
@@ -246,7 +264,23 @@ const AdminGuard = () => {
             <div className="text-center mt-2">
               <button 
                 type="button" 
-                onClick={() => setShow2FA(true)}
+                onClick={() => {
+                  if (!mfaSecret) {
+                    const secret = new OTPAuth.Secret({ size: 20 });
+                    const totp = new OTPAuth.TOTP({
+                      issuer: 'Axon Market',
+                      label: 'Panel Seguro',
+                      algorithm: 'SHA1',
+                      digits: 6,
+                      period: 30,
+                      secret: secret
+                    });
+                    setSetup2FASecret(secret.base32);
+                    setSetup2FAUrl(totp.toString());
+                    setIsSettingUp2FA(true);
+                  }
+                  setShow2FA(true);
+                }}
                 className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors"
               >
                 ¿Olvidaste tu PIN?
@@ -255,6 +289,14 @@ const AdminGuard = () => {
           </form>
         ) : (
           <form onSubmit={handleVerify2FA}>
+            {isSettingUp2FA && (
+              <div className="mb-6 flex flex-col items-center">
+                <div className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 mb-3">
+                  <QRCodeSVG value={setup2FAUrl} size={140} />
+                </div>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Clave manual: <span className="font-mono text-amber-500 tracking-widest font-bold">{setup2FASecret}</span></p>
+              </div>
+            )}
             <input 
               type="text" 
               maxLength={6}
@@ -265,12 +307,14 @@ const AdminGuard = () => {
               autoFocus
             />
             {mfaError && <p className="text-red-500 text-xs font-bold mb-4">{mfaError}</p>}
-            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 rounded-xl transition-colors mb-4">Verificar 2FA</button>
+            <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-3 rounded-xl transition-colors mb-4">
+              {isSettingUp2FA ? 'Verificar y Guardar 2FA' : 'Verificar 2FA'}
+            </button>
             
             <div className="text-center mt-2">
               <button 
                 type="button" 
-                onClick={() => setShow2FA(false)}
+                onClick={() => { setShow2FA(false); setIsSettingUp2FA(false); }}
                 className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors"
               >
                 Volver al PIN normal
