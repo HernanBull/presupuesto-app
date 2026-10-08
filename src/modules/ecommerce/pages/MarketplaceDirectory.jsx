@@ -1935,29 +1935,35 @@ export default function MarketplaceDirectory() {
 
                       {merchantRegStep === 5 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          {false ? (
-                            null
-                          ) : (
-                            <>
-                              <div className="bg-zinc-800/50 p-4 rounded-2xl text-center space-y-3 mb-4">
-                                <p className="text-xs text-zinc-400">Ingresa tu dirección manualmente para que podamos visitarte.</p>
-                                <button type="button" onClick={handleDetectGPS} className="text-amber-500 text-xs hover:underline flex items-center justify-center gap-1 mx-auto font-bold">
-                                  <MapPin size={12} /> Intentar usar GPS de todas formas
-                                </button>
-                                <div className="border-t border-white/5 pt-3 mt-1">
-                                  <p className="text-[10px] text-zinc-500 leading-relaxed">
-                                    <strong className="text-amber-500">💡 Tip:</strong> Puedes continuar y más adelante registrar tu ubicación GPS exacta ingresando al perfil de tu tienda desde un teléfono móvil.
-                                  </p>
+                          {(() => {
+                            const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                            return isMobileDevice ? (
+                              <div className="bg-zinc-800/50 p-6 rounded-2xl text-center space-y-4 mb-4 border border-white/10">
+                                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
+                                  <MapPin size={24} className="text-amber-500" />
                                 </div>
-                                {merchantForm.gpsCoords && <p className="text-xs text-emerald-500 font-bold mt-2">¡Ubicación GPS Guardada!</p>}
+                                <h3 className="text-white font-bold text-lg tracking-tight">Ubicación de tu Negocio</h3>
+                                <p className="text-sm text-zinc-400 leading-relaxed">Presiona el botón para detectar automáticamente la ubicación exacta de tu negocio usando el GPS de tu dispositivo.</p>
+                                <button type="button" onClick={handleDetectGPS} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-4 shadow-lg shadow-amber-500/20">
+                                  <MapPin size={18} /> Detectar mi ubicación por GPS
+                                </button>
+                                {merchantForm.gpsCoords && <p className="text-sm text-emerald-500 font-bold mt-4 bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20">¡Ubicación GPS Guardada Exitosamente!</p>}
                               </div>
-                              <div className="flex gap-2">
-                                <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Estado (Obligatorio)" />
-                                <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm" placeholder="Ciudad (Obligatorio)" />
-                              </div>
-                              <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px]" placeholder="Dirección detallada (Obligatorio)"></textarea>
-                            </>
-                          )}
+                            ) : (
+                              <>
+                                <div className="bg-zinc-800/50 p-5 rounded-2xl text-center space-y-2 mb-4 border border-white/10">
+                                  <MapPin size={24} className="text-amber-500 mx-auto mb-1" />
+                                  <h3 className="text-white font-bold text-lg tracking-tight">Dirección del Negocio</h3>
+                                  <p className="text-xs text-zinc-400">Ingresa tu dirección detallada para que tus clientes puedan visitarte.</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Estado (Obligatorio)" />
+                                  <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Ciudad (Obligatorio)" />
+                                </div>
+                                <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px] placeholder-zinc-600" placeholder="Dirección detallada (Obligatorio)"></textarea>
+                              </>
+                            );
+                          })()}
                         </motion.div>
                       )}
 
@@ -1984,6 +1990,7 @@ export default function MarketplaceDirectory() {
                           (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactPhone || !merchantForm.contactEmail || !merchantForm.category)) || 
                           (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
                           (merchantRegStep === 4 && (!merchantForm.rifNumber || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
+                          (merchantRegStep === 5 && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
                           (merchantRegStep === 6 && merchantMfaCode.length < 6)
                         }
                         className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 disabled:opacity-50 flex items-center justify-center gap-3"
