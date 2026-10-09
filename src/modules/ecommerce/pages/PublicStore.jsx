@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1575,7 +1575,7 @@ export default function PublicStore() {
               </div>
 
               {/* Horario */}
-              <div className="mt-8 mb-6 border-t border-white/5 pt-8">
+              <div className="mt-8 border-t border-white/5 pt-8">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold">Horario</h2>
                   <span className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors">Ver todo</span>
@@ -1589,7 +1589,91 @@ export default function PublicStore() {
                 </div>
               </div>
 
+              {/* Ubicación */}
+              <div className="mt-8 border-t border-white/5 pt-8">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-lg font-bold">Ubicación</h2>
+                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)} className="text-sm font-bold text-zinc-400 hover:text-white transition-colors">Abrir en Maps</button>
+                </div>
+                {config?.address && <p className="text-sm text-zinc-300 mb-4">{config.address}</p>}
+                
+                <div 
+                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)}
+                  className="w-full h-32 rounded-3xl relative overflow-hidden bg-[#e5e3df] cursor-pointer group shadow-inner border border-white/5"
+                >
+                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')" }}></div>
+                  
+                  {/* Decorative Map Lines */}
+                  <div className="absolute top-1/4 left-0 w-full h-[3px] bg-white/40 -rotate-6"></div>
+                  <div className="absolute top-1/2 left-0 w-full h-[6px] bg-white/50 rotate-3"></div>
+                  <div className="absolute top-0 left-1/3 w-[4px] h-full bg-white/40 rotate-12"></div>
+                  
+                  {/* Pin and Logo */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
+                    <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
+                      {config?.logoUrl ? (
+                        <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                          <Store size={16} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-red-600 drop-shadow-md -mt-3 relative z-0">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Publicaciones */}
+              <div className="mt-8 border-t border-white/5 pt-8 pb-32">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold">Publicaciones</h2>
+                  <span className="text-sm font-bold text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => setCurrentPage('catalog')}>Ver todo</span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-0.5">
+                  {catalogProducts.slice(0, 9).map((p, idx) => (
+                    <div 
+                      key={p.id}
+                      onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
+                      className="aspect-square relative group overflow-hidden bg-zinc-900 cursor-pointer border border-white/5"
+                    >
+                      {p.image_url ? (
+                        <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                           <ImageIcon size={24} />
+                        </div>
+                      )}
+                      {p.is_offer && (
+                        <div className="absolute top-1.5 right-1.5 bg-white/20 backdrop-blur-md rounded-md p-1 shadow-sm border border-white/10">
+                           <Zap size={10} className="fill-white text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {catalogProducts.length === 0 && (
+                    <div className="col-span-3 text-center py-10 text-zinc-500 font-light">No hay publicaciones disponibles</div>
+                  )}
+                </div>
+              </div>
+
             </div>
+
+            {/* Fijo "Ver menú" Botón */}
+            <div className="fixed bottom-0 left-0 w-full p-4 z-50 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent flex justify-center pointer-events-none pb-8 md:pb-4">
+              <button 
+                onClick={() => setCurrentPage('catalog')}
+                className="bg-white text-black font-bold text-lg px-8 py-4 rounded-3xl shadow-[0_10px_40px_rgba(255,255,255,0.15)] flex items-center gap-4 w-full max-w-[90%] md:max-w-sm pointer-events-auto hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              >
+                <ChefHat size={26} strokeWidth={2.5} className="text-black shrink-0" /> 
+                <span className="flex-1 text-center pr-2 tracking-wide">Ver menú</span>
+                <ChevronRight size={26} strokeWidth={2.5} className="text-black shrink-0" />
+              </button>
+            </div>
+
           </div>
         )}
 
