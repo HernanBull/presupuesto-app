@@ -1490,10 +1490,10 @@ export default function PublicStore() {
                     <span className="font-bold text-xs">Calificar</span>
                   </button>
                   <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                  <div className="flex items-center gap-1.5 text-zinc-300 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
-                    <Bike size={14} className="text-zinc-400" />
-                    <span className="text-xs">30-45 min</span>
-                  </div>
+                  <button className="flex items-center gap-1.5 bg-amber-400 text-black hover:bg-amber-500 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm font-bold">
+                    <Zap size={14} className="fill-black" />
+                    <span className="text-xs">MD minutos</span>
+                  </button>
                 </div>
               </div>
 
