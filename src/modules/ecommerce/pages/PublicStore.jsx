@@ -132,6 +132,8 @@ export default function PublicStore() {
   const [reviewComment, setReviewComment] = useState('');
   const [reviewSent, setReviewSent] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [storeRatingAvg, setStoreRatingAvg] = useState(0);
 
   const trackEvent = async (eventType, wid) => {
     try {
@@ -1075,6 +1077,13 @@ export default function PublicStore() {
              localStorage.setItem(cacheKey, newCache);
           }
         }
+        
+        // Fetch store reviews average
+        const { data: storeReviews } = await supabase.from('ecommerce_reviews').select('rating').eq('workspace_id', storeData.id).eq('status', 'Aprobado');
+        if (storeReviews && storeReviews.length > 0) {
+           const total = storeReviews.reduce((acc, curr) => acc + curr.rating, 0);
+           setStoreRatingAvg((total / storeReviews.length).toFixed(1));
+        }
       } catch (error) {
         console.error(error);
         setStoreNotFound(true);
@@ -1546,9 +1555,18 @@ export default function PublicStore() {
                 
                 {/* Rating & Delivery */}
                 <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
-                  <button onClick={() => alert('Próximamente: Sistema de calificaciones en desarrollo.')} className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm">
+                  <button 
+                    onClick={() => {
+                      if (!currentCustomer) {
+                        setShowAuthModal(true);
+                        return;
+                      }
+                      setShowReviewModal(true);
+                    }} 
+                    className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+                  >
                     <Star size={14} className="fill-black" />
-                    <span className="font-bold text-xs">Calificar</span>
+                    <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
                   </button>
                   {config?.has_enminutos_alliance && (
                     <>
@@ -2656,6 +2674,89 @@ export default function PublicStore() {
             Seguir comprando
           </button>
         </div>
+      </ResponsiveModal>
+
+      {/* Review Modal */}
+      <ResponsiveModal
+        isOpen={showReviewModal}
+        onClose={() => { setShowReviewModal(false); setReviewSent(false); }}
+        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
+        contentClassName="p-6 md:p-8 text-center"
+      >
+        {!reviewSent ? (
+          <>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white mb-2">Califica a {config?.business_name || 'la tienda'}</h2>
+            <p className="text-sm text-slate-500 mb-6">Tu opinión nos ayuda a mejorar.</p>
+            
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button 
+                  key={star} 
+                  onClick={() => setReviewRating(star)}
+                  className="focus:outline-none transition-transform hover:scale-110"
+                >
+                  <Star 
+                    size={36} 
+                    className={star <= reviewRating ? 'fill-amber-400 text-amber-400' : 'fill-slate-200 text-slate-200 dark:fill-slate-800 dark:text-slate-800'} 
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              rows="3"
+              placeholder="Escribe tu opinión sobre la tienda..."
+              value={reviewComment}
+              onChange={(e) => setReviewComment(e.target.value)}
+              className="w-full p-4 mb-6 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-800 dark:text-white"
+            />
+
+            <button 
+              onClick={async () => {
+                if (!reviewRating || !reviewComment.trim()) {
+                  alert("Por favor califica y escribe un comentario.");
+                  return;
+                }
+                setIsSubmittingReview(true);
+                try {
+                  await supabase.from('ecommerce_reviews').insert([{
+                    workspace_id: config?.id || slug,
+                    customer_name: currentCustomer.name,
+                    customer_id: currentCustomer.id,
+                    rating: reviewRating,
+                    comment: reviewComment,
+                    product_id: 'store_review',
+                    product_name: 'Tienda en General',
+                    status: 'Pendiente'
+                  }]);
+                  setReviewSent(true);
+                } catch (err) {
+                  console.error(err);
+                  alert("Error al enviar la reseña.");
+                }
+                setIsSubmittingReview(false);
+              }}
+              disabled={isSubmittingReview}
+              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmittingReview ? <Loader2 className="animate-spin" size={20} /> : 'Enviar Calificación'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="text-amber-500" size={40} />
+            </div>
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Gracias por calificar!</h2>
+            <p className="text-slate-600 dark:text-slate-400 mb-8">Tu reseña ha sido enviada al comercio y está pendiente de aprobación.</p>
+            <button 
+              onClick={() => { setShowReviewModal(false); setReviewSent(false); }}
+              className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-colors"
+            >
+              Cerrar
+            </button>
+          </>
+        )}
       </ResponsiveModal>
       {/* Mobile Bottom Navigation Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
