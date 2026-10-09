@@ -1439,11 +1439,11 @@ export default function PublicStore() {
             </div>
 
             {/* Hero Background (Absolute) */}
-            <div className="absolute top-0 left-0 w-full h-[450px] md:h-[550px] z-0 bg-zinc-800">
+            <div className="absolute top-0 left-0 w-full h-[550px] md:h-[650px] z-0 bg-zinc-800">
               {heroUrl ? (
                 <>
                   <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/90 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]"></div>
                 </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800"></div>
