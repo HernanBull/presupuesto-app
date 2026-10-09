@@ -65,6 +65,7 @@ export default function PublicStore() {
   const [storeNotFound, setStoreNotFound] = useState(false);
   const [config, setConfig] = useState(null);
   const [authGateMode, setAuthGateMode] = useState('login');
+  const [isFollowing, setIsFollowing] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('page') || 'home';
@@ -1545,7 +1546,7 @@ export default function PublicStore() {
                 
                 {/* Rating & Delivery */}
                 <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
-                  <button className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm">
+                  <button onClick={() => alert('Próximamente: Sistema de calificaciones en desarrollo.')} className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm">
                     <Star size={14} className="fill-black" />
                     <span className="font-bold text-xs">Calificar</span>
                   </button>
@@ -1572,8 +1573,8 @@ export default function PublicStore() {
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-xl">89</span>
-                  <span className="text-zinc-400 text-sm">Foodies</span>
+                  <span className="font-bold text-xl">{89 + (isFollowing ? 1 : 0)}</span>
+                  <span className="text-zinc-400 text-sm">Seguidores</span>
                 </div>
                 <div className="flex flex-col items-center">
                   <span className="font-bold text-xl">233</span>
@@ -1583,9 +1584,27 @@ export default function PublicStore() {
 
               {/* Botones de Acción */}
               <div className="flex gap-2 mt-6 w-full">
-                <button className="flex-1 bg-white hover:bg-zinc-200 text-black py-2 rounded-xl font-semibold transition-colors text-sm flex items-center justify-center gap-2">
-                  <UserPlus size={18} />
-                  Seguir
+                <button 
+                  onClick={() => {
+                    if (!currentCustomer && !isMerchantOwner) {
+                      setShowAuthModal(true);
+                      return;
+                    }
+                    setIsFollowing(!isFollowing);
+                  }}
+                  className={`flex-1 ${isFollowing ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700' : 'bg-white hover:bg-zinc-200 text-black'} py-2 rounded-xl font-semibold transition-colors text-sm flex items-center justify-center gap-2`}
+                >
+                  {isFollowing ? (
+                    <>
+                      <CheckCircle2 size={18} className="text-blue-500" />
+                      Siguiendo
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={18} />
+                      Seguir
+                    </>
+                  )}
                 </button>
                 <button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-xl font-semibold transition-colors text-sm">
                   Contactar
