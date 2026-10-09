@@ -151,13 +151,13 @@ export default function MarketplaceDirectory() {
 
   useEffect(() => {
     let interval;
-    if (isCategoriesOpen && !currentCustomer && !currentMerchant) {
+    if (!currentCustomer && !currentMerchant) {
       interval = setInterval(() => {
         setBannerSlide(prev => (prev + 1) % 2);
       }, 5000);
     }
     return () => clearInterval(interval);
-  }, [isCategoriesOpen, currentCustomer, currentMerchant]);
+  }, [currentCustomer, currentMerchant]);
 
   useEffect(() => {
     if (typedCount < fullText.length) {
@@ -1023,6 +1023,69 @@ export default function MarketplaceDirectory() {
       {/* Main Content App-Style */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-6 pb-28 md:pb-12 pt-6 md:pt-12 relative z-10 space-y-8">
         
+        {/* Animated Banners (Mobile Only) */}
+        <div className="md:hidden">
+          {!currentCustomer && !currentMerchant && (
+            <div className="relative overflow-hidden rounded-[1.5rem] shadow-2xl bg-zinc-900 border border-white/10 h-36">
+              <AnimatePresence initial={false} mode="wait">
+                {bannerSlide === 0 ? (
+                  <motion.div
+                    key="banner-0"
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 p-5 flex flex-col justify-between"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-black font-black text-xl leading-tight">Haz crecer tu negocio</span>
+                      <span className="text-black/80 text-sm font-medium mt-1">Crea tu tienda virtual gratis</span>
+                    </div>
+                    <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
+                      <Store size={16} /> Vender en Axon
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="banner-1"
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -50 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 p-5 flex flex-col justify-between"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-white font-black text-xl leading-tight">¿Ya eres cliente?</span>
+                      <span className="text-zinc-400 text-sm font-medium mt-1">Guarda tiendas y pedidos</span>
+                    </div>
+                    <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-white text-black px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
+                      <User size={16} /> Iniciar Sesión
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Pagination Dots */}
+              <div className="absolute top-4 right-4 flex gap-1.5 z-20">
+                <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 0 ? 'bg-black w-3' : 'bg-black/30'}`} />
+                <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 1 ? 'bg-white w-3' : 'bg-white/30'}`} />
+              </div>
+            </div>
+          )}
+
+          {currentMerchant && (
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-2xl cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => navigate('/dashboard')}>
+              <div>
+                <h4 className="text-black font-black text-lg">Panel de Control</h4>
+                <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
+              </div>
+              <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black shadow-inner">
+                <Store size={24} />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Categorías Principales (Desktop Only) */}
         <section className="hidden md:block space-y-4">
           <div className="flex items-center justify-between px-1">
@@ -1412,67 +1475,6 @@ export default function MarketplaceDirectory() {
                     );
                   })}
                 </div>
-
-                {/* Animated Banners inside Categories Menu */}
-                {!currentCustomer && !currentMerchant && (
-                  <div className="mt-4 relative overflow-hidden rounded-[1.5rem] shadow-2xl bg-zinc-900 border border-white/10 h-40">
-                    <AnimatePresence initial={false} mode="wait">
-                      {bannerSlide === 0 ? (
-                        <motion.div
-                          key="banner-0"
-                          initial={{ opacity: 0, x: 50 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -50 }}
-                          transition={{ duration: 0.5 }}
-                          className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 p-5 flex flex-col justify-between"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-black font-black text-xl leading-tight">Haz crecer tu negocio</span>
-                            <span className="text-black/80 text-sm font-medium mt-1">Crea tu tienda virtual gratis</span>
-                          </div>
-                          <button onClick={() => { setIsCategoriesOpen(false); setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
-                            <Store size={16} /> Vender en Axon
-                          </button>
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="banner-1"
-                          initial={{ opacity: 0, x: 50 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -50 }}
-                          transition={{ duration: 0.5 }}
-                          className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 p-5 flex flex-col justify-between"
-                        >
-                          <div className="flex flex-col">
-                            <span className="text-white font-black text-xl leading-tight">¿Ya eres cliente?</span>
-                            <span className="text-zinc-400 text-sm font-medium mt-1">Guarda tiendas y pedidos</span>
-                          </div>
-                          <button onClick={() => { setIsCategoriesOpen(false); setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-white text-black px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
-                            <User size={16} /> Iniciar Sesión
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Pagination Dots */}
-                    <div className="absolute top-4 right-4 flex gap-1.5 z-20">
-                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 0 ? 'bg-black w-3' : 'bg-black/30'}`} />
-                      <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 1 ? 'bg-white w-3' : 'bg-white/30'}`} />
-                    </div>
-                  </div>
-                )}
-
-                {currentMerchant && (
-                  <div className="mt-4 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-2xl cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => {setIsCategoriesOpen(false); navigate('/dashboard');}}>
-                    <div>
-                      <h4 className="text-black font-black text-lg">Panel de Control</h4>
-                      <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
-                    </div>
-                    <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black shadow-inner">
-                      <Store size={24} />
-                    </div>
-                  </div>
-                )}
               </div>
             </motion.div>
           </div>
