@@ -1444,10 +1444,10 @@ export default function PublicStore() {
               {heroUrl ? (
                 <>
                   <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                 </>
               ) : (
-                <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800"></div>
+                <div className="w-full h-full bg-gradient-to-t from-black to-zinc-800"></div>
               )}
             </div>
 
@@ -1465,7 +1465,7 @@ export default function PublicStore() {
               {/* Avatar */}
               <div className="flex justify-center w-full mb-4">
                 <div className="relative">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-[#0a0a0a] overflow-hidden bg-zinc-900 shadow-xl">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-black overflow-hidden bg-zinc-900 shadow-xl">
                     {logoUrl ? (
                       <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
                     ) : (
@@ -1475,7 +1475,7 @@ export default function PublicStore() {
                     )}
                   </div>
                   {config?.is_verified && (
-                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-[#0a0a0a] flex items-center justify-center shadow-lg">
+                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-black flex items-center justify-center shadow-lg">
                       <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                     </div>
                   )}
