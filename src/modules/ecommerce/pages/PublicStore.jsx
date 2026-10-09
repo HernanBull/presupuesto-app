@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Instagram } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1420,211 +1420,133 @@ export default function PublicStore() {
         
         {/* INICIO */}
         {currentPage === 'home' && (
-          <div className="flex-1 flex flex-col w-full">
-            {sections.map((section, idx) => {
-              if (section.type === 'hero') {
-                return (
-                  <div key={section.id} className="relative w-full bg-black pb-8 border-b border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-                    <div className="w-full h-[140px] md:h-[220px] relative">
-                      {heroUrl ? (
-                        <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-zinc-900"></div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent"></div>
+          <div className="flex-1 flex flex-col w-full pb-24 text-white">
+            
+            {/* Hero / Cabecera */}
+            <div className="relative w-full h-48 md:h-64 bg-zinc-800">
+              {heroUrl ? (
+                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-t from-zinc-900 to-zinc-800"></div>
+              )}
+              
+              <div className="absolute -bottom-12 left-4 md:left-8">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-[5px] border-[#0a0a0a] overflow-hidden bg-zinc-900 relative">
+                  {logoUrl ? (
+                    <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Store size={32} className="text-zinc-500" />
                     </div>
-                    
-                    <div className="px-4 md:px-8 relative -mt-10 flex items-end gap-4 z-10">
-                      <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-zinc-900 border-[4px] border-black flex flex-col items-center justify-center overflow-hidden shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.5)] z-10">
-                         {logoUrl ? (
-                           <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-contain bg-white" />
-                         ) : (
-                           <Store size={32} className="text-zinc-500" />
-                         )}
-                      </div>
-                      
-                      <div className="pb-1.5 flex-1">
-                        <div className="flex flex-col md:flex-row md:items-center gap-3">
-                          <h1 className="text-lg md:text-2xl font-black text-white tracking-tight flex items-center gap-2 line-clamp-1">
-                            {config.business_name || 'MI TIENDA'}
-                            {config.is_verified && (
-                              <div title="Comercio Verificado" className="inline-flex">
-                                <ShieldCheck size={22} className="text-blue-500 fill-blue-500/20" />
-                              </div>
-                            )}
-                          </h1>
-                          
-                          {/* Store Status Indicator */}
-                          {config?.scheduleProfile?.scheduleActive && (
-                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border w-fit ${
-                              storeSchedule.status === 'open' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 
-                              storeSchedule.status === 'closing' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                              'bg-red-500/10 border-red-500/20 text-red-400'
-                            }`}>
-                              <div className={`w-2 h-2 rounded-full ${
-                                storeSchedule.status === 'open' ? 'bg-emerald-500 animate-pulse' : 
-                                storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' :
-                                'bg-red-500'
-                              }`}></div>
-                              <div className="flex flex-col">
-                                <span className="text-[10px] font-bold leading-none uppercase tracking-wider">
-                                  {storeSchedule.status === 'open' ? 'Abierto' : storeSchedule.status === 'closing' ? 'Próximo a Cerrar' : 'Cerrado'}
-                                </span>
-                                <span className="text-[8px] opacity-70 leading-none mt-0.5">{storeSchedule.message}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px] md:text-xs text-zinc-400 font-medium">
-                          <span className="flex items-center gap-0.5"><Clock size={10} /> 15-30 min</span>
-                          {config.location && config.location.lat && (
-                            <>
-                              <span>•</span>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(`https://www.google.com/maps/search/?api=1&query=${config.location.lat},${config.location.lng}`, '_blank');
-                                }}
-                                className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
-                              >
-                                <MapPin size={10} /> 
-                                <span>Ubicación</span>
-                              </button>
-                            </>
-                          )}
-                          {config.rif && (
-                            <>
-                              <span>•</span>
-                              <span>RIF: {config.rif}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                  )}
+                  {config?.is_verified && (
+                    <div className="absolute bottom-0 right-0 bg-[#0a0a0a] rounded-full p-0.5 z-10">
+                      <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
                     </div>
-                  </div>
-                );
-              }
+                  )}
+                </div>
+              </div>
+            </div>
 
-              if (section.type === 'featured') {
-                return (
-                  <div key={section.id} className="px-4 md:px-8 py-8 md:py-12 max-w-[1400px] mx-auto w-full">
-                    <div className="flex items-end justify-between mb-12">
-                      <h2 className="font-bold text-2xl md:text-4xl text-white tracking-tight">{texts.sectionTitle}</h2>
-                      <button onClick={() => setCurrentPage('catalog')} className="text-sm font-bold uppercase tracking-widest hidden md:flex items-center gap-2 hover:opacity-80 transition-opacity" style={{ color: primaryColor }}>
-                        Ver Todo <ArrowRight size={14} />
-                      </button>
-                    </div>
-                    
-                    <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-4 gap-0">
-                      {recentProducts.length > 0 ? recentProducts.map((p, i) => (
-                        <div 
-                          key={p.id}
-                          id={`product-card-${p.id}`}
-                          onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                          className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          <div className="flex-1 flex flex-col pt-1">
-                            <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
-                            <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
-                            
-                            <div className="mt-auto flex items-center gap-2">
-                               {isUserAllowedToSeePrices ? (
-                                  p.is_offer ? (
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
-                                      <p className="text-[10px] text-zinc-500 line-through">${Number(p.price).toFixed(2)}</p>
-                                    </div>
-                                  ) : (
-                                    <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
-                                  )
-                                ) : (
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                                    className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors border border-white/5 inline-flex items-center gap-1.5"
-                                  >
-                                    <Lock size={12} /> Precio
-                                  </button>
-                                )}
-                            </div>
-                          </div>
+            {/* Información de la Tienda */}
+            <div className="mt-14 px-4 md:px-8 max-w-[1400px] mx-auto w-full">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl md:text-3xl font-bold tracking-tight">
+                    {config?.business_name || 'Mi Tienda'}
+                  </h1>
+                  {config?.is_verified && (
+                    <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
+                  )}
+                </div>
+                <p className="text-zinc-400 text-sm md:text-base mt-0.5">@{slug}</p>
+              </div>
 
-                          <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
-                            {p.image_url ? (
-                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                 <ImageIcon size={24} />
-                              </div>
-                            )}
-                            
-                            {p.is_offer && (
-                              <div className="absolute top-1 left-1 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-md" style={{ backgroundColor: primaryColor }}>
-                                Oferta
-                              </div>
-                            )}
-                            
-                            {(p.stock_vitrina || 0) <= 0 && (
-                              <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                                <span className="text-white text-[9px] font-bold uppercase tracking-widest bg-red-600/90 px-2 py-1 rounded">Agotado</span>
-                              </div>
-                            )}
-                            
-                            <div className="absolute bottom-[-1px] right-[-1px] z-20">
-                              {isUserAllowedToSeePrices && cart[p.id] > 0 ? (
-                                <div className="flex items-center gap-1.5 bg-zinc-900 border-t border-l border-white/10 rounded-tl-xl p-1" onClick={(e) => e.stopPropagation()}>
-                                  <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={12}/></button>
-                                  <span className="text-xs font-bold text-white min-w-[16px] text-center">{cart[p.id]}</span>
-                                  <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={12}/></button>
-                                </div>
-                              ) : (
-                                isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                                    className="w-8 h-8 bg-zinc-900 rounded-tl-xl border-t border-l border-white/10 flex items-center justify-center transition-colors hover:bg-zinc-800"
-                                  >
-                                    <Plus size={16} style={{ color: primaryColor }} />
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          </div>
-                          
-                          {isMerchantOwner && (
-                            <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
-                                className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
-                              >
-                                <Pen size={14} /> Editar
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )) : (
-                        <div className="col-span-full py-20 text-center text-zinc-500 border border-white/5 border-dashed rounded-3xl">No hay productos destacados.</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
+              {/* Estadísticas */}
+              <div className="flex gap-8 mt-6 pb-6 border-b border-white/5">
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg">{products.length}</span>
+                  <span className="text-zinc-400 text-xs">Publicaciones</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg">89</span>
+                  <span className="text-zinc-400 text-xs">Foodies</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-bold text-lg">233</span>
+                  <span className="text-zinc-400 text-xs">Me gusta</span>
+                </div>
+              </div>
 
-              if (section.type === 'newsletter') {
-                return (
-                  <div key={section.id} className="border-t border-white/5 py-24 px-6 relative overflow-hidden bg-zinc-950">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] blur-[150px] opacity-10 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
-                    <div className="max-w-3xl mx-auto text-center relative z-10">
-                      <h2 className={`${headingWeight} text-white mb-6 text-4xl md:text-5xl tracking-tight`}>{texts.newsletterTitle}</h2>
-                      <p className="text-zinc-400 font-light mb-10 text-lg md:text-xl">{texts.newsletterSub}</p>
-                      <div className="flex flex-col sm:flex-row max-w-xl mx-auto gap-2">
-                         <input type="email" placeholder="tu@correo.com" className="flex-1 px-6 py-4 bg-zinc-900 border border-white/10 rounded-full text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 transition-colors font-light" />
-                         <button className="px-10 py-4 font-bold text-black uppercase tracking-widest rounded-full transition-all hover:scale-105 shadow-lg" style={{ backgroundColor: primaryColor }}>Suscribir</button>
+              {/* Botones de Acción */}
+              <div className="flex gap-2 mt-6">
+                <button className="flex-1 bg-white hover:bg-zinc-200 text-black py-2 rounded-xl font-semibold transition-colors text-sm">
+                  Seguir
+                </button>
+                <button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-xl font-semibold transition-colors text-sm">
+                  Contactar
+                </button>
+                <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Enlace copiado!'); }}>
+                  <Link size={20} />
+                </button>
+                <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center">
+                  <Instagram size={20} />
+                </button>
+              </div>
+
+              {/* Acerca de */}
+              <div className="mt-8">
+                <h2 className="text-lg font-bold mb-3">Acerca de</h2>
+                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+                  {config?.description || 'La mejor calidad para ti.'}
+                  <div className="flex flex-col gap-1.5 mt-3 text-zinc-400">
+                    <div className="flex items-center gap-2">
+                      <Star size={14} className="text-amber-500" />
+                      <span>Desde el {new Date().getFullYear() - 2}</span>
+                    </div>
+                    {config?.address && (
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="text-red-500" />
+                        <span>{config.address}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
-                );
-              }
-              return null;
-            })}
+                </div>
+              </div>
+
+              {/* Especialidad (Categorías) */}
+              <div className="mt-8 border-t border-white/5 pt-8">
+                <h2 className="text-lg font-bold mb-4">Especialidad</h2>
+                <p className="text-sm text-zinc-400 mb-3">{config?.texts?.catalogTitle || 'Catálogo de Productos'}</p>
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  {categories.filter(c => c !== 'Todas').map((cat, idx) => (
+                    <button 
+                      key={idx} 
+                      onClick={() => { setActiveCategory(cat); setCurrentPage('catalog'); }}
+                      className="whitespace-nowrap px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 transition-colors rounded-full text-sm font-medium"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Horario */}
+              <div className="mt-8 mb-6 border-t border-white/5 pt-8">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-lg font-bold">Horario</h2>
+                  <span className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors">Ver todo</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${storeClosed ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                  <span className={`font-semibold ${storeClosed ? 'text-red-500' : 'text-green-500'}`}>
+                    {storeClosed ? 'Cerrado' : 'Abierto'}
+                  </span>
+                  <span className="text-zinc-400 text-sm">· {storeSchedule.message}</span>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
