@@ -1246,50 +1246,47 @@ export default function MarketplaceDirectory() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Mobile Only) - Solid bg for performance */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-zinc-950 border-t border-white/5 pb-2 pt-1 px-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <div className="flex justify-between items-end h-16 max-w-md mx-auto">
-           <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
-             <Home size={22} fill="currentColor" />
-             <span className="text-[10px] font-bold">Inicio</span>
-           </button>
-           
-           <button onClick={() => {
+      {/* Bottom Navigation Bar (Mobile Only) - Matches PublicStore design */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="grid grid-cols-3 h-16">
+          <button
+            onClick={() => window.scrollTo({top:0, behavior:'smooth'})}
+            className="flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors text-amber-500"
+            style={{ textShadow: `0 0 10px rgba(245,158,11,0.4)` }}
+          >
+            <Home size={20} />
+            Inicio
+          </button>
+          
+          <button
+            onClick={() => {
               if (currentCustomer) setIsCartOpen(true);
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
-             <ShoppingCart size={22} />
-             <span className="text-[10px] font-medium">Carrito</span>
-             {currentCustomer && totalCartItems > 0 && (
-               <span className="absolute top-1 right-1/4 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center rounded-full shadow-lg">
-                 {totalCartItems}
-               </span>
-             )}
-           </button>
-
-           {/* Floating Action Button */}
-           <div className="flex-1 flex justify-center relative -top-6">
-             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-zinc-950">
-               <ShoppingBag size={24} className="stroke-[2.5]" />
-             </div>
-           </div>
-
-           <button onClick={() => {
-              if(currentCustomer) setIsAnalyticsOpen(true);
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
-             <TrendingUp size={22} />
-             <span className="text-[10px] font-medium">Gastos</span>
-           </button>
+            }}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? 'text-amber-500' : 'text-zinc-500'}`}
+            style={totalCartItems > 0 ? { textShadow: `0 0 10px rgba(245,158,11,0.4)` } : {}}
+          >
+            <div className="relative">
+              <ShoppingBag size={20} />
+              {currentCustomer && totalCartItems > 0 && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full bg-amber-500">{totalCartItems}</span>
+              )}
+            </div>
+            Carrito
+          </button>
 
-           <button onClick={() => {
-              if(currentCustomer) navigate('/chats');
+          <button
+            onClick={() => {
+              if (currentCustomer) setIsAnalyticsOpen(true);
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
-           }} className={`flex-1 flex flex-col items-center gap-1 p-2 transition-colors ${!currentCustomer ? 'text-amber-500' : 'text-zinc-500 hover:text-amber-500'}`}>
-             <MessageSquare size={22} />
-             <span className="text-[10px] font-medium">Chats</span>
-           </button>
+            }}
+            className="flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors text-zinc-500"
+          >
+            <TrendingUp size={20} />
+            Gastos
+          </button>
         </div>
-      </div>
+      </nav>
 
       {/* Cart Slide-over */}
       <AnimatePresence>
