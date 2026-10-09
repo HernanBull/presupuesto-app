@@ -52,16 +52,6 @@ export default function MarketplaceDirectory() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    let interval;
-    if (isCategoriesOpen && !currentCustomer && !currentMerchant) {
-      interval = setInterval(() => {
-        setBannerSlide(prev => (prev + 1) % 2);
-      }, 5000);
-    }
-    return () => clearInterval(interval);
-  }, [isCategoriesOpen, currentCustomer, currentMerchant]);
-
   // Auth State
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [currentMerchant, setCurrentMerchant] = useState(null);
@@ -158,6 +148,16 @@ export default function MarketplaceDirectory() {
     };
     fetchBcvRate();
   }, []);
+
+  useEffect(() => {
+    let interval;
+    if (isCategoriesOpen && !currentCustomer && !currentMerchant) {
+      interval = setInterval(() => {
+        setBannerSlide(prev => (prev + 1) % 2);
+      }, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [isCategoriesOpen, currentCustomer, currentMerchant]);
 
   useEffect(() => {
     if (typedCount < fullText.length) {
