@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1454,14 +1454,6 @@ export default function PublicStore() {
             {/* Profile Content Container (Relative on top of Hero) */}
             <div className="relative z-10 pt-[180px] md:pt-[220px] px-4 md:px-8 max-w-[1400px] mx-auto w-full flex flex-col">
               
-              {/* Botón Flotante Calificar */}
-              <div className="absolute top-[90px] md:top-[120px] right-4 md:right-8 z-40">
-                <button className="bg-white text-black px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-lg hover:bg-zinc-200 transition-colors cursor-pointer">
-                  <Star size={14} className="fill-black" />
-                  Calificar
-                </button>
-              </div>
-
               {/* Avatar */}
               <div className="flex justify-center w-full mb-4">
                 <div className="relative">
@@ -1489,11 +1481,24 @@ export default function PublicStore() {
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
                 </div>
-                <p className="text-zinc-400 text-base mt-1 mb-4">@{slug}</p>
+                <p className="text-zinc-400 text-base mt-1">@{slug}</p>
+                
+                {/* Rating & Delivery */}
+                <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
+                  <button className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm">
+                    <Star size={14} className="fill-black" />
+                    <span className="font-bold text-xs">Calificar</span>
+                  </button>
+                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+                  <div className="flex items-center gap-1.5 text-zinc-300 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
+                    <Bike size={14} className="text-zinc-400" />
+                    <span className="text-xs">30-45 min</span>
+                  </div>
+                </div>
               </div>
 
               {/* Estadísticas */}
-              <div className="flex justify-center gap-12 mt-6 pb-2 w-full text-center">
+              <div className="grid grid-cols-3 gap-4 max-w-[300px] mx-auto mt-6 pb-2 w-full text-center">
                 <div className="flex flex-col items-center">
                   <span className="font-bold text-xl">{products.length}</span>
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
