@@ -1246,47 +1246,49 @@ export default function MarketplaceDirectory() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Mobile Only) - Matches PublicStore design */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-3 h-16">
-          <button
-            onClick={() => window.scrollTo({top:0, behavior:'smooth'})}
-            className="flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors text-amber-500"
-            style={{ textShadow: `0 0 10px rgba(245,158,11,0.4)` }}
-          >
-            <Home size={20} />
-            Inicio
-          </button>
-          
-          <button
-            onClick={() => {
+      {/* Bottom Navigation Bar (Mobile Only) - Solid bg for performance */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-zinc-950 border-t border-white/5 pb-2 pt-1 px-2 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <div className="flex justify-between items-end h-16 max-w-md mx-auto">
+           <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
+             <Home size={22} fill="currentColor" />
+             <span className="text-[10px] font-bold">Inicio</span>
+           </button>
+           
+           <button onClick={() => {
               if (currentCustomer) setIsCartOpen(true);
-              else { setAuthMode('login'); setIsAuthModalOpen(true); }
-            }}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? 'text-amber-500' : 'text-zinc-500'}`}
-            style={totalCartItems > 0 ? { textShadow: `0 0 10px rgba(245,158,11,0.4)` } : {}}
-          >
-            <div className="relative">
-              <ShoppingBag size={20} />
-              {currentCustomer && totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full bg-amber-500">{totalCartItems}</span>
-              )}
-            </div>
-            Carrito
-          </button>
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+             <ShoppingCart size={22} />
+             <span className="text-[10px] font-medium">Carrito</span>
+             {currentCustomer && totalCartItems > 0 && (
+               <span className="absolute top-1 right-1/4 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center rounded-full shadow-lg">
+                 {totalCartItems}
+               </span>
+             )}
+           </button>
 
-          <button
-            onClick={() => {
-              if (currentCustomer) setIsAnalyticsOpen(true);
+           {/* Floating Action Button - Rounded logo */}
+           <div className="flex-1 flex justify-center relative -top-6">
+             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.4)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-[4px] border-zinc-950">
+               <ShoppingBag size={24} className="stroke-[2.5]" />
+             </div>
+           </div>
+
+           <button onClick={() => {
+              if(currentCustomer) setIsAnalyticsOpen(true);
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
-            }}
-            className="flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors text-zinc-500"
-          >
-            <TrendingUp size={20} />
-            Gastos
-          </button>
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
+             <TrendingUp size={22} />
+             <span className="text-[10px] font-medium">Gastos</span>
+           </button>
+
+           <button onClick={() => {
+              // Future map function
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-500 hover:text-amber-500">
+             <MapPin size={22} />
+             <span className="text-[10px] font-medium">Mapa</span>
+           </button>
         </div>
-      </nav>
+      </div>
 
       {/* Cart Slide-over */}
       <AnimatePresence>
@@ -1301,61 +1303,68 @@ export default function MarketplaceDirectory() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="bg-zinc-950 border-l border-white/10 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col"
+              className="bg-zinc-50 border-l border-zinc-200 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col"
             >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">
-                <h2 className="text-xl font-light text-white flex items-center gap-3 tracking-wide">
-                  <ShoppingCart className="text-amber-500" size={20} />
-                  Mis <strong className="font-bold">Carritos</strong>
-                </h2>
-                <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full p-2 transition-all">
+              <div className="p-6 border-b border-black/5 flex items-center justify-between bg-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100">
+                    <ShoppingCart className="text-amber-500" size={20} />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mis Carritos</h2>
+                </div>
+                <button onClick={() => setIsCartOpen(false)} className="text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-zinc-50">
                 {Object.keys(globalCart).length === 0 ? (
-                  <div className="text-center py-32 flex flex-col items-center">
-                    <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
-                      <ShoppingBag size={40} className="text-zinc-600" />
+                  <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
+                      <ShoppingBag size={48} className="text-zinc-300" />
                     </div>
-                    <h3 className="text-xl font-light text-white mb-2 tracking-wide">Tu carrito está vacío</h3>
-                    <p className="text-zinc-500 font-light mb-8 max-w-[200px]">El ecosistema está lleno de productos increíbles.</p>
-                    <button onClick={() => setIsCartOpen(false)} className="px-8 py-3 bg-white text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase hover:bg-zinc-200 transition-colors">Explorar</button>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
+                    <p className="text-zinc-500 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
+                    <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-white bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
                   </div>
                 ) : (
                   <div className="space-y-6">
                     {Object.entries(globalCart).map(([storeSlug, storeData]) => (
-                      <div key={storeSlug} className="bg-zinc-900/50 rounded-3xl p-5 border border-white/5 hover:border-amber-500/20 transition-all">
-                        <div className="flex items-center justify-between mb-5 border-b border-white/5 pb-4">
-                          <h4 className="font-bold text-white flex items-center gap-2"><Store size={16} className="text-amber-500"/> {storeData.storeName}</h4>
+                      <div key={storeSlug} className="bg-white rounded-[24px] p-5 border border-black/5 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex items-center justify-between mb-5 border-b border-black/5 pb-4">
+                          <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-500">
+                              <Store size={16} />
+                            </div>
+                            {storeData.storeName}
+                          </h4>
                           <button onClick={() => {
                             const gc = {...globalCart};
                             delete gc[storeSlug];
                             setGlobalCart(gc);
                             localStorage.setItem('ecommerce_global_cart', JSON.stringify(gc));
                             window.dispatchEvent(new Event('cart_updated'));
-                          }} className="text-xs text-red-400 hover:text-red-300 font-bold tracking-wider uppercase transition-colors">Vaciar</button>
+                          }} className="text-[10px] text-red-500 hover:text-red-600 font-bold tracking-[0.1em] uppercase transition-colors bg-red-50 px-3 py-1.5 rounded-full">Vaciar</button>
                         </div>
                         <div className="space-y-4">
                           {Object.values(storeData.items).map(item => (
                             <div key={item.id} className="flex gap-4">
-                              <div className="w-16 h-16 bg-zinc-950 rounded-2xl border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                              <div className="w-16 h-16 bg-zinc-50 rounded-2xl border border-black/5 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
                                 {item.imageUrl ? (
                                   <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <Package size={20} className="text-zinc-600" />
+                                  <Package size={20} className="text-zinc-400" />
                                 )}
                               </div>
                               <div className="flex-1 flex flex-col justify-center">
-                                <h5 className="text-sm font-normal text-zinc-300 line-clamp-1 mb-1">{item.name}</h5>
-                                <div className="text-amber-500 font-bold text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-600 font-normal ml-1">x {item.quantity}</span></div>
+                                <h5 className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{item.name}</h5>
+                                <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-500 font-medium ml-1">x {item.quantity}</span></div>
                               </div>
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-white/5 text-white rounded-2xl text-xs font-bold tracking-[0.2em] uppercase border border-white/10 hover:bg-amber-500 hover:border-amber-500 hover:text-black hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all flex items-center justify-center gap-2">
-                          Completar Pedido <ArrowRight size={14} />
+                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-amber-500 text-white rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                          Completar Pedido <ArrowRight size={16} />
                         </button>
                       </div>
                     ))}
