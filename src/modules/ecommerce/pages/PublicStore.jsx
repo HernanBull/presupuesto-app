@@ -164,7 +164,7 @@ export default function PublicStore() {
   }, []);
 
   const getStoreScheduleStatus = () => {
-    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Siempre Abierto' };
+    if (!config?.scheduleProfile?.scheduleActive) return { status: 'unknown', message: 'Horario no especificado' };
     const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
     if (!workDays || !openTime || !closeTime) return { status: 'open', message: 'Abierto' };
     
@@ -206,7 +206,7 @@ export default function PublicStore() {
   };
 
   const storeSchedule = getStoreScheduleStatus();
-  const storeClosed = storeSchedule.status === 'closed' || storeSchedule.status === 'closing';
+  const storeClosed = storeSchedule.status === 'closed';
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -1592,9 +1592,19 @@ export default function PublicStore() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${storeClosed ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                  <span className={`font-semibold ${storeClosed ? 'text-red-500' : 'text-green-500'}`}>
-                    {storeClosed ? 'Cerrado' : 'Abierto'}
+                  <div className={`w-2 h-2 rounded-full ${
+                    storeSchedule.status === 'closed' ? 'bg-red-500' : 
+                    storeSchedule.status === 'closing' ? 'bg-amber-500' : 
+                    storeSchedule.status === 'unknown' ? 'bg-zinc-500' : 'bg-green-500'
+                  }`}></div>
+                  <span className={`font-semibold ${
+                    storeSchedule.status === 'closed' ? 'text-red-500' : 
+                    storeSchedule.status === 'closing' ? 'text-amber-500' : 
+                    storeSchedule.status === 'unknown' ? 'text-zinc-400' : 'text-green-500'
+                  }`}>
+                    {storeSchedule.status === 'closed' ? 'Cerrado' : 
+                     storeSchedule.status === 'closing' ? 'Cierra pronto' : 
+                     storeSchedule.status === 'unknown' ? 'No definido' : 'Abierto'}
                   </span>
                   <span className="text-zinc-400 text-sm">
                     · {storeSchedule.message}
@@ -1638,7 +1648,10 @@ export default function PublicStore() {
                       doubleClickZoom={false}
                       attributionControl={false}
                     >
-                      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
                       <Marker position={[config.location.lat, config.location.lng]} />
                     </MapContainer>
                   ) : (
