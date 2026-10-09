@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -26,7 +26,10 @@ export default function CustomerProfile() {
   const location = useLocation();
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState(location.state?.tab || 'datos'); // 'datos', 'pedidos', 'favoritas', 'wishlist', 'direcciones', 'ajustes'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (location.state?.tab) return location.state.tab;
+    return window.innerWidth < 768 ? 'menu' : 'menu'; // Default to menu layout
+  });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -726,93 +729,141 @@ export default function CustomerProfile() {
         </div>
       </nav>
 
-      {/* Hero Header Oscuro */}
-      <div className="bg-zinc-950 px-6 py-12 relative overflow-hidden border-b border-white/5">
+      {/* Hero Header Oscuro (Mobile Centered) */}
+      <div className="bg-[#121212] px-6 pt-10 pb-8 relative overflow-hidden flex flex-col items-center border-b border-white/5">
          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent"></div>
-           <div className="absolute -top-[50%] -right-[10%] w-[50%] h-[200%] bg-amber-500/5 rotate-12 blur-3xl rounded-full"></div>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent"></div>
          </div>
-         <div className="max-w-5xl mx-auto relative z-10 flex flex-col md:flex-row items-center gap-6">
-           <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-black rounded-full flex items-center justify-center text-4xl font-black shadow-[0_0_30px_rgba(245,158,11,0.3)] shrink-0 relative overflow-hidden group">
-             <div className="absolute inset-0 border border-white/20 rounded-full mix-blend-overlay z-10 pointer-events-none"></div>
+         
+         <div className="w-full max-w-5xl mx-auto flex flex-col items-center relative z-10">
+           <h2 className="text-white font-bold text-lg mb-6">{currentCustomer.name}</h2>
+
+           <div className="w-24 h-24 bg-red-600 text-white rounded-full flex items-center justify-center text-4xl font-black shadow-lg mb-4 relative group overflow-hidden">
              {isUploadingPhoto ? (
-               <Loader2 size={32} className="animate-spin text-amber-500 z-30" />
+               <Loader2 size={24} className="animate-spin text-white z-30" />
              ) : currentCustomer.profile_pic ? (
                <img src={currentCustomer.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
              ) : (
                <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
              )}
              <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-20">
-               <span className="text-white text-xs font-bold text-center px-2">{isUploadingPhoto ? 'Subiendo...' : 'Cambiar Foto'}</span>
+               <span className="text-white text-xs font-bold text-center px-1">{isUploadingPhoto ? '...' : 'Editar'}</span>
                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
              </label>
            </div>
-           <div className="text-center md:text-left">
-             <h1 className="text-3xl font-extrabold text-white tracking-tight">{currentCustomer.name}</h1>
-             <div className="flex flex-col md:flex-row items-center md:items-start gap-3 mt-2">
-               <p className="text-zinc-400 text-sm font-medium">{currentCustomer.email}</p>
-               
-               {isEmailConfirmed ? (
-                 <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
-                   <ShieldCheck size={14} />
-                   <span className="text-[10px] font-bold uppercase tracking-wider">Verificado</span>
-                 </div>
-               ) : (
-                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2">
-                   <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-                     <MailWarning size={14} />
-                     <span className="text-[10px] font-bold uppercase tracking-wider">No Verificado</span>
-                     <button 
-                       onClick={handleRefreshAuthStatus} 
-                       disabled={isRefreshingAuth}
-                       className="ml-1 text-amber-400 hover:text-amber-300 disabled:opacity-50 transition-colors bg-amber-500/20 p-0.5 rounded border border-amber-500/30"
-                       title="Actualizar estado si ya verificaste"
-                     >
-                       <RefreshCw size={12} className={isRefreshingAuth ? 'animate-spin' : ''} />
-                     </button>
-                   </div>
-                   <button 
-                     onClick={handleResendConfirmation} 
-                     disabled={isResending}
-                     className="text-[10px] text-amber-400 font-bold hover:underline disabled:opacity-50 whitespace-nowrap mt-1 sm:mt-0"
-                   >
-                     {isResending ? 'Enviando...' : 'Reenviar enlace'}
-                   </button>
-                 </div>
-               )}
-             </div>
+           
+           <div className="flex items-center gap-2 mb-1 cursor-pointer hover:bg-white/5 px-3 py-1 rounded-full transition-colors" onClick={() => { setActiveTab('datos'); setIsEditingProfile(true); }}>
+             <h1 className="text-lg font-bold text-white tracking-tight">@{currentCustomer.email?.split('@')[0] || 'usuario'}</h1>
+             <Edit3 size={14} className="text-zinc-400" />
            </div>
+           <p className="text-zinc-500 text-sm">Cliente Frecuente</p>
          </div>
       </div>
 
-      {/* Mobile tab bar */}
-      <div className="md:hidden px-6 py-3 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl sticky top-[80px] z-30">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{id:'datos',icon:<User size={14}/>,label:'Perfil'},{id:'direcciones',icon:<MapPin size={14}/>,label:'Direcciones'},{id:'pedidos',icon:<History size={14}/>,label:'Pedidos'},{id:'wishlist',icon:<Package size={14}/>,label:'Guardados'},{id:'favoritas',icon:<Heart size={14}/>,label:'Favoritas'},{id:'ajustes',icon:<Settings size={14}/>,label:'Ajustes'}].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-2 rounded-full text-xs font-bold shrink-0 transition-all border ${activeTab === tab.id ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'text-zinc-500 border-transparent hover:text-white'}`}>
-              {tab.icon}{tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
         
-        {/* Sidebar: oculto en móvil, visible en desktop */}
-        <div className="hidden md:block md:col-span-1 space-y-4">
-          <div className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-4 border border-white/5 shadow-2xl flex flex-col gap-2">
-            <button onClick={() => setActiveTab('datos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'datos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><User size={18} /> Mi Perfil</button>
-            <button onClick={() => setActiveTab('direcciones')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'direcciones' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><MapPin size={18} /> Direcciones</button>
-            <button onClick={() => setActiveTab('pedidos')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'pedidos' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><History size={18} /> Mis Pedidos</button>
-            <button onClick={() => setActiveTab('wishlist')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'wishlist' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Package size={18} /> Guardados</button>
-            <button onClick={() => setActiveTab('favoritas')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'favoritas' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Heart size={18} /> Tiendas Favoritas</button>
-            <div className="h-[1px] bg-white/5 my-2"></div>
-            <button onClick={() => setActiveTab('ajustes')} className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === 'ajustes' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'text-zinc-400 hover:bg-white/5 hover:text-white border border-transparent'}`}><Settings size={18} /> Ajustes</button>
+        {/* Mobile/Desktop Menu List */}
+        <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
+          {/* Group 1 */}
+          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('niveles')}>
+               <div className="flex items-center gap-4">
+                  <Award size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Niveles y logros</span>
+               </div>
+               <ChevronRight size={18} className="text-zinc-500" />
+            </button>
+          </div>
+          
+          {/* Group 2 */}
+          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('pedidos')}>
+               <div className="flex items-center gap-4">
+                  <ShoppingBag size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Mis pedidos</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">{orders.length}</span>
+                  <ChevronRight size={18} className="text-zinc-500" />
+               </div>
+            </button>
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('direcciones')}>
+               <div className="flex items-center gap-4">
+                  <MapPin size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Mis direcciones</span>
+               </div>
+               <ChevronRight size={18} className="text-zinc-500" />
+            </button>
+          </div>
+
+          {/* Group 3 */}
+          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('calificaciones')}>
+               <div className="flex items-center gap-4">
+                  <Star size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Mis calificaciones</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
+                  <ChevronRight size={18} className="text-zinc-500" />
+               </div>
+            </button>
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('recomendaciones')}>
+               <div className="flex items-center gap-4">
+                  <Heart size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Recomendaciones</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
+                  <ChevronRight size={18} className="text-zinc-500" />
+               </div>
+            </button>
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('visitas')}>
+               <div className="flex items-center gap-4">
+                  <Store size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Visitas</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
+                  <ChevronRight size={18} className="text-zinc-500" />
+               </div>
+            </button>
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('datos')}>
+               <div className="flex items-center gap-4">
+                  <User size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Ajustes de Perfil</span>
+               </div>
+               <ChevronRight size={18} className="text-zinc-500" />
+            </button>
+          </div>
+
+          {/* Group 4 */}
+          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl mb-8">
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('wishlist')}>
+               <div className="flex items-center gap-4">
+                  <Bookmark size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Guardados</span>
+               </div>
+               <ChevronRight size={18} className="text-zinc-500" />
+            </button>
+            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('favoritas')}>
+               <div className="flex items-center gap-4">
+                  <UserPlus size={20} className="text-zinc-300" />
+                  <span className="text-[15px] font-medium">Seguidos</span>
+               </div>
+               <ChevronRight size={18} className="text-zinc-500" />
+            </button>
           </div>
         </div>
 
         {/* Panel Derecho: Contenido */}
-        <div className="md:col-span-3">
+        <div className={`${activeTab === 'menu' ? 'hidden md:block' : 'block'} md:col-span-3`}>
+          {/* Mobile Back Button */}
+          <div className="md:hidden mb-6">
+             <button onClick={() => setActiveTab('menu')} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-white/5 px-4 py-2 rounded-full w-max border border-white/10">
+               <ArrowLeft size={18} /> <span className="font-bold text-sm">Volver al menú</span>
+             </button>
+          </div>
           <AnimatePresence mode="wait">
             
             {/* TABS: DATOS */}
