@@ -164,9 +164,9 @@ export default function PublicStore() {
   }, []);
 
   const getStoreScheduleStatus = () => {
-    if (!config?.scheduleProfile?.scheduleActive) return { status: 'unknown', message: 'Horario no especificado' };
+    if (!config?.scheduleProfile?.openTime) return { status: 'unknown', message: 'Horario no especificado' };
     const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
-    if (!workDays || !openTime || !closeTime) return { status: 'open', message: 'Abierto' };
+    if (!workDays || !openTime || !closeTime) return { status: 'unknown', message: 'Horario no especificado' };
     
     const currentDayIdx = new Date().getDay();
     const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];

@@ -348,7 +348,7 @@ export default function StoreProfileManager() {
   if (!isLoaded) return <div className="p-8 text-center font-bold text-slate-500">Cargando perfil...</div>;
 
   const getStoreScheduleStatus = () => {
-    if (!scheduleActive) return { status: 'open', message: 'Abierto 24/7' };
+    if (!openTime) return { status: 'unknown', message: 'Horario no especificado' };
     
     const currentDayIdx = new Date().getDay();
     const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
