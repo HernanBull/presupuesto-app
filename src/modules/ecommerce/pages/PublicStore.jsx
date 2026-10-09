@@ -1423,25 +1423,27 @@ export default function PublicStore() {
           <div className="flex-1 flex flex-col w-full pb-24 text-white">
             
             {/* Hero / Cabecera */}
-            <div className="relative w-full h-48 md:h-64 bg-zinc-800">
+            <div className="relative w-full h-48 md:h-64 bg-zinc-800 flex justify-center">
               {heroUrl ? (
-                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
+                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 absolute inset-0" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-t from-zinc-900 to-zinc-800"></div>
+                <div className="w-full h-full bg-gradient-to-t from-zinc-900 to-zinc-800 absolute inset-0"></div>
               )}
               
-              <div className="absolute -bottom-12 left-4 md:left-8">
-                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-[5px] border-[#0a0a0a] overflow-hidden bg-zinc-900 relative">
-                  {logoUrl ? (
-                    <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Store size={32} className="text-zinc-500" />
-                    </div>
-                  )}
+              <div className="absolute -bottom-16 z-10">
+                <div className="relative">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-[#0a0a0a] overflow-hidden bg-zinc-900">
+                    {logoUrl ? (
+                      <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Store size={40} className="text-zinc-500" />
+                      </div>
+                    )}
+                  </div>
                   {config?.is_verified && (
-                    <div className="absolute bottom-0 right-0 bg-[#0a0a0a] rounded-full p-0.5 z-10">
-                      <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
+                    <div className="absolute bottom-1 right-1 bg-[#0a0a0a] rounded-full p-0.5 z-20">
+                      <ShieldCheck size={24} className="text-blue-500 fill-blue-500/20" />
                     </div>
                   )}
                 </div>
@@ -1449,37 +1451,34 @@ export default function PublicStore() {
             </div>
 
             {/* Información de la Tienda */}
-            <div className="mt-14 px-4 md:px-8 max-w-[1400px] mx-auto w-full">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl md:text-3xl font-bold tracking-tight">
+            <div className="mt-20 px-4 md:px-8 max-w-[1400px] mx-auto w-full flex flex-col">
+              <div className="flex flex-col items-center text-center">
+                <div className="flex items-center gap-2 justify-center">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
-                  {config?.is_verified && (
-                    <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
-                  )}
                 </div>
-                <p className="text-zinc-400 text-sm md:text-base mt-0.5">@{slug}</p>
+                <p className="text-zinc-400 text-base mt-1">@{slug}</p>
               </div>
 
               {/* Estadísticas */}
-              <div className="flex gap-8 mt-6 pb-6 border-b border-white/5">
+              <div className="flex justify-center gap-12 mt-6 pb-6 w-full border-b border-white/5 text-center">
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-lg">{products.length}</span>
-                  <span className="text-zinc-400 text-xs">Publicaciones</span>
+                  <span className="font-bold text-xl">{products.length}</span>
+                  <span className="text-zinc-400 text-sm">Publicaciones</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-lg">89</span>
-                  <span className="text-zinc-400 text-xs">Foodies</span>
+                  <span className="font-bold text-xl">89</span>
+                  <span className="text-zinc-400 text-sm">Foodies</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-lg">233</span>
-                  <span className="text-zinc-400 text-xs">Me gusta</span>
+                  <span className="font-bold text-xl">233</span>
+                  <span className="text-zinc-400 text-sm">Me gusta</span>
                 </div>
               </div>
 
               {/* Botones de Acción */}
-              <div className="flex gap-2 mt-6">
+              <div className="flex gap-2 mt-6 w-full">
                 <button className="flex-1 bg-white hover:bg-zinc-200 text-black py-2 rounded-xl font-semibold transition-colors text-sm">
                   Seguir
                 </button>
@@ -1517,7 +1516,6 @@ export default function PublicStore() {
               {/* Especialidad (Categorías) */}
               <div className="mt-8 border-t border-white/5 pt-8">
                 <h2 className="text-lg font-bold mb-4">Especialidad</h2>
-                <p className="text-sm text-zinc-400 mb-3">{config?.texts?.catalogTitle || 'Catálogo de Productos'}</p>
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {categories.filter(c => c !== 'Todas').map((cat, idx) => (
                     <button 
