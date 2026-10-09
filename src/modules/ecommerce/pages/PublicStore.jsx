@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, Instagram, Facebook, Twitter, MessageCircle, Music2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -61,6 +61,7 @@ export default function PublicStore() {
   const navigate = useNavigate();
   const [workspaceId, setWorkspaceId] = useState(null);
   const [showFullSchedule, setShowFullSchedule] = useState(false);
+  const [showSocialMenu, setShowSocialMenu] = useState(false);
   const [storeNotFound, setStoreNotFound] = useState(false);
   const [config, setConfig] = useState(null);
   const [authGateMode, setAuthGateMode] = useState('login');
@@ -1438,9 +1439,70 @@ export default function PublicStore() {
                 <span className="font-bold text-lg">{config?.business_name || 'Mi Tienda'}</span>
                 <span className="text-xs text-zinc-300">A 13.98 Km de ti</span>
               </div>
-              <button className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
-                <MoreHorizontal size={24} />
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowSocialMenu(!showSocialMenu)} 
+                  className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer relative z-50"
+                >
+                  <MoreHorizontal size={24} />
+                </button>
+                
+                <AnimatePresence>
+                  {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute top-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[180px] z-[100]"
+                    >
+                      {config.socialLinks.instagram && (
+                        <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <Instagram size={18} className="text-pink-500" />
+                          <span className="text-sm font-bold">Instagram</span>
+                        </a>
+                      )}
+                      {config.socialLinks.tiktok && (
+                        <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <Music2 size={18} className="text-white" />
+                          <span className="text-sm font-bold">TikTok</span>
+                        </a>
+                      )}
+                      {config.socialLinks.facebook && (
+                        <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <Facebook size={18} className="text-blue-500" />
+                          <span className="text-sm font-bold">Facebook</span>
+                        </a>
+                      )}
+                      {config.socialLinks.x && (
+                        <a href={config.socialLinks.x.includes('http') ? config.socialLinks.x : `https://twitter.com/${config.socialLinks.x.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <Twitter size={18} className="text-sky-400" />
+                          <span className="text-sm font-bold">X</span>
+                        </a>
+                      )}
+                      {config.socialLinks.whatsapp && (
+                        <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <MessageCircle size={18} className="text-green-500" />
+                          <span className="text-sm font-bold">WhatsApp</span>
+                        </a>
+                      )}
+                    </motion.div>
+                  )}
+                  {showSocialMenu && (!config?.socialLinks || !Object.values(config.socialLinks).some(val => val)) && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute top-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 min-w-[200px] z-[100]"
+                    >
+                      <p className="text-xs text-zinc-400 text-center">Este comercio aún no ha agregado redes sociales.</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {showSocialMenu && (
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
+                )}
+              </div>
             </div>
 
             {/* Hero Background (Absolute) */}
