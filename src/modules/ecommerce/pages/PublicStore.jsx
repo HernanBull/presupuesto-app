@@ -132,6 +132,45 @@ export default function PublicStore() {
   // Tools Modal
   const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
   const [calcUSD, setCalcUSD] = useState('');
+  
+  // Simulator
+  const [simulatedCart, setSimulatedCart] = useState({});
+  const [simulatedDiscountCode, setSimulatedDiscountCode] = useState('');
+  const [simulatedDiscountPct, setSimulatedDiscountPct] = useState(0);
+
+  const simulateAddToCart = (product, qty) => {
+    setSimulatedCart(prev => {
+      const next = (prev[product.id] || 0) + qty;
+      const newCart = { ...prev };
+      if (next <= 0) {
+        delete newCart[product.id];
+      } else {
+        newCart[product.id] = next;
+      }
+      return newCart;
+    });
+  };
+
+  const handleApplySimulatedDiscount = () => {
+    if (simulatedDiscountCode.trim() === '') {
+      setSimulatedDiscountPct(0);
+      return;
+    }
+    // Simple mock: any code with '10' gives 10%, '20' gives 20%, else 5%.
+    if (simulatedDiscountCode.includes('10')) setSimulatedDiscountPct(10);
+    else if (simulatedDiscountCode.includes('20')) setSimulatedDiscountPct(20);
+    else setSimulatedDiscountPct(5);
+  };
+
+  const simulatedTotalUsd = useMemo(() => {
+    return Object.entries(simulatedCart).reduce((acc, [pid, qty]) => {
+      const p = products.find(prod => prod.id === pid);
+      if (!p) return acc;
+      return acc + (parseFloat(p.price) * qty);
+    }, 0);
+  }, [simulatedCart, products]);
+
+  const finalSimulatedUsd = simulatedTotalUsd * (1 - (simulatedDiscountPct / 100));
 
   const [productReviews, setProductReviews] = useState([]);
   const [reviewRating, setReviewRating] = useState(5);
@@ -2907,20 +2946,97 @@ export default function PublicStore() {
 
               {calcUSD && !isNaN(calcUSD) && bcvRate !== '...' && (
                 <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="flex justify-between items-center">
                     <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">Equivalente:</span>
                     <span className="text-xl font-black text-blue-700 dark:text-blue-300">
                       Bs. {(parseFloat(calcUSD) * parseFloat(bcvRate)).toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center opacity-70">
-                    <span className="text-xs text-blue-600 dark:text-blue-400">+ IVA (16%):</span>
-                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300">
-                      Bs. {((parseFloat(calcUSD) * parseFloat(bcvRate)) * 1.16).toFixed(2)}
-                    </span>
-                  </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Simulador de Compra */}
+          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                <ShoppingCart className="text-amber-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white">Simulador de Pago</h3>
+                <p className="text-xs text-zinc-500">Calcula tu compra con descuentos</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Product list for simulator (first 5 to not crowd) */}
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2">
+                {products.slice(0, 5).map(p => {
+                  const qty = simulatedCart[p.id] || 0;
+                  return (
+                    <div key={p.id} className="flex items-center justify-between bg-white dark:bg-zinc-800 p-2 rounded-xl border border-black/5 dark:border-white/5">
+                      <div className="flex flex-col max-w-[120px]">
+                        <span className="text-[11px] font-bold truncate">{p.name}</span>
+                        <span className="text-[10px] text-zinc-500">${p.price}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => simulateAddToCart(p, -1)} disabled={qty <= 0} className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center disabled:opacity-50 text-zinc-600 dark:text-zinc-300">
+                          <Minus size={12} />
+                        </button>
+                        <span className="text-xs font-bold w-4 text-center">{qty}</span>
+                        <button onClick={() => simulateAddToCart(p, 1)} className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
+                          <Plus size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Discount Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Cupón (Ej: DESCUENTO10)"
+                  value={simulatedDiscountCode}
+                  onChange={(e) => setSimulatedDiscountCode(e.target.value)}
+                  className="flex-1 bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-amber-500/50 uppercase"
+                />
+                <button onClick={handleApplySimulatedDiscount} className="bg-zinc-800 text-white text-xs px-3 rounded-xl font-bold hover:bg-zinc-700">
+                  Aplicar
+                </button>
+              </div>
+
+              {/* Totals */}
+              <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs text-amber-700 dark:text-amber-500 font-medium">Subtotal USD:</span>
+                  <span className="text-sm font-bold text-amber-700 dark:text-amber-500">
+                    ${simulatedTotalUsd.toFixed(2)}
+                  </span>
+                </div>
+                {simulatedDiscountPct > 0 && (
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-green-600 font-medium">Descuento ({simulatedDiscountPct}%):</span>
+                    <span className="text-sm font-bold text-green-600">
+                      -${(simulatedTotalUsd * (simulatedDiscountPct/100)).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="h-px bg-amber-500/20 my-2"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-800 dark:text-white font-bold">Total a Pagar:</span>
+                  <div className="text-right">
+                    <div className="text-lg font-black text-slate-800 dark:text-white">${finalSimulatedUsd.toFixed(2)}</div>
+                    {bcvRate !== '...' && (
+                      <div className="text-xs font-medium text-zinc-500">
+                        ~ Bs. {(finalSimulatedUsd * parseFloat(bcvRate)).toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
