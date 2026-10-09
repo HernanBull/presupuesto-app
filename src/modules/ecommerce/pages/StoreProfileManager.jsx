@@ -126,7 +126,7 @@ export default function StoreProfileManager() {
   const [closeTime, setCloseTime] = useState('18:00');
   const [closeWarningMinutes, setCloseWarningMinutes] = useState(30);
   
-  const [socialLinks, setSocialLinks] = useState({ instagram: '', facebook: '', tiktok: '', x: '', whatsapp: '' });
+  const [socialLinks, setSocialLinks] = useState({ instagram: '', facebook: '', tiktok: '', whatsapp: '' });
   
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
@@ -209,7 +209,7 @@ export default function StoreProfileManager() {
               setHasEnminutosAlliance(ws.config.has_enminutos_alliance);
             }
             if (ws.config.socialLinks) {
-              setSocialLinks(ws.config.socialLinks);
+              setSocialLinks(ws.config.socialLinks || { instagram: '', facebook: '', tiktok: '', whatsapp: '' });
             }
             if (ws.config.scheduleProfile) {
               setScheduleActive(ws.config.scheduleProfile.scheduleActive || false);
@@ -591,23 +591,19 @@ export default function StoreProfileManager() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Instagram</label>
-              <input type="text" value={socialLinks.instagram || ''} onChange={e => setSocialLinks({...socialLinks, instagram: e.target.value})} placeholder="@usuario o link" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
+              <input type="text" value={socialLinks?.instagram || ''} onChange={e => setSocialLinks({...socialLinks, instagram: e.target.value})} placeholder="@usuario o link" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">TikTok</label>
-              <input type="text" value={socialLinks.tiktok || ''} onChange={e => setSocialLinks({...socialLinks, tiktok: e.target.value})} placeholder="@usuario o link" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
+              <input type="text" value={socialLinks?.tiktok || ''} onChange={e => setSocialLinks({...socialLinks, tiktok: e.target.value})} placeholder="@usuario o link" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Facebook</label>
-              <input type="text" value={socialLinks.facebook || ''} onChange={e => setSocialLinks({...socialLinks, facebook: e.target.value})} placeholder="Enlace de perfil o página" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
+              <input type="text" value={socialLinks?.facebook || ''} onChange={e => setSocialLinks({...socialLinks, facebook: e.target.value})} placeholder="Enlace de perfil o página" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">WhatsApp</label>
-              <input type="text" value={socialLinks.whatsapp || ''} onChange={e => setSocialLinks({...socialLinks, whatsapp: e.target.value})} placeholder="Número con código de país (Ej: +58414...)" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">X (Twitter)</label>
-              <input type="text" value={socialLinks.x || ''} onChange={e => setSocialLinks({...socialLinks, x: e.target.value})} placeholder="@usuario" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
+              <input type="text" value={socialLinks?.whatsapp || ''} onChange={e => setSocialLinks({...socialLinks, whatsapp: e.target.value})} placeholder="Número con código de país (Ej: +58414...)" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50" />
             </div>
           </div>
         </section>
