@@ -4,7 +4,7 @@
   "source": "https://excalidraw.com",
   "elements": [
     {
-      "id": "text_veibtihv9",
+      "id": "text_km93lr7cf",
       "type": "text",
       "x": 1000,
       "y": 50,
@@ -17,7 +17,7 @@
       "text": "AxonMarket: Bot de Telegram de Logística (Deliveries)"
     },
     {
-      "id": "text_1yyucp60e",
+      "id": "text_bqj0k2471",
       "type": "text",
       "x": 1080,
       "y": 110,
@@ -30,7 +30,7 @@
       "text": "Supabase Edge Functions / Máquina de Estados de Repartidores"
     },
     {
-      "id": "text_xrrky227o",
+      "id": "text_daaogpy61",
       "type": "text",
       "x": 100,
       "y": 200,
@@ -43,7 +43,7 @@
       "text": "1. REGISTRO Y GESTIÓN DEL REPARTIDOR"
     },
     {
-      "id": "rect_5a6zzfkx3",
+      "id": "rect_mroxaw9u4",
       "type": "rectangle",
       "x": 50,
       "y": 260,
@@ -62,13 +62,13 @@
       },
       "boundElements": [
         {
-          "id": "text_kl48khc7d",
+          "id": "text_njysrl945",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_kl48khc7d",
+      "id": "text_njysrl945",
       "type": "text",
       "x": 60,
       "y": 289.3333333333333,
@@ -80,10 +80,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Comando /registrar\n(Inicia Máquina de Estados)",
-      "containerId": "rect_5a6zzfkx3"
+      "containerId": "rect_mroxaw9u4"
     },
     {
-      "id": "arrow_z0ir78kz7",
+      "id": "arrow_50peddd8z",
       "type": "arrow",
       "x": 225,
       "y": 340,
@@ -107,12 +107,12 @@
       ]
     },
     {
-      "id": "rect_896jgm5ej",
+      "id": "rect_uoczqztv2",
       "type": "rectangle",
       "x": 50,
       "y": 380,
       "width": 350,
-      "height": 260,
+      "height": 200,
       "strokeColor": "#334155",
       "backgroundColor": "transparent",
       "fillStyle": "hachure",
@@ -126,16 +126,16 @@
       },
       "boundElements": [
         {
-          "id": "text_rxlb3thka",
+          "id": "text_jmv3qd6bf",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_rxlb3thka",
+      "id": "text_jmv3qd6bf",
       "type": "text",
       "x": 60,
-      "y": 499.3333333333333,
+      "y": 469.3333333333333,
       "width": 330,
       "height": 19.2,
       "strokeColor": "#f8f9fa",
@@ -144,10 +144,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "",
-      "containerId": "rect_896jgm5ej"
+      "containerId": "rect_uoczqztv2"
     },
     {
-      "id": "rect_2101p3zod",
+      "id": "rect_bg2oji04q",
       "type": "rectangle",
       "x": 70,
       "y": 400,
@@ -166,13 +166,13 @@
       },
       "boundElements": [
         {
-          "id": "text_55qxhxdgo",
+          "id": "text_p0e3t8cg4",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_55qxhxdgo",
+      "id": "text_p0e3t8cg4",
       "type": "text",
       "x": 80,
       "y": 410.6666666666667,
@@ -184,10 +184,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "WAITING_NAME",
-      "containerId": "rect_2101p3zod"
+      "containerId": "rect_bg2oji04q"
     },
     {
-      "id": "rect_86ttkll51",
+      "id": "rect_0bt7uc26a",
       "type": "rectangle",
       "x": 70,
       "y": 450,
@@ -206,13 +206,13 @@
       },
       "boundElements": [
         {
-          "id": "text_9n8p1k0mx",
+          "id": "text_s3ng1t6jn",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_9n8p1k0mx",
+      "id": "text_s3ng1t6jn",
       "type": "text",
       "x": 80,
       "y": 460.6666666666667,
@@ -224,10 +224,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "WAITING_PHONE",
-      "containerId": "rect_86ttkll51"
+      "containerId": "rect_0bt7uc26a"
     },
     {
-      "id": "rect_dvw1q4gwp",
+      "id": "rect_crkn3g9we",
       "type": "rectangle",
       "x": 70,
       "y": 500,
@@ -246,13 +246,13 @@
       },
       "boundElements": [
         {
-          "id": "text_gnzla7dfg",
+          "id": "text_zc87xk81y",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_gnzla7dfg",
+      "id": "text_zc87xk81y",
       "type": "text",
       "x": 80,
       "y": 510.6666666666667,
@@ -264,53 +264,13 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "WAITING_MOTO",
-      "containerId": "rect_dvw1q4gwp"
+      "containerId": "rect_crkn3g9we"
     },
     {
-      "id": "rect_np2vx2za4",
-      "type": "rectangle",
-      "x": 70,
-      "y": 550,
-      "width": 310,
-      "height": 40,
-      "strokeColor": "#334155",
-      "backgroundColor": "#1e293b",
-      "fillStyle": "solid",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 0,
-      "opacity": 100,
-      "roundness": {
-        "type": 3,
-        "value": 20
-      },
-      "boundElements": [
-        {
-          "id": "text_g8jrdxv5x",
-          "type": "text"
-        }
-      ]
-    },
-    {
-      "id": "text_g8jrdxv5x",
-      "type": "text",
-      "x": 80,
-      "y": 560.6666666666666,
-      "width": 290,
-      "height": 16.8,
-      "strokeColor": "#f8f9fa",
-      "fontSize": 14,
-      "fontFamily": 1,
-      "textAlign": "center",
-      "verticalAlign": "middle",
-      "text": "WAITING_AGENCY",
-      "containerId": "rect_np2vx2za4"
-    },
-    {
-      "id": "arrow_7r5y1r26b",
+      "id": "arrow_11kqgfav0",
       "type": "arrow",
       "x": 225,
-      "y": 640,
+      "y": 580,
       "width": 0,
       "height": 40,
       "strokeColor": "#334155",
@@ -331,10 +291,10 @@
       ]
     },
     {
-      "id": "rect_lgvyxavgn",
+      "id": "rect_xhl4gd0fi",
       "type": "rectangle",
       "x": 50,
-      "y": 680,
+      "y": 620,
       "width": 350,
       "height": 80,
       "strokeColor": "#10b981",
@@ -350,16 +310,16 @@
       },
       "boundElements": [
         {
-          "id": "text_wdz97atnv",
+          "id": "text_qcz106id1",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_wdz97atnv",
+      "id": "text_qcz106id1",
       "type": "text",
       "x": 60,
-      "y": 709.3333333333334,
+      "y": 649.3333333333334,
       "width": 330,
       "height": 19.2,
       "strokeColor": "#f8f9fa",
@@ -368,10 +328,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Driver Creado en BD\nAsignado ID (REP-XXXX) e Inactivo",
-      "containerId": "rect_lgvyxavgn"
+      "containerId": "rect_xhl4gd0fi"
     },
     {
-      "id": "arrow_ljl4vmvru",
+      "id": "arrow_vcudz0i61",
       "type": "arrow",
       "x": 400,
       "y": 720,
@@ -395,7 +355,7 @@
       ]
     },
     {
-      "id": "rect_vcmva8ly8",
+      "id": "rect_j9954ucec",
       "type": "rectangle",
       "x": 480,
       "y": 660,
@@ -414,13 +374,13 @@
       },
       "boundElements": [
         {
-          "id": "text_vbw0l5bj9",
+          "id": "text_gz30vih1n",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_vbw0l5bj9",
+      "id": "text_gz30vih1n",
       "type": "text",
       "x": 490,
       "y": 709.3333333333334,
@@ -432,10 +392,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Teclado Persistente Telegram\n🟢 Disponible\n🔴 Ocupado\n🚑 Accidente\n💤 Descansando",
-      "containerId": "rect_vcmva8ly8"
+      "containerId": "rect_j9954ucec"
     },
     {
-      "id": "text_cqvm854p7",
+      "id": "text_3gxs7hl54",
       "type": "text",
       "x": 900,
       "y": 200,
@@ -448,7 +408,7 @@
       "text": "2. DIFUSIÓN DE VIAJES (DESDE APP)"
     },
     {
-      "id": "rect_x8nzokmly",
+      "id": "rect_fdjdbz6rx",
       "type": "rectangle",
       "x": 900,
       "y": 260,
@@ -467,13 +427,13 @@
       },
       "boundElements": [
         {
-          "id": "text_xftrjehti",
+          "id": "text_kcexdc3bu",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_xftrjehti",
+      "id": "text_kcexdc3bu",
       "type": "text",
       "x": 910,
       "y": 289.3333333333333,
@@ -485,10 +445,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Frontend envía orden a\nEdge Function 'telegram-bot'",
-      "containerId": "rect_x8nzokmly"
+      "containerId": "rect_fdjdbz6rx"
     },
     {
-      "id": "arrow_vfttzzoy5",
+      "id": "arrow_9a4rcz9kn",
       "type": "arrow",
       "x": 1090,
       "y": 340,
@@ -512,7 +472,7 @@
       ]
     },
     {
-      "id": "rect_dsq0xq0zn",
+      "id": "rect_rz8kxakg1",
       "type": "rectangle",
       "x": 900,
       "y": 380,
@@ -531,13 +491,13 @@
       },
       "boundElements": [
         {
-          "id": "text_495psyoe3",
+          "id": "text_qum4z26ry",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_495psyoe3",
+      "id": "text_qum4z26ry",
       "type": "text",
       "x": 910,
       "y": 459.3333333333333,
@@ -549,10 +509,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Cifrado de Seguridad (Broadcast)\n\nSe envía al Grupo Maestro.\nMuestra zona y distancia.\nOCULTA dirección exacta y teléfono.",
-      "containerId": "rect_dsq0xq0zn"
+      "containerId": "rect_rz8kxakg1"
     },
     {
-      "id": "arrow_sm9w4iptq",
+      "id": "arrow_uerwl7lce",
       "type": "arrow",
       "x": 1090,
       "y": 560,
@@ -576,7 +536,7 @@
       ]
     },
     {
-      "id": "rect_kgdvg6172",
+      "id": "rect_htr73aai2",
       "type": "rectangle",
       "x": 900,
       "y": 600,
@@ -595,13 +555,13 @@
       },
       "boundElements": [
         {
-          "id": "text_6hmllaq8t",
+          "id": "text_0s64wktla",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_6hmllaq8t",
+      "id": "text_0s64wktla",
       "type": "text",
       "x": 910,
       "y": 629.3333333333334,
@@ -613,10 +573,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Inserción en BDD\n'delivery_pending_trips'",
-      "containerId": "rect_kgdvg6172"
+      "containerId": "rect_htr73aai2"
     },
     {
-      "id": "arrow_3qju7fsuc",
+      "id": "arrow_hnf00fh63",
       "type": "arrow",
       "x": 1090,
       "y": 680,
@@ -640,7 +600,7 @@
       ]
     },
     {
-      "id": "rect_42sazr37f",
+      "id": "rect_nlrip6pw7",
       "type": "rectangle",
       "x": 900,
       "y": 720,
@@ -659,13 +619,13 @@
       },
       "boundElements": [
         {
-          "id": "text_30h9s6ine",
+          "id": "text_o2e2pt6gr",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_30h9s6ine",
+      "id": "text_o2e2pt6gr",
       "type": "text",
       "x": 910,
       "y": 749.3333333333334,
@@ -677,10 +637,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Botón Inline: '🚗 Aceptar Viaje'\nCallback: /start accept_ORD-XXX",
-      "containerId": "rect_42sazr37f"
+      "containerId": "rect_nlrip6pw7"
     },
     {
-      "id": "text_aw0som6d1",
+      "id": "text_m13stfpks",
       "type": "text",
       "x": 1450,
       "y": 200,
@@ -693,7 +653,7 @@
       "text": "3. ASIGNACIÓN Y CONDUCCIÓN"
     },
     {
-      "id": "arrow_e8k6gzwq4",
+      "id": "arrow_whpukmkf0",
       "type": "arrow",
       "x": 1280,
       "y": 760,
@@ -717,7 +677,7 @@
       ]
     },
     {
-      "id": "rect_ne397v522",
+      "id": "rect_lbembnosn",
       "type": "rectangle",
       "x": 1450,
       "y": 260,
@@ -736,13 +696,13 @@
       },
       "boundElements": [
         {
-          "id": "text_n1f8v895p",
+          "id": "text_6e7o6kcvl",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_n1f8v895p",
+      "id": "text_6e7o6kcvl",
       "type": "text",
       "x": 1460,
       "y": 339.3333333333333,
@@ -754,10 +714,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Validaciones de Aceptación\n\n1. ¿El viaje sigue pendiente?\n2. ¿El driver está '🟢 Disponible'?\n3. ¿El driver NO tiene viajes activos?\n4. ¿La agencia permite viajes?",
-      "containerId": "rect_ne397v522"
+      "containerId": "rect_lbembnosn"
     },
     {
-      "id": "arrow_lkb92wixo",
+      "id": "arrow_4dbtatqiz",
       "type": "arrow",
       "x": 1650,
       "y": 440,
@@ -781,7 +741,7 @@
       ]
     },
     {
-      "id": "rect_npp5e11qm",
+      "id": "rect_x8kbfbpq3",
       "type": "rectangle",
       "x": 1450,
       "y": 480,
@@ -800,13 +760,13 @@
       },
       "boundElements": [
         {
-          "id": "text_3vuu9k6p7",
+          "id": "text_pwgdus7yq",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_3vuu9k6p7",
+      "id": "text_pwgdus7yq",
       "type": "text",
       "x": 1460,
       "y": 549.3333333333334,
@@ -818,10 +778,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Revelación de Datos (Vía Privada)\n\nEl bot envía mensaje directo al Driver:\n- Dirección Exacta\n- Teléfono del Cliente\n- PIN Secreto (6 dígitos)",
-      "containerId": "rect_npp5e11qm"
+      "containerId": "rect_x8kbfbpq3"
     },
     {
-      "id": "arrow_ngdr9vmea",
+      "id": "arrow_f4uw31cvt",
       "type": "arrow",
       "x": 1650,
       "y": 640,
@@ -845,7 +805,7 @@
       ]
     },
     {
-      "id": "rect_pms9gwzf1",
+      "id": "rect_5i2bi9om8",
       "type": "rectangle",
       "x": 1450,
       "y": 680,
@@ -864,13 +824,13 @@
       },
       "boundElements": [
         {
-          "id": "text_3t346xc9d",
+          "id": "text_aczm0gout",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_3t346xc9d",
+      "id": "text_aczm0gout",
       "type": "text",
       "x": 1460,
       "y": 714.3333333333334,
@@ -882,10 +842,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Pasa de 'pending_trips' a 'active_trips'\nNotifica al Grupo que el viaje fue tomado",
-      "containerId": "rect_pms9gwzf1"
+      "containerId": "rect_5i2bi9om8"
     },
     {
-      "id": "arrow_j4dafwy8k",
+      "id": "arrow_6vlcscw3w",
       "type": "arrow",
       "x": 1650,
       "y": 770,
@@ -909,7 +869,7 @@
       ]
     },
     {
-      "id": "arrow_av78e5ppa",
+      "id": "arrow_uckcyxrqb",
       "type": "arrow",
       "x": 1650,
       "y": 770,
@@ -933,7 +893,7 @@
       ]
     },
     {
-      "id": "rect_72b74losg",
+      "id": "rect_lxftfyprj",
       "type": "rectangle",
       "x": 1250,
       "y": 810,
@@ -952,13 +912,13 @@
       },
       "boundElements": [
         {
-          "id": "text_f4ve2k6in",
+          "id": "text_kyqcdrsx3",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_f4ve2k6in",
+      "id": "text_kyqcdrsx3",
       "type": "text",
       "x": 1260,
       "y": 869.3333333333334,
@@ -970,10 +930,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "🚨 Abortar Viaje\n(/start cancel_...)\n\n- Pide Motivo (Mecánica, Accidente)\n- Regresa a Pending Trips\n- Alerta Roja al Grupo Maestro",
-      "containerId": "rect_72b74losg"
+      "containerId": "rect_lxftfyprj"
     },
     {
-      "id": "rect_zcqnj0e8e",
+      "id": "rect_y7ff0fiax",
       "type": "rectangle",
       "x": 1700,
       "y": 810,
@@ -992,13 +952,13 @@
       },
       "boundElements": [
         {
-          "id": "text_0wjv3l0u1",
+          "id": "text_y9g32x37d",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_0wjv3l0u1",
+      "id": "text_y9g32x37d",
       "type": "text",
       "x": 1710,
       "y": 869.3333333333334,
@@ -1010,10 +970,10 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "✅ Completar Viaje\n(/start complete_...)\n\n- Marca driver_confirmed = 1\n- Espera que cliente confirme (App)\n- Cierra Viaje -> Paga Comisión",
-      "containerId": "rect_zcqnj0e8e"
+      "containerId": "rect_y7ff0fiax"
     },
     {
-      "id": "text_6hussqmdv",
+      "id": "text_q7n2oxzef",
       "type": "text",
       "x": 900,
       "y": 1000,
@@ -1026,7 +986,7 @@
       "text": "4. SISTEMA DE CONFIRMACIÓN DUAL (ANTI-FRAUDE)"
     },
     {
-      "id": "arrow_dutrlvrxd",
+      "id": "arrow_rurvandk2",
       "type": "arrow",
       "x": 1875,
       "y": 950,
@@ -1058,7 +1018,7 @@
       ]
     },
     {
-      "id": "rect_pvnlth7is",
+      "id": "rect_ylbkmngu1",
       "type": "rectangle",
       "x": 900,
       "y": 1060,
@@ -1077,13 +1037,13 @@
       },
       "boundElements": [
         {
-          "id": "text_ud9oo8455",
+          "id": "text_oynsi00jg",
           "type": "text"
         }
       ]
     },
     {
-      "id": "text_ud9oo8455",
+      "id": "text_oynsi00jg",
       "type": "text",
       "x": 910,
       "y": 1139.3333333333333,
@@ -1095,7 +1055,7 @@
       "textAlign": "center",
       "verticalAlign": "middle",
       "text": "Lógica de Handshake Dual\n\n1. Repartidor marca en Telegram (driver_confirmed=1)\n2. Cliente marca en la App (customer_confirmed=1)\n\nSólo cuando AMBOS son verdaderos:\n- Se destruye 'active_trips'\n- Se cambia status a 'Entregado'\n- El driver gana la 'delivery_base_fee'",
-      "containerId": "rect_pvnlth7is"
+      "containerId": "rect_ylbkmngu1"
     }
   ],
   "appState": {

@@ -48,14 +48,13 @@ elements.push(...createText({ x: 100, y: 200, text: "1. REGISTRO Y GESTIÓN DEL 
 elements.push(...createRect({ x: 50, y: 260, width: 350, height: 80, text: "Comando /registrar\n(Inicia Máquina de Estados)", bg: "#1e3a8a", stroke: COLORS.ACCENT_BLUE }));
 elements.push(...createArrow({ x: 225, y: 340, points: [[0,0], [0, 40]] }));
 
-elements.push(...createRect({ x: 50, y: 380, width: 350, height: 260, text: "", bg: "transparent", stroke: COLORS.STROKE_DEFAULT, strokeStyle: "dashed" }));
+elements.push(...createRect({ x: 50, y: 380, width: 350, height: 200, text: "", bg: "transparent", stroke: COLORS.STROKE_DEFAULT, strokeStyle: "dashed" }));
 elements.push(...createRect({ x: 70, y: 400, width: 310, height: 40, text: "WAITING_NAME", bg: COLORS.BOX_BG_DARK, fontSize: 14 }));
 elements.push(...createRect({ x: 70, y: 450, width: 310, height: 40, text: "WAITING_PHONE", bg: COLORS.BOX_BG_DARK, fontSize: 14 }));
 elements.push(...createRect({ x: 70, y: 500, width: 310, height: 40, text: "WAITING_MOTO", bg: COLORS.BOX_BG_DARK, fontSize: 14 }));
-elements.push(...createRect({ x: 70, y: 550, width: 310, height: 40, text: "WAITING_AGENCY", bg: COLORS.BOX_BG_DARK, fontSize: 14 }));
 
-elements.push(...createArrow({ x: 225, y: 640, points: [[0,0], [0, 40]] }));
-elements.push(...createRect({ x: 50, y: 680, width: 350, height: 80, text: "Driver Creado en BD\nAsignado ID (REP-XXXX) e Inactivo", bg: "#064e3b", stroke: COLORS.ACCENT_GREEN }));
+elements.push(...createArrow({ x: 225, y: 580, points: [[0,0], [0, 40]] }));
+elements.push(...createRect({ x: 50, y: 620, width: 350, height: 80, text: "Driver Creado en BD\nAsignado ID (REP-XXXX) e Inactivo", bg: "#064e3b", stroke: COLORS.ACCENT_GREEN }));
 
 // Teclado Interactivo
 elements.push(...createArrow({ x: 400, y: 720, points: [[0,0], [80, 0]] }));
