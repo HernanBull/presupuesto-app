@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1355,6 +1355,7 @@ export default function PublicStore() {
       )}
 
       {/* Navbar (Premium Glassmorphism) */}
+      {currentPage !== 'home' && (
       <nav className={`z-40 transition-all duration-300 px-6 md:px-12 py-5 sticky top-0 ${
         isTransparentHeader ? 'bg-gradient-to-b from-black/80 to-transparent border-none' : 'bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl'
       }`}>
@@ -1414,16 +1415,39 @@ export default function PublicStore() {
           </div>
         </div>
       </nav>
+      )}
 
       {/* Pages */}
       <div className="flex-1 flex flex-col relative z-10">
         
         {/* INICIO */}
         {currentPage === 'home' && (
-          <div className="flex-1 flex flex-col w-full pb-24 text-white">
+          <div className="flex-1 flex flex-col w-full pb-24 text-white relative">
             
+            {/* Cabecera Flotante (Life Burger Style) */}
+            <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
+              <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+                <ChevronLeft size={24} />
+              </button>
+              <div className="flex flex-col items-center">
+                <span className="font-bold text-lg">{config?.business_name || 'Mi Tienda'}</span>
+                <span className="text-xs text-zinc-300">A 13.98 Km de ti</span>
+              </div>
+              <button className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+                <MoreHorizontal size={24} />
+              </button>
+            </div>
+
             {/* Hero / Cabecera */}
-            <div className="relative w-full h-48 md:h-64 bg-zinc-800 flex justify-center">
+            <div className="relative w-full h-56 md:h-72 bg-zinc-800 flex justify-center">
+              {/* Botón Flotante Calificar */}
+              <div className="absolute top-20 right-4 z-40">
+                <button className="bg-white text-black px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-lg hover:bg-zinc-200 transition-colors cursor-pointer">
+                  <Star size={14} className="fill-black" />
+                  Calificar
+                </button>
+              </div>
+
               {heroUrl ? (
                 <>
                   <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 absolute inset-0" />
