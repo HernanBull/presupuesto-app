@@ -134,6 +134,7 @@ export default function PublicStore() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
+  const [storeReviewsList, setStoreReviewsList] = useState([]);
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const baseFollowersList = [
@@ -1092,10 +1093,11 @@ export default function PublicStore() {
         }
         
         // Fetch store reviews average
-        const { data: storeReviews } = await supabase.from('ecommerce_reviews').select('rating').eq('workspace_id', storeData.id).eq('status', 'Aprobado');
+        const { data: storeReviews } = await supabase.from('ecommerce_reviews').select('*').eq('workspace_id', storeData.id).eq('status', 'Aprobado');
         if (storeReviews && storeReviews.length > 0) {
            const total = storeReviews.reduce((acc, curr) => acc + curr.rating, 0);
            setStoreRatingAvg((total / storeReviews.length).toFixed(1));
+           setStoreReviewsList(storeReviews);
         }
       } catch (error) {
         console.error(error);
@@ -1462,64 +1464,8 @@ export default function PublicStore() {
                 <span className="font-bold text-lg">{config?.business_name || 'Mi Tienda'}</span>
                 <span className="text-xs text-zinc-300">A 13.98 Km de ti</span>
               </div>
-              <div className="relative">
-                <button 
-                  onClick={() => setShowSocialMenu(!showSocialMenu)} 
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer relative z-50"
-                >
-                  <MoreHorizontal size={24} />
-                </button>
-                
-                <AnimatePresence>
-                  {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[180px] z-[100]"
-                    >
-                      {config.socialLinks.instagram && (
-                        <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                          <span className="text-sm font-bold">Instagram</span>
-                        </a>
-                      )}
-                      {config.socialLinks.tiktok && (
-                        <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                          <Music2 size={18} className="text-white" />
-                          <span className="text-sm font-bold">TikTok</span>
-                        </a>
-                      )}
-                      {config.socialLinks.facebook && (
-                        <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                          <span className="text-sm font-bold">Facebook</span>
-                        </a>
-                      )}
-                      {config.socialLinks.whatsapp && (
-                        <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                          <MessageCircle size={18} className="text-green-500" />
-                          <span className="text-sm font-bold">WhatsApp</span>
-                        </a>
-                      )}
-                    </motion.div>
-                  )}
-                  {showSocialMenu && (!config?.socialLinks || !Object.values(config.socialLinks).some(val => val)) && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 min-w-[200px] z-[100]"
-                    >
-                      <p className="text-xs text-zinc-400 text-center">Este comercio aún no ha agregado redes sociales.</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                
-                {showSocialMenu && (
-                  <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
-                )}
-              </div>
+              <div className="w-10"></div>
+
             </div>
 
             {/* Hero Background (Absolute) */}
@@ -1643,9 +1589,60 @@ export default function PublicStore() {
                 <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Enlace copiado!'); }}>
                   <Link size={20} />
                 </button>
-                <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center">
-                  <Camera size={20} />
-                </button>
+                <div className="relative">
+                  <button onClick={() => setShowSocialMenu(!showSocialMenu)} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center relative z-50">
+                    <Camera size={20} />
+                  </button>
+                  <AnimatePresence>
+                    {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[180px] z-[100]"
+                      >
+                        {config.socialLinks.instagram && (
+                          <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                            <span className="text-sm font-bold">Instagram</span>
+                          </a>
+                        )}
+                        {config.socialLinks.tiktok && (
+                          <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                            <Music2 size={18} className="text-white" />
+                            <span className="text-sm font-bold">TikTok</span>
+                          </a>
+                        )}
+                        {config.socialLinks.facebook && (
+                          <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                            <span className="text-sm font-bold">Facebook</span>
+                          </a>
+                        )}
+                        {config.socialLinks.whatsapp && (
+                          <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                            <MessageCircle size={18} className="text-green-500" />
+                            <span className="text-sm font-bold">WhatsApp</span>
+                          </a>
+                        )}
+                      </motion.div>
+                    )}
+                    {showSocialMenu && (!config?.socialLinks || !Object.values(config.socialLinks).some(val => val)) && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute bottom-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 min-w-[200px] z-[100]"
+                      >
+                        <p className="text-xs text-zinc-400 text-center">Este comercio aún no ha agregado redes sociales.</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {showSocialMenu && (
+                    <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
+                  )}
+                </div>
               </div>
 
               {/* Acerca de */}
@@ -1654,10 +1651,6 @@ export default function PublicStore() {
                 <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
                   {config?.description || 'La mejor calidad para ti.'}
                   <div className="flex flex-col gap-1.5 mt-3 text-zinc-400">
-                    <div className="flex items-center gap-2">
-                      <Star size={14} className="text-amber-500" />
-                      <span>Desde el {new Date().getFullYear() - 2}</span>
-                    </div>
                     {config?.address && (
                       <div className="flex items-center gap-2">
                         <MapPin size={14} className="text-red-500" />
@@ -1668,20 +1661,31 @@ export default function PublicStore() {
                 </div>
               </div>
 
-              {/* Especialidad (Categorías) */}
+              {/* Calificaciones de Clientes */}
               <div className="mt-8 border-t border-white/5 pt-8">
-                <h2 className="text-lg font-bold mb-4">Especialidad</h2>
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {categories.filter(c => c !== 'Todas').map((cat, idx) => (
-                    <button 
-                      key={idx} 
-                      onClick={() => { setActiveCategory(cat); setCurrentPage('catalog'); }}
-                      className="whitespace-nowrap px-4 py-1.5 bg-zinc-800 hover:bg-zinc-700 transition-colors rounded-full text-sm font-medium"
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <Star size={18} className="fill-amber-400 text-amber-400" /> 
+                  Calificaciones de los Clientes
+                </h2>
+                {storeReviewsList.length > 0 ? (
+                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {storeReviewsList.map(review => (
+                      <div key={review.id} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-bold text-sm text-white">{review.customer_name}</span>
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-400' : 'fill-zinc-600 text-zinc-600'} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm text-zinc-300 whitespace-pre-line">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500 italic">No hay calificaciones disponibles aún.</p>
+                )}
               </div>
 
               {/* Horario */}
@@ -2733,7 +2737,7 @@ export default function PublicStore() {
                 setIsSubmittingReview(true);
                 try {
                   await supabase.from('ecommerce_reviews').insert([{
-                    workspace_id: config?.id || slug,
+                    workspace_id: workspaceId || slug,
                     customer_name: currentCustomer.name,
                     customer_id: currentCustomer.id,
                     rating: reviewRating,
