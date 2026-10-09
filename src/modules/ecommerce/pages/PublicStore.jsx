@@ -9,6 +9,22 @@ import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
 
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+if (!L.Icon.Default.prototype._axon_marker_fixed) {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: iconRetinaUrl,
+    iconUrl: iconUrl,
+    shadowUrl: shadowUrl,
+  });
+  L.Icon.Default.prototype._axon_marker_fixed = true;
+}
+
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -57,6 +73,7 @@ export default function PublicStore() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [workspaceId, setWorkspaceId] = useState(null);
+  const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [storeNotFound, setStoreNotFound] = useState(false);
   const [config, setConfig] = useState(null);
   const [authGateMode, setAuthGateMode] = useState('login');
@@ -160,7 +177,7 @@ export default function PublicStore() {
   }, []);
 
   const getStoreScheduleStatus = () => {
-    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Consultar horario' };
+    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Siempre Abierto' };
     const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
     if (!workDays || !openTime || !closeTime) return { status: 'open', message: 'Abierto' };
     
@@ -1578,7 +1595,14 @@ export default function PublicStore() {
               <div className="mt-8 border-t border-white/5 pt-8">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold">Horario</h2>
-                  <span className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors">Ver todo</span>
+                  {config?.scheduleProfile?.workDays && (
+                    <span 
+                      onClick={() => setShowFullSchedule(!showFullSchedule)}
+                      className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors"
+                    >
+                      {showFullSchedule ? 'Ocultar' : 'Ver todo'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${storeClosed ? 'bg-red-500' : 'bg-green-500'}`}></div>
@@ -1586,11 +1610,25 @@ export default function PublicStore() {
                     {storeClosed ? 'Cerrado' : 'Abierto'}
                   </span>
                   <span className="text-zinc-400 text-sm">
-                    · {config?.scheduleProfile?.scheduleActive && config.scheduleProfile.openTime 
-                        ? `${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}` 
-                        : storeSchedule.message}
+                    · {storeSchedule.message}
                   </span>
                 </div>
+
+                {/* Vista Detallada de Horario (Oculta por defecto) */}
+                {showFullSchedule && config?.scheduleProfile?.workDays && (
+                  <div className="mt-4 flex flex-col gap-2 text-sm text-zinc-400 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
+                    {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(day => (
+                      <div key={day} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                        <span className="capitalize">{day}</span>
+                        <span className="font-bold text-white tracking-wide">
+                          {config.scheduleProfile.workDays[day] 
+                            ? `${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}` 
+                            : <span className="text-red-400">Cerrado</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Ubicación */}
