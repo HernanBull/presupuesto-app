@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 
 export default function StoreProfileManager() {
@@ -115,6 +115,7 @@ export default function StoreProfileManager() {
   // Envíos
   const [flatRate, setFlatRate] = useState(0);
   const [freeShipping, setFreeShipping] = useState(false);
+  const [hasEnminutosAlliance, setHasEnminutosAlliance] = useState(false);
 
   // Horarios de Atención
   const [scheduleActive, setScheduleActive] = useState(false);
@@ -201,6 +202,9 @@ export default function StoreProfileManager() {
             if (ws.config.shippingProfile) {
               setFlatRate(ws.config.shippingProfile.flatRate || 0);
               setFreeShipping(ws.config.shippingProfile.freeShipping || false);
+            }
+            if (ws.config.has_enminutos_alliance !== undefined) {
+              setHasEnminutosAlliance(ws.config.has_enminutos_alliance);
             }
             if (ws.config.scheduleProfile) {
               setScheduleActive(ws.config.scheduleProfile.scheduleActive || false);
@@ -303,6 +307,7 @@ export default function StoreProfileManager() {
         bcvRate,
         manualBcv,
         autoBcv: !manualBcv, // Keep for backward compatibility
+        has_enminutos_alliance: hasEnminutosAlliance,
         paymentProfile: {
           paymentMobile,
           pmBank,
@@ -775,6 +780,26 @@ export default function StoreProfileManager() {
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={freeShipping} onChange={e => setFreeShipping(e.target.checked)} />
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:peer-focus:ring-violet-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between p-4 border border-amber-200 dark:border-amber-900/30 rounded-xl bg-amber-50/50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-[#1a1a1a] rounded-full flex items-center justify-center border border-white/10 shadow-sm shrink-0">
+                  <div className="flex items-center font-black tracking-tighter">
+                    <span className="text-red-600 text-[10px]">E</span>
+                    <span className="text-red-600 text-[10px]">M</span>
+                    <Zap size={10} className="fill-yellow-400 text-yellow-400" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">Alianza con "En Minutos"</p>
+                  <p className="text-xs text-slate-500">Muestra la insignia de delivery premium oficial en tu perfil público.</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={hasEnminutosAlliance} onChange={e => setHasEnminutosAlliance(e.target.checked)} />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
               </label>
             </div>
           </div>

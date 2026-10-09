@@ -1489,11 +1489,19 @@ export default function PublicStore() {
                     <Star size={14} className="fill-black" />
                     <span className="font-bold text-xs">Calificar</span>
                   </button>
-                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                  <button className="flex items-center gap-1.5 bg-amber-400 text-black hover:bg-amber-500 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm font-bold">
-                    <Zap size={14} className="fill-black" />
-                    <span className="text-xs">MD minutos</span>
-                  </button>
+                  {config?.has_enminutos_alliance && (
+                    <>
+                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
+                      <button className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 px-3 py-1.5 rounded-full transition-colors cursor-pointer shadow-lg">
+                        <div className="flex items-center font-black tracking-tighter">
+                          <span className="text-red-600 text-sm">E</span>
+                          <span className="text-red-600 text-sm">M</span>
+                          <Zap size={14} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                        </div>
+                        <span className="text-white text-xs font-semibold tracking-wide">en minutos</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
