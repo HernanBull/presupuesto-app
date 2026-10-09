@@ -1438,28 +1438,33 @@ export default function PublicStore() {
               </button>
             </div>
 
-            {/* Hero / Cabecera */}
-            <div className="relative w-full h-56 md:h-72 bg-zinc-800 flex justify-center">
+            {/* Hero Background (Absolute) */}
+            <div className="absolute top-0 left-0 w-full h-[450px] md:h-[550px] z-0 bg-zinc-800">
+              {heroUrl ? (
+                <>
+                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
+                  <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/90 to-transparent"></div>
+                </>
+              ) : (
+                <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800"></div>
+              )}
+            </div>
+
+            {/* Profile Content Container (Relative on top of Hero) */}
+            <div className="relative z-10 pt-[180px] md:pt-[220px] px-4 md:px-8 max-w-[1400px] mx-auto w-full flex flex-col">
+              
               {/* Botón Flotante Calificar */}
-              <div className="absolute top-20 right-4 z-40">
+              <div className="absolute top-[90px] md:top-[120px] right-4 md:right-8 z-40">
                 <button className="bg-white text-black px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-lg hover:bg-zinc-200 transition-colors cursor-pointer">
                   <Star size={14} className="fill-black" />
                   Calificar
                 </button>
               </div>
 
-              {heroUrl ? (
-                <>
-                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 absolute inset-0" />
-                  <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
-                </>
-              ) : (
-                <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800 absolute inset-0"></div>
-              )}
-              
-              <div className="absolute -bottom-16 z-10">
+              {/* Avatar */}
+              <div className="flex justify-center w-full mb-4">
                 <div className="relative">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-[#0a0a0a] overflow-hidden bg-zinc-900">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-[#0a0a0a] overflow-hidden bg-zinc-900 shadow-xl">
                     {logoUrl ? (
                       <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
                     ) : (
@@ -1469,23 +1474,21 @@ export default function PublicStore() {
                     )}
                   </div>
                   {config?.is_verified && (
-                    <div className="absolute bottom-1 right-1 bg-[#0a0a0a] rounded-full p-0.5 z-20">
-                      <ShieldCheck size={24} className="text-blue-500 fill-blue-500/20" />
+                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-[#0a0a0a] flex items-center justify-center shadow-lg">
+                      <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                     </div>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Información de la Tienda */}
-            <div className="mt-20 px-4 md:px-8 max-w-[1400px] mx-auto w-full flex flex-col">
+              {/* Title & Slug */}
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center gap-2 justify-center">
                   <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
                 </div>
-                <p className="text-zinc-400 text-base mt-1">@{slug}</p>
+                <p className="text-zinc-400 text-base mt-1 mb-4">@{slug}</p>
               </div>
 
               {/* Estadísticas */}
