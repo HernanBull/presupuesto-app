@@ -2336,8 +2336,12 @@ export default function PublicStore() {
                   )}
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mi Carrito ({totalCartItems})</h2>
                 </div>
-                <button onClick={() => setIsCartOpen(false)} className="text-amber-500 hover:scale-110 transition-transform">
-                  <Store size={24} fill="currentColor" className="text-amber-500" />
+                <button onClick={() => setIsCartOpen(false)} className="hover:scale-105 transition-transform flex items-center justify-center w-8 h-8 rounded-lg overflow-hidden bg-white shadow-sm border border-black/5">
+                  {config?.logoUrl ? (
+                    <img src={resolveImageUrl(config.logoUrl)} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Store size={20} fill="currentColor" className="text-amber-500" />
+                  )}
                 </button>
               </div>
 
