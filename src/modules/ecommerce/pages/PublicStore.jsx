@@ -2692,9 +2692,6 @@ export default function PublicStore() {
       >
         <div className="p-4 border-b border-white/10 flex justify-between items-center sticky top-0 bg-zinc-950 z-10">
           <h2 className="text-lg font-bold text-white">Seguidores</h2>
-          <button onClick={() => setShowFollowersModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400">
-            <X size={20} />
-          </button>
         </div>
         <div className="max-h-[60vh] overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
           {currentFollowers.map((follower) => (
@@ -2704,9 +2701,6 @@ export default function PublicStore() {
                 <span className="font-semibold text-sm text-white block">{follower.name}</span>
                 <span className="text-xs text-zinc-400">Seguidor</span>
               </div>
-              <button className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs font-bold transition-colors">
-                Ver
-              </button>
             </div>
           ))}
         </div>
