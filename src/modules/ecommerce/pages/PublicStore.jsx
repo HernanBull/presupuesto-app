@@ -1110,7 +1110,8 @@ export default function PublicStore() {
   const headingWeight = 'font-light';
 
   const typoClass = typography === 'font-serif' ? 'font-serif' : typography === 'font-mono' ? 'font-mono' : 'font-sans';
-  const isTransparentHeader = headerStyle === 'transparent' && currentPage === 'home' && sections[0]?.type === 'hero';
+  const safeSections = Array.isArray(sections) ? sections : [];
+  const isTransparentHeader = headerStyle === 'transparent' && currentPage === 'home' && safeSections[0]?.type === 'hero';
 
   // Modo Administrador
   const isMerchantOwner = localStorage.getItem('activeWorkspace') === workspaceId;
@@ -1443,7 +1444,7 @@ export default function PublicStore() {
               {heroUrl ? (
                 <>
                   <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0a0a0a]"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent"></div>
                 </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800"></div>
