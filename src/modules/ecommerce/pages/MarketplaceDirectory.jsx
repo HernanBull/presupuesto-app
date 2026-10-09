@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -905,65 +905,16 @@ export default function MarketplaceDirectory() {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
       </div>
 
-      {/* App Header (Mobile Only) */}
-      <div className="md:hidden sticky top-0 z-50 bg-gradient-to-b from-zinc-950 to-zinc-900 border-b border-white/5 pt-6 pb-4 px-5">
-        {!currentCustomer ? (
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 select-none cursor-default">
-              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black">
-                <ShoppingBag size={16} className="stroke-[2.5]"/>
-              </div>
-              <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
-            </div>
-            
-            <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-inner active:scale-95 transition-transform">
-              <User size={14} className="text-amber-500" />
-              Entrar
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-3 mb-2" onClick={() => navigate('/profile')}>
-            {/* IZQUIERDA: Avatar e Info */}
-            <div className="flex items-center gap-3">
-              {/* Avatar */}
-              <div className="w-12 h-12 rounded-full bg-zinc-800 border-2 border-amber-500/30 flex-shrink-0 overflow-hidden flex items-center justify-center shadow-inner">
-                {currentCustomer.profilePic || currentCustomer.profile_pic ? (
-                    <img src={currentCustomer.profilePic || currentCustomer.profile_pic} alt={currentCustomer.name} className="w-full h-full object-cover" />
-                ) : (
-                    <span className="text-amber-500 font-bold text-lg uppercase">
-                      {currentCustomer.name ? currentCustomer.name.charAt(0) : 'U'}
-                    </span>
-                )}
-              </div>
-              
-              <div className="flex flex-col justify-center">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-white font-bold text-lg leading-tight capitalize">Hola, {currentCustomer.name ? currentCustomer.name.split(' ')[0] : 'Cliente'}</h4>
-                  <ShoppingBag size={14} className="text-amber-500" />
-                </div>
-                {/* Badge de Tasa de Cambio */}
-                <div className="mt-1 bg-amber-500/10 px-2 py-0.5 rounded flex items-center w-fit border border-amber-500/20">
-                  <span className="text-amber-500 text-[10px] font-bold tracking-wide">$1 ⇄ Bs. {bcvRate}</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* DERECHA: Nivel y Progreso */}
-            <div className="flex flex-col items-end w-24">
-              <div className="flex items-center gap-1 mb-1">
-                <Star size={10} className="text-amber-500" fill="currentColor"/>
-                <span className="text-amber-500 text-[10px] font-bold">Nivel 1</span>
-              </div>
-              {/* Barra de Progreso */}
-              <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden mb-1">
-                <div className="h-full bg-amber-500 w-[15%] rounded-full"></div>
-              </div>
-              <div className="flex items-center justify-between w-full">
-                <span className="text-zinc-500 text-[8px] font-bold">0 / 3.000 pts</span>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* App Header (Mobile Only) - Instagram Style */}
+      <div className="md:hidden sticky top-0 z-50 bg-zinc-950 border-b border-white/5 pt-4 pb-3 px-5 flex items-center justify-between">
+        <button className="text-white hover:text-amber-500 transition-colors">
+          <Menu size={26} strokeWidth={2} />
+        </button>
+        <span className="font-serif italic font-bold text-2xl tracking-wide text-white">Axon Market</span>
+        <button className="text-white hover:text-amber-500 transition-colors relative">
+          <Bell size={26} strokeWidth={2} />
+          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-[2px] border-zinc-950"></span>
+        </button>
       </div>
 
       {/* App Search Bar (Mobile Only) */}
@@ -1128,12 +1079,94 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-        {/* Todas las tiendas Grid */}
-        <div className="pt-6 md:pt-8 border-t border-white/5 mt-6 md:mt-0">
-          <div className="flex items-center justify-between mb-6">
+        {/* Todas las tiendas Grid / Feed */}
+        <div className="pt-2 md:pt-8 md:border-t md:border-white/5 mt-2 md:mt-0 pb-10">
+          <div className="hidden md:flex items-center justify-between mb-6">
             <h3 className="text-white font-bold text-xl">Directorio Completo</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          
+          {/* Mobile Feed (Instagram Style) */}
+          <div className="md:hidden flex flex-col space-y-6 -mx-5">
+            {filteredStores.map((store) => (
+              <div key={store.id} className="bg-zinc-950 flex flex-col pb-4 border-b border-white/5 last:border-b-0">
+                {/* Post Header */}
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/${store.store_slug}`)}>
+                    <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-white/10 p-0.5">
+                      {store.config?.logoUrl || store.config?.storefront?.logoUrl ? (
+                        <img src={resolveImageUrl(store.config.logoUrl || store.config.storefront.logoUrl)} className="w-full h-full rounded-full object-cover bg-zinc-900" />
+                      ) : (
+                        <Store size={20} className="text-black" />
+                      )}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold text-sm tracking-wide leading-tight flex items-center gap-1">
+                        {store.name}
+                        {store.config?.is_verified && <CheckCircle size={12} className="text-blue-500 fill-blue-500/20" />}
+                      </span>
+                      <span className="text-zinc-400 text-[11px] flex items-center gap-1 mt-0.5">
+                        <MapPin size={10} /> A 2.5 Km de ti
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button className="bg-zinc-100 text-black text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-white active:scale-95 transition-all">
+                      <User size={12} /> Seguir
+                    </button>
+                    <button className="text-white hover:text-zinc-400">
+                      <MoreHorizontal size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Post Image */}
+                <div className="w-full aspect-[4/5] bg-zinc-900 cursor-pointer relative" onClick={() => navigate(`/${store.store_slug}`)}>
+                  {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
+                    <img loading="lazy" src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-zinc-600 bg-zinc-950">
+                      <Store size={64} />
+                      <span className="font-medium text-sm">Visitar Tienda</span>
+                    </div>
+                  )}
+                  {/* Pager dots mock */}
+                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white font-medium tracking-widest">1/3</div>
+                </div>
+
+                {/* Post Actions */}
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-4 text-white">
+                    <button onClick={(e) => toggleFavorite(e, store)} className="hover:text-zinc-300 transition-colors">
+                      <Heart size={26} strokeWidth={isFavorite(store.store_slug) ? 0 : 2} fill={isFavorite(store.store_slug) ? '#ef4444' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''} />
+                    </button>
+                    <button className="hover:text-zinc-300 transition-colors" onClick={() => navigate(`/${store.store_slug}`)}>
+                      <MessageCircle size={26} strokeWidth={2} />
+                    </button>
+                    <button className="hover:text-zinc-300 transition-colors -mt-1">
+                      <Send size={26} strokeWidth={2} />
+                    </button>
+                  </div>
+                  <button className="text-white hover:text-zinc-300 transition-colors">
+                    <Bookmark size={26} strokeWidth={2} />
+                  </button>
+                </div>
+
+                {/* Post Content */}
+                <div className="px-4 flex flex-col gap-1.5" onClick={() => navigate(`/${store.store_slug}`)}>
+                  <span className="text-white text-sm font-bold">{Math.floor(Math.random() * 500) + 50} Me gusta</span>
+                  <div className="text-white text-sm">
+                    <span className="font-bold mr-2">{store.name}</span>
+                    <span className="text-zinc-200 line-clamp-2 inline">{store.config?.description || '¡Descubre nuestros mejores productos! Visita nuestra tienda para ver el catálogo completo. 👀✨'}</span>
+                  </div>
+                  <span className="text-zinc-500 text-xs font-medium mt-1 cursor-pointer">Ver los {Math.floor(Math.random() * 20) + 2} comentarios</span>
+                  <span className="text-zinc-600 text-[10px] uppercase tracking-wider mt-0.5">Hace {Math.floor(Math.random() * 12) + 1} horas</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Grid (Hidden on Mobile) */}
+          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {/* Same filtered stores rendered as grid for desktop */}
             {filteredStores.map((store) => (
               <div key={store.id} onClick={() => navigate(`/${store.store_slug}`)} className="bg-zinc-900 rounded-[1.5rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
