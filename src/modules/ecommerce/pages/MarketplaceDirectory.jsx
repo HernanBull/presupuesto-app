@@ -1246,21 +1246,22 @@ export default function MarketplaceDirectory() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Mobile Only) - Modern Wavy Design */}
+      {/* Bottom Navigation Bar (Mobile Only) - Arched Wavy Design */}
       <div 
-        className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-2 pt-1 px-2"
-        style={{ filter: 'drop-shadow(0 -1px 0 rgba(255,255,255,0.05)) drop-shadow(0 -5px 15px rgba(0,0,0,0.5))' }}
+        className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-2 pt-4 px-2"
+        style={{ filter: 'drop-shadow(0 -5px 15px rgba(0,0,0,0.5))' }}
       >
-        {/* Background with Cutout */}
+        {/* Background with Full Arch */}
         <div 
           className="absolute inset-0 bg-zinc-950 -z-10"
           style={{
-            WebkitMaskImage: 'radial-gradient(circle at 50% 16px, transparent 36px, black 37px)',
-            maskImage: 'radial-gradient(circle at 50% 16px, transparent 36px, black 37px)'
+            borderTopLeftRadius: '50% 25px',
+            borderTopRightRadius: '50% 25px',
+            borderTop: '1px solid rgba(255,255,255,0.05)'
           }}
         ></div>
         
-        <div className="flex justify-between items-end h-16 max-w-md mx-auto">
+        <div className="flex justify-between items-end h-16 max-w-md mx-auto relative z-10">
            <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
              <Home size={22} fill="currentColor" />
              <span className="text-[10px] font-bold">Inicio</span>
@@ -1278,9 +1279,9 @@ export default function MarketplaceDirectory() {
              )}
            </button>
 
-           {/* Floating Action Button - Rounded logo */}
-           <div className="flex-1 flex justify-center relative -top-6">
-             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.6)] cursor-pointer hover:scale-105 active:scale-95 transition-transform">
+           {/* Floating Action Button */}
+           <div className="flex-1 flex justify-center relative -top-8">
+             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.6)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-[4px] border-zinc-950">
                <ShoppingBag size={24} className="stroke-[2.5]" />
              </div>
            </div>
