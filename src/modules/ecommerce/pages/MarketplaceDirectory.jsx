@@ -1246,22 +1246,11 @@ export default function MarketplaceDirectory() {
         </div>
       </footer>
 
-      {/* Bottom Navigation Bar (Mobile Only) - Arched Wavy Design */}
+      {/* Bottom Navigation Bar (Mobile Only) - Floating Glassmorphic Design */}
       <div 
-        className="md:hidden fixed bottom-0 left-0 w-full z-50 pb-2 pt-4 px-2"
-        style={{ filter: 'drop-shadow(0 -5px 15px rgba(0,0,0,0.5))' }}
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/70 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
       >
-        {/* Background with Full Arch */}
-        <div 
-          className="absolute inset-0 bg-zinc-950 -z-10"
-          style={{
-            borderTopLeftRadius: '50% 25px',
-            borderTopRightRadius: '50% 25px',
-            borderTop: '1px solid rgba(255,255,255,0.05)'
-          }}
-        ></div>
-        
-        <div className="flex justify-between items-end h-16 max-w-md mx-auto relative z-10">
+        <div className="flex justify-between items-center h-16 px-2">
            <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
              <Home size={22} fill="currentColor" />
              <span className="text-[10px] font-bold">Inicio</span>
@@ -1269,7 +1258,7 @@ export default function MarketplaceDirectory() {
            
            <button onClick={() => {
               if (currentCustomer) setIsCartOpen(true);
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-300 transition-colors relative">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-zinc-200 transition-colors relative">
              <ShoppingCart size={22} />
              <span className="text-[10px] font-medium">Carrito</span>
              {currentCustomer && totalCartItems > 0 && (
@@ -1280,8 +1269,8 @@ export default function MarketplaceDirectory() {
            </button>
 
            {/* Floating Action Button */}
-           <div className="flex-1 flex justify-center relative -top-8">
-             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.6)] cursor-pointer hover:scale-105 active:scale-95 transition-transform border-[4px] border-zinc-950">
+           <div className="flex-1 flex justify-center relative -top-6">
+             <div onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 active:scale-95 transition-transform">
                <ShoppingBag size={24} className="stroke-[2.5]" />
              </div>
            </div>
@@ -1289,14 +1278,14 @@ export default function MarketplaceDirectory() {
            <button onClick={() => {
               if(currentCustomer) setIsAnalyticsOpen(true);
               else { setAuthMode('login'); setIsAuthModalOpen(true); }
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors">
              <TrendingUp size={22} />
              <span className="text-[10px] font-medium">Gastos</span>
            </button>
 
            <button onClick={() => {
               // Future map function
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-500 hover:text-amber-500">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500">
              <MapPin size={22} />
              <span className="text-[10px] font-medium">Mapa</span>
            </button>
