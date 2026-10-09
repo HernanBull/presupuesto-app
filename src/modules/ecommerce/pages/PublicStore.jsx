@@ -3090,23 +3090,22 @@ export default function PublicStore() {
             <span className="text-[10px] font-medium">{texts?.nav2 || 'Catálogo'}</span>
           </button>
 
-          {/* Floating Action Button for Cart */}
-          <div className="flex-1 flex justify-center relative -top-6">
-            <div 
-              onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
-              className="w-14 h-14 rounded-full flex items-center justify-center text-black cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-              style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px ${primaryColor}80` }}
-            >
-              <div className="relative flex items-center justify-center w-full h-full">
-                <ShoppingBag size={24} className="stroke-[2.5]" />
-                {totalCartItems > 0 && (
-                  <span className="absolute -top-1 -right-2 w-4 h-4 bg-white text-black text-[10px] font-black flex items-center justify-center rounded-full border border-black/10">
-                    {totalCartItems}
-                  </span>
-                )}
-              </div>
+          {/* Standard Button for Cart */}
+          <button
+            onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors relative"
+            style={isCartOpen ? { color: primaryColor } : { color: '#a1a1aa' }}
+          >
+            <div className="relative">
+              <ShoppingCart size={22} fill={isCartOpen ? "currentColor" : "none"} />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full shadow-sm" style={{ backgroundColor: primaryColor }}>
+                  {totalCartItems}
+                </span>
+              )}
             </div>
-          </div>
+            <span className="text-[10px] font-medium">Carrito</span>
+          </button>
 
           <button
             onClick={() => setCurrentPage('offers')}
