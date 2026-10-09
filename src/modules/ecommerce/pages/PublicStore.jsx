@@ -135,6 +135,7 @@ export default function PublicStore() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
   const [storeReviewsList, setStoreReviewsList] = useState([]);
+  const [storeNews, setStoreNews] = useState([]);
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const baseFollowersList = [
@@ -1099,6 +1100,12 @@ export default function PublicStore() {
            setStoreRatingAvg((total / storeReviews.length).toFixed(1));
            setStoreReviewsList(storeReviews);
         }
+
+        // Fetch store news
+        const { data: newsData } = await supabase.from('ecommerce_store_news').select('*').eq('workspace_id', storeData.id).eq('status', 'Publicado').order('created_at', { ascending: false });
+        if (newsData) {
+           setStoreNews(newsData);
+        }
       } catch (error) {
         console.error(error);
         setStoreNotFound(true);
@@ -1795,36 +1802,30 @@ export default function PublicStore() {
                 </div>
               </div>
 
-              {/* Publicaciones */}
+              {/* Boletín de Noticias */}
               <div className="mt-8 border-t border-white/5 pt-8 pb-32">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Publicaciones</h2>
-                  <span className="text-sm font-bold text-zinc-400 cursor-pointer hover:text-white transition-colors" onClick={() => setCurrentPage('catalog')}>Ver todo</span>
+                  <h2 className="text-lg font-bold">Novedades y Noticias</h2>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-0.5">
-                  {catalogProducts.slice(0, 9).map((p, idx) => (
-                    <div 
-                      key={p.id}
-                      onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                      className="aspect-square relative group overflow-hidden bg-zinc-900 cursor-pointer border border-white/5"
-                    >
-                      {p.image_url ? (
-                        <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                           <ImageIcon size={24} />
-                        </div>
+                <div className="flex flex-col gap-6">
+                  {storeNews.length > 0 ? storeNews.map((news) => (
+                    <div key={news.id} className="bg-zinc-900/50 rounded-2xl border border-white/5 overflow-hidden">
+                      {news.image_url && (
+                        <img src={news.image_url} alt={news.title} className="w-full h-48 sm:h-64 object-cover" />
                       )}
-                      {p.is_offer && (
-                        <div className="absolute top-1.5 right-1.5 bg-white/20 backdrop-blur-md rounded-md p-1 shadow-sm border border-white/10">
-                           <Zap size={10} className="fill-white text-white" />
-                        </div>
-                      )}
+                      <div className="p-4 sm:p-5">
+                        <span className="text-xs font-medium text-amber-500 mb-2 block">
+                          {new Date(news.created_at).toLocaleDateString()}
+                        </span>
+                        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 leading-tight">{news.title}</h3>
+                        <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{news.content}</p>
+                      </div>
                     </div>
-                  ))}
-                  {catalogProducts.length === 0 && (
-                    <div className="col-span-3 text-center py-10 text-zinc-500 font-light">No hay publicaciones disponibles</div>
+                  )) : (
+                    <div className="text-center py-10 text-zinc-500 font-light border border-dashed border-white/10 rounded-2xl">
+                      No hay novedades recientes en la tienda
+                    </div>
                   )}
                 </div>
               </div>

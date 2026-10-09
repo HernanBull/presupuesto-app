@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
@@ -107,6 +107,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Reseñas', path: '/reviews', icon: MessageSquare },
     { name: 'Promociones', path: '/promotions', icon: Tag },
     { name: 'Ofertas Flash', path: '/offers', icon: Zap },
+    { name: 'Boletín', path: '/news', icon: Newspaper },
     { name: 'Notificaciones', path: '/notifications', icon: Bell },
     { name: 'Perfil Tienda', path: '/store-profile', icon: Settings },
     { name: 'Ubicación', path: '/location', icon: MapPin },
