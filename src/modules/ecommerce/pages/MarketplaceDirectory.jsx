@@ -47,6 +47,7 @@ export default function MarketplaceDirectory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todas');
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -910,7 +911,12 @@ export default function MarketplaceDirectory() {
         <button className="text-white hover:text-amber-500 transition-colors">
           <Menu size={26} strokeWidth={2} />
         </button>
-        <span className="font-serif italic font-bold text-2xl tracking-wide text-white">Axon Market</span>
+        <div className="flex items-center gap-2 select-none cursor-default">
+          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+            <ShoppingBag size={16} className="stroke-[2.5]"/>
+          </div>
+          <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+        </div>
         <button className="text-white hover:text-amber-500 transition-colors relative">
           <Bell size={26} strokeWidth={2} />
           <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-[2px] border-zinc-950"></span>
@@ -1006,78 +1012,27 @@ export default function MarketplaceDirectory() {
       {/* Main Content App-Style */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-6 pb-28 md:pb-12 pt-6 md:pt-12 relative z-10 space-y-8">
         
-        {/* Categorías Principales (2 Filas Independientes) */}
-        <section className="space-y-4">
+        {/* Categorías Principales (Desktop Only) */}
+        <section className="hidden md:block space-y-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-white font-bold text-lg md:text-xl">Categorías</h3>
           </div>
-          <div className="flex flex-col gap-4 -mx-5 md:mx-0">
-            {/* Fila Superior */}
-            <div className="flex overflow-x-auto scrollbar-hide gap-4 px-5 md:px-0 snap-x snap-mandatory pb-1">
-              {categories.filter((_, i) => i % 2 === 0).map((cat) => {
+          <div className="flex flex-col gap-4">
+            <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-1">
+              {categories.map((cat) => {
                 const isActive = activeCategory === cat.id;
                 return (
-                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
-                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 transform-gpu backface-hidden will-change-transform ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[80px] shrink-0">
+                    <div className={`w-[80px] h-[80px] rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
                       <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
                     </div>
-                    <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-            {/* Fila Inferior */}
-            <div className="flex overflow-x-auto scrollbar-hide gap-4 px-5 md:px-0 snap-x snap-mandatory pb-1 pl-6 md:pl-10">
-              {categories.filter((_, i) => i % 2 !== 0).map((cat) => {
-                const isActive = activeCategory === cat.id;
-                return (
-                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[70px] md:w-[80px] shrink-0">
-                    <div className={`w-[70px] h-[70px] md:w-[80px] md:h-[80px] rounded-[1.3rem] md:rounded-[1.5rem] flex items-center justify-center transition-all duration-300 transform-gpu backface-hidden will-change-transform ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
-                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
-                    </div>
-                    <span className={`text-[10px] md:text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
+                    <span className={`text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
                   </div>
                 );
               })}
             </div>
           </div>
         </section>
-
-        {/* Vender Banner (Mobile Only) */}
-        {currentMerchant ? (
-          <div className="md:hidden mt-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-[0_10px_30px_rgba(16,185,129,0.3)] cursor-pointer" onClick={() => navigate('/dashboard')}>
-            <div>
-              <h4 className="text-black font-black text-lg">Panel de Control</h4>
-              <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
-            </div>
-            <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black">
-              <Store size={24} />
-            </div>
-          </div>
-        ) : !currentCustomer && (
-          <div className="md:hidden mt-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-[0_10px_30px_rgba(245,158,11,0.3)]">
-            <div className="flex flex-col">
-              <span className="text-black font-black text-lg leading-tight">Haz crecer tu negocio</span>
-              <span className="text-black/80 text-xs font-medium mt-1">Crea tu tienda virtual gratis</span>
-            </div>
-            <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2 rounded-xl text-xs font-bold shrink-0 shadow-lg active:scale-95 transition-transform">
-              Vender
-            </button>
-          </div>
-        )}
-
-        {/* Cliente Banner (Mobile Only) */}
-        {!currentMerchant && !currentCustomer && (
-          <div className="md:hidden mt-4 bg-zinc-900 border border-white/10 rounded-[1.5rem] p-5 flex items-center justify-between shadow-lg">
-            <div className="flex flex-col">
-              <span className="text-white font-bold text-base leading-tight">¿Ya eres cliente?</span>
-              <span className="text-zinc-400 text-xs font-light mt-1">Guarda tus tiendas y pedidos</span>
-            </div>
-            <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-white/5 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-bold shrink-0 hover:bg-white/10 active:scale-95 transition-all">
-              Iniciar Sesión
-            </button>
-          </div>
-        )}
 
         {/* Todas las tiendas Grid / Feed */}
         <div className="pt-2 md:pt-8 md:border-t md:border-white/5 mt-2 md:mt-0 pb-10">
@@ -1290,15 +1245,10 @@ export default function MarketplaceDirectory() {
            </button>
            
            <button onClick={() => {
-              if (currentCustomer) setIsCartOpen(true);
+              setIsCategoriesOpen(true);
            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-zinc-200 transition-colors relative">
-             <ShoppingCart size={22} />
-             <span className="text-[10px] font-medium">Carrito</span>
-             {currentCustomer && totalCartItems > 0 && (
-               <span className="absolute top-1 right-1/4 w-4 h-4 bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center rounded-full shadow-lg">
-                 {totalCartItems}
-               </span>
-             )}
+             <Menu size={22} />
+             <span className="text-[10px] font-medium">Categorías</span>
            </button>
 
            {/* Floating Action Button */}
@@ -1403,6 +1353,88 @@ export default function MarketplaceDirectory() {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Categories Slide-over (Mobile Only) */}
+      <AnimatePresence>
+        {isCategoriesOpen && (
+          <div className="fixed inset-0 z-[100] flex justify-start md:hidden">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-black/90" onClick={() => setIsCategoriesOpen(false)}
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 200 }}
+              className="bg-zinc-950 border-r border-white/5 w-full max-w-[85%] h-full relative z-10 shadow-2xl flex flex-col"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20">
+                    <Menu className="text-amber-500" size={20} />
+                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">Categorías</h2>
+                </div>
+                <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-400 hover:text-white bg-white/5 rounded-full p-2 transition-all">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  {categories.map((cat) => {
+                    const isActive = activeCategory === cat.id;
+                    return (
+                      <div key={cat.id} onClick={() => { setActiveCategory(cat.id); setIsCategoriesOpen(false); window.scrollTo({top:0, behavior:'smooth'}); }} className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-900 border-white/5 hover:bg-zinc-800'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-amber-500 text-black' : 'bg-black text-amber-500'}`}>
+                          <cat.icon size={24} strokeWidth={isActive ? 2.5 : 1.5} />
+                        </div>
+                        <span className={`text-xs font-bold text-center ${isActive ? 'text-amber-500' : 'text-zinc-300'}`}>{cat.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Banners inside Categories Menu */}
+                {currentMerchant ? (
+                  <div className="mt-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-lg cursor-pointer" onClick={() => {setIsCategoriesOpen(false); navigate('/dashboard');}}>
+                    <div>
+                      <h4 className="text-black font-black text-lg">Panel de Control</h4>
+                      <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
+                    </div>
+                    <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black">
+                      <Store size={24} />
+                    </div>
+                  </div>
+                ) : !currentCustomer && (
+                  <div className="mt-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-[1.5rem] p-5 flex flex-col gap-3 shadow-lg">
+                    <div className="flex flex-col">
+                      <span className="text-black font-black text-lg leading-tight">Haz crecer tu negocio</span>
+                      <span className="text-black/80 text-xs font-medium mt-1">Crea tu tienda virtual gratis</span>
+                    </div>
+                    <button onClick={() => { setIsCategoriesOpen(false); setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-3 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center">
+                      Vender en Axon
+                    </button>
+                  </div>
+                )}
+
+                {!currentMerchant && !currentCustomer && (
+                  <div className="mt-4 bg-zinc-900 border border-white/10 rounded-[1.5rem] p-5 flex flex-col gap-3 shadow-lg">
+                    <div className="flex flex-col">
+                      <span className="text-white font-bold text-base leading-tight">¿Ya eres cliente?</span>
+                      <span className="text-zinc-400 text-xs font-light mt-1">Guarda tus tiendas y pedidos</span>
+                    </div>
+                    <button onClick={() => { setIsCategoriesOpen(false); setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-white/5 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold hover:bg-white/10 active:scale-95 transition-all w-full text-center">
+                      Iniciar Sesión
+                    </button>
                   </div>
                 )}
               </div>
