@@ -160,7 +160,7 @@ export default function PublicStore() {
   }, []);
 
   const getStoreScheduleStatus = () => {
-    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Abierto 24/7' };
+    if (!config?.scheduleProfile?.scheduleActive) return { status: 'open', message: 'Consultar horario' };
     const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
     if (!workDays || !openTime || !closeTime) return { status: 'open', message: 'Abierto' };
     
@@ -1585,7 +1585,11 @@ export default function PublicStore() {
                   <span className={`font-semibold ${storeClosed ? 'text-red-500' : 'text-green-500'}`}>
                     {storeClosed ? 'Cerrado' : 'Abierto'}
                   </span>
-                  <span className="text-zinc-400 text-sm">· {storeSchedule.message}</span>
+                  <span className="text-zinc-400 text-sm">
+                    · {config?.scheduleProfile?.scheduleActive && config.scheduleProfile.openTime 
+                        ? `${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}` 
+                        : storeSchedule.message}
+                  </span>
                 </div>
               </div>
 
@@ -1593,36 +1597,53 @@ export default function PublicStore() {
               <div className="mt-8 border-t border-white/5 pt-8">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold">Ubicación</h2>
-                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)} className="text-sm font-bold text-zinc-400 hover:text-white transition-colors">Abrir en Maps</button>
+                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.location?.lat ? `${config.location.lat},${config.location.lng}` : (config?.address || config?.businessName || 'Venezuela'))}`)} className="text-sm font-bold text-zinc-400 hover:text-white transition-colors">Abrir en Maps</button>
                 </div>
                 {config?.address && <p className="text-sm text-zinc-300 mb-4">{config.address}</p>}
                 
-                <div 
-                  onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)}
-                  className="w-full h-32 rounded-3xl relative overflow-hidden bg-[#e5e3df] cursor-pointer group shadow-inner border border-white/5"
-                >
-                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')" }}></div>
-                  
-                  {/* Decorative Map Lines */}
-                  <div className="absolute top-1/4 left-0 w-full h-[3px] bg-white/40 -rotate-6"></div>
-                  <div className="absolute top-1/2 left-0 w-full h-[6px] bg-white/50 rotate-3"></div>
-                  <div className="absolute top-0 left-1/3 w-[4px] h-full bg-white/40 rotate-12"></div>
-                  
-                  {/* Pin and Logo */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
-                    <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
-                      {config?.logoUrl ? (
-                        <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                          <Store size={16} className="text-white" />
+                <div className="w-full h-40 rounded-3xl relative overflow-hidden bg-zinc-900 shadow-inner border border-white/5 z-0 group">
+                  {config?.location?.lat && config?.location?.lng ? (
+                    <MapContainer 
+                      center={[config.location.lat, config.location.lng]} 
+                      zoom={15} 
+                      style={{ height: "100%", width: "100%", zIndex: 0 }}
+                      zoomControl={false}
+                      dragging={false}
+                      scrollWheelZoom={false}
+                      doubleClickZoom={false}
+                      attributionControl={false}
+                    >
+                      <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                      <Marker position={[config.location.lat, config.location.lng]} />
+                    </MapContainer>
+                  ) : (
+                    <div 
+                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)}
+                      className="w-full h-full cursor-pointer relative bg-[#e5e3df]"
+                    >
+                      <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')" }}></div>
+                      <div className="absolute top-1/4 left-0 w-full h-[3px] bg-white/40 -rotate-6"></div>
+                      <div className="absolute top-1/2 left-0 w-full h-[6px] bg-white/50 rotate-3"></div>
+                      <div className="absolute top-0 left-1/3 w-[4px] h-full bg-white/40 rotate-12"></div>
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
+                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
+                          {config?.logoUrl ? (
+                            <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                              <Store size={16} className="text-white" />
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="text-red-600 drop-shadow-md -mt-3 relative z-0">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-red-600 drop-shadow-md -mt-3 relative z-0">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
-                    </div>
-                  </div>
+                  )}
+                  {config?.location?.lat && (
+                    <div className="absolute inset-0 z-[1] cursor-pointer" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${config.location.lat},${config.location.lng}`)}></div>
+                  )}
                 </div>
               </div>
 
