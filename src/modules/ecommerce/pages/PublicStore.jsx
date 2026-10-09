@@ -1831,17 +1831,7 @@ export default function PublicStore() {
 
             </div>
 
-            {/* Fijo "Ver menú" Botón */}
-            <div className="fixed bottom-0 left-0 w-full p-4 z-50 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent flex justify-center pointer-events-none pb-8 md:pb-4">
-              <button 
-                onClick={() => setCurrentPage('catalog')}
-                className="bg-white text-black font-bold text-lg px-8 py-4 rounded-3xl shadow-[0_10px_40px_rgba(255,255,255,0.15)] flex items-center gap-4 w-full max-w-[90%] md:max-w-sm pointer-events-auto hover:scale-[1.02] active:scale-[0.98] transition-transform"
-              >
-                <ChefHat size={26} strokeWidth={2.5} className="text-black shrink-0" /> 
-                <span className="flex-1 text-center pr-2 tracking-wide">Ver menú</span>
-                <ChevronRight size={26} strokeWidth={2.5} className="text-black shrink-0" />
-              </button>
-            </div>
+
 
           </div>
         )}
@@ -2690,6 +2680,35 @@ export default function PublicStore() {
           >
             Seguir comprando
           </button>
+        </div>
+      </ResponsiveModal>
+
+      {/* Followers Modal */}
+      <ResponsiveModal
+        isOpen={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10 p-0 overflow-hidden"
+        contentClassName="p-0"
+      >
+        <div className="p-4 border-b border-white/10 flex justify-between items-center sticky top-0 bg-zinc-950 z-10">
+          <h2 className="text-lg font-bold text-white">Seguidores</h2>
+          <button onClick={() => setShowFollowersModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+          {currentFollowers.map((follower) => (
+            <div key={follower.id} className="flex items-center gap-3">
+              <img src={follower.profilePic} alt={follower.name} className="w-12 h-12 rounded-full object-cover border border-white/10" />
+              <div className="flex-1">
+                <span className="font-semibold text-sm text-white block">{follower.name}</span>
+                <span className="text-xs text-zinc-400">Seguidor</span>
+              </div>
+              <button className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-full text-xs font-bold transition-colors">
+                Ver
+              </button>
+            </div>
+          ))}
         </div>
       </ResponsiveModal>
 
