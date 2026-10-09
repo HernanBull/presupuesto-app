@@ -766,9 +766,9 @@ export default function CustomerProfile() {
         <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
           {/* Group 1 */}
           <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('niveles')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'niveles' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('niveles')}>
                <div className="flex items-center gap-4">
-                  <Award size={20} className="text-zinc-300" />
+                  <Award size={20} className={activeTab === 'niveles' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Niveles y logros</span>
                </div>
                <ChevronRight size={18} className="text-zinc-500" />
@@ -777,9 +777,9 @@ export default function CustomerProfile() {
           
           {/* Group 2 */}
           <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('pedidos')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'pedidos' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('pedidos')}>
                <div className="flex items-center gap-4">
-                  <ShoppingBag size={20} className="text-zinc-300" />
+                  <ShoppingBag size={20} className={activeTab === 'pedidos' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Mis pedidos</span>
                </div>
                <div className="flex items-center gap-3">
@@ -787,9 +787,9 @@ export default function CustomerProfile() {
                   <ChevronRight size={18} className="text-zinc-500" />
                </div>
             </button>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('direcciones')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'direcciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('direcciones')}>
                <div className="flex items-center gap-4">
-                  <MapPin size={20} className="text-zinc-300" />
+                  <MapPin size={20} className={activeTab === 'direcciones' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Mis direcciones</span>
                </div>
                <ChevronRight size={18} className="text-zinc-500" />
@@ -798,9 +798,9 @@ export default function CustomerProfile() {
 
           {/* Group 3 */}
           <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('calificaciones')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'calificaciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
                <div className="flex items-center gap-4">
-                  <Star size={20} className="text-zinc-300" />
+                  <Star size={20} className={activeTab === 'calificaciones' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Mis calificaciones</span>
                </div>
                <div className="flex items-center gap-3">
@@ -808,9 +808,9 @@ export default function CustomerProfile() {
                   <ChevronRight size={18} className="text-zinc-500" />
                </div>
             </button>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('recomendaciones')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'recomendaciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
                <div className="flex items-center gap-4">
-                  <Heart size={20} className="text-zinc-300" />
+                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Recomendaciones</span>
                </div>
                <div className="flex items-center gap-3">
@@ -818,9 +818,9 @@ export default function CustomerProfile() {
                   <ChevronRight size={18} className="text-zinc-500" />
                </div>
             </button>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('visitas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'visitas' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
                <div className="flex items-center gap-4">
-                  <Store size={20} className="text-zinc-300" />
+                  <Store size={20} className={activeTab === 'visitas' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Visitas</span>
                </div>
                <div className="flex items-center gap-3">
@@ -828,9 +828,9 @@ export default function CustomerProfile() {
                   <ChevronRight size={18} className="text-zinc-500" />
                </div>
             </button>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('datos')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${(activeTab === 'datos' || activeTab === 'menu') ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('datos')}>
                <div className="flex items-center gap-4">
-                  <User size={20} className="text-zinc-300" />
+                  <User size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Ajustes de Perfil</span>
                </div>
                <ChevronRight size={18} className="text-zinc-500" />
@@ -839,16 +839,16 @@ export default function CustomerProfile() {
 
           {/* Group 4 */}
           <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl mb-8">
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white border-b border-white/5 hover:bg-white/5 transition-colors" onClick={() => setActiveTab('wishlist')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'wishlist' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
                <div className="flex items-center gap-4">
-                  <Bookmark size={20} className="text-zinc-300" />
+                  <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Guardados</span>
                </div>
                <ChevronRight size={18} className="text-zinc-500" />
             </button>
-            <button className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors" onClick={() => setActiveTab('favoritas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'favoritas' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
                <div className="flex items-center gap-4">
-                  <UserPlus size={20} className="text-zinc-300" />
+                  <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-500' : 'text-zinc-300'} />
                   <span className="text-[15px] font-medium">Seguidos</span>
                </div>
                <ChevronRight size={18} className="text-zinc-500" />
@@ -867,7 +867,7 @@ export default function CustomerProfile() {
           <AnimatePresence mode="wait">
             
             {/* TABS: DATOS */}
-            {activeTab === 'datos' && (
+            {(activeTab === 'datos' || activeTab === 'menu') && (
               <motion.div 
                 key="datos"
                 initial={{ opacity: 0, y: 10 }}
