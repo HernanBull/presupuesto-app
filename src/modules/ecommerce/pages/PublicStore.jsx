@@ -135,6 +135,19 @@ export default function PublicStore() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
 
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const baseFollowersList = [
+    { id: 'f1', name: 'María González', profilePic: 'https://i.pravatar.cc/150?u=maria' },
+    { id: 'f2', name: 'Carlos Díaz', profilePic: 'https://i.pravatar.cc/150?u=carlos' },
+    { id: 'f3', name: 'Ana Pérez', profilePic: 'https://i.pravatar.cc/150?u=ana' },
+    { id: 'f4', name: 'Luis Martínez', profilePic: 'https://i.pravatar.cc/150?u=luis' },
+    { id: 'f5', name: 'Andrea Gómez', profilePic: 'https://i.pravatar.cc/150?u=andrea' },
+    { id: 'f6', name: 'Jorge Silva', profilePic: 'https://i.pravatar.cc/150?u=jorge' },
+  ];
+  const currentFollowers = isFollowing && currentCustomer ? 
+    [{ id: currentCustomer.id, name: currentCustomer.name + ' (Tú)', profilePic: currentCustomer.profile_pic || 'https://i.pravatar.cc/150?u=' + currentCustomer.email }, ...baseFollowersList] : 
+    baseFollowersList;
+
   const trackEvent = async (eventType, wid) => {
     try {
       const activeWId = wid || workspaceId;
@@ -1590,7 +1603,7 @@ export default function PublicStore() {
                   <span className="font-bold text-xl">{products.length}</span>
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
                 </div>
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowFollowersModal(true)}>
                   <span className="font-bold text-xl">{89 + (isFollowing ? 1 : 0)}</span>
                   <span className="text-zinc-400 text-sm">Seguidores</span>
                 </div>
