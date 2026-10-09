@@ -2854,45 +2854,62 @@ export default function PublicStore() {
           </>
         )}
       </ResponsiveModal>
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="grid grid-cols-4 h-16">
+      {/* Mobile Bottom Navigation Bar - Floating Glassmorphic Design */}
+      <nav 
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/70 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+      >
+        <div className="flex justify-between items-center h-16 px-2">
           <button
             onClick={() => setCurrentPage('home')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'home' ? '' : 'text-zinc-500'}`}
-            style={currentPage === 'home' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
+            style={currentPage === 'home' ? { color: primaryColor } : { color: '#a1a1aa' }}
           >
-            <Store size={20} />
-            {texts?.nav1 || 'Inicio'}
+            <Store size={22} fill={currentPage === 'home' ? "currentColor" : "none"} />
+            <span className="text-[10px] font-bold">{texts?.nav1 || 'Inicio'}</span>
           </button>
+          
           <button
             onClick={() => setCurrentPage('products')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'products' ? '' : 'text-zinc-500'}`}
-            style={currentPage === 'products' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
+            style={currentPage === 'products' ? { color: primaryColor } : { color: '#a1a1aa' }}
           >
-            <Package size={20} />
-            {texts?.nav2 || 'Productos'}
+            <Package size={22} fill={currentPage === 'products' ? "currentColor" : "none"} />
+            <span className="text-[10px] font-medium">{texts?.nav2 || 'Catálogo'}</span>
           </button>
+
+          {/* Floating Action Button for Cart */}
+          <div className="flex-1 flex justify-center relative -top-6">
+            <div 
+              onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
+              className="w-14 h-14 rounded-full flex items-center justify-center text-black cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+              style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px ${primaryColor}80` }}
+            >
+              <div className="relative flex items-center justify-center w-full h-full">
+                <ShoppingBag size={24} className="stroke-[2.5]" />
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-1 -right-2 w-4 h-4 bg-white text-black text-[10px] font-black flex items-center justify-center rounded-full border border-black/10">
+                    {totalCartItems}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={() => setCurrentPage('offers')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'offers' ? '' : 'text-zinc-500'}`}
-            style={currentPage === 'offers' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
+            style={currentPage === 'offers' ? { color: primaryColor } : { color: '#a1a1aa' }}
           >
-            <Tag size={20} />
-            {texts?.nav3 || 'Ofertas'}
+            <Tag size={22} fill={currentPage === 'offers' ? "currentColor" : "none"} />
+            <span className="text-[10px] font-medium">{texts?.nav3 || 'Ofertas'}</span>
           </button>
+
           <button
-            onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors relative ${totalCartItems > 0 ? '' : 'text-zinc-500'}`}
-            style={totalCartItems > 0 ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
+            onClick={() => navigate('/')}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-white"
           >
-            <div className="relative">
-              <ShoppingBag size={20} />
-              {totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full" style={{ backgroundColor: primaryColor }}>{totalCartItems}</span>
-              )}
-            </div>
-            Carrito
+            <Menu size={22} />
+            <span className="text-[10px] font-medium">Axon</span>
           </button>
         </div>
       </nav>
