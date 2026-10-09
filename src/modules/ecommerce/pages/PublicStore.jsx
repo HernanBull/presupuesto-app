@@ -68,7 +68,9 @@ export default function PublicStore() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('page') || 'home';
+    let pageParam = params.get('page');
+    if (pageParam === 'catalog') pageParam = 'products';
+    return pageParam || 'home';
   });
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState(['Todas']);
@@ -136,6 +138,8 @@ export default function PublicStore() {
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
   const [storeReviewsList, setStoreReviewsList] = useState([]);
   const [storeNews, setStoreNews] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const baseFollowersList = [
@@ -1274,7 +1278,24 @@ export default function PublicStore() {
 
   const recentProducts = products.slice(0, 8);
   const offerProducts = products.filter(p => !!p.is_offer);
-  const catalogProducts = activeCategory === 'Todas' ? products : products.filter(p => p.category === activeCategory);
+  let catalogProducts = activeCategory === 'Todas' ? products : products.filter(p => p.category === activeCategory);
+
+  if (searchQuery) {
+    catalogProducts = catalogProducts.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }
+
+  catalogProducts.sort((a, b) => {
+    const priceA = a.is_offer ? a.discount_price : a.price;
+    const priceB = b.is_offer ? b.discount_price : b.price;
+
+    if (sortBy === 'priceAsc') return priceA - priceB;
+    if (sortBy === 'priceDesc') return priceB - priceA;
+    if (sortBy === 'nameAsc') return a.name.localeCompare(b.name);
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
   const totalCartItems = Object.values(cart).reduce((a,b)=>a+b,0);
 
   const cartSubtotal = Object.entries(cart).reduce((acc, [id, qty]) => {
@@ -1411,7 +1432,7 @@ export default function PublicStore() {
           
           <div className="hidden md:flex items-center gap-8 text-sm font-bold tracking-widest uppercase">
             <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#71717a' }}>{texts.nav1}</span>
-            <span onClick={() => setCurrentPage('catalog')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'catalog' ? primaryColor : '#71717a' }}>{texts.nav2}</span>
+            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'products' ? primaryColor : '#71717a' }}>{texts.nav2 || 'Productos'}</span>
             <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'offers' ? primaryColor : '#71717a' }}>{texts.nav3}</span>
           </div>
           
@@ -1946,12 +1967,25 @@ export default function PublicStore() {
           </div>
         )}
 
-        {/* CATALOGO */}
-        {currentPage === 'catalog' && (
+        {/* PRODUCTOS */}
+        {currentPage === 'products' && (
           <div className="flex-1 flex flex-col w-full">
             <div className="py-16 px-6 md:px-12 text-center border-b border-white/5 bg-zinc-950 relative overflow-hidden">
                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] blur-[150px] opacity-10 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
-               <h1 className={`${headingWeight} text-4xl md:text-6xl text-white tracking-tighter relative z-10`}>{texts.catalogTitle}</h1>
+               <h1 className={`${headingWeight} text-4xl md:text-6xl text-white tracking-tighter relative z-10`}>{texts.catalogTitle || 'Productos'}</h1>
+               
+               <div className="max-w-2xl mx-auto mt-8 relative z-10">
+                 <div className="relative">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
+                   <input 
+                     type="text" 
+                     placeholder="Buscar productos..." 
+                     value={searchQuery}
+                     onChange={(e) => setSearchQuery(e.target.value)}
+                     className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 transition-colors"
+                   />
+                 </div>
+               </div>
             </div>
             
             <div className={`max-w-[1400px] mx-auto w-full flex flex-col ${catalogFilterStyle === 'sidebar' ? 'md:flex-row' : ''} px-4 md:px-8 py-8 md:py-12 gap-8`}>
@@ -1959,6 +1993,20 @@ export default function PublicStore() {
                <div className={`${catalogFilterStyle === 'sidebar' ? 'w-full md:w-64 flex-shrink-0' : 'w-full flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
                    {catalogFilterStyle === 'sidebar' ? (
                     <div className="sticky top-32 bg-zinc-950 border border-white/5 rounded-3xl p-6">
+                      <div className="mb-6 border-b border-white/5 pb-6">
+                        <h3 className="font-light text-sm text-zinc-400 uppercase tracking-widest mb-3">Ordenar por</h3>
+                        <select 
+                          value={sortBy} 
+                          onChange={(e) => setSortBy(e.target.value)}
+                          className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 cursor-pointer"
+                        >
+                          <option value="newest">Más recientes</option>
+                          <option value="priceAsc">Precio: Menor a Mayor</option>
+                          <option value="priceDesc">Precio: Mayor a Menor</option>
+                          <option value="nameAsc">Nombre: A-Z</option>
+                        </select>
+                      </div>
+
                       <h3 className="font-light text-xl text-white mb-6 border-b border-white/5 pb-4">Categorías</h3>
                       <ul className="space-y-2">
                         {categories.map(c => (
@@ -1979,6 +2027,20 @@ export default function PublicStore() {
                </div>
 
                <div className="flex-1">
+                  {catalogFilterStyle !== 'sidebar' && (
+                    <div className="flex justify-end mb-6">
+                      <select 
+                        value={sortBy} 
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="bg-zinc-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 cursor-pointer"
+                      >
+                        <option value="newest">Más recientes</option>
+                        <option value="priceAsc">Precio: Menor a Mayor</option>
+                        <option value="priceDesc">Precio: Mayor a Menor</option>
+                        <option value="nameAsc">Nombre: A-Z</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                     {catalogProducts.length > 0 ? catalogProducts.map((p, i) => (
                       <div 
@@ -2523,7 +2585,7 @@ export default function PublicStore() {
                     </div>
                     <h3 className="text-3xl font-light text-white mb-4 tracking-tight">Carrito Vacío</h3>
                     <p className="text-zinc-400 text-base font-light mb-10 max-w-[250px] leading-relaxed">Tu bolsa de compras necesita un poco de acción. Explora nuestro catálogo.</p>
-                    <button onClick={() => { setIsCartOpen(false); setCurrentPage('catalog'); }} className="px-10 py-4 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-xl hover:scale-105" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}30` }}>Descubrir Productos</button>
+                    <button onClick={() => { setIsCartOpen(false); setCurrentPage('products'); }} className="px-10 py-4 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-xl hover:scale-105" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}30` }}>Descubrir Productos</button>
                   </div>
                 ) : (
                   <div className="space-y-5">
@@ -2801,12 +2863,12 @@ export default function PublicStore() {
             {texts?.nav1 || 'Inicio'}
           </button>
           <button
-            onClick={() => setCurrentPage('catalog')}
-            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'catalog' ? '' : 'text-zinc-500'}`}
-            style={currentPage === 'catalog' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
+            onClick={() => setCurrentPage('products')}
+            className={`flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${currentPage === 'products' ? '' : 'text-zinc-500'}`}
+            style={currentPage === 'products' ? { color: primaryColor, textShadow: `0 0 10px ${primaryColor}40` } : {}}
           >
             <Package size={20} />
-            {texts?.nav2 || 'Catálogo'}
+            {texts?.nav2 || 'Productos'}
           </button>
           <button
             onClick={() => setCurrentPage('offers')}
