@@ -2320,29 +2320,25 @@ export default function PublicStore() {
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsCartOpen(false)} />
           
           <div 
-            className="w-full h-[100dvh] md:h-full md:max-w-[480px] relative z-10 shadow-2xl flex flex-col overflow-hidden bg-zinc-950 md:border-l border-white/10"
+            className="w-full h-[100dvh] md:h-full md:max-w-[480px] relative z-10 shadow-2xl flex flex-col overflow-hidden bg-[#f4f7f4] md:border-l border-black/10"
           >
-              {/* Cart Ambient Glow */}
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[120px] opacity-20 pointer-events-none rounded-full translate-x-1/2 -translate-y-1/2" style={{ backgroundColor: primaryColor }}></div>
-
               {/* Header */}
-              <div className="px-8 py-8 flex items-center justify-between border-b border-white/10 relative z-10 bg-black/40">
+              <div className="px-6 py-5 flex items-center justify-between border-b border-black/5 bg-white relative z-10">
                 <div className="flex items-center gap-4">
                   {isCheckoutMode ? (
-                    <button onClick={() => { if(checkoutStep === 2) setCheckoutStep(1); else setIsCheckoutMode(false); }} className="w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-white/5 hover:bg-white/10 transition-colors">
-                      <ArrowLeft size={22} />
+                    <button onClick={() => { if(checkoutStep === 2) setCheckoutStep(1); else setIsCheckoutMode(false); }} className="w-10 h-10 rounded-full flex items-center justify-center text-slate-800 bg-slate-100 hover:bg-slate-200 transition-colors">
+                      <ArrowLeft size={20} />
                     </button>
                   ) : (
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-black shadow-lg" style={{ backgroundColor: primaryColor, boxShadow: `0 0 20px ${primaryColor}40` }}>
-                      <ShoppingBag size={22} fill="currentColor" />
-                    </div>
+                    <button onClick={() => { setIsCartOpen(false); setIsCheckoutMode(false); setCheckoutStep(1); }} className="text-zinc-500 hover:text-black transition-colors">
+                      <X size={24} />
+                    </button>
                   )}
-                  <div>
-                    <h2 className="text-2xl font-light text-white tracking-tight">{isCheckoutMode ? 'Checkout' : 'Tu Compra'}</h2>
-                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mt-1">{totalCartItems} Ítems seleccionados</p>
-                  </div>
+                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mi Carrito ({totalCartItems})</h2>
                 </div>
-                <button onClick={() => { setIsCartOpen(false); setIsCheckoutMode(false); setCheckoutStep(1); }} className="text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-3 transition-all border border-white/5 hover:border-white/20 hover:scale-110"><X size={20} /></button>
+                <button onClick={() => setIsCartOpen(false)} className="text-amber-500 hover:scale-110 transition-transform">
+                  <Store size={24} fill="currentColor" className="text-amber-500" />
+                </button>
               </div>
 
               {/* Items Area */}
@@ -2582,16 +2578,15 @@ export default function PublicStore() {
                   </div>
                 ) : totalCartItems === 0 ? (
                   <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mb-8 shadow-inner border border-white/10 relative">
-                      <div className="absolute inset-0 blur-xl opacity-20 rounded-full" style={{ backgroundColor: primaryColor }}></div>
-                      <Package size={48} className="text-zinc-500 relative z-10" />
+                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
+                      <Package size={48} className="text-zinc-300" />
                     </div>
-                    <h3 className="text-3xl font-light text-white mb-4 tracking-tight">Carrito Vacío</h3>
-                    <p className="text-zinc-400 text-base font-light mb-10 max-w-[250px] leading-relaxed">Tu bolsa de compras necesita un poco de acción. Explora nuestro catálogo.</p>
-                    <button onClick={() => { setIsCartOpen(false); setCurrentPage('products'); }} className="px-10 py-4 text-black rounded-full text-xs font-bold tracking-[0.2em] uppercase transition-all shadow-xl hover:scale-105" style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}30` }}>Descubrir Productos</button>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
+                    <p className="text-zinc-500 text-sm mb-10 max-w-[250px] leading-relaxed">Tu bolsa de compras necesita un poco de acción. Explora nuestro catálogo.</p>
+                    <button onClick={() => { setIsCartOpen(false); setCurrentPage('products'); }} className="px-10 py-4 text-white bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-105">Descubrir Productos</button>
                   </div>
                 ) : (
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {Object.entries(cart).map(([id, qty], idx) => {
                       const p = products.find(prod => prod.id === id);
                       if (!p) return null;
@@ -2600,30 +2595,31 @@ export default function PublicStore() {
                       return (
                         <div 
                           key={id}
-                          className="flex gap-4 group bg-transparent py-3 border-b border-white/5 last:border-0 items-center animate-in fade-in slide-in-from-right-4 duration-300"
+                          className="flex gap-4 bg-white p-4 rounded-2xl shadow-sm border border-black/5 animate-in fade-in slide-in-from-right-4 duration-300 relative group"
                         >
-                          <div className="w-16 h-16 bg-zinc-900 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => removeFromCart(p.id, cart[p.id])} className="w-6 h-6 flex items-center justify-center bg-white shadow-md text-red-500 rounded-full hover:bg-red-50 transition-colors"><X size={12} /></button>
+                          </div>
+                          
+                          <div className="w-20 h-20 bg-white rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {p.image_url ? (
-                              <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover" />
+                              <img src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain" />
                             ) : (
-                              <Package size={24} className="text-zinc-700" />
+                              <Package size={24} className="text-zinc-300" />
                             )}
                           </div>
                           
-                          <div className="flex-1 flex flex-col justify-center relative">
-                            <h5 className="text-sm font-medium text-white line-clamp-2 mb-1 leading-snug">{p.name}</h5>
+                          <div className="flex-1 flex flex-col justify-center">
+                            <h5 className="text-sm font-bold text-slate-800 mb-0.5 line-clamp-1">{p.name}</h5>
+                            <p className="text-xs text-zinc-400 mb-3">${Number(currentPrice).toFixed(2)} / unid</p>
                             
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="font-bold text-lg" style={{ color: primaryColor }}>${Number(currentPrice).toFixed(2)}</div>
-                              
-                              <div className="flex items-center gap-2">
-                                <button onClick={() => removeFromCart(p.id, cart[p.id])} className="w-10 h-10 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"><Trash2 size={18} /></button>
-                                <div className="flex items-center bg-zinc-900 rounded-full border border-white/10">
-                                  <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white active:bg-white/5 rounded-l-full transition-all"><Minus size={16}/></button>
-                                  <span className="w-6 text-center text-sm font-bold text-white">{qty}</span>
-                                  <button onClick={() => addToCart(p.id, p.step_size)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-white active:bg-white/5 rounded-r-full transition-all"><Plus size={16}/></button>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center bg-amber-100 text-amber-600 hover:bg-amber-200 rounded-full transition-colors"><Minus size={14}/></button>
+                                  <span className="w-4 text-center text-sm font-bold text-slate-800">{qty}</span>
+                                  <button onClick={() => addToCart(p.id, p.step_size)} className="w-8 h-8 flex items-center justify-center bg-amber-100 text-amber-600 hover:bg-amber-200 rounded-full transition-colors"><Plus size={14}/></button>
                                 </div>
-                              </div>
+                                <span className="font-bold text-slate-800 text-base">${(Number(currentPrice) * qty).toFixed(2)}</span>
                             </div>
                           </div>
                         </div>
