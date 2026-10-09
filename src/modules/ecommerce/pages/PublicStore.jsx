@@ -128,6 +128,10 @@ export default function PublicStore() {
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  
+  // Tools Modal
+  const [isToolsModalOpen, setIsToolsModalOpen] = useState(false);
+  const [calcUSD, setCalcUSD] = useState('');
 
   const [productReviews, setProductReviews] = useState([]);
   const [reviewRating, setReviewRating] = useState(5);
@@ -169,6 +173,23 @@ export default function PublicStore() {
       });
     } catch(e) {}
   };
+
+  useEffect(() => {
+    const fetchBcvRate = async () => {
+      try {
+        const res = await fetch('https://axonmarket-api.onrender.com/api/bcv');
+        const data = await res.json();
+        if (res.ok && data.rate) {
+          setBcvRate(Number(data.rate).toFixed(2));
+        } else if (data.fallbackRate) {
+          setBcvRate(Number(data.fallbackRate).toFixed(2));
+        }
+      } catch (err) {
+        console.error('Error fetching BCV rate:', err);
+      }
+    };
+    fetchBcvRate();
+  }, []);
 
   useEffect(() => {
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
@@ -2854,6 +2875,82 @@ export default function PublicStore() {
           </>
         )}
       </ResponsiveModal>
+
+      {/* Tools Modal (Calculadora, etc) */}
+      <ResponsiveModal isOpen={isToolsModalOpen} onClose={() => setIsToolsModalOpen(false)} title="Herramientas">
+        <div className="space-y-6">
+          {/* Calculadora Multi-Moneda */}
+          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                <Calculator className="text-blue-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white">Calculadora BCV</h3>
+                <p className="text-xs text-zinc-500">Tasa actual: {bcvRate} Bs.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <span className="text-zinc-500 font-bold">$</span>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Monto en dólares"
+                  value={calcUSD}
+                  onChange={(e) => setCalcUSD(e.target.value)}
+                  className="w-full bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+
+              {calcUSD && !isNaN(calcUSD) && bcvRate !== '...' && (
+                <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">Equivalente:</span>
+                    <span className="text-xl font-black text-blue-700 dark:text-blue-300">
+                      Bs. {(parseFloat(calcUSD) * parseFloat(bcvRate)).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center opacity-70">
+                    <span className="text-xs text-blue-600 dark:text-blue-400">+ IVA (16%):</span>
+                    <span className="text-xs font-bold text-blue-700 dark:text-blue-300">
+                      Bs. {((parseFloat(calcUSD) * parseFloat(bcvRate)) * 1.16).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Métodos de Pago */}
+          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                <CreditCard className="text-emerald-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white">Métodos de Pago</h3>
+                <p className="text-xs text-zinc-500">Aceptados por la tienda</p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Pago Móvil</span>
+              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Efectivo USD</span>
+              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Zelle</span>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => { setIsToolsModalOpen(false); navigate('/'); }}
+            className="w-full py-3.5 bg-zinc-900 text-amber-500 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+          >
+            <Map size={18} /> Explorar más tiendas
+          </button>
+        </div>
+      </ResponsiveModal>
       {/* Mobile Bottom Navigation Bar - Floating Glassmorphic Design */}
       <nav 
         className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/70 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
@@ -2905,11 +3002,12 @@ export default function PublicStore() {
           </button>
 
           <button
-            onClick={() => navigate('/')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-white"
+            onClick={() => setIsToolsModalOpen(true)}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
+            style={isToolsModalOpen ? { color: primaryColor } : { color: '#a1a1aa' }}
           >
-            <Menu size={22} />
-            <span className="text-[10px] font-medium">Axon</span>
+            <Calculator size={22} fill={isToolsModalOpen ? "currentColor" : "none"} />
+            <span className="text-[10px] font-medium">Útiles</span>
           </button>
         </div>
       </nav>
