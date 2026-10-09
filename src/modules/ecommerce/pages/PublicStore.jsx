@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -1425,9 +1425,12 @@ export default function PublicStore() {
             {/* Hero / Cabecera */}
             <div className="relative w-full h-48 md:h-64 bg-zinc-800 flex justify-center">
               {heroUrl ? (
-                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 absolute inset-0" />
+                <>
+                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 absolute inset-0" />
+                  <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0a0a0a] to-transparent"></div>
+                </>
               ) : (
-                <div className="w-full h-full bg-gradient-to-t from-zinc-900 to-zinc-800 absolute inset-0"></div>
+                <div className="w-full h-full bg-gradient-to-t from-[#0a0a0a] to-zinc-800 absolute inset-0"></div>
               )}
               
               <div className="absolute -bottom-16 z-10">
@@ -1462,7 +1465,7 @@ export default function PublicStore() {
               </div>
 
               {/* Estadísticas */}
-              <div className="flex justify-center gap-12 mt-6 pb-6 w-full border-b border-white/5 text-center">
+              <div className="flex justify-center gap-12 mt-6 pb-2 w-full text-center">
                 <div className="flex flex-col items-center">
                   <span className="font-bold text-xl">{products.length}</span>
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
@@ -1479,7 +1482,8 @@ export default function PublicStore() {
 
               {/* Botones de Acción */}
               <div className="flex gap-2 mt-6 w-full">
-                <button className="flex-1 bg-white hover:bg-zinc-200 text-black py-2 rounded-xl font-semibold transition-colors text-sm">
+                <button className="flex-1 bg-white hover:bg-zinc-200 text-black py-2 rounded-xl font-semibold transition-colors text-sm flex items-center justify-center gap-2">
+                  <UserPlus size={18} />
                   Seguir
                 </button>
                 <button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-xl font-semibold transition-colors text-sm">
