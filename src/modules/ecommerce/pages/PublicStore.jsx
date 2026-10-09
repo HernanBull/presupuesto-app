@@ -1858,19 +1858,14 @@ export default function PublicStore() {
           </div>
         )}
 
-        {/* OFERTAS (Nivel Experto) */}
+        {/* OFERTAS */}
         {currentPage === 'offers' && (
           <div className="flex-1 flex flex-col w-full relative">
-            <div className="py-24 px-6 md:px-12 text-center border-b border-white/5 bg-zinc-950 relative overflow-hidden flex flex-col items-center justify-center">
-               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] blur-[150px] opacity-30 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
-               <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="relative z-10 flex flex-col items-center">
-                 <div className="mb-6 bg-white/5 border border-white/10 px-6 py-2 rounded-full flex items-center gap-3 backdrop-blur-md">
-                   <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: primaryColor, boxShadow: `0 0 10px ${primaryColor}` }}></div>
-                   <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">Flash Deals Activos</span>
-                 </div>
-                 <h1 className={`${headingWeight} text-5xl md:text-7xl text-white tracking-tighter drop-shadow-2xl`}>{texts.offersTitle}</h1>
-                 <p className="text-zinc-400 mt-6 text-xl font-light tracking-wide max-w-2xl">Descubre oportunidades irrepetibles. Precios exclusivos por tiempo ultra limitado.</p>
-               </motion.div>
+            <div className="py-12 px-6 md:px-12 border-b border-white/5 bg-zinc-950 relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[150px] opacity-20 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
+               <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center">
+                 <h1 className={`${headingWeight} text-4xl md:text-5xl text-white tracking-tight`}>{texts.offersTitle || 'Ofertas'}</h1>
+               </div>
             </div>
             
             <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 md:py-12 relative z-10">
@@ -1954,12 +1949,20 @@ export default function PublicStore() {
                     )}
                   </div>
                 )) : (
-                  <div className="col-span-full py-32 flex flex-col items-center justify-center">
-                    <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
-                      <Tag size={40} className="text-zinc-600" />
+                  <div className="col-span-full py-32 flex flex-col items-center justify-center text-center">
+                    <div className="mb-6 opacity-30">
+                      <Tag size={64} className="text-zinc-500" strokeWidth={1} />
                     </div>
-                    <h3 className="text-3xl text-white font-light mb-4">El radar está despejado</h3>
-                    <p className="text-zinc-500 text-lg font-light max-w-md text-center">No hay ofertas activas en este momento. Vuelve pronto para cazar los mejores descuentos.</p>
+                    <h3 className="text-2xl text-white font-semibold mb-3">No hay promociones vigentes</h3>
+                    <p className="text-zinc-500 text-base max-w-md">
+                      En este momento no contamos con ofertas activas. Te invitamos a revisar nuestro catálogo de productos o a volver más tarde.
+                    </p>
+                    <button 
+                      onClick={() => setCurrentPage('products')}
+                      className="mt-8 px-8 py-3 rounded-xl text-sm font-bold tracking-wide transition-all border border-white/10 hover:border-white/20 text-white bg-white/5 hover:bg-white/10"
+                    >
+                      Ir a Productos
+                    </button>
                   </div>
                 )}
               </div>
