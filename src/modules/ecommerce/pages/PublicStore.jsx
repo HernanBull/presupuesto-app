@@ -73,8 +73,10 @@ export default function PublicStore() {
     return pageParam || 'home';
   });
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState(['Todas']);
-  const [activeCategory, setActiveCategory] = useState('Todas');
+  const [mainCategories, setMainCategories] = useState(['Todas']);
+  const [activeMainCategory, setActiveMainCategory] = useState('Todas');
+  const [subCategories, setSubCategories] = useState(['Todos']);
+  const [activeSubCategory, setActiveSubCategory] = useState('Todos');
   const [bcvRate, setBcvRate] = useState(36.50);
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -1091,7 +1093,9 @@ export default function PublicStore() {
                  });
                setProducts(published);
                const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
-               setCategories(['Todas', ...Array.from(cats)]);
+               setMainCategories(['Todas', ...Array.from(cats)]);
+               const allSubCats = new Set(published.map(p => p.subcategory || 'General'));
+               setSubCategories(['Todos', ...Array.from(allSubCats)]);
              }
              return;
           }
@@ -1144,7 +1148,10 @@ export default function PublicStore() {
           setProducts(published);
           const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
           const finalCats = ['Todas', ...Array.from(cats)];
-          setCategories(finalCats);
+          setMainCategories(finalCats);
+          // Subcategories initial setup
+          const allSubCats = new Set(published.map(p => p.subcategory || 'General'));
+          setSubCategories(['Todos', ...Array.from(allSubCats)]);
           
           const newCache = JSON.stringify({
             config: saved,
@@ -1338,7 +1345,27 @@ export default function PublicStore() {
 
   const recentProducts = products.slice(0, 8);
   const offerProducts = products.filter(p => !!p.is_offer);
-  let catalogProducts = activeCategory === 'Todas' ? products : products.filter(p => p.category === activeCategory);
+  // Update subcategories when activeMainCategory changes
+  React.useEffect(() => {
+    if (activeMainCategory === 'Todas') {
+      const allSubCats = new Set(products.map(p => p.subcategory || 'General'));
+      setSubCategories(['Todos', ...Array.from(allSubCats)]);
+    } else {
+      const filteredForMain = products.filter(p => p.category === activeMainCategory);
+      const subCats = new Set(filteredForMain.map(p => p.subcategory || 'General'));
+      setSubCategories(['Todos', ...Array.from(subCats)]);
+    }
+    // Always reset subcategory when main category changes
+    setActiveSubCategory('Todos');
+  }, [activeMainCategory, products]);
+
+  let catalogProducts = products;
+  if (activeMainCategory !== 'Todas') {
+    catalogProducts = catalogProducts.filter(p => p.category === activeMainCategory);
+  }
+  if (activeSubCategory !== 'Todos') {
+    catalogProducts = catalogProducts.filter(p => (p.subcategory || 'General') === activeSubCategory);
+  }
 
   if (searchQuery) {
     catalogProducts = catalogProducts.filter(p => 
@@ -2025,69 +2052,86 @@ export default function PublicStore() {
 
         {/* PRODUCTOS */}
         {currentPage === 'products' && (
-          <div className="flex-1 flex flex-col w-full">
-            <div className="py-16 px-6 md:px-12 text-center border-b border-zinc-200 bg-white relative overflow-hidden">
-               <h1 className={`${headingWeight} text-4xl md:text-6xl text-black tracking-tighter relative z-10`}>{texts.catalogTitle || 'Productos'}</h1>
-               
-               <div className="max-w-2xl mx-auto mt-8 relative z-10">
-                 <div className="relative">
-                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-                   <input 
-                     type="text" 
-                     placeholder="Buscar productos..." 
-                     value={searchQuery}
-                     onChange={(e) => setSearchQuery(e.target.value)}
-                     className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-4 text-white placeholder:text-zinc-500 focus:outline-none focus:border-amber-500/50 transition-colors"
-                   />
-                 </div>
-               </div>
-            </div>
+          <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
             
-            <div className={`max-w-[1400px] mx-auto w-full flex flex-col ${catalogFilterStyle === 'sidebar' ? 'md:flex-row' : ''} px-4 md:px-8 py-8 md:py-12 gap-8`}>
-               
-               <div className={`${catalogFilterStyle === 'sidebar' ? 'w-full md:w-64 flex-shrink-0' : 'w-full flex gap-4 overflow-x-auto pb-4 scrollbar-hide'}`}>
-                   {catalogFilterStyle === 'sidebar' ? (
-                    <div className="sticky top-32 bg-zinc-950 border border-white/5 rounded-3xl p-6">
-                      <div className="mb-6 border-b border-white/5 pb-6">
-                        <h3 className="font-light text-sm text-zinc-400 uppercase tracking-widest mb-3">Ordenar por</h3>
-                        <select 
-                          value={sortBy} 
-                          onChange={(e) => setSortBy(e.target.value)}
-                          className="w-full bg-black border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 cursor-pointer"
-                        >
-                          <option value="newest">Más recientes</option>
-                          <option value="priceAsc">Precio: Menor a Mayor</option>
-                          <option value="priceDesc">Precio: Mayor a Menor</option>
-                          <option value="nameAsc">Nombre: A-Z</option>
-                        </select>
-                      </div>
+            {/* Barra superior de Categorías Principales */}
+            <div className="bg-white sticky top-0 z-40 border-b border-zinc-200 px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide shadow-sm">
+               {mainCategories.map(mc => (
+                 <button 
+                   key={mc}
+                   onClick={() => setActiveMainCategory(mc)}
+                   className={`whitespace-nowrap px-6 py-2 rounded-full text-sm font-bold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-md' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
+                 >
+                   {mc}
+                 </button>
+               ))}
+            </div>
 
-                      <h3 className="font-light text-xl text-white mb-6 border-b border-white/5 pb-4">Categorías</h3>
-                      <ul className="space-y-2">
-                        {categories.map(c => (
-                          <li key={c} onClick={() => setActiveCategory(c)} className={`cursor-pointer px-4 py-2.5 rounded-xl text-sm transition-all flex items-center gap-2 ${activeCategory === c ? 'bg-white/5 text-white font-bold' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}>
-                            {activeCategory === c && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: primaryColor }}></div>}
-                            {c}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    categories.map(c => (
-                      <button key={c} onClick={() => setActiveCategory(c)} className={`px-8 py-3 rounded-full text-sm font-bold tracking-wide whitespace-nowrap transition-all border ${activeCategory === c ? 'text-black border-transparent shadow-lg' : 'bg-zinc-900 border-white/10 text-zinc-400 hover:text-white hover:border-white/20'}`} style={activeCategory === c ? { backgroundColor: primaryColor } : {}}>
-                        {c}
-                      </button>
-                    ))
-                  )}
+            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row px-4 md:px-8 py-6 gap-6 md:gap-8">
+               
+               {/* Barra Lateral Izquierda: Subcategorías */}
+               <div className="hidden md:block w-64 flex-shrink-0">
+                  <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-4 sticky top-24">
+                     <h3 className="font-bold text-lg mb-4 text-zinc-800 px-2">Explorar</h3>
+                     <div className="flex flex-col space-y-1">
+                       {subCategories.map(sc => (
+                         <button
+                           key={sc}
+                           onClick={() => setActiveSubCategory(sc)}
+                           className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeSubCategory === sc ? 'bg-amber-50 text-amber-600 font-bold' : 'text-zinc-600 hover:bg-zinc-50 font-medium'}`}
+                         >
+                           {sc === 'Todos' ? (
+                             <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                             </div>
+                           ) : (
+                             <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center overflow-hidden">
+                                <span className="text-xs">🥦</span>
+                             </div>
+                           )}
+                           <span className="flex-1">{sc}</span>
+                         </button>
+                       ))}
+                     </div>
+                  </div>
+               </div>
+               
+               {/* Menú Móvil para Subcategorías */}
+               <div className="md:hidden w-full relative z-30">
+                  <select 
+                     value={activeSubCategory}
+                     onChange={(e) => setActiveSubCategory(e.target.value)}
+                     className="w-full appearance-none bg-white border border-zinc-200 rounded-xl px-4 py-3.5 font-bold text-zinc-700 shadow-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  >
+                     {subCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                     <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
                </div>
 
+               {/* Grid de Productos */}
                <div className="flex-1">
-                  {catalogFilterStyle !== 'sidebar' && (
-                    <div className="flex justify-end mb-6">
+                  
+                  {/* Búsqueda y Ordenar */}
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
+                    <div className="relative w-full md:max-w-md">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder="Buscar productos..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full block pl-10 pr-3 py-2 border border-zinc-200 rounded-xl leading-5 bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                      />
+                    </div>
+                    <div className="w-full md:w-auto">
                       <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value)}
-                        className="bg-zinc-900 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50 cursor-pointer"
+                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 text-sm text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
                       >
                         <option value="newest">Más recientes</option>
                         <option value="priceAsc">Precio: Menor a Mayor</option>
@@ -2095,102 +2139,110 @@ export default function PublicStore() {
                         <option value="nameAsc">Nombre: A-Z</option>
                       </select>
                     </div>
-                  )}
-                  <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-                    {catalogProducts.length > 0 ? catalogProducts.map((p, i) => (
-                      <div 
-                        key={p.id}
-                        id={`product-card-${p.id}`}
-                        onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                        className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-300 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <div className="flex-1 flex flex-col pt-1">
-                          <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
-                          <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
-                          
-                          <div className="mt-auto flex items-center gap-2">
-                             {isUserAllowedToSeePrices ? (
-                                p.is_offer ? (
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
-                                    <p className="text-[10px] text-zinc-500 line-through">${Number(p.price).toFixed(2)}</p>
-                                  </div>
-                                ) : (
-                                  <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.price).toFixed(2)}</p>
-                                )
-                              ) : (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                                  className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors border border-white/5 inline-flex items-center gap-1.5"
-                                >
-                                  <Lock size={12} /> Precio
-                                </button>
-                              )}
-                          </div>
-                        </div>
+                  </div>
 
-                        <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
-                          {p.image_url ? (
-                            <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                               <ImageIcon size={24} />
-                            </div>
-                          )}
-                          
+                  {catalogProducts.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
+                      {catalogProducts.map((p, i) => (
+                        <div 
+                          key={p.id}
+                          id={`product-card-${p.id}`}
+                          onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
+                          className={`group bg-white rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md hover:border-amber-300 transition-all overflow-hidden flex flex-col relative ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          {/* Top Badges */}
                           {p.is_offer && (
-                            <div className="absolute top-1 left-1 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-md" style={{ backgroundColor: primaryColor }}>
+                            <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md shadow-sm">
                               Oferta
                             </div>
                           )}
-                          
                           {(p.stock_vitrina || 0) <= 0 && (
-                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                              <span className="text-white text-[9px] font-bold uppercase tracking-widest bg-red-600/90 px-2 py-1 rounded">Agotado</span>
+                            <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px] flex items-center justify-center z-20">
+                              <span className="text-white text-xs font-bold uppercase tracking-widest bg-red-600/90 px-3 py-1.5 rounded-lg shadow-lg">Agotado</span>
                             </div>
                           )}
-                          
-                          <div className="absolute bottom-[-1px] right-[-1px] z-20">
-                            {isUserAllowedToSeePrices && cart[p.id] > 0 ? (
-                              <div className="flex items-center gap-1.5 bg-zinc-900 border-t border-l border-white/10 rounded-tl-xl p-1" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={12}/></button>
-                                <span className="text-xs font-bold text-white min-w-[16px] text-center">{cart[p.id]}</span>
-                                <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={12}/></button>
-                              </div>
+
+                          {/* Image */}
+                          <div className="w-full aspect-square bg-white relative p-4 flex items-center justify-center border-b border-zinc-100">
+                            {p.image_url ? (
+                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
                             ) : (
-                              isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                                  className="w-8 h-8 bg-zinc-900 rounded-tl-xl border-t border-l border-white/10 flex items-center justify-center transition-colors hover:bg-zinc-800"
-                                >
-                                  <Plus size={16} style={{ color: primaryColor }} />
-                                </button>
-                              )
+                              <div className="w-full h-full flex items-center justify-center text-zinc-300">
+                                <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                              </div>
                             )}
+                            {/* Veg / Non-Veg Indicator Icon (Mocked for style) */}
+                            <div className="absolute bottom-2 left-2 bg-white rounded-sm shadow-sm border border-zinc-200 p-0.5">
+                              <div className={`w-2.5 h-2.5 rounded-full ${i % 3 === 0 ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                            </div>
                           </div>
+                          
+                          {/* Info */}
+                          <div className="p-3 flex flex-col flex-1">
+                            <h3 className="font-semibold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1 min-h-[40px]">{p.name}</h3>
+                            <p className="text-xs text-zinc-500 font-medium mb-3">{p.step_size || 1} {p.unit || 'unidad'}</p>
+                            
+                            <div className="mt-auto flex items-end justify-between gap-1">
+                              <div>
+                                {isUserAllowedToSeePrices ? (
+                                  p.is_offer ? (
+                                    <div className="flex flex-col">
+                                      <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                      <p className="text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
+                                    </div>
+                                  ) : (
+                                    <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.price).toFixed(2)}</p>
+                                  )
+                                ) : (
+                                  <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">Ver Precio</button>
+                                )}
+                              </div>
+                              
+                              {/* Add Button */}
+                              {isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
+                                cart[p.id] > 0 ? (
+                                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-md bg-white text-amber-600 border border-amber-200 flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg></button>
+                                    <span className="text-xs font-bold text-amber-800 min-w-[12px] text-center">{cart[p.id]}</span>
+                                    <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className="w-6 h-6 rounded-md bg-amber-500 text-white flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg></button>
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
+                                    className="bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 font-bold px-4 py-1.5 rounded-lg text-[11px] tracking-wider shadow-sm transition-colors relative group-hover:bg-red-50"
+                                  >
+                                    ADD <span className="absolute top-0.5 right-1 text-[10px]">+</span>
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Edit Button for Merchant */}
+                          {isMerchantOwner && (
+                            <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-2xl">
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
+                                className="bg-amber-500 text-black font-black uppercase tracking-widest text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg> Editar
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        
-                        {isMerchantOwner && (
-                          <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
-                              className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
-                            >
-                              <Pen size={14} /> Editar
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )) : (
-                      <div className="col-span-full py-20 text-center text-zinc-500">No se encontraron productos en esta categoría.</div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-20 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-zinc-100">
+                       <svg className="w-16 h-16 text-zinc-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                       <h3 className="text-lg font-bold text-zinc-700 mb-2">No se encontraron productos</h3>
+                       <p className="text-zinc-500">Prueba ajustando los filtros de búsqueda o categoría.</p>
+                    </div>
+                  )}
                </div>
             </div>
           </div>
         )}
-
-      </div>
 
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
