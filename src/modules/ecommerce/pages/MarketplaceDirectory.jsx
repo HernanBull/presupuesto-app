@@ -1560,62 +1560,62 @@ export default function MarketplaceDirectory() {
 
               {merchantAuthMode === 'pitch' && (
                 <div className="p-8 pt-0">
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/20 blur-3xl rounded-full"></div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-200/50 blur-3xl rounded-full"></div>
                     
                     <div className="flex items-center justify-between mb-5 relative z-10">
-                      <span className="text-amber-500 font-black tracking-widest uppercase text-xs bg-amber-500/20 px-3 py-1.5 rounded-full">TODO EN UNO · 0% COMISIÓN</span>
+                      <span className="text-amber-700 font-black tracking-widest uppercase text-xs bg-amber-200/60 px-3 py-1.5 rounded-full">TODO EN UNO · 0% COMISIÓN</span>
                       <div className="flex flex-col items-end">
                         <div className="flex items-end gap-2">
-                          <span className="text-zinc-500 line-through text-sm font-medium">$60</span>
-                          <span className="text-white font-black text-4xl leading-none">$40</span>
-                          <span className="text-zinc-400 text-xs font-bold mb-1">/ MES</span>
+                          <span className="text-zinc-400 line-through text-sm font-medium">$60</span>
+                          <span className="text-zinc-900 font-black text-4xl leading-none">$40</span>
+                          <span className="text-zinc-500 text-xs font-bold mb-1">/ MES</span>
                         </div>
-                        <p className="text-amber-400 text-[10px] text-right mt-1 font-medium">Se paga solo con tus primeros 2 pedidos</p>
+                        <p className="text-amber-600 text-[10px] text-right mt-1 font-bold">Se paga solo con tus primeros 2 pedidos</p>
                       </div>
                     </div>
                     
                     <div className="space-y-4 mb-6 relative z-10">
                       <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-600 font-bold text-sm">✓</span>
                         </div>
-                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">0% Comisiones y Pago Móvil Directo:</strong> Las apps tradicionales te quitan hasta un 30%. Aquí el cliente sube su captura y referencia de Pago Móvil, y tú recibes el 100% del dinero directo en tu cuenta bancaria sin retenciones.
+                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
+                          <strong className="text-zinc-900">0% Comisiones y Pago Móvil Directo:</strong> Las apps tradicionales te quitan hasta un 30%. Aquí el cliente sube su captura y referencia de Pago Móvil, y tú recibes el 100% del dinero directo en tu cuenta bancaria sin retenciones.
                         </p>
                       </div>
                       
                       <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-600 font-bold text-sm">✓</span>
                         </div>
-                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Mini-ERP, Inventario y Analítica en Tiempo Real:</strong> Aloja tu vitrina 24/7 en la nube. Sube productos, controla existencias, lanza ofertas y mide exactamente cuánto estás vendiendo desde un solo panel.
+                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
+                          <strong className="text-zinc-900">Mini-ERP, Inventario y Analítica en Tiempo Real:</strong> Aloja tu vitrina 24/7 en la nube. Sube productos, controla existencias, lanza ofertas y mide exactamente cuánto estás vendiendo desde un solo panel.
                         </p>
                       </div>
                       
                       <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-600 font-bold text-sm">✓</span>
                         </div>
-                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Despacho Automático con Red de Couriers:</strong> Al verificar el pago del cliente con un clic, nuestra plataforma alerta automáticamente a nuestra red de repartidores aliados con el GPS exacto del comprador.
+                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
+                          <strong className="text-zinc-900">Despacho Automático con Red de Couriers:</strong> Al verificar el pago del cliente con un clic, nuestra plataforma alerta automáticamente a nuestra red de repartidores aliados con el GPS exacto del comprador.
                         </p>
                       </div>
 
                       <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-500 font-bold text-sm">✓</span>
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-amber-600 font-bold text-sm">✓</span>
                         </div>
-                        <p className="text-zinc-300 font-light text-sm leading-relaxed">
-                          <strong className="text-white">Precios de Anaquel = Más Ventas:</strong> Al no pagar comisiones por cada carrito, mantienes tus precios reales sin inflarlos, fidelizando a tus clientes frente a la competencia.
+                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
+                          <strong className="text-zinc-900">Precios de Anaquel = Más Ventas:</strong> Al no pagar comisiones por cada carrito, mantienes tus precios reales sin inflarlos, fidelizando a tus clientes frente a la competencia.
                         </p>
                       </div>
                     </div>
                     
-                    <div className="bg-black/30 rounded-2xl p-4 border border-amber-500/10 relative z-10">
-                      <p className="text-zinc-400 text-xs leading-relaxed text-justify">
-                        * Tu plan incluye <strong className="text-amber-400 font-semibold">500 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-400 font-semibold">ahorras más de $1,500 USD/mes</strong> frente a otras apps). Al superar las 500 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
+                    <div className="bg-zinc-100 rounded-2xl p-4 border border-zinc-200 shadow-sm relative z-10">
+                      <p className="text-zinc-600 text-xs leading-relaxed text-justify">
+                        * Tu plan incluye <strong className="text-amber-600 font-bold">500 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-600 font-bold">ahorras más de $1,500 USD/mes</strong> frente a otras apps). Al superar las 500 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
                       </p>
                     </div>
                     
