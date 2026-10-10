@@ -1859,6 +1859,7 @@ export default function PublicStore() {
                       className="w-full h-full cursor-pointer relative bg-zinc-100 flex items-center justify-center overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 to-zinc-100 opacity-50"></div>
+                      <div className="relative flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
                         <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
                           {config?.logoUrl ? (
                             <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
