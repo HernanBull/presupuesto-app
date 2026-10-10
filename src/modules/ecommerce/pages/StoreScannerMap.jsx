@@ -217,20 +217,21 @@ export default function StoreScannerMap() {
                {/* This is handled visually with CSS below, but we can put a marker */}
             </div>
 
-            {/* Search History Circles */}
-            {searchAreas.map((area, idx) => (
-              <Circle 
-                key={idx}
-                center={{ lat: area.lat, lng: area.lng }} 
-                radius={area.radius} 
-                pathOptions={{ 
-                  color: idx === searchAreas.length - 1 ? '#f59e0b' : '#71717a', 
-                  fillColor: idx === searchAreas.length - 1 ? '#f59e0b' : '#71717a', 
-                  fillOpacity: idx === searchAreas.length - 1 ? 0.15 : 0.05, 
-                  weight: idx === searchAreas.length - 1 ? 2 : 1 
-                }} 
-              />
-            ))}
+            {/* Active Search Area Circle and Marker */}
+            {activeSearchLocation && (
+              <>
+                <Circle 
+                  center={{ lat: activeSearchLocation.lat, lng: activeSearchLocation.lng }} 
+                  radius={scanRadius} 
+                  pathOptions={{ color: '#000000', fillColor: '#000000', fillOpacity: 0.15, weight: 1.5 }} 
+                />
+                <Marker 
+                  position={[activeSearchLocation.lat, activeSearchLocation.lng]} 
+                  icon={searchLocationIcon} 
+                  zIndexOffset={900}
+                />
+              </>
+            )}
 
             {/* User Location Marker */}
             <MapEventsHandler setMapCenter={setMapCenter} setIsMapMoved={setIsMapMoved} />
