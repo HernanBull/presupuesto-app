@@ -1654,11 +1654,11 @@ export default function PublicStore() {
                     }
                     setIsFollowing(!isFollowing);
                   }}
-                  className={`flex-1 ${isFollowing ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700' : 'bg-white hover:bg-zinc-200 text-black'} py-2 rounded-xl font-semibold transition-colors text-sm flex items-center justify-center gap-2`}
+                  className={`flex-1 ${isFollowing ? 'bg-amber-600 text-black border-none' : 'bg-amber-500 hover:bg-amber-600 text-black border-none'} py-2 rounded-xl font-bold transition-colors text-sm flex items-center justify-center gap-2 shadow-sm`}
                 >
                   {isFollowing ? (
                     <>
-                      <CheckCircle2 size={18} className="text-blue-500" />
+                      <CheckCircle2 size={18} className="text-black" />
                       Siguiendo
                     </>
                   ) : (
@@ -1668,14 +1668,14 @@ export default function PublicStore() {
                     </>
                   )}
                 </button>
-                <button className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-xl font-semibold transition-colors text-sm">
+                <button className="flex-1 bg-amber-500 hover:bg-amber-600 text-black py-2 rounded-xl font-bold transition-colors text-sm shadow-sm border-none">
                   Contactar
                 </button>
-                <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Enlace copiado!'); }}>
+                <button className="p-2 bg-amber-500 hover:bg-amber-600 text-black rounded-xl transition-colors flex items-center justify-center shadow-sm border-none" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Enlace copiado!'); }}>
                   <Link size={20} />
                 </button>
                 <div className="relative">
-                  <button onClick={() => setShowSocialMenu(!showSocialMenu)} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors flex items-center justify-center relative z-50">
+                  <button onClick={() => setShowSocialMenu(!showSocialMenu)} className="p-2 bg-amber-500 hover:bg-amber-600 text-black rounded-xl transition-colors flex items-center justify-center relative z-50 shadow-sm border-none">
                     <Camera size={20} />
                   </button>
                   <AnimatePresence>
