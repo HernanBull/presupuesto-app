@@ -49,8 +49,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const userCenterIcon = new L.DivIcon({
   className: 'custom-user-center-icon',
   html: renderToStaticMarkup(
-    <div style="background-color: #f59e0b; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5); border: 3px solid white;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <div style={{ backgroundColor: '#f59e0b', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5)', border: '3px solid white' }}>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     </div>
   ),
   iconSize: [48, 48],
@@ -91,7 +91,7 @@ export default function StoreScannerMap() {
       setUserLocation(defaultLocation);
       fetchStores(defaultLocation);
     }
-  }, []);
+  }, [scanRadius, onlyMalls]);
 
   const fetchStores = async (location) => {
     try {
@@ -104,7 +104,23 @@ export default function StoreScannerMap() {
         .not('longitude', 'is', null);
 
       if (error) throw error;
-      setStores(data || []);
+      
+      let finalStores = data || [];
+      if (location && location.length === 2) {
+        const [lat, lng] = location;
+        
+        finalStores = finalStores.filter(store => {
+          const dist = calculateDistance(lat, lng, store.latitude, store.longitude);
+          store.distanceToUser = dist; // Guardamos la distancia
+          return dist <= scanRadius; // Filtro de radio Haversine
+        });
+        
+        if (onlyMalls) {
+          finalStores = finalStores.filter(store => store.config?.location_type === 'mall' || store.config?.is_mall === true || store.config?.business_type === 'Centro Comercial');
+        }
+      }
+      
+      setStores(finalStores);
       
       // Simulate scan time
       setTimeout(() => {
