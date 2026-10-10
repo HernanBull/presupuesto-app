@@ -2243,7 +2243,7 @@ export default function PublicStore() {
             </div>
           </div>
         )}
-
+      </div>
       <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
            <div className="flex items-center gap-3">
