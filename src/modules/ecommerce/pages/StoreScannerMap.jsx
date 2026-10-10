@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } 
 import MapSettingsModal from '../components/MapSettingsModal';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Search, SlidersHorizontal, Clock, Settings, Crosshair, X, Store, Navigation } from 'lucide-react';
+import { Search, SlidersHorizontal, Clock, Settings, Crosshair, X, Store, Navigation, ChevronUp } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
 
