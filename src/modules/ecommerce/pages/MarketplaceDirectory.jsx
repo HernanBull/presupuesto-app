@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -68,6 +68,7 @@ export default function MarketplaceDirectory() {
 
   // Merchant Auth State
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [merchantAuthMode, setMerchantAuthMode] = useState('register');
   const [merchantRegStep, setMerchantRegStep] = useState(1); // 1: Email, 2: Name, 3: 2FA
   const [merchantMfaSecret, setMerchantMfaSecret] = useState('');
@@ -919,7 +920,7 @@ export default function MarketplaceDirectory() {
 
       {/* App Header (Mobile Only) - Light Theme */}
       <div className="md:hidden sticky top-0 z-50 bg-white border-b border-zinc-100 pt-4 pb-3 px-5 flex items-center justify-between shadow-sm">
-        <button className="text-amber-500 hover:text-amber-600 transition-colors">
+        <button onClick={() => setIsMobileMenuOpen(true)} className="text-amber-500 hover:text-amber-600 transition-colors">
           <Menu size={26} strokeWidth={2} />
         </button>
         <div className="flex items-center gap-2 select-none cursor-default">
@@ -2078,6 +2079,141 @@ export default function MarketplaceDirectory() {
         currentCustomer={currentCustomer}
       />
     </div>
+    
+      {/* Mobile Menu Drawer */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] md:hidden"
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] md:hidden flex flex-col overflow-y-auto"
+            >
+              <div className="p-5 flex items-center justify-between border-b border-zinc-200 bg-white">
+                <div className="flex items-center gap-2 select-none">
+                  <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                    <ShoppingBag size={16} className="stroke-[2.5]"/>
+                  </div>
+                  <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+                </div>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-zinc-400 hover:text-amber-500 transition-colors p-2 -mr-2">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="flex-1 py-4 px-4 flex flex-col gap-8">
+                
+                <div className="space-y-1">
+                  <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Explorar</h3>
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <Store size={16} />
+                      </div>
+                      Inicio
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300" />
+                  </button>
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/pricing'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <Sparkles size={16} />
+                      </div>
+                      Planes y Precios
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300" />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Legal y Políticas</h3>
+                  
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/terminos'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Términos de Uso</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Condiciones del servicio</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/privacidad'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <Shield size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Política de Privacidad</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Uso de tus datos</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/cookies'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <Cookie size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Política de Cookies</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Rastreo y navegación</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/comerciantes'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <FileBadge2 size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Términos Comerciales</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Para dueños de tiendas</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/aviso'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
+                        <Scale size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Aviso Legal</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Información corporativa</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                </div>
+              </div>
+              <div className="p-5 border-t border-zinc-200 bg-white">
+                <p className="text-[10px] text-zinc-400 text-center font-medium">
+                  © 2026 AxonMarket. Todos los derechos reservados.
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
     </GoogleOAuthProvider>
   );
 }
