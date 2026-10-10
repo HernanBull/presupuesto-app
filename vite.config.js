@@ -70,7 +70,7 @@ export default defineConfig({
         short_name: 'AxonMarket',
         description: 'Tu marketplace local — compra, vende y crece con AxonMarket',
         theme_color: '#09090b',
-        background_color: '#f59e0b',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
