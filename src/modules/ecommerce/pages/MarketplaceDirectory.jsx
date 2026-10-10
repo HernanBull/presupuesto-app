@@ -1623,7 +1623,7 @@ export default function MarketplaceDirectory() {
                       onClick={() => setMerchantAuthMode('register')}
                       className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-black text-sm tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:bg-amber-400 hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] flex items-center justify-center gap-3 relative z-10"
                     >
-                      ACTIVAR MI VITRINA SIN COMISIONES <ArrowRight size={18} />
+                      ACTIVAR MI VITRINA <ArrowRight size={18} />
                     </button>
 
                     <p className="text-xs text-neutral-400 text-center mt-4 relative z-10">
