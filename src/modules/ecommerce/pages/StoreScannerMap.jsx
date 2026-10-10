@@ -108,10 +108,11 @@ export default function StoreScannerMap() {
           >
             <ChangeView center={userLocation} zoom={14} />
             
-            {/* Dark themed map tiles (CartoDB Dark Matter or similar) */}
+            {/* Dark themed map using OSM with CSS filter */}
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              className="map-tiles"
             />
             
             {/* Radar Circle Animation around user */}
@@ -282,6 +283,11 @@ export default function StoreScannerMap() {
         /* Make sure Leaflet maps don't inherit z-index issues from Tailwind */
         .leaflet-container {
           z-index: 10;
+          background: #0f172a; /* bg-slate-900 */
+        }
+        /* CSS Trick to make OSM tiles dark theme */
+        .map-tiles {
+          filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
         }
       `}</style>
     </div>
