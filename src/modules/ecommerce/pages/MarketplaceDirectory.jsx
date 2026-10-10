@@ -907,7 +907,7 @@ export default function MarketplaceDirectory() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className="min-h-screen bg-black text-slate-50 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">
       {/* PWA Install Banner */}
       <PwaInstallBanner />
       
@@ -917,28 +917,43 @@ export default function MarketplaceDirectory() {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
       </div>
 
-      {/* App Header (Mobile Only) - Instagram Style */}
-      <div className="md:hidden sticky top-0 z-50 bg-zinc-950 border-b border-white/5 pt-4 pb-3 px-5 flex items-center justify-between">
-        <button className="text-white hover:text-amber-500 transition-colors">
+      {/* App Header (Mobile Only) - Light Theme */}
+      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-zinc-100 pt-4 pb-3 px-5 flex items-center justify-between shadow-sm">
+        <button className="text-zinc-800 hover:text-amber-500 transition-colors">
           <Menu size={26} strokeWidth={2} />
         </button>
         <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-black shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
             <ShoppingBag size={16} className="stroke-[2.5]"/>
           </div>
-          <span className="font-bold text-lg tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+          <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-500 font-medium">MARKET</span></span>
         </div>
-        <button className="text-white hover:text-amber-500 transition-colors relative">
-          <Bell size={26} strokeWidth={2} />
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-[2px] border-zinc-950"></span>
-        </button>
+        <div className="flex items-center gap-4">
+          {/* Sell in Axon Icon */}
+          {!currentMerchant && (
+             <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="text-zinc-800 hover:text-amber-500 transition-colors">
+               <Store size={22} strokeWidth={2} />
+             </button>
+          )}
+          
+          {/* User Profile / Login Icon */}
+          {currentCustomer ? (
+             <button onClick={() => navigate('/profile')} className="text-zinc-800 hover:text-amber-500 transition-colors">
+               <User size={22} strokeWidth={2} />
+             </button>
+          ) : !currentMerchant && (
+             <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-zinc-800 hover:text-amber-500 transition-colors">
+               <User size={22} strokeWidth={2} />
+             </button>
+          )}
+        </div>
       </div>
 
       {/* App Search Bar (Mobile Only) */}
-      <div className="px-5 py-4 relative z-40 bg-zinc-950 md:hidden border-b border-white/5 shadow-md">
+      <div className="px-5 py-4 relative z-40 bg-white md:hidden border-b border-zinc-100 shadow-sm">
         <div className="relative w-full group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={18} className="text-zinc-500" />
+            <Search size={18} className="text-zinc-400" />
           </div>
           <input
             id="mobile-search-input"
@@ -946,146 +961,14 @@ export default function MarketplaceDirectory() {
             placeholder="¿Qué quieres pedir hoy?"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white text-sm font-light focus:outline-none focus:border-amber-500/50 shadow-inner"
+            className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl py-3.5 pl-12 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
           />
         </div>
       </div>
 
-      {/* Navbar (Desktop Only) */}
-      <nav className="hidden md:flex sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
-        <div className="max-w-[1400px] mx-auto px-6 h-20 w-full flex items-center justify-between">
-          <div className="flex items-center gap-3 group">
-            <div 
-              className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all cursor-pointer"
-            >
-              <ShoppingBag size={20} className="stroke-[2.5]" />
-            </div>
-            <span onClick={() => navigate('/')} className="font-bold text-xl tracking-[0.2em] text-white cursor-pointer">AXON<span className="text-amber-500 font-light">MARKET</span></span>
-          </div>
-          
-          <div className="hidden md:flex flex-1 max-w-xl mx-8">
-            <div className="relative w-full group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search size={18} className="text-zinc-500 group-focus-within:text-amber-500 transition-colors" />
-              </div>
-              <input
-                type="text"
-                placeholder="Busca tiendas, marcas o productos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-zinc-900 border border-white/10 rounded-full py-3 pl-12 pr-6 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 focus:bg-zinc-800 transition-all shadow-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-             {currentMerchant ? (
-               <>
-                 <button onClick={() => navigate('/dashboard')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full hover:bg-emerald-500/20 transition-colors">
-                   <Store size={16}/> <span>{currentMerchant.name} (Admin)</span>
-                 </button>
-                 <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
-               </>
-             ) : !currentCustomer && (
-               <>
-                 <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors">
-                   <Store size={16} /> Vender
-                 </button>
-                 <div className="h-6 w-[1px] bg-white/10 hidden sm:block"></div>
-               </>
-             )}
-             
-             {currentCustomer ? (
-               <button onClick={() => navigate('/profile')} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full hover:bg-amber-500/20 transition-colors">
-                 <User size={16}/> <span>{currentCustomer.name}</span>
-               </button>
-             ) : !currentMerchant && (
-               <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
-                 <User size={16} /> <span>Entrar</span>
-               </button>
-             )}
-
-             {currentCustomer && (
-               <button onClick={() => setIsCartOpen(true)} className="relative p-2 text-zinc-400 hover:text-amber-500 transition-all group">
-                 <div className="absolute inset-0 bg-amber-500/20 rounded-full scale-0 group-hover:scale-100 transition-transform blur-md"></div>
-                 <ShoppingCart size={24} className="relative z-10" />
-                 {totalCartItems > 0 && (
-                   <span className="absolute top-0 right-0 w-5 h-5 bg-amber-500 text-black text-[10px] font-black flex items-center justify-center rounded-full border-2 border-zinc-950 shadow-[0_0_10px_rgba(245,158,11,0.5)] z-20">
-                     {totalCartItems}
-                   </span>
-                 )}
-               </button>
-             )}
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content App-Style */}
       <div className="max-w-[1400px] mx-auto px-5 md:px-6 pb-28 md:pb-12 pt-6 md:pt-12 relative z-10 space-y-8">
         
-        {/* Animated Banners (Mobile Only) */}
-        <div className="md:hidden">
-          {!currentCustomer && !currentMerchant && (
-            <div className="relative overflow-hidden rounded-[1.5rem] shadow-2xl bg-zinc-900 border border-white/10 h-36">
-              <AnimatePresence initial={false} mode="wait">
-                {bannerSlide === 0 ? (
-                  <motion.div
-                    key="banner-0"
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute inset-0 bg-gradient-to-br from-amber-500 to-amber-600 p-5 flex flex-col justify-between"
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-black font-black text-xl leading-tight">Haz crecer tu negocio</span>
-                      <span className="text-black/80 text-sm font-medium mt-1">Crea tu tienda virtual gratis</span>
-                    </div>
-                    <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="bg-black text-amber-500 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
-                      <Store size={16} /> Vender en Axon
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="banner-1"
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.5 }}
-                    className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900 p-5 flex flex-col justify-between"
-                  >
-                    <div className="flex flex-col">
-                      <span className="text-white font-black text-xl leading-tight">¿Ya eres cliente?</span>
-                      <span className="text-zinc-400 text-sm font-medium mt-1">Guarda tiendas y pedidos</span>
-                    </div>
-                    <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="bg-white text-black px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg active:scale-95 transition-transform w-full text-center flex items-center justify-center gap-2">
-                      <User size={16} /> Iniciar Sesión
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Pagination Dots */}
-              <div className="absolute top-4 right-4 flex gap-1.5 z-20">
-                <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 0 ? 'bg-black w-3' : 'bg-black/30'}`} />
-                <div className={`w-1.5 h-1.5 rounded-full transition-all ${bannerSlide === 1 ? 'bg-white w-3' : 'bg-white/30'}`} />
-              </div>
-            </div>
-          )}
-
-          {currentMerchant && (
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-[1.5rem] p-5 flex items-center justify-between shadow-2xl cursor-pointer hover:scale-[1.02] transition-transform" onClick={() => navigate('/dashboard')}>
-              <div>
-                <h4 className="text-black font-black text-lg">Panel de Control</h4>
-                <p className="text-black/70 text-xs font-medium max-w-[200px]">Administra tu tienda, productos y pedidos.</p>
-              </div>
-              <div className="w-12 h-12 bg-black/10 rounded-full flex items-center justify-center text-black shadow-inner">
-                <Store size={24} />
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Categorías Principales (Desktop Only) */}
         <section className="hidden md:block space-y-4">
           <div className="flex items-center justify-between px-1">
@@ -1119,7 +1002,7 @@ export default function MarketplaceDirectory() {
             {filteredStores.map((store) => (
               <div key={store.id} className="bg-zinc-950 flex flex-col pb-4 border-b border-white/5 last:border-b-0">
                 {/* Post Header */}
-                <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center justify-between px-4 py-3 bg-white">
                   <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/${store.store_slug}`)}>
                     <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-white/10 p-0.5">
                       {store.config?.logoUrl || store.config?.storefront?.logoUrl ? (
@@ -1159,33 +1042,33 @@ export default function MarketplaceDirectory() {
                     </div>
                   )}
                   {/* Pager dots mock */}
-                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white font-medium tracking-widest">1/3</div>
+                  <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-zinc-900 border border-zinc-200 font-medium tracking-widest">1/3</div>
                 </div>
 
                 {/* Post Actions */}
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="flex items-center gap-4 text-white">
-                    <button onClick={(e) => toggleFavorite(e, store)} className="hover:text-zinc-300 transition-colors">
+                <div className="flex items-center justify-between px-4 py-3 bg-white">
+                  <div className="flex items-center gap-4 text-zinc-900">
+                    <button onClick={(e) => toggleFavorite(e, store)} className="hover:text-zinc-600 transition-colors">
                       <Heart size={26} strokeWidth={isFavorite(store.store_slug) ? 0 : 2} fill={isFavorite(store.store_slug) ? '#ef4444' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''} />
                     </button>
-                    <button className="hover:text-zinc-300 transition-colors" onClick={() => navigate(`/${store.store_slug}`)}>
+                    <button className="hover:text-zinc-600 transition-colors" onClick={() => navigate(`/${store.store_slug}`)}>
                       <MessageCircle size={26} strokeWidth={2} />
                     </button>
-                    <button className="hover:text-zinc-300 transition-colors -mt-1">
+                    <button className="hover:text-zinc-600 transition-colors -mt-1">
                       <Send size={26} strokeWidth={2} />
                     </button>
                   </div>
-                  <button className="text-white hover:text-zinc-300 transition-colors">
+                  <button className="text-zinc-900 hover:text-zinc-600 transition-colors">
                     <Bookmark size={26} strokeWidth={2} />
                   </button>
                 </div>
 
                 {/* Post Content */}
-                <div className="px-4 flex flex-col gap-1.5" onClick={() => navigate(`/${store.store_slug}`)}>
-                  <span className="text-white text-sm font-bold">{Math.floor(Math.random() * 500) + 50} Me gusta</span>
-                  <div className="text-white text-sm">
+                <div className="px-4 flex flex-col gap-1.5 bg-white pb-4" onClick={() => navigate(`/${store.store_slug}`)}>
+                  <span className="text-zinc-900 text-sm font-bold">{Math.floor(Math.random() * 500) + 50} Me gusta</span>
+                  <div className="text-zinc-900 text-sm">
                     <span className="font-bold mr-2">{store.name}</span>
-                    <span className="text-zinc-200 line-clamp-2 inline">{store.config?.description || '¡Descubre nuestros mejores productos! Visita nuestra tienda para ver el catálogo completo. 👀✨'}</span>
+                    <span className="text-zinc-700 line-clamp-2 inline">{store.config?.description || '¡Descubre nuestros mejores productos! Visita nuestra tienda para ver el catálogo completo. 👀✨'}</span>
                   </div>
                   <span className="text-zinc-500 text-xs font-medium mt-1 cursor-pointer">Ver los {Math.floor(Math.random() * 20) + 2} comentarios</span>
                   <span className="text-zinc-600 text-[10px] uppercase tracking-wider mt-0.5">Hace {Math.floor(Math.random() * 12) + 1} horas</span>
@@ -1198,13 +1081,13 @@ export default function MarketplaceDirectory() {
           <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {/* Same filtered stores rendered as grid for desktop */}
             {filteredStores.map((store) => (
-              <div key={store.id} onClick={() => navigate(`/${store.store_slug}`)} className="bg-zinc-900 rounded-[1.5rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
+              <div key={store.id} onClick={() => navigate(`/${store.store_slug}`)} className="bg-white rounded-[1.5rem] overflow-hidden border border-zinc-200 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
                   {/* Reuse horizontal card design for grid */}
-                  <div className="h-40 w-full relative bg-zinc-950 overflow-hidden">
+                  <div className="h-40 w-full relative bg-zinc-100 overflow-hidden">
                     {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
                       <img loading="lazy" src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-zinc-200 to-zinc-100 flex items-center justify-center">
                         <Store size={40} className="text-zinc-700" />
                       </div>
                     )}
@@ -1218,7 +1101,7 @@ export default function MarketplaceDirectory() {
                   </div>
                   <div className="p-5 space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-white font-bold text-lg line-clamp-1 group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
+                      <h4 className="text-zinc-900 font-bold text-lg line-clamp-1 group-hover:text-amber-500 transition-colors flex items-center gap-1.5">
                         {store.name}
                         {store.config?.is_verified && (
                           <div title="Comercio Verificado" className="inline-flex">
@@ -1228,7 +1111,7 @@ export default function MarketplaceDirectory() {
                       </h4>
                     </div>
                     <p className="text-zinc-400 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
-                    <div className="flex items-center justify-end pt-4 mt-2 border-t border-white/5">
+                    <div className="flex items-center justify-end pt-4 mt-2 border-t border-zinc-100">
                       <span className="text-xs text-zinc-500 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
                     </div>
                   </div>
@@ -1240,7 +1123,7 @@ export default function MarketplaceDirectory() {
       </div>
       
       {/* Footer (Desktop Only) */}
-      <footer className="hidden md:block bg-zinc-950 border-t border-white/5 mt-20 relative z-10">
+      <footer className="hidden md:block bg-white border-t border-zinc-200 mt-20 relative z-10">
         <div className="max-w-[1400px] mx-auto px-8 py-14">
           <div className="grid grid-cols-4 gap-10 mb-10">
             {/* Brand */}
@@ -1249,7 +1132,7 @@ export default function MarketplaceDirectory() {
                 <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-black shadow-lg shadow-amber-900/30">
                   <ShoppingBag size={18} className="stroke-[2.5]"/>
                 </div>
-                <span className="font-bold text-lg tracking-[0.25em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+                <span className="font-bold text-lg tracking-[0.25em] text-zinc-900">AXON<span className="text-amber-500 font-light">MARKET</span></span>
               </div>
               <p className="text-zinc-500 text-xs leading-relaxed">
                 Tu marketplace local. Conectamos compradores con comerciantes independientes en Venezuela.
@@ -1292,7 +1175,7 @@ export default function MarketplaceDirectory() {
           </div>
 
           {/* Divider + Copyright */}
-          <div className="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="border-t border-zinc-100 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-zinc-600 text-[11px]">
               © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124 · Venezuela
 
@@ -1494,7 +1377,7 @@ export default function MarketplaceDirectory() {
                     {authMode === 'login' ? 'Iniciar Sesión' : authMode === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
                   </h2>
                 </div>
-                <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
+                <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-400 hover:text-amber-500 bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -1641,7 +1524,7 @@ export default function MarketplaceDirectory() {
                     {merchantAuthMode === 'pitch' ? 'Tu propia tienda en la nube con inventario ERP, pagos directos y delivery automatizado.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
                   </p>
                 </div>
-                <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-500 hover:text-white hover:bg-white/10 rounded-full p-2 transition-colors self-start">
+                <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-400 hover:text-amber-500 hover:bg-white/10 rounded-full p-2 transition-colors self-start">
                   <X size={20} />
                 </button>
               </div>
@@ -1655,7 +1538,7 @@ export default function MarketplaceDirectory() {
                       className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
                         merchantAuthMode === 'register'
                           ? 'bg-zinc-800 text-amber-500 shadow-lg border border-white/5'
-                          : 'text-zinc-500 hover:text-white'
+                          : 'text-zinc-400 hover:text-amber-500'
                       }`}
                     >
                       Crear Tienda
@@ -1666,7 +1549,7 @@ export default function MarketplaceDirectory() {
                       className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
                         (merchantAuthMode === 'login' || merchantAuthMode === 'recover' || merchantAuthMode === 'reset')
                           ? 'bg-zinc-800 text-amber-500 shadow-lg border border-white/5'
-                          : 'text-zinc-500 hover:text-white'
+                          : 'text-zinc-400 hover:text-amber-500'
                       }`}
                     >
                       Iniciar Sesión
@@ -1748,7 +1631,7 @@ export default function MarketplaceDirectory() {
                     </p>
                     
                     <div className="mt-4 text-center relative z-10">
-                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-white font-medium transition-colors">
+                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-400 hover:text-amber-500 font-medium transition-colors">
                         Ya tengo una tienda. <span className="text-amber-500 underline">Iniciar sesión</span>
                       </button>
                     </div>
