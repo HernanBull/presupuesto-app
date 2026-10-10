@@ -80,3 +80,12 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+// Remove splash screen after initial render
+setTimeout(() => {
+  const splash = document.getElementById('axon-splash-screen');
+  if (splash) {
+    splash.style.opacity = '0';
+    setTimeout(() => splash.remove(), 500);
+  }
+}, 800);
