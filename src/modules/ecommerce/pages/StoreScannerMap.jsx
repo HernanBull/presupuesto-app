@@ -372,104 +372,87 @@ export default function StoreScannerMap() {
 
         {/* BOTTOM SHEET / STORE PREVIEW */}
         <div className="relative pointer-events-auto">
-          <AnimatePresence>
-            {!isBottomSheetVisible && (
-               <motion.div 
-                 initial={{ y: '100%', opacity: 0 }}
-                 animate={{ y: 0, opacity: 1 }}
-                 exit={{ y: '100%', opacity: 0 }}
-                 className="absolute bottom-6 left-1/2 -translate-x-1/2"
-               >
-                 <button 
-                   onClick={() => setIsBottomSheetVisible(true)}
-                   className="bg-zinc-900 text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-[0_4px_20px_rgba(0,0,0,0.3)] border border-zinc-700 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
-                 >
-                   Ver {stores.length > 0 ? stores.length + ' comercios' : 'detalles'} <ChevronUp size={16} />
-                 </button>
-               </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <AnimatePresence>
-            {isBottomSheetVisible && (
-              <motion.div 
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="bg-white rounded-t-3xl border-t border-zinc-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8 relative"
-              >
-                {/* Close handle */}
-                <button 
-                  onClick={() => setIsBottomSheetVisible(false)}
-                  className="absolute top-2 left-1/2 -translate-x-1/2 p-3 w-16 flex justify-center"
+          <motion.div 
+            layout
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="bg-white rounded-t-3xl border-t border-zinc-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+          >
+            {/* Drag Handle to toggle */}
+            <button 
+              onClick={() => setIsBottomSheetVisible(!isBottomSheetVisible)}
+              className="w-full flex justify-center pt-4 pb-2"
+            >
+              <div className="w-12 h-1.5 bg-zinc-300 rounded-full"></div>
+            </button>
+            
+            <AnimatePresence initial={false}>
+              {isBottomSheetVisible && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="px-6 pb-8"
                 >
-                  <div className="w-12 h-1.5 bg-zinc-300 rounded-full"></div>
-                </button>
-                <button 
-                  onClick={() => setIsBottomSheetVisible(false)}
-                  className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 bg-zinc-100 rounded-full p-1.5 transition-colors"
-                >
-                  <X size={16} />
-                </button>
-
-                <div className="mt-4">
-                  {selectedStore ? (
-                    <div className="flex flex-col">
-                      <div className="flex items-start gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-zinc-100 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                          {selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl ? (
-                            <img src={selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl} alt={selectedStore.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <Store size={24} className="text-zinc-500" />
-                          )}
-                        </div>
-                        
-                        <div className="flex-1">
-                          <h2 className="text-zinc-800 font-bold text-lg leading-tight">{selectedStore.name}</h2>
-                          <p className="text-zinc-500 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
-                          <div className="flex items-center gap-3 mt-3">
-                            <span className="flex items-center gap-1 text-amber-600 text-xs font-medium bg-amber-500/10 px-2 py-1 rounded-md">
-                              <Navigation size={12} /> {selectedStore.distanceToUser ? (selectedStore.distanceToUser / 1000).toFixed(1) : (Math.random() * 5 + 0.5).toFixed(1)} km
-                            </span>
-                            <span className="text-zinc-500 text-xs">Aprox 15 min</span>
+                  <div className="mt-2">
+                    {selectedStore ? (
+                      <div className="flex flex-col">
+                        <div className="flex items-start gap-4">
+                          <div className="w-16 h-16 rounded-2xl bg-zinc-100 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl ? (
+                              <img src={selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl} alt={selectedStore.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={24} className="text-zinc-500" />
+                            )}
+                          </div>
+                          
+                          <div className="flex-1">
+                            <h2 className="text-zinc-800 font-bold text-lg leading-tight">{selectedStore.name}</h2>
+                            <p className="text-zinc-500 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
+                            <div className="flex items-center gap-3 mt-3">
+                              <span className="flex items-center gap-1 text-amber-600 text-xs font-medium bg-amber-500/10 px-2 py-1 rounded-md">
+                                <Navigation size={12} /> {selectedStore.distanceToUser ? (selectedStore.distanceToUser / 1000).toFixed(1) : (Math.random() * 5 + 0.5).toFixed(1)} km
+                              </span>
+                              <span className="text-zinc-500 text-xs">Aprox 15 min</span>
+                            </div>
                           </div>
                         </div>
+                        <button 
+                          onClick={() => navigate(`/store/${selectedStore.store_slug || selectedStore.id}`)}
+                          className="w-full bg-amber-500 text-white hover:bg-amber-600 font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
+                        >
+                          Visitar Tienda
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => navigate(`/store/${selectedStore.store_slug || selectedStore.id}`)}
-                        className="w-full bg-amber-500 text-white hover:bg-amber-600 font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
-                      >
-                        Visitar Tienda
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-2">
-                      {isScanning ? (
-                        <>
-                          <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-amber-500 animate-spin mb-4"></div>
-                          <p className="text-zinc-800 font-bold">Escaneando zona...</p>
-                          <p className="text-zinc-500 text-sm mt-1">Buscando comercios cercanos</p>
-                        </>
-                      ) : stores.length > 0 ? (
-                        <>
-                          <Store size={32} className="text-amber-500 mb-3" />
-                          <p className="text-zinc-800 font-bold text-lg">{stores.length} comercios encontrados</p>
-                          <p className="text-zinc-500 text-sm mt-1">Toca un pin para ver detalles</p>
-                        </>
-                      ) : (
-                        <>
-                          <Store size={32} className="text-zinc-600 mb-3" />
-                          <p className="text-zinc-800 font-bold text-lg">No hay comercios</p>
-                          <p className="text-zinc-500 text-sm mt-1">Intenta ampliar tu radio de búsqueda</p>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-2">
+                        {isScanning ? (
+                          <>
+                            <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-amber-500 animate-spin mb-4"></div>
+                            <p className="text-zinc-800 font-bold">Escaneando zona...</p>
+                            <p className="text-zinc-500 text-sm mt-1">Buscando comercios cercanos</p>
+                          </>
+                        ) : stores.length > 0 ? (
+                          <>
+                            <Store size={32} className="text-amber-500 mb-3" />
+                            <p className="text-zinc-800 font-bold text-lg">{stores.length} comercios encontrados</p>
+                            <p className="text-zinc-500 text-sm mt-1">Toca un pin para ver detalles</p>
+                          </>
+                        ) : (
+                          <>
+                            <Store size={32} className="text-zinc-600 mb-3" />
+                            <p className="text-zinc-800 font-bold text-lg">No hay comercios</p>
+                            <p className="text-zinc-500 text-sm mt-1">Intenta ampliar tu radio de búsqueda</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
       
