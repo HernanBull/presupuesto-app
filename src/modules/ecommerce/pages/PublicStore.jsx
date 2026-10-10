@@ -1545,7 +1545,7 @@ export default function PublicStore() {
             
             {/* Cabecera Flotante (Life Burger Style) */}
             <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
-              <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer">
+              <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-pure-white">
                 <ChevronLeft size={24} />
               </button>
               <div className="flex flex-col items-center">
