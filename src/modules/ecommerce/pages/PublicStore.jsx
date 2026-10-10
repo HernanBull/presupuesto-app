@@ -1248,26 +1248,26 @@ export default function PublicStore() {
       <ResponsiveModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        className="md:max-w-md border border-white/10"
-        contentClassName="p-8 relative"
+        className="md:max-w-md border border-zinc-200 shadow-2xl bg-white"
+        contentClassName="p-8 relative bg-white rounded-[32px]"
       >
-        <div className="absolute top-0 left-0 w-full h-1 z-10" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
+        <div className="absolute top-0 left-0 w-full h-1 z-10 rounded-t-[32px]" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
         
         <div className="flex justify-center mb-8 pt-2">
-          <div className="w-20 h-20 rounded-[24px] flex items-center justify-center border border-white/10 relative group">
-            <div className="absolute inset-0 blur-xl opacity-30 group-hover:opacity-50 transition-opacity" style={{ backgroundColor: primaryColor }}></div>
-            <Lock size={32} className="text-white relative z-10" />
+          <div className="w-20 h-20 rounded-[24px] flex items-center justify-center border border-zinc-200 bg-zinc-50 relative group shadow-sm">
+            <div className="absolute inset-0 blur-xl opacity-30 group-hover:opacity-50 transition-opacity rounded-[24px]" style={{ backgroundColor: primaryColor }}></div>
+            <Lock size={32} className="text-zinc-800 relative z-10" />
           </div>
         </div>
 
-        <h1 className="text-2xl font-light text-white text-center mb-2 tracking-tight">Accede Privado</h1>
-        <p className="text-zinc-400 text-center text-sm font-light mb-8">
-          Inicia sesión o regístrate para acceder a los precios de <span className="text-white font-normal capitalize">{storeName}</span>.
+        <h1 className="text-2xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Accede Privado</h1>
+        <p className="text-zinc-500 text-center text-sm font-medium mb-8">
+          Inicia sesión o regístrate para acceder a los precios de <span className="text-zinc-900 font-bold capitalize">{storeName}</span>.
         </p>
 
-        <div className="flex bg-zinc-900 rounded-full p-1 mb-8 border border-white/5">
-          <button onClick={() => setAuthGateMode('login')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'login' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'login' ? primaryColor : '' }}>Ingresar</button>
-          <button onClick={() => setAuthGateMode('register')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'register' ? 'bg-zinc-800 text-white shadow-lg border border-white/5' : 'text-zinc-500 hover:text-white'}`} style={{ color: authGateMode === 'register' ? primaryColor : '' }}>Crear Cuenta</button>
+        <div className="flex bg-zinc-100 rounded-full p-1 mb-8 border border-zinc-200 shadow-inner">
+          <button onClick={() => setAuthGateMode('login')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'login' ? 'bg-white text-zinc-900 shadow-md border border-zinc-200' : 'text-zinc-500 hover:text-zinc-800'}`} style={{ color: authGateMode === 'login' ? primaryColor : '' }}>Ingresar</button>
+          <button onClick={() => setAuthGateMode('register')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'register' ? 'bg-white text-zinc-900 shadow-md border border-zinc-200' : 'text-zinc-500 hover:text-zinc-800'}`} style={{ color: authGateMode === 'register' ? primaryColor : '' }}>Crear Cuenta</button>
         </div>
 
         <form onSubmit={async (e) => {
@@ -1277,18 +1277,18 @@ export default function PublicStore() {
           {authGateMode === 'register' && (
             <div>
               <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo</label>
-              <input type="text" required value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="Tu nombre" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+              <input type="text" required value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="Tu nombre" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
             </div>
           )}
           <div>
             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-            <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="tu@correo.com" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
+            <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="tu@correo.com" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
             <div className="relative">
-              <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none transition-colors font-light placeholder-zinc-700 focus:bg-zinc-800" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'}/>
-              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
+              <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
+              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
                 {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
@@ -1300,17 +1300,17 @@ export default function PublicStore() {
               <div className="mt-4">
                 <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
                 <div className="relative">
-                  <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.05)'} />
-                  <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
+                  <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-white border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-400' : 'border-zinc-200'} rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm`} placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'} />
+                  <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
                     {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
                 {authConfirmPassword && authConfirmPassword !== authForm.password && (
-                  <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
+                  <p className="text-red-500 text-xs mt-2 font-medium">Las contraseñas no coinciden.</p>
                 )}
               </div>
               
-              <div className="flex items-start gap-3 bg-white/5 border border-white/5 rounded-2xl p-4 mt-4">
+              <div className="flex items-start gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl p-4 mt-4">
                 <input
                   type="checkbox"
                   id="store-terms-checkbox"
@@ -1318,7 +1318,7 @@ export default function PublicStore() {
                   onChange={e => setTermsAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
                 />
-                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-600 leading-relaxed cursor-pointer font-medium">
                   He leído y acepto los{' '}
                   <span className="font-bold transition-colors" style={{ color: primaryColor }}>Términos de Uso</span>
                   {' '}y la{' '}
@@ -1331,31 +1331,30 @@ export default function PublicStore() {
 
           <button
             type="submit" disabled={authLoading || (authGateMode === 'register' && !termsAccepted)}
-            className="w-full py-4 text-black font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: primaryColor, boxShadow: `0 0 30px ${primaryColor}30` }}
+            className="w-full py-4 text-white font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}40` }}
           >
-            {authLoading ? <Loader2 className="animate-spin" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
+            {authLoading ? <Loader2 className="animate-spin text-white" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
           </button>
         </form>
 
-        <div className="mt-6 flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest">
-          <span className="w-1/4 border-b border-white/5"></span>
+        <div className="mt-6 flex items-center justify-between text-zinc-400 text-xs font-bold uppercase tracking-widest">
+          <span className="w-1/4 border-b border-zinc-200"></span>
           <span>o continuar con</span>
-          <span className="w-1/4 border-b border-white/5"></span>
+          <span className="w-1/4 border-b border-zinc-200"></span>
         </div>
         
         <div className="mt-6 flex justify-center">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={() => alert('Fallo al conectar con Google')}
-            theme="filled_black"
+            theme="outline"
             shape="pill"
             text="continue_with"
           />
         </div>
       </ResponsiveModal>
-    );
-  };
+    );  };
 
   const recentProducts = products.slice(0, 8);
   const offerProducts = products.filter(p => !!p.is_offer);
