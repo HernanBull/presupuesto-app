@@ -1559,11 +1559,7 @@ export default function PublicStore() {
             {/* Hero Background (Absolute) */}
             <div className="absolute top-0 left-0 w-full h-[420px] md:h-[500px] z-0 bg-zinc-800">
               {heroUrl ? (
-                <>
-                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                  {/* Neblina reducida solo en la parte inferior */}
-                  <div className="absolute inset-x-0 bottom-0 h-[80px] bg-gradient-to-t from-white to-transparent"></div>
-                </>
+                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-80" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-t from-white to-zinc-800"></div>
               )}
