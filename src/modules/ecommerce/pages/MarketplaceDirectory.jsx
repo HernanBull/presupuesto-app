@@ -1224,7 +1224,7 @@ export default function MarketplaceDirectory() {
            </button>
 
            <button onClick={() => {
-              // Future map function
+              navigate('/mapa');
            }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-500 hover:text-amber-500">
              <MapPin size={22} />
              <span className="text-[10px] font-medium">Mapa</span>
