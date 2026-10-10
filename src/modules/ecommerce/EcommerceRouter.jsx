@@ -341,6 +341,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route path=":slug" element={<PublicStore />} />
         <Route index element={<MarketplaceDirectory />} />
         <Route path="pricing" element={<PricingPage />} />
+        <Route path="mapa" element={<StoreScannerMap />} />
         <Route path="legal/:tipo" element={<LegalPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
