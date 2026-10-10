@@ -1549,22 +1549,22 @@ export default function PublicStore() {
                 <ChevronLeft size={24} />
               </button>
               <div className="flex flex-col items-center">
-                <span className="font-bold text-lg text-pure-white">{config?.business_name || 'Mi Tienda'}</span>
-                <span className="text-xs text-pure-white opacity-80">A 13.98 Km de ti</span>
+                <span className="font-bold text-lg">{config?.business_name || 'Mi Tienda'}</span>
+                <span className="text-xs text-zinc-500 font-medium">A 13.98 Km de ti</span>
               </div>
               <div className="w-10"></div>
 
             </div>
 
             {/* Hero Background (Absolute) */}
-            <div className="absolute top-0 left-0 w-full h-[420px] md:h-[500px] z-0 bg-zinc-800">
+            <div className="absolute top-0 left-0 w-full h-[420px] md:h-[500px] z-0 bg-[#F8F9FA]">
               {heroUrl ? (
                 <>
-                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
-                  <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                  <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60 mix-blend-multiply" />
+                  <div className="absolute inset-x-0 bottom-0 h-[80%] bg-gradient-to-t from-[#F8F9FA] via-[#F8F9FA]/90 to-transparent"></div>
                 </>
               ) : (
-                <div className="w-full h-full bg-gradient-to-t from-black to-zinc-800"></div>
+                <div className="w-full h-full bg-gradient-to-t from-[#F8F9FA] to-zinc-200"></div>
               )}
             </div>
 
@@ -1574,7 +1574,7 @@ export default function PublicStore() {
               {/* Avatar */}
               <div className="flex justify-center w-full mb-4">
                 <div className="relative">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[4px] border-black overflow-hidden bg-zinc-900 shadow-xl">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-[#F8F9FA] overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
                     {logoUrl ? (
                       <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
                     ) : (
@@ -1594,11 +1594,11 @@ export default function PublicStore() {
               {/* Title & Slug */}
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center gap-2 justify-center">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-pure-white">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
                 </div>
-                <p className="text-pure-white opacity-80 text-base mt-1">@{slug}</p>
+                <p className="text-zinc-500 font-medium text-base mt-1">@{slug}</p>
                 
                 {/* Rating & Delivery */}
                 <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
