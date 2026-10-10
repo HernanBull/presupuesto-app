@@ -1571,7 +1571,7 @@ export default function MarketplaceDirectory() {
                           <span className="text-zinc-900 font-black text-4xl leading-none">$40</span>
                           <span className="text-zinc-500 text-xs font-bold mb-1">/ MES</span>
                         </div>
-                        <p className="text-amber-600 text-[10px] text-right mt-1 font-bold">Se paga solo con tus primeros 2 pedidos</p>
+                        {/* Text removed */}
                       </div>
                     </div>
                     
