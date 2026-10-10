@@ -31,11 +31,11 @@ const PasswordRequirements = ({ password = '' }) => {
   ];
   
   return (
-    <div className="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div className="bg-zinc-950 border border-zinc-200 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
       {reqs.map((req, i) => (
         <div key={i} className="flex items-center gap-2">
           {req.met ? <CheckCircle size={14} className="text-amber-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
-          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-500'}`}>{req.label}</span>
+          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-600'}`}>{req.label}</span>
         </div>
       ))}
     </div>
@@ -919,30 +919,30 @@ export default function MarketplaceDirectory() {
 
       {/* App Header (Mobile Only) - Light Theme */}
       <div className="md:hidden sticky top-0 z-50 bg-white border-b border-zinc-100 pt-4 pb-3 px-5 flex items-center justify-between shadow-sm">
-        <button className="text-zinc-800 hover:text-amber-500 transition-colors">
+        <button className="text-amber-500 hover:text-amber-600 transition-colors">
           <Menu size={26} strokeWidth={2} />
         </button>
         <div className="flex items-center gap-2 select-none cursor-default">
           <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
             <ShoppingBag size={16} className="stroke-[2.5]"/>
           </div>
-          <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-500 font-medium">MARKET</span></span>
+          <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
         </div>
         <div className="flex items-center gap-4">
           {/* Sell in Axon Icon */}
           {!currentMerchant && (
-             <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="text-zinc-800 hover:text-amber-500 transition-colors">
+             <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
                <Store size={22} strokeWidth={2} />
              </button>
           )}
           
           {/* User Profile / Login Icon */}
           {currentCustomer ? (
-             <button onClick={() => navigate('/profile')} className="text-zinc-800 hover:text-amber-500 transition-colors">
+             <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
                <User size={22} strokeWidth={2} />
              </button>
           ) : !currentMerchant && (
-             <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-zinc-800 hover:text-amber-500 transition-colors">
+             <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
                <User size={22} strokeWidth={2} />
              </button>
           )}
@@ -953,7 +953,7 @@ export default function MarketplaceDirectory() {
       <div className="px-5 py-4 relative z-40 bg-white md:hidden border-b border-zinc-100 shadow-sm">
         <div className="relative w-full group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={18} className="text-zinc-400" />
+            <Search size={18} className="text-zinc-500" />
           </div>
           <input
             id="mobile-search-input"
@@ -972,7 +972,7 @@ export default function MarketplaceDirectory() {
         {/* Categorías Principales (Desktop Only) */}
         <section className="hidden md:block space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-white font-bold text-lg md:text-xl">Categorías</h3>
+            <h3 className="text-zinc-900 font-bold text-lg md:text-xl">Categorías</h3>
           </div>
           <div className="flex flex-col gap-4">
             <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-1">
@@ -980,10 +980,10 @@ export default function MarketplaceDirectory() {
                 const isActive = activeCategory === cat.id;
                 return (
                   <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[80px] shrink-0">
-                    <div className={`w-[80px] h-[80px] rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-zinc-900 border border-white/5 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
-                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-400 group-hover:text-amber-500'} />
+                    <div className={`w-[80px] h-[80px] rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-white border-zinc-200 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
+                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-500 group-hover:text-amber-500'} />
                     </div>
-                    <span className={`text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-400'}`}>{cat.name}</span>
+                    <span className={`text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-500'}`}>{cat.name}</span>
                   </div>
                 );
               })}
@@ -992,15 +992,15 @@ export default function MarketplaceDirectory() {
         </section>
 
         {/* Todas las tiendas Grid / Feed */}
-        <div className="pt-2 md:pt-8 md:border-t md:border-white/5 mt-2 md:mt-0 pb-10">
+        <div className="pt-2 md:pt-8 md:border-t md:border-zinc-200 mt-2 md:mt-0 pb-10">
           <div className="hidden md:flex items-center justify-between mb-6">
-            <h3 className="text-white font-bold text-xl">Directorio Completo</h3>
+            <h3 className="text-zinc-900 font-bold text-xl">Directorio Completo</h3>
           </div>
           
           {/* Mobile Feed (Instagram Style) */}
           <div className="md:hidden flex flex-col space-y-6 -mx-5">
             {filteredStores.map((store) => (
-              <div key={store.id} className="bg-zinc-950 flex flex-col pb-4 border-b border-white/5 last:border-b-0">
+              <div key={store.id} className="bg-zinc-950 flex flex-col pb-4 border-b border-zinc-200 last:border-b-0">
                 {/* Post Header */}
                 <div className="flex items-center justify-between px-4 py-3 bg-white">
                   <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/${store.store_slug}`)}>
@@ -1012,11 +1012,11 @@ export default function MarketplaceDirectory() {
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-white font-bold text-sm tracking-wide leading-tight flex items-center gap-1">
+                      <span className="text-zinc-900 font-bold text-sm tracking-wide leading-tight flex items-center gap-1">
                         {store.name}
                         {store.config?.is_verified && <CheckCircle size={12} className="text-blue-500 fill-blue-500/20" />}
                       </span>
-                      <span className="text-zinc-400 text-[11px] flex items-center gap-1 mt-0.5">
+                      <span className="text-zinc-500 text-[11px] flex items-center gap-1 mt-0.5">
                         <MapPin size={10} /> A 2.5 Km de ti
                       </span>
                     </div>
@@ -1025,7 +1025,7 @@ export default function MarketplaceDirectory() {
                     <button className="bg-zinc-100 text-black text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-white active:scale-95 transition-all">
                       <User size={12} /> Seguir
                     </button>
-                    <button className="text-white hover:text-zinc-400">
+                    <button className="text-zinc-900 hover:text-zinc-500">
                       <MoreHorizontal size={20} />
                     </button>
                   </div>
@@ -1070,7 +1070,7 @@ export default function MarketplaceDirectory() {
                     <span className="font-bold mr-2">{store.name}</span>
                     <span className="text-zinc-700 line-clamp-2 inline">{store.config?.description || '¡Descubre nuestros mejores productos! Visita nuestra tienda para ver el catálogo completo. 👀✨'}</span>
                   </div>
-                  <span className="text-zinc-500 text-xs font-medium mt-1 cursor-pointer">Ver los {Math.floor(Math.random() * 20) + 2} comentarios</span>
+                  <span className="text-zinc-600 text-xs font-medium mt-1 cursor-pointer">Ver los {Math.floor(Math.random() * 20) + 2} comentarios</span>
                   <span className="text-zinc-600 text-[10px] uppercase tracking-wider mt-0.5">Hace {Math.floor(Math.random() * 12) + 1} horas</span>
                 </div>
               </div>
@@ -1093,7 +1093,7 @@ export default function MarketplaceDirectory() {
                     )}
                     {currentCustomer && (
                       <div className="absolute top-3 right-3">
-                        <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/10 hover:bg-black/70">
+                        <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-zinc-900 border border-white/10 hover:bg-black/70">
                           <Heart size={14} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''}/>
                         </button>
                       </div>
@@ -1110,9 +1110,9 @@ export default function MarketplaceDirectory() {
                         )}
                       </h4>
                     </div>
-                    <p className="text-zinc-400 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
+                    <p className="text-zinc-500 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
                     <div className="flex items-center justify-end pt-4 mt-2 border-t border-zinc-100">
-                      <span className="text-xs text-zinc-500 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
+                      <span className="text-xs text-zinc-600 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
                     </div>
                   </div>
               </div>
@@ -1134,7 +1134,7 @@ export default function MarketplaceDirectory() {
                 </div>
                 <span className="font-bold text-lg tracking-[0.25em] text-zinc-900">AXON<span className="text-amber-500 font-light">MARKET</span></span>
               </div>
-              <p className="text-zinc-500 text-xs leading-relaxed">
+              <p className="text-zinc-600 text-xs leading-relaxed">
                 Tu marketplace local. Conectamos compradores con comerciantes independientes en Venezuela.
               </p>
               <p className="text-zinc-700 text-[10px] mt-4 uppercase tracking-widest">
@@ -1144,32 +1144,32 @@ export default function MarketplaceDirectory() {
 
             {/* Plataforma */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Plataforma</p>
+              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Plataforma</p>
               <div className="space-y-3">
-                <button onClick={() => navigate('/')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Marketplace</button>
-                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('pitch'); }} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
-                <button onClick={() => navigate('/pricing')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Planes y Precios</button>
+                <button onClick={() => navigate('/')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Marketplace</button>
+                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('pitch'); }} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
+                <button onClick={() => navigate('/pricing')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Planes y Precios</button>
               </div>
             </div>
 
             {/* Soporte */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Soporte</p>
+              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Soporte</p>
               <div className="space-y-3">
-                <button onClick={() => setIsMerchantModalOpen(true)} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Acceso Comerciantes</button>
-                <button onClick={() => setIsAuthModalOpen(true)} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Acceso Compradores</button>
+                <button onClick={() => setIsMerchantModalOpen(true)} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Acceso Comerciantes</button>
+                <button onClick={() => setIsAuthModalOpen(true)} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Acceso Compradores</button>
               </div>
             </div>
 
             {/* Legal */}
             <div>
-              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Legal</p>
+              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Legal</p>
               <div className="space-y-3">
-                <button onClick={() => navigate('/legal/terminos')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos de Uso</button>
-                <button onClick={() => navigate('/legal/privacidad')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Privacidad</button>
-                <button onClick={() => navigate('/legal/cookies')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Cookies</button>
-                <button onClick={() => navigate('/legal/comerciantes')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
-                <button onClick={() => navigate('/legal/aviso')} className="block text-xs text-zinc-400 hover:text-amber-500 transition-colors">Aviso Legal</button>
+                <button onClick={() => navigate('/legal/terminos')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Términos de Uso</button>
+                <button onClick={() => navigate('/legal/privacidad')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Privacidad</button>
+                <button onClick={() => navigate('/legal/cookies')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Cookies</button>
+                <button onClick={() => navigate('/legal/comerciantes')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
+                <button onClick={() => navigate('/legal/aviso')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Aviso Legal</button>
               </div>
             </div>
           </div>
@@ -1181,11 +1181,11 @@ export default function MarketplaceDirectory() {
 
             </p>
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Términos</button>
+              <button onClick={() => navigate('/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Términos</button>
               <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Privacidad</button>
+              <button onClick={() => navigate('/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Privacidad</button>
               <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors">Aviso Legal</button>
+              <button onClick={() => navigate('/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Aviso Legal</button>
             </div>
           </div>
         </div>
@@ -1203,7 +1203,7 @@ export default function MarketplaceDirectory() {
            
            <button onClick={() => {
               setIsCategoriesOpen(true);
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-zinc-200 transition-colors relative">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-800 transition-colors relative">
              <Menu size={22} />
              <span className="text-[10px] font-medium">Categorías</span>
            </button>
@@ -1217,14 +1217,14 @@ export default function MarketplaceDirectory() {
 
            <button onClick={() => {
               if(!currentCustomer) { setAuthMode('login'); setIsAuthModalOpen(true); }
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
              <Heart size={22} />
              <span className="text-[10px] font-medium">Favoritos</span>
            </button>
 
            <button onClick={() => {
               // Future map function
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-500 hover:text-amber-500">
              <MapPin size={22} />
              <span className="text-[10px] font-medium">Mapa</span>
            </button>
@@ -1253,7 +1253,7 @@ export default function MarketplaceDirectory() {
                   </div>
                   <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mis Carritos</h2>
                 </div>
-                <button onClick={() => setIsCartOpen(false)} className="text-zinc-400 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
+                <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
                   <X size={20} />
                 </button>
               </div>
@@ -1262,11 +1262,11 @@ export default function MarketplaceDirectory() {
                 {Object.keys(globalCart).length === 0 ? (
                   <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
                     <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
-                      <ShoppingBag size={48} className="text-zinc-300" />
+                      <ShoppingBag size={48} className="text-zinc-700" />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
-                    <p className="text-zinc-500 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
-                    <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-white bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
+                    <p className="text-zinc-600 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
+                    <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-zinc-900 bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -1294,17 +1294,17 @@ export default function MarketplaceDirectory() {
                                 {item.imageUrl ? (
                                   <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <Package size={20} className="text-zinc-400" />
+                                  <Package size={20} className="text-zinc-500" />
                                 )}
                               </div>
                               <div className="flex-1 flex flex-col justify-center">
                                 <h5 className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{item.name}</h5>
-                                <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-500 font-medium ml-1">x {item.quantity}</span></div>
+                                <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-600 font-medium ml-1">x {item.quantity}</span></div>
                               </div>
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-amber-500 text-white rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
                           Completar Pedido <ArrowRight size={16} />
                         </button>
                       </div>
@@ -1330,16 +1330,16 @@ export default function MarketplaceDirectory() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="bg-zinc-950 border-r border-white/5 w-full max-w-[85%] h-full relative z-10 shadow-2xl flex flex-col"
+              className="bg-zinc-950 border-r border-zinc-200 w-full max-w-[85%] h-full relative z-10 shadow-2xl flex flex-col"
             >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20">
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-zinc-200">
                     <Menu className="text-amber-500" size={20} />
                   </div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">Categorías</h2>
+                  <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Categorías</h2>
                 </div>
-                <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-400 hover:text-white bg-white/5 rounded-full p-2 transition-all">
+                <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-500 hover:text-zinc-900 bg-white/5 rounded-full p-2 transition-all">
                   <X size={20} />
                 </button>
               </div>
@@ -1349,11 +1349,11 @@ export default function MarketplaceDirectory() {
                   {categories.map((cat) => {
                     const isActive = activeCategory === cat.id;
                     return (
-                      <div key={cat.id} onClick={() => { setActiveCategory(cat.id); setIsCategoriesOpen(false); window.scrollTo({top:0, behavior:'smooth'}); }} className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-900 border-white/5 hover:bg-zinc-800'}`}>
+                      <div key={cat.id} onClick={() => { setActiveCategory(cat.id); setIsCategoriesOpen(false); window.scrollTo({top:0, behavior:'smooth'}); }} className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-900 border-zinc-200 hover:bg-zinc-800'}`}>
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-amber-500 text-black' : 'bg-black text-amber-500'}`}>
                           <cat.icon size={24} strokeWidth={isActive ? 2.5 : 1.5} />
                         </div>
-                        <span className={`text-xs font-bold text-center ${isActive ? 'text-amber-500' : 'text-zinc-300'}`}>{cat.name}</span>
+                        <span className={`text-xs font-bold text-center ${isActive ? 'text-amber-500' : 'text-zinc-700'}`}>{cat.name}</span>
                       </div>
                     );
                   })}
@@ -1366,18 +1366,18 @@ export default function MarketplaceDirectory() {
 
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="absolute inset-0 bg-zinc-950/95" onClick={() => setIsAuthModalOpen(false)} />
-          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-white/10 animate-in zoom-in-95 duration-150">
-              <div className="p-8 pb-6 border-b border-white/5 flex items-center justify-between">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsAuthModalOpen(false)} />
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-white/10 animate-in zoom-in-95 duration-150">
+              <div className="p-8 pb-6 border-b border-zinc-200 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-light text-white flex items-center gap-3 tracking-tight">
+                  <h2 className="text-2xl font-light text-zinc-900 flex items-center gap-3 tracking-tight">
                     <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
                       <User size={20} className="text-amber-500" />
                     </div>
                     {authMode === 'login' ? 'Iniciar Sesión' : authMode === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
                   </h2>
                 </div>
-                <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-400 hover:text-amber-500 bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
+                <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-500 hover:text-amber-500 bg-white/5 hover:bg-zinc-100 rounded-full p-2 transition-colors">
                   <X size={20} />
                 </button>
               </div>
@@ -1385,26 +1385,26 @@ export default function MarketplaceDirectory() {
               {authMode === 'recover' || authMode === 'reset' ? (
                 <form onSubmit={(e) => authMode === 'recover' ? handleRecoverPassword(e, 'customer') : handleResetPassword(e, 'customer')} className="p-8 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} disabled={authMode === 'reset'} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="tu@correo.com" />
+                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} disabled={authMode === 'reset'} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="tu@correo.com" />
                   </div>
                   {authMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
-                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="123456" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
-                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="••••••••" />
                       </div>
                     </>
                   )}
                   <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
                     {authMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'}
                   </button>
-                  <p className="text-center text-sm font-light text-zinc-500 mt-6">
-                    <button type="button" onClick={() => setAuthMode('login')} className="text-white font-bold hover:text-amber-500 transition-colors focus:outline-none">
+                  <p className="text-center text-sm font-light text-zinc-600 mt-6">
+                    <button type="button" onClick={() => setAuthMode('login')} className="text-zinc-900 font-bold hover:text-amber-500 transition-colors focus:outline-none">
                       Volver al inicio de sesión
                     </button>
                   </p>
@@ -1412,14 +1412,14 @@ export default function MarketplaceDirectory() {
               ) : (
                 <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className="p-8 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="tu@correo.com" />
+                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="tu@correo.com" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
+                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Contraseña</label>
                     <div className="relative">
-                      <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
-                      <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                      <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="••••••••" />
+                      <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-amber-500 transition-colors">
                         {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
@@ -1429,10 +1429,10 @@ export default function MarketplaceDirectory() {
                     <>
                       <PasswordRequirements password={authForm.password} />
                       <div className="mt-4">
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
                         <div className="relative">
-                          <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" />
-                          <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                          <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-white border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-zinc-200'} rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400`} placeholder="••••••••" />
+                          <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-amber-500 transition-colors">
                             {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
@@ -1452,7 +1452,7 @@ export default function MarketplaceDirectory() {
                   )}
 
                   {authMode === 'register' && (
-                    <div className="flex items-start gap-3 bg-white/3 border border-white/5 rounded-2xl p-4">
+                    <div className="flex items-start gap-3 bg-white/3 border border-zinc-200 rounded-2xl p-4">
                       <input
                         type="checkbox"
                         id="buyer-terms-checkbox"
@@ -1460,7 +1460,7 @@ export default function MarketplaceDirectory() {
                         onChange={e => setTermsAccepted(e.target.checked)}
                         className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
                       />
-                      <label htmlFor="buyer-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                      <label htmlFor="buyer-terms-checkbox" className="text-xs text-zinc-500 leading-relaxed cursor-pointer">
                         He leído y acepto los{' '}
                         <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
                         {' '}y la{' '}
@@ -1474,9 +1474,9 @@ export default function MarketplaceDirectory() {
                     {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'}
                   </button>
 
-                  <p className="text-center text-sm font-light text-zinc-500 mt-6">
+                  <p className="text-center text-sm font-light text-zinc-600 mt-6">
                     {authMode === 'login' ? '¿Aún no tienes cuenta?' : '¿Ya eres miembro?'}
-                    <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-white font-bold ml-2 hover:text-amber-500 transition-colors focus:outline-none">
+                    <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-zinc-900 font-bold ml-2 hover:text-amber-500 transition-colors focus:outline-none">
                       {authMode === 'login' ? 'Regístrate' : 'Inicia sesión'}
                     </button>
                   </p>
@@ -1485,9 +1485,9 @@ export default function MarketplaceDirectory() {
 
               <div className="px-8 pb-8">
                 <div className="flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest mb-6">
-                  <span className="w-1/4 border-b border-white/5"></span>
+                  <span className="w-1/4 border-b border-zinc-200"></span>
                   <span>o continuar con</span>
-                  <span className="w-1/4 border-b border-white/5"></span>
+                  <span className="w-1/4 border-b border-zinc-200"></span>
                 </div>
                 
                 <div className="flex justify-center">
