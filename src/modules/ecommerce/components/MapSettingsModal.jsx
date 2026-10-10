@@ -29,13 +29,13 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
       <div className="w-full max-w-sm bg-[#111111] rounded-[32px] p-6 shadow-2xl border border-white/10 relative overflow-hidden">
         
         {/* Title */}
-        <h2 className="text-xl font-bold text-white text-center mb-8 tracking-tight">Ajustes del mapa</h2>
+        <h2 className="text-xl font-bold text-zinc-100 text-center mb-8 tracking-tight">Ajustes del mapa</h2>
 
         {/* Mostrar Zonas */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex-1 pr-4">
-            <h3 className="text-base font-medium text-zinc-200">Mostrar zonas</h3>
-            <p className="text-[13px] text-zinc-500 mt-1 leading-snug">Muestra en el mapa las zonas donde se concentran los restaurantes cercanos</p>
+            <h3 className="text-base font-semibold text-zinc-100">Mostrar zonas</h3>
+            <p className="text-[13px] text-zinc-400 mt-1 leading-snug">Muestra en el mapa las zonas donde se concentran los restaurantes cercanos</p>
           </div>
           <button 
             onClick={() => setLocalShowZones(!localShowZones)}
@@ -48,8 +48,8 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
         {/* Centros comerciales */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex-1 pr-4">
-            <h3 className="text-base font-medium text-zinc-200">Centros comerciales</h3>
-            <p className="text-[13px] text-zinc-500 mt-1 leading-snug">Deja el mapa solo con los centros comerciales de la zona</p>
+            <h3 className="text-base font-semibold text-zinc-100">Centros comerciales</h3>
+            <p className="text-[13px] text-zinc-400 mt-1 leading-snug">Deja el mapa solo con los centros comerciales de la zona</p>
           </div>
           <button 
             onClick={() => setLocalOnlyMalls(!localOnlyMalls)}
@@ -62,8 +62,8 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
         {/* Distancia analizada */}
         <div className="mb-10">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-medium text-zinc-200">Distancia analizada</h3>
-            <span className="text-sm font-medium text-zinc-300">{localRadius} m</span>
+            <h3 className="text-base font-semibold text-zinc-100">Distancia analizada</h3>
+            <span className="text-sm font-bold text-amber-500">{localRadius} m</span>
           </div>
           
           <input 
@@ -87,20 +87,20 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
             }
           `}</style>
           
-          <p className="text-[13px] text-zinc-500 mt-4 leading-snug text-center">Radio de búsqueda alrededor de tu ubicación</p>
+          <p className="text-[13px] text-zinc-400 mt-4 leading-snug text-center">Radio de búsqueda alrededor de tu ubicación</p>
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-4">
           <button 
             onClick={onClose}
-            className="flex-1 py-3.5 bg-zinc-800/80 hover:bg-zinc-700 text-white font-bold text-sm rounded-2xl transition-colors"
+            className="flex-1 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm rounded-2xl transition-colors border border-zinc-700"
           >
             Cancelar
           </button>
           <button 
             onClick={handleApply}
-            className="flex-1 py-3.5 bg-white text-black hover:bg-zinc-200 font-bold text-sm rounded-2xl transition-colors"
+            className="flex-1 py-3.5 bg-amber-500 text-zinc-900 hover:bg-amber-400 font-bold text-sm rounded-2xl transition-colors shadow-lg"
           >
             Aplicar
           </button>
