@@ -1546,7 +1546,7 @@ export default function PublicStore() {
             {/* Cabecera Flotante (Life Burger Style) */}
             <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
               <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-pure-white">
-                <ChevronLeft size={24} />
+                <ChevronLeft size={24} color="white" />
               </button>
               <div className="flex flex-col items-center">
                 <span className="font-bold text-lg text-pure-white">{config?.business_name || 'Mi Tienda'}</span>
@@ -1562,7 +1562,7 @@ export default function PublicStore() {
                 <>
                   <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-60" />
                   {/* Neblina reducida solo en la parte inferior */}
-                  <div className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-white via-white/80 to-transparent"></div>
+                  <div className="absolute inset-x-0 bottom-0 h-[80px] bg-gradient-to-t from-white to-transparent"></div>
                 </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-t from-white to-zinc-800"></div>

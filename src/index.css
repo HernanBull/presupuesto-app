@@ -53,6 +53,7 @@
   body {
     /* Diseño Claro Premium (Fondo crema, texto gris carbón) */
     background-color: var(--bg-secondary) !important;
+    background-image: none !important;
     color: var(--text-main) !important;
     min-height: 100vh;
     touch-action: manipulation;
