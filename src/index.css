@@ -4,9 +4,11 @@
 
 @theme {
   /* ====================================================
-     OVERRIDE: INDIGO -> LUXURY GOLD
-     Transformamos los acentos azules a un Dorado Metálico
+     AXONMARKET LUXURY WHITE & GOLD THEME
+     Paleta premium: Blanco, Crema suave y Dorado Metálico
   ==================================================== */
+  
+  /* Mantener el Dorado Metálico para botones e iconos (antes indigo) */
   --color-indigo-50: #fefcf1;
   --color-indigo-100: #fef7d9;
   --color-indigo-200: #fdecb2;
@@ -18,30 +20,16 @@
   --color-indigo-800: #926716;
   --color-indigo-900: #785315;
   
-  /* ====================================================
-     OVERRIDE: PURPLE -> BRONZE/COPPER
-     Transformamos acentos secundarios a Cobrizo
-  ==================================================== */
-  --color-purple-50: #fffbeb;
-  --color-purple-100: #fef3c7;
-  --color-purple-200: #fde68a;
-  --color-purple-300: #fcd34d;
-  --color-purple-400: #fbbf24;
+  /* Acentos cobrizos/secundarios */
   --color-purple-500: #d97706; /* Bronce Oscuro */
-  --color-purple-600: #b45309;
-  --color-purple-700: #92400e;
-  --color-purple-800: #78350f;
-  --color-purple-900: #451a03;
 
-  /* ====================================================
-     OVERRIDE: SLATE -> TRUE BLACK
-     Forzamos los fondos a ser negro puro de alta gama
-  ==================================================== */
-  --color-slate-800: #1a1a1a; /* Gris muy oscuro para hover */
-  --color-slate-900: #0a0a0a; /* Tarjetas y paneles casi negros */
-  --color-slate-950: #000000; /* Fondo general negro puro */
+  /* Forzar los colores de fondo oscuros a ser luminosos para el tema White & Gold */
+  --color-slate-800: #404040; /* Gris medio-oscuro */
+  --color-slate-900: #1a1a1a; /* Texto principal oscuro (Gris Carbón) */
+  --color-slate-950: #0a0a0a;
   
-  --color-primary: #d4af37; /* Gold */
+  --color-primary: #d4af37; /* Gold principal */
+  --color-primary-hover: #e2c054; /* Gold interactivo */
   --color-success: #10b981; 
   
   --animate-marquee: marquee 40s linear infinite;
@@ -53,18 +41,51 @@
 }
 
 @layer base {
+  :root {
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8F9FA;
+    --brand-gold: #d4af37;
+    --brand-gold-hover: #e2c054;
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+  }
+
   body {
-    /* Global support for Light and Dark mode */
-    @apply bg-slate-50 text-slate-900 dark:bg-black dark:text-slate-50;
+    /* Diseño Claro Premium (Fondo crema, texto gris carbón) */
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-main) !important;
     min-height: 100vh;
-    touch-action: manipulation; /* Prevent double tap to zoom */
-    overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
   }
   
+  /* Sobrescribimos temporalmente las clases oscuras forzadas 
+     para que todo se vea Blanco y Dorado sin importar el localStorage */
   .dark body {
-    /* Elegant radial background only for dark mode */
-    background: radial-gradient(circle at top, #111111 0%, #000000 100%);
-    background-attachment: fixed;
+    background-color: var(--bg-secondary) !important;
+    background-image: none !important; /* Quitar el radial-gradient negro */
+    color: var(--text-main) !important;
+  }
+  
+  .dark .bg-black, .dark .bg-slate-900, .dark .bg-slate-950, .bg-black {
+    background-color: var(--bg-primary) !important; /* Tarjetas blancas */
+    color: var(--text-main) !important;
+    border: 1px solid #E5E5E5 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+  }
+
+  .dark .text-white, .dark .text-slate-50, .text-white {
+    color: var(--text-main) !important;
+  }
+  
+  .dark .border-slate-800, .dark .border-zinc-800, .border-zinc-800 {
+    border-color: #E5E5E5 !important;
+  }
+  
+  /* Asegurar que el texto en botones dorados sea oscuro */
+  .bg-indigo-500, .bg-indigo-600, .bg-primary {
+    color: var(--text-main) !important;
+    font-weight: 600;
   }
 }
 
@@ -82,13 +103,13 @@
 
 /* ====================================================
    FIX BROWSER AUTOFILL STYLES
-   Mantiene el fondo negro y el texto blanco al autocompletar
+   Adaptado a la nueva paleta clara
 ==================================================== */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 
 input:-webkit-autofill:focus, 
 input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px #000000 inset !important;
-    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
+    -webkit-text-fill-color: #1A1A1A !important;
     transition: background-color 5000s ease-in-out 0s;
 }
