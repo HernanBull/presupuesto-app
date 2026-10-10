@@ -49,12 +49,19 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const userCenterIcon = new L.DivIcon({
   className: 'custom-user-center-icon',
   html: renderToStaticMarkup(
-    <div style={{ backgroundColor: '#f59e0b', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5)', border: '2.5px solid white' }}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <div style={{ filter: 'drop-shadow(0px 4px 6px rgba(245, 158, 11, 0.5))' }}>
+      <svg width="44" height="58" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 2C10.954 2 2 10.954 2 22C2 37 22 56 22 56C22 56 42 37 42 22C42 10.954 33.046 2 22 2Z" fill="#f59e0b" stroke="white" strokeWidth="3"/>
+        <g transform="translate(12, 11) scale(0.85)">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 6h18" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M16 10a4 4 0 0 1-8 0" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </g>
+      </svg>
     </div>
   ),
-  iconSize: [36, 36],
-  iconAnchor: [18, 18]
+  iconSize: [44, 58],
+  iconAnchor: [22, 56]
 });
 
 export default function StoreScannerMap() {
