@@ -75,7 +75,7 @@ export default function StoreScannerMap() {
   const defaultLocation = [10.4806, -66.9036]; 
 
   useEffect(() => {
-    // 1. Get user location
+    // 1. Get user location ONLY ONCE on mount
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -86,7 +86,7 @@ export default function StoreScannerMap() {
         (error) => {
           console.error("Error obtaining location", error);
           setUserLocation(defaultLocation);
-      setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
+          setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
           fetchStores(defaultLocation);
         },
         { enableHighAccuracy: true }
@@ -95,6 +95,13 @@ export default function StoreScannerMap() {
       setUserLocation(defaultLocation);
       setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
       fetchStores(defaultLocation);
+    }
+  }, []); // Empty dependency array ensures GPS is only asked once
+
+  // 2. Re-fetch when filters change, using current map center
+  useEffect(() => {
+    if (mapCenter) {
+      fetchStores([mapCenter.lat, mapCenter.lng]);
     }
   }, [scanRadius, onlyMalls]);
 
