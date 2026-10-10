@@ -140,6 +140,20 @@ export default function PublicStore() {
   const [simulatedDiscountCode, setSimulatedDiscountCode] = useState('');
   const [simulatedDiscountPct, setSimulatedDiscountPct] = useState(0);
 
+  // Update subcategories when activeMainCategory changes
+  React.useEffect(() => {
+    if (activeMainCategory === 'Todas') {
+      const allSubCats = new Set(products.map(p => p.subcategory || 'General'));
+      setSubCategories(['Todos', ...Array.from(allSubCats)]);
+    } else {
+      const filteredForMain = products.filter(p => p.category === activeMainCategory);
+      const subCats = new Set(filteredForMain.map(p => p.subcategory || 'General'));
+      setSubCategories(['Todos', ...Array.from(subCats)]);
+    }
+    // Always reset subcategory when main category changes
+    setActiveSubCategory('Todos');
+  }, [activeMainCategory, products]);
+
   const simulateAddToCart = (product, qty) => {
     setSimulatedCart(prev => {
       const next = (prev[product.id] || 0) + qty;
@@ -1345,21 +1359,7 @@ export default function PublicStore() {
 
   const recentProducts = products.slice(0, 8);
   const offerProducts = products.filter(p => !!p.is_offer);
-  // Update subcategories when activeMainCategory changes
-  React.useEffect(() => {
-    if (activeMainCategory === 'Todas') {
-      const allSubCats = new Set(products.map(p => p.subcategory || 'General'));
-      setSubCategories(['Todos', ...Array.from(allSubCats)]);
-    } else {
-      const filteredForMain = products.filter(p => p.category === activeMainCategory);
-      const subCats = new Set(filteredForMain.map(p => p.subcategory || 'General'));
-      setSubCategories(['Todos', ...Array.from(subCats)]);
-    }
-    // Always reset subcategory when main category changes
-    setActiveSubCategory('Todos');
-  }, [activeMainCategory, products]);
-
-  let catalogProducts = products;
+  let catalogProducts = [...products];
   if (activeMainCategory !== 'Todas') {
     catalogProducts = catalogProducts.filter(p => p.category === activeMainCategory);
   }
