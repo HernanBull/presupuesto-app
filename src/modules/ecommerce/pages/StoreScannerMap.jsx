@@ -49,12 +49,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 const userCenterIcon = new L.DivIcon({
   className: 'custom-user-center-icon',
   html: renderToStaticMarkup(
-    <div style={{ backgroundColor: '#f59e0b', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5)', border: '3px solid white' }}>
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <div style={{ backgroundColor: '#f59e0b', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.5)', border: '2.5px solid white' }}>
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     </div>
   ),
-  iconSize: [48, 48],
-  iconAnchor: [24, 24]
+  iconSize: [36, 36],
+  iconAnchor: [18, 18]
 });
 
 export default function StoreScannerMap() {
@@ -246,6 +246,17 @@ export default function StoreScannerMap() {
           <Crosshair size={20} />
         </button>
       </div>
+
+      <MapSettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        scanRadius={scanRadius} 
+        setScanRadius={setScanRadius}
+        showZones={showZones}
+        setShowZones={setShowZones}
+        onlyMalls={onlyMalls}
+        setOnlyMalls={setOnlyMalls}
+      />
 
       {/* BOTTOM SHEET / STORE PREVIEW */}
       <AnimatePresence>
