@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
+import MapSettingsModal from '../components/MapSettingsModal';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Search, SlidersHorizontal, Clock, Settings, Crosshair, X, Store, Navigation } from 'lucide-react';
@@ -30,9 +31,39 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
+// Haversine distance formula (returns distance in meters)
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
+  const dp = (lat2 - lat1) * Math.PI / 180;
+  const dl = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
+            Math.cos(p1) * Math.cos(p2) *
+            Math.sin(dl / 2) * Math.sin(dl / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+import { renderToStaticMarkup } from 'react-dom/server';
+const userCenterIcon = new L.DivIcon({
+  className: 'custom-user-center-icon',
+  html: renderToStaticMarkup(
+    <div style="background-color: #f59e0b; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.5); border: 3px solid white;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    </div>
+  ),
+  iconSize: [48, 48],
+  iconAnchor: [24, 24]
+});
+
 export default function StoreScannerMap() {
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [scanRadius, setScanRadius] = useState(1000);
+  const [showZones, setShowZones] = useState(false);
+  const [onlyMalls, setOnlyMalls] = useState(false);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStore, setSelectedStore] = useState(null);
@@ -121,9 +152,9 @@ export default function StoreScannerMap() {
             </div>
 
             {/* User Location Marker */}
-            <Marker position={userLocation}>
-              <Popup>
-                Tu ubicación actual
+            <Marker position={userLocation} icon={userCenterIcon} zIndexOffset={1000}>
+              <Popup className="rounded-2xl">
+                Tú estás aquí
               </Popup>
             </Marker>
 
@@ -192,7 +223,7 @@ export default function StoreScannerMap() {
 
       {/* FLOATING ACTION BUTTONS (RIGHT) */}
       <div className="absolute top-32 right-4 z-40 flex flex-col gap-3">
-        <button className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
+        <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
           <Settings size={20} />
         </button>
         <button onClick={centerOnUser} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
@@ -226,7 +257,7 @@ export default function StoreScannerMap() {
                 <p className="text-zinc-500 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
                 <div className="flex items-center gap-3 mt-3">
                   <span className="flex items-center gap-1 text-amber-600 text-xs font-medium bg-amber-500/10 px-2 py-1 rounded-md">
-                    <Navigation size={12} /> {(Math.random() * 5 + 0.5).toFixed(1)} km
+                    <Navigation size={12} /> {selectedStore.distanceToUser ? (selectedStore.distanceToUser / 1000).toFixed(1) : (Math.random() * 5 + 0.5).toFixed(1)} km
                   </span>
                   <span className="text-zinc-500 text-xs">Aprox 15 min</span>
                 </div>
