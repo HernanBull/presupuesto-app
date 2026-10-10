@@ -27,7 +27,11 @@ const storeIcon = new L.Icon({
 // Component to dynamically change map view
 function ChangeView({ center, zoom }) {
   const map = useMap();
-  map.setView(center, zoom);
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -278,9 +282,9 @@ export default function StoreScannerMap() {
                 setIsMapMoved(false);
                 fetchStores([mapCenter.lat, mapCenter.lng]);
               }}
-              className="pointer-events-auto px-6 py-2.5 bg-[#1A1A1A] text-white font-medium text-sm rounded-full shadow-xl border border-white/10 transition-transform hover:scale-105 active:scale-95"
+              className="pointer-events-auto px-6 py-2.5 bg-amber-500 text-zinc-900 font-bold text-sm rounded-full shadow-[0_4px_20px_rgba(245,158,11,0.4)] border-2 border-white flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
             >
-              Buscar aquí
+              <Search size={16} /> Buscar en esta zona
             </motion.button>
           )}
         </AnimatePresence>
