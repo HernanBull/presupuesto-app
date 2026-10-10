@@ -214,9 +214,9 @@ export default function LegalPage() {
 
   if (!content) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-zinc-400 mb-4">Página legal no encontrada.</p>
+          <p className="text-zinc-500 mb-4">Página legal no encontrada.</p>
           <button onClick={() => navigate('/')} className="text-amber-500 hover:underline">
             Volver al inicio
           </button>
@@ -226,31 +226,31 @@ export default function LegalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-slate-50 font-sans">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans">
       
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-zinc-200 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-2 rounded-xl text-zinc-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div className="flex items-center gap-2">
             <span className="text-amber-500">{content.icon}</span>
-            <span className="font-bold text-white text-sm md:text-base truncate">{content.title}</span>
+            <span className="font-bold text-zinc-900 text-sm md:text-base truncate">{content.title}</span>
           </div>
         </div>
       </div>
 
       {/* Hero */}
-      <div className="bg-gradient-to-b from-zinc-950 to-black border-b border-white/5">
+      <div className="bg-gradient-to-b from-white to-zinc-50 border-b border-zinc-200">
         <div className="max-w-4xl mx-auto px-6 py-16 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-100 border border-amber-200 text-amber-600 mb-6">
             {content.icon}
           </div>
-          <h1 className="text-3xl md:text-4xl font-light text-white tracking-tight mb-4">
+          <h1 className="text-3xl md:text-4xl font-light text-zinc-900 tracking-tight mb-4">
             {content.title}
           </h1>
           <p className="text-zinc-500 text-sm">
@@ -264,7 +264,7 @@ export default function LegalPage() {
       </div>
 
       {/* Navegación rápida entre documentos */}
-      <div className="border-b border-white/5 bg-zinc-950/50">
+      <div className="border-b border-zinc-200 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {Object.entries(LEGAL_CONTENT).map(([key, val]) => (
@@ -273,8 +273,8 @@ export default function LegalPage() {
                 to={`/legal/${key}`}
                 className={`flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold transition-all border shrink-0 ${
                   tipo === key
-                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/30'
-                    : 'text-zinc-500 border-white/5 hover:text-white hover:border-white/10'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200 font-bold'
+                    : 'text-zinc-500 border-white/5 hover:text-zinc-900 hover:border-white/10'
                 }`}
               >
                 {val.title.split(' ').slice(0, 2).join(' ')}
@@ -294,13 +294,13 @@ export default function LegalPage() {
             transition={{ delay: idx * 0.04 }}
             className="border-b border-white/5 pb-10 last:border-0"
           >
-            <h2 className="text-lg font-bold text-white mb-4 flex items-start gap-3">
-              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10 text-amber-500 text-xs font-black shrink-0 mt-0.5">
+            <h2 className="text-lg font-bold text-zinc-900 mb-4 flex items-start gap-3">
+              <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-amber-100 text-amber-700 text-xs font-black shrink-0 mt-0.5">
                 {idx + 1}
               </span>
               {section.heading.replace(/^\d+\.\s*/, '')}
             </h2>
-            <div className="text-zinc-400 text-sm leading-relaxed space-y-3 pl-9">
+            <div className="text-zinc-500 text-sm leading-relaxed space-y-3 pl-9">
               {section.content.split('\n\n').map((para, pIdx) => (
                 <p key={pIdx} className="whitespace-pre-line">{para}</p>
               ))}
@@ -310,13 +310,13 @@ export default function LegalPage() {
       </div>
 
       {/* Footer de la página legal */}
-      <div className="border-t border-white/5 bg-zinc-950">
+      <div className="border-t border-zinc-200 bg-white">
         <div className="max-w-4xl mx-auto px-6 py-10 text-center space-y-4">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-7 h-7 bg-amber-500 rounded-lg flex items-center justify-center text-black">
               <Store size={14} className="stroke-[2.5]" />
             </div>
-            <span className="font-bold tracking-[0.3em] text-white text-sm">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+            <span className="font-bold tracking-[0.3em] text-zinc-900 text-sm">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           <p className="text-zinc-600 text-xs">
             © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124 · República Bolivariana de Venezuela.
@@ -326,7 +326,7 @@ export default function LegalPage() {
               <Link
                 key={key}
                 to={`/legal/${key}`}
-                className={`text-xs transition-colors ${tipo === key ? 'text-amber-500 font-bold' : 'text-zinc-500 hover:text-white'}`}
+                className={`text-xs transition-colors ${tipo === key ? 'text-amber-500 font-bold' : 'text-zinc-500 hover:text-zinc-900'}`}
               >
                 {val.title.split(' ').slice(0, 3).join(' ')}
               </Link>
