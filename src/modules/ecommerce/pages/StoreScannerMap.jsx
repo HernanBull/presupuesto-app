@@ -64,12 +64,12 @@ function MapEventsHandler({ setMapCenter, setIsMapMoved }) {
 const searchLocationIcon = new L.DivIcon({
   className: 'custom-search-location-icon',
   html: renderToStaticMarkup(
-    <div className="relative mt-2" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.5))' }}>
-      <svg width="44" height="58" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -translate-y-1/2">
+    <div className="relative mt-2" style={{ filter: 'drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.4))' }}>
+      <svg width="34" height="45" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -translate-y-1/2">
         <defs>
           <linearGradient id="searchPinGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ef4444" />
-            <stop offset="100%" stopColor="#b91c1c" />
+            <stop offset="0%" stopColor="#fbbf24" />
+            <stop offset="100%" stopColor="#d97706" />
           </linearGradient>
         </defs>
         <path d="M22 2C10.954 2 2 10.954 2 22C2 37 22 56 22 56C22 56 42 37 42 22C42 10.954 33.046 2 22 2Z" fill="url(#searchPinGrad)" stroke="white" strokeWidth="3"/>
@@ -82,8 +82,8 @@ const searchLocationIcon = new L.DivIcon({
       </svg>
     </div>
   ),
-  iconSize: [44, 58],
-  iconAnchor: [22, 56]
+  iconSize: [34, 45],
+  iconAnchor: [17, 45]
 });
 
 export default function StoreScannerMap() {
