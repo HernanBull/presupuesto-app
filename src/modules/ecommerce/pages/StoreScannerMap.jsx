@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
 import MapSettingsModal from '../components/MapSettingsModal';
+import MapFiltersModal from '../components/MapFiltersModal';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Search, SlidersHorizontal, Clock, Settings, Crosshair, X, Store, Navigation, ChevronUp } from 'lucide-react';
@@ -93,6 +94,8 @@ export default function StoreScannerMap() {
   const [mapCenter, setMapCenter] = useState(null);
   const [isMapMoved, setIsMapMoved] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({ ofertas: [], categorias: [], abiertoAhora: false });
   const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(true);
   const [scanRadius, setScanRadius] = useState(1000);
   const [showZones, setShowZones] = useState(false);
@@ -477,6 +480,7 @@ export default function StoreScannerMap() {
           filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
         }
       `}</style>
+      <MapFiltersModal isOpen={isFiltersModalOpen} onClose={() => setIsFiltersModalOpen(false)} filters={activeFilters} setFilters={setActiveFilters} />
     </div>
   );
 }
