@@ -64,6 +64,7 @@ function MapEventsHandler({ setMapCenter, setIsMapMoved }) {
 export default function StoreScannerMap() {
   const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
+  const [searchAreas, setSearchAreas] = useState([]);
   const [mapCenter, setMapCenter] = useState(null);
   const [isMapMoved, setIsMapMoved] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -85,26 +86,37 @@ export default function StoreScannerMap() {
         (position) => {
           setUserLocation([position.coords.latitude, position.coords.longitude]);
           setMapCenter({ lat: position.coords.latitude, lng: position.coords.longitude });
+          setSearchAreas([{ lat: position.coords.latitude, lng: position.coords.longitude, radius: 1000 }]);
           fetchStores([position.coords.latitude, position.coords.longitude]);
         },
         (error) => {
           console.error("Error obtaining location", error);
           setUserLocation(defaultLocation);
           setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
+          setSearchAreas([{ lat: defaultLocation[0], lng: defaultLocation[1], radius: 1000 }]);
           fetchStores(defaultLocation);
         },
         { enableHighAccuracy: true }
       );
     } else {
       setUserLocation(defaultLocation);
-      setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
-      fetchStores(defaultLocation);
+          setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
+          setSearchAreas([{ lat: defaultLocation[0], lng: defaultLocation[1], radius: 1000 }]);
+          fetchStores(defaultLocation);
     }
   }, []); // Empty dependency array ensures GPS is only asked once
 
-  // 2. Re-fetch when filters change, using current map center
+  // 2. Re-fetch when filters change, update last search area radius
   useEffect(() => {
-    if (mapCenter) {
+    if (searchAreas.length > 0) {
+      const last = searchAreas[searchAreas.length - 1];
+      setSearchAreas(prev => {
+        const arr = [...prev];
+        arr[arr.length - 1].radius = scanRadius;
+        return arr;
+      });
+      fetchStores([last.lat, last.lng]);
+    } else if (mapCenter) {
       fetchStores([mapCenter.lat, mapCenter.lng]);
     }
   }, [scanRadius, onlyMalls]);
@@ -186,12 +198,20 @@ export default function StoreScannerMap() {
                {/* This is handled visually with CSS below, but we can put a marker */}
             </div>
 
-            {/* Radar Scanning Radius Circle */}
-            <Circle 
-              center={mapCenter || userLocation} 
-              radius={scanRadius} 
-              pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.15, weight: 2 }} 
-            />
+            {/* Search History Circles */}
+            {searchAreas.map((area, idx) => (
+              <Circle 
+                key={idx}
+                center={{ lat: area.lat, lng: area.lng }} 
+                radius={area.radius} 
+                pathOptions={{ 
+                  color: idx === searchAreas.length - 1 ? '#f59e0b' : '#71717a', 
+                  fillColor: idx === searchAreas.length - 1 ? '#f59e0b' : '#71717a', 
+                  fillOpacity: idx === searchAreas.length - 1 ? 0.15 : 0.05, 
+                  weight: idx === searchAreas.length - 1 ? 2 : 1 
+                }} 
+              />
+            ))}
 
             {/* User Location Marker */}
             <MapEventsHandler setMapCenter={setMapCenter} setIsMapMoved={setIsMapMoved} />
@@ -238,13 +258,7 @@ export default function StoreScannerMap() {
             </g>
           </svg>
           
-          {/* Radar scanning effect */}
-          {isScanning && (
-            <>
-              <div className="absolute top-[18px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-amber-500/30 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-              <div className="absolute top-[18px] left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-amber-500/20 rounded-full animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-            </>
-          )}
+          
         </div>
       </div>
 
@@ -296,6 +310,7 @@ export default function StoreScannerMap() {
               exit={{ opacity: 0, scale: 0.9 }}
               onClick={() => {
                 setIsMapMoved(false);
+                setSearchAreas(prev => [...prev, { lat: mapCenter.lat, lng: mapCenter.lng, radius: scanRadius }]);
                 fetchStores([mapCenter.lat, mapCenter.lng]);
               }}
               className="pointer-events-auto px-6 py-2.5 bg-amber-500 text-zinc-900 font-bold text-sm rounded-full shadow-[0_4px_20px_rgba(245,158,11,0.4)] border-2 border-white flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
