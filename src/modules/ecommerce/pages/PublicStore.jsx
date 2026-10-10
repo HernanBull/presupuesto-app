@@ -1856,13 +1856,9 @@ export default function PublicStore() {
                   ) : (
                     <div 
                       onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)}
-                      className="w-full h-full cursor-pointer relative bg-[#e5e3df]"
+                      className="w-full h-full cursor-pointer relative bg-zinc-100 flex items-center justify-center overflow-hidden group"
                     >
-                      <div className="absolute inset-0 opacity-30" style={{ backgroundImage: "url('https://www.transparenttextures.com/patterns/pinstriped-suit.png')" }}></div>
-                      <div className="absolute top-1/4 left-0 w-full h-[3px] bg-white/40 -rotate-6"></div>
-                      <div className="absolute top-1/2 left-0 w-full h-[6px] bg-white/50 rotate-3"></div>
-                      <div className="absolute top-0 left-1/3 w-[4px] h-full bg-white/40 rotate-12"></div>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 to-zinc-100 opacity-50"></div>
                         <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
                           {config?.logoUrl ? (
                             <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
@@ -1922,10 +1918,9 @@ export default function PublicStore() {
         {/* OFERTAS */}
         {currentPage === 'offers' && (
           <div className="flex-1 flex flex-col w-full relative">
-            <div className="py-12 px-6 md:px-12 border-b border-white/5 bg-zinc-950 relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-[400px] h-[400px] blur-[150px] opacity-20 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
+            <div className="py-12 px-6 md:px-12 border-b border-zinc-200 bg-white relative overflow-hidden">
                <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center">
-                 <h1 className={`${headingWeight} text-4xl md:text-5xl text-white tracking-tight`}>{texts.offersTitle || 'Ofertas'}</h1>
+                 <h1 className={`${headingWeight} text-4xl md:text-5xl text-black tracking-tight`}>{texts.offersTitle || 'Ofertas'}</h1>
                </div>
             </div>
             
@@ -2034,9 +2029,8 @@ export default function PublicStore() {
         {/* PRODUCTOS */}
         {currentPage === 'products' && (
           <div className="flex-1 flex flex-col w-full">
-            <div className="py-16 px-6 md:px-12 text-center border-b border-white/5 bg-zinc-950 relative overflow-hidden">
-               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] blur-[150px] opacity-10 pointer-events-none" style={{ backgroundColor: primaryColor }}></div>
-               <h1 className={`${headingWeight} text-4xl md:text-6xl text-white tracking-tighter relative z-10`}>{texts.catalogTitle || 'Productos'}</h1>
+            <div className="py-16 px-6 md:px-12 text-center border-b border-zinc-200 bg-white relative overflow-hidden">
+               <h1 className={`${headingWeight} text-4xl md:text-6xl text-black tracking-tighter relative z-10`}>{texts.catalogTitle || 'Productos'}</h1>
                
                <div className="max-w-2xl mx-auto mt-8 relative z-10">
                  <div className="relative">
