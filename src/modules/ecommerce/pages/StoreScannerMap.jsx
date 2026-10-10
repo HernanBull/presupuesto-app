@@ -67,7 +67,7 @@ export default function StoreScannerMap() {
       setIsScanning(true);
       // Query stores that have lat & lng
       const { data, error } = await supabase
-        .from('store_profiles')
+        .from('workspaces')
         .select('*')
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
@@ -213,8 +213,8 @@ export default function StoreScannerMap() {
             
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                {selectedStore.logo_url ? (
-                  <img src={selectedStore.logo_url} alt={selectedStore.name} className="w-full h-full object-cover" />
+                {selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl ? (
+                  <img src={selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl} alt={selectedStore.name} className="w-full h-full object-cover" />
                 ) : (
                   <Store size={24} className="text-zinc-500" />
                 )}
@@ -222,7 +222,7 @@ export default function StoreScannerMap() {
               
               <div className="flex-1">
                 <h2 className="text-white font-bold text-lg leading-tight">{selectedStore.name}</h2>
-                <p className="text-zinc-400 text-sm mt-1">{selectedStore.business_type || 'Tienda'}</p>
+                <p className="text-zinc-400 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
                 <div className="flex items-center gap-3 mt-3">
                   <span className="flex items-center gap-1 text-teal-400 text-xs font-medium bg-teal-400/10 px-2 py-1 rounded-md">
                     <Navigation size={12} /> {(Math.random() * 5 + 0.5).toFixed(1)} km
@@ -233,7 +233,7 @@ export default function StoreScannerMap() {
             </div>
             
             <button 
-              onClick={() => navigate(`/store/${selectedStore.business_name_slug || selectedStore.id}`)}
+              onClick={() => navigate(`/store/${selectedStore.store_slug || selectedStore.id}`)}
               className="w-full bg-white text-black font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
             >
               Visitar Tienda
