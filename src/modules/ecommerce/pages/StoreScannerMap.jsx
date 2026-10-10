@@ -49,7 +49,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 // Component to listen to map drag/pan events
 function MapEventsHandler({ setMapCenter, setIsMapMoved }) {
   const map = useMapEvents({
-    move: () => {
+    moveend: () => {
       setMapCenter(map.getCenter());
       setIsMapMoved(true);
     },
@@ -198,23 +198,7 @@ export default function StoreScannerMap() {
         {/* Fixed Central Pin & Search Button Overlay */}
       <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-[50]">
         
-        {/* Buscar Aquí Button */}
-        <AnimatePresence>
-          {isMapMoved && (
-            <motion.button 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              onClick={() => {
-                setIsMapMoved(false);
-                fetchStores([mapCenter.lat, mapCenter.lng]);
-              }}
-              className="pointer-events-auto mb-4 px-6 py-2.5 bg-[#1A1A1A] text-white font-medium text-sm rounded-full shadow-xl border border-white/10 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              Buscar aquí
-            </motion.button>
-          )}
-        </AnimatePresence>
+        
 
         {/* Central Pin (Fixed) */}
         <div className="relative mt-2" style={{ filter: 'drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.4))' }}>
@@ -273,6 +257,26 @@ export default function StoreScannerMap() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Buscar Aquí Button Repositioned */}
+      <div className="absolute top-28 left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex justify-center w-full">
+        <AnimatePresence>
+          {isMapMoved && (
+            <motion.button 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              onClick={() => {
+                setIsMapMoved(false);
+                fetchStores([mapCenter.lat, mapCenter.lng]);
+              }}
+              className="pointer-events-auto px-6 py-2.5 bg-[#1A1A1A] text-white font-medium text-sm rounded-full shadow-xl border border-white/10 transition-transform hover:scale-105 active:scale-95"
+            >
+              Buscar aquí
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* FLOATING ACTION BUTTONS (RIGHT) */}
