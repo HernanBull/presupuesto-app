@@ -159,30 +159,30 @@ export default function StoreScannerMap() {
       <div className="absolute top-0 left-0 right-0 z-40 p-4 safe-area-pt">
         <div className="flex gap-2 items-start">
           
-          <button onClick={() => navigate(-1)} className="mt-1 flex-shrink-0 w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+          <button onClick={() => navigate(-1)} className="mt-1 flex-shrink-0 w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
              <X size={20} />
           </button>
           
           <div className="flex-1 space-y-3">
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-zinc-400" />
+                <Search size={18} className="text-zinc-500" />
               </div>
               <input 
                 type="text" 
                 placeholder="Buscar tiendas..." 
-                className="w-full bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors shadow-lg"
+                className="w-full bg-white/95 backdrop-blur-xl border border-zinc-200/60 rounded-2xl py-3 pl-10 pr-4 text-zinc-800 text-sm focus:outline-none focus:border-teal-500 transition-colors shadow-lg"
               />
             </div>
             
             <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
                 <SlidersHorizontal size={14} /> Filtros
               </button>
-              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
                 <Store size={14} /> Ofertas
               </button>
-              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
                 <Clock size={14} /> Abierto ahora
               </button>
             </div>
@@ -192,10 +192,10 @@ export default function StoreScannerMap() {
 
       {/* FLOATING ACTION BUTTONS (RIGHT) */}
       <div className="absolute top-32 right-4 z-40 flex flex-col gap-3">
-        <button className="w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+        <button className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
           <Settings size={20} />
         </button>
-        <button onClick={centerOnUser} className="w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+        <button onClick={centerOnUser} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
           <Crosshair size={20} />
         </button>
       </div>
@@ -208,12 +208,12 @@ export default function StoreScannerMap() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 z-50 bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
+            className="absolute bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl border-t border-zinc-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
           >
-            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-6"></div>
+            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-6"></div>
             
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-zinc-100 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
                 {selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl ? (
                   <img src={selectedStore.config?.logoUrl || selectedStore.config?.storefront?.logoUrl} alt={selectedStore.name} className="w-full h-full object-cover" />
                 ) : (
@@ -222,10 +222,10 @@ export default function StoreScannerMap() {
               </div>
               
               <div className="flex-1">
-                <h2 className="text-white font-bold text-lg leading-tight">{selectedStore.name}</h2>
-                <p className="text-zinc-400 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
+                <h2 className="text-zinc-800 font-bold text-lg leading-tight">{selectedStore.name}</h2>
+                <p className="text-zinc-500 text-sm mt-1">{selectedStore.config?.business_type || 'Tienda'}</p>
                 <div className="flex items-center gap-3 mt-3">
-                  <span className="flex items-center gap-1 text-teal-400 text-xs font-medium bg-teal-400/10 px-2 py-1 rounded-md">
+                  <span className="flex items-center gap-1 text-amber-600 text-xs font-medium bg-amber-500/10 px-2 py-1 rounded-md">
                     <Navigation size={12} /> {(Math.random() * 5 + 0.5).toFixed(1)} km
                   </span>
                   <span className="text-zinc-500 text-xs">Aprox 15 min</span>
@@ -235,7 +235,7 @@ export default function StoreScannerMap() {
             
             <button 
               onClick={() => navigate(`/store/${selectedStore.store_slug || selectedStore.id}`)}
-              className="w-full bg-white text-black font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
+              className="w-full bg-amber-500 text-white hover:bg-amber-600 font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
             >
               Visitar Tienda
             </button>
@@ -244,26 +244,26 @@ export default function StoreScannerMap() {
           <motion.div 
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
-            className="absolute bottom-0 left-0 right-0 z-50 bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
+            className="absolute bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl border-t border-zinc-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
           >
-            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-6"></div>
+            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-6"></div>
             <div className="flex flex-col items-center justify-center py-4">
               {isScanning ? (
                 <>
-                  <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-teal-500 animate-spin mb-4"></div>
-                  <p className="text-white font-bold">Escaneando zona...</p>
+                  <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-amber-500 animate-spin mb-4"></div>
+                  <p className="text-zinc-800 font-bold">Escaneando zona...</p>
                   <p className="text-zinc-500 text-sm mt-1">Buscando comercios cercanos</p>
                 </>
               ) : stores.length > 0 ? (
                 <>
-                  <Store size={32} className="text-teal-500 mb-3" />
-                  <p className="text-white font-bold text-lg">{stores.length} comercios encontrados</p>
+                  <Store size={32} className="text-amber-500 mb-3" />
+                  <p className="text-zinc-800 font-bold text-lg">{stores.length} comercios encontrados</p>
                   <p className="text-zinc-500 text-sm mt-1">Toca un pin para ver detalles</p>
                 </>
               ) : (
                 <>
                   <Store size={32} className="text-zinc-600 mb-3" />
-                  <p className="text-white font-bold text-lg">No hay comercios</p>
+                  <p className="text-zinc-800 font-bold text-lg">No hay comercios</p>
                   <p className="text-zinc-500 text-sm mt-1">Intenta ampliar tu radio de búsqueda</p>
                 </>
               )}
