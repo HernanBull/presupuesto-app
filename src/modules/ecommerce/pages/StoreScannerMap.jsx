@@ -1,0 +1,289 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { Search, SlidersHorizontal, Clock, Settings, Crosshair, X, Store, Navigation } from 'lucide-react';
+import { supabase } from '../../../supabaseClient';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// Fix for default Leaflet markers not showing in React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Custom Store Icon
+const storeIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2809/2809854.png',
+  iconSize: [35, 35],
+  iconAnchor: [17, 35],
+  popupAnchor: [0, -35],
+});
+
+// Component to dynamically change map view
+function ChangeView({ center, zoom }) {
+  const map = useMap();
+  map.setView(center, zoom);
+  return null;
+}
+
+export default function StoreScannerMap() {
+  const navigate = useNavigate();
+  const [userLocation, setUserLocation] = useState(null);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [isScanning, setIsScanning] = useState(true);
+
+  // Caracas coordinates as default fallback
+  const defaultLocation = [10.4806, -66.9036]; 
+
+  useEffect(() => {
+    // 1. Get user location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          fetchStores([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.error("Error obtaining location", error);
+          setUserLocation(defaultLocation);
+          fetchStores(defaultLocation);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      setUserLocation(defaultLocation);
+      fetchStores(defaultLocation);
+    }
+  }, []);
+
+  const fetchStores = async (location) => {
+    try {
+      setIsScanning(true);
+      // Query stores that have lat & lng
+      const { data, error } = await supabase
+        .from('store_profiles')
+        .select('*')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      if (error) throw error;
+      setStores(data || []);
+      
+      // Simulate scan time
+      setTimeout(() => {
+        setIsScanning(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error("Error fetching stores for map:", error);
+      setIsScanning(false);
+    }
+  };
+
+  const centerOnUser = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setUserLocation([position.coords.latitude, position.coords.longitude]);
+      });
+    }
+  };
+
+  return (
+    <div className="relative w-full h-screen bg-slate-900 overflow-hidden font-sans">
+      
+      {/* MAP LAYER */}
+      <div className="absolute inset-0 z-0">
+        {userLocation && (
+          <MapContainer 
+            center={userLocation} 
+            zoom={14} 
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+          >
+            <ChangeView center={userLocation} zoom={14} />
+            
+            {/* Dark themed map tiles (CartoDB Dark Matter or similar) */}
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            />
+            
+            {/* Radar Circle Animation around user */}
+            <div className="leaflet-overlay-pane">
+               {/* This is handled visually with CSS below, but we can put a marker */}
+            </div>
+
+            {/* User Location Marker */}
+            <Marker position={userLocation}>
+              <Popup>
+                Tu ubicación actual
+              </Popup>
+            </Marker>
+
+            {/* Store Pins */}
+            {stores.map((store) => (
+              <Marker 
+                key={store.id} 
+                position={[store.latitude, store.longitude]}
+                icon={storeIcon}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedStore(store);
+                  },
+                }}
+              >
+              </Marker>
+            ))}
+          </MapContainer>
+        )}
+
+        {/* Radar Effect CSS Overlay centered on user */}
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+           {isScanning && (
+             <div className="relative">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-teal-500/30 rounded-full animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-teal-500/20 rounded-full animate-[ping_4s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+             </div>
+           )}
+        </div>
+      </div>
+
+      {/* TOP FLOATING HEADER */}
+      <div className="absolute top-0 left-0 right-0 z-40 p-4 safe-area-pt">
+        <div className="flex gap-2 items-start">
+          
+          <button onClick={() => navigate(-1)} className="mt-1 flex-shrink-0 w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+             <X size={20} />
+          </button>
+          
+          <div className="flex-1 space-y-3">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-zinc-400" />
+              </div>
+              <input 
+                type="text" 
+                placeholder="Buscar tiendas..." 
+                className="w-full bg-zinc-900/90 backdrop-blur-md border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors shadow-lg"
+              />
+            </div>
+            
+            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+                <SlidersHorizontal size={14} /> Filtros
+              </button>
+              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+                <Store size={14} /> Ofertas
+              </button>
+              <button className="flex-shrink-0 bg-zinc-900/90 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-white text-xs font-medium flex items-center gap-1">
+                <Clock size={14} /> Abierto ahora
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FLOATING ACTION BUTTONS (RIGHT) */}
+      <div className="absolute top-32 right-4 z-40 flex flex-col gap-3">
+        <button className="w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+          <Settings size={20} />
+        </button>
+        <button onClick={centerOnUser} className="w-10 h-10 bg-zinc-900/90 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg">
+          <Crosshair size={20} />
+        </button>
+      </div>
+
+      {/* BOTTOM SHEET / STORE PREVIEW */}
+      <AnimatePresence>
+        {selectedStore ? (
+          <motion.div 
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
+          >
+            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-6"></div>
+            
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                {selectedStore.logo_url ? (
+                  <img src={selectedStore.logo_url} alt={selectedStore.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Store size={24} className="text-zinc-500" />
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <h2 className="text-white font-bold text-lg leading-tight">{selectedStore.name}</h2>
+                <p className="text-zinc-400 text-sm mt-1">{selectedStore.business_type || 'Tienda'}</p>
+                <div className="flex items-center gap-3 mt-3">
+                  <span className="flex items-center gap-1 text-teal-400 text-xs font-medium bg-teal-400/10 px-2 py-1 rounded-md">
+                    <Navigation size={12} /> {(Math.random() * 5 + 0.5).toFixed(1)} km
+                  </span>
+                  <span className="text-zinc-500 text-xs">Aprox 15 min</span>
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => navigate(`/store/${selectedStore.business_name_slug || selectedStore.id}`)}
+              className="w-full bg-white text-black font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
+            >
+              Visitar Tienda
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div 
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            className="absolute bottom-0 left-0 right-0 z-50 bg-zinc-950 rounded-t-3xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] p-6 pb-8"
+          >
+            <div className="w-12 h-1.5 bg-zinc-800 rounded-full mx-auto mb-6"></div>
+            <div className="flex flex-col items-center justify-center py-4">
+              {isScanning ? (
+                <>
+                  <div className="w-12 h-12 rounded-full border-4 border-zinc-800 border-t-teal-500 animate-spin mb-4"></div>
+                  <p className="text-white font-bold">Escaneando zona...</p>
+                  <p className="text-zinc-500 text-sm mt-1">Buscando comercios cercanos</p>
+                </>
+              ) : stores.length > 0 ? (
+                <>
+                  <Store size={32} className="text-teal-500 mb-3" />
+                  <p className="text-white font-bold text-lg">{stores.length} comercios encontrados</p>
+                  <p className="text-zinc-500 text-sm mt-1">Toca un pin para ver detalles</p>
+                </>
+              ) : (
+                <>
+                  <Store size={32} className="text-zinc-600 mb-3" />
+                  <p className="text-white font-bold text-lg">No hay comercios</p>
+                  <p className="text-zinc-500 text-sm mt-1">Intenta ampliar tu radio de búsqueda</p>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        /* Make sure Leaflet maps don't inherit z-index issues from Tailwind */
+        .leaflet-container {
+          z-index: 10;
+        }
+      `}</style>
+    </div>
+  );
+}

@@ -24,6 +24,7 @@ import StoreProfileManager from './pages/StoreProfileManager';
 import StoreLocationManager from './pages/StoreLocationManager';
 import PublicStore from './pages/PublicStore';
 import MarketplaceDirectory from './pages/MarketplaceDirectory';
+import StoreScannerMap from './pages/StoreScannerMap';
 import PricingPage from './pages/PricingPage';
 import CustomerProfile from './pages/CustomerProfile';
 import CustomerChatsPage from './pages/CustomerChatsPage';
