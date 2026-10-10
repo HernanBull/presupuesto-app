@@ -306,14 +306,14 @@ export default function StoreScannerMap() {
             </div>
             
             <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
-                <SlidersHorizontal size={14} /> Filtros
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
+                <SlidersHorizontal size={13} /> Filtros
               </button>
-              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
-                <Store size={14} /> Ofertas
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
+                <Store size={13} /> Ofertas
               </button>
-              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl border border-zinc-200/60 px-3 py-1.5 rounded-xl text-zinc-800 text-xs font-medium flex items-center gap-1">
-                <Clock size={14} /> Abierto ahora
+              <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
+                <Clock size={13} /> Abierto ahora
               </button>
             </div>
           </div>
@@ -321,33 +321,33 @@ export default function StoreScannerMap() {
       </div>
 
       {/* Buscar Aquí Button Repositioned */}
-      <div className="absolute top-28 left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex justify-center w-full">
+      <div className="absolute top-36 left-1/2 -translate-x-1/2 z-[60] pointer-events-none flex justify-center w-full">
         <AnimatePresence>
           {isMapMoved && (
             <motion.button 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               onClick={() => {
                 setIsMapMoved(false);
                 setActiveSearchLocation({ lat: mapCenter.lat, lng: mapCenter.lng });
                 fetchStores([mapCenter.lat, mapCenter.lng]);
               }}
-              className="pointer-events-auto px-6 py-2.5 bg-amber-500 text-zinc-900 font-bold text-sm rounded-full shadow-[0_4px_20px_rgba(245,158,11,0.4)] border-2 border-white flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+              className="pointer-events-auto px-4 py-2 bg-zinc-900 text-white font-semibold text-xs rounded-full shadow-lg border border-zinc-700 flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
             >
-              <Search size={16} /> Buscar en esta zona
+              <Search size={14} /> Buscar en esta zona
             </motion.button>
           )}
         </AnimatePresence>
       </div>
 
       {/* FLOATING ACTION BUTTONS (RIGHT) */}
-      <div className="absolute top-32 right-4 z-40 flex flex-col gap-3">
-        <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
-          <Settings size={20} />
+      <div className="absolute top-1/2 -translate-y-1/2 right-4 z-40 flex flex-col gap-3">
+        <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-full flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md">
+          <Settings size={18} />
         </button>
-        <button onClick={centerOnUser} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-xl flex items-center justify-center text-zinc-800 border border-zinc-200/60 shadow-lg">
-          <Crosshair size={20} />
+        <button onClick={centerOnUser} className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-full flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md">
+          <Crosshair size={18} />
         </button>
       </div>
 
