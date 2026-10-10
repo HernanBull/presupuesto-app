@@ -98,6 +98,11 @@
     color: var(--text-main) !important;
   }
   
+  /* Excepción: Textos que estrictamente DEBEN ser blancos (ej. sobre imágenes oscuras) */
+  .text-pure-white {
+    color: #FFFFFF !important;
+  }
+  
   /* Textos grises intermedios los oscurecemos un poco */
   .text-zinc-300, .text-zinc-400 {
     color: var(--text-muted) !important;

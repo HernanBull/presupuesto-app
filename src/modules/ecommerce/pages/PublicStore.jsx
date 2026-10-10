@@ -1549,8 +1549,8 @@ export default function PublicStore() {
                 <ChevronLeft size={24} />
               </button>
               <div className="flex flex-col items-center">
-                <span className="font-bold text-lg">{config?.business_name || 'Mi Tienda'}</span>
-                <span className="text-xs text-zinc-300">A 13.98 Km de ti</span>
+                <span className="font-bold text-lg text-pure-white">{config?.business_name || 'Mi Tienda'}</span>
+                <span className="text-xs text-pure-white opacity-80">A 13.98 Km de ti</span>
               </div>
               <div className="w-10"></div>
 
@@ -1594,11 +1594,11 @@ export default function PublicStore() {
               {/* Title & Slug */}
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center gap-2 justify-center">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-pure-white">
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
                 </div>
-                <p className="text-zinc-400 text-base mt-1">@{slug}</p>
+                <p className="text-pure-white opacity-80 text-base mt-1">@{slug}</p>
                 
                 {/* Rating & Delivery */}
                 <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
@@ -1624,7 +1624,7 @@ export default function PublicStore() {
                           <span className="text-red-600 text-sm">M</span>
                           <Zap size={14} className="fill-yellow-400 text-yellow-400 ml-0.5" />
                         </div>
-                        <span className="text-white text-xs font-semibold tracking-wide">en minutos</span>
+                        <span className="text-pure-white text-xs font-semibold tracking-wide">en minutos</span>
                       </button>
                     </>
                   )}
