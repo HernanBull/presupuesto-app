@@ -358,8 +358,11 @@ export default function StoreScannerMap() {
         {/* FILTERS (Arribita del bottom sheet) */}
         <div className="p-4 pointer-events-auto">
           <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
+            <button onClick={() => setIsFiltersModalOpen(true)} className="relative flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
               <SlidersHorizontal size={13} /> Filtros
+              {(activeFilters.ofertas?.length > 0 || activeFilters.categorias?.length > 0 || activeFilters.abiertoAhora) && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 absolute top-0 right-0 -mt-0.5 -mr-0.5 shadow-sm border border-white"></span>
+              )}
             </button>
             <button className="flex-shrink-0 bg-white/95 backdrop-blur-xl shadow-sm border border-zinc-200 px-3.5 py-1.5 rounded-full text-zinc-700 text-xs font-semibold flex items-center gap-1">
               <Store size={13} /> Ofertas
