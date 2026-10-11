@@ -119,13 +119,13 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       setFormData({
         name: isDefaultName ? '' : (defaultName || ''),
         phone: customer.phone || '',
-        docId: customer.docId || '',
+        docId: customer.docId || customer.doc_id || '',
         addressSector: '',
         addressDetail: defaultAddress || '',
         payment_bank: paymentProfile.bank || '',
         payment_phone: paymentProfile.phone || '',
-        payment_cedula: paymentProfile.cedula || '',
-        payment_titular: paymentProfile.titular || '',
+        payment_cedula: paymentProfile.cedula || customer.docId || customer.doc_id || '',
+        payment_titular: paymentProfile.titular || (isDefaultName ? '' : (defaultName || '')),
         profile_pic: customer.profile_pic || '',
         lat: defaultLat,
         lng: defaultLng
@@ -136,10 +136,68 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
 
   if (!isOpen) return null;
 
+  const handlePhoneChange = (e) => {
+    const raw = e.target.value;
+    const digits = raw.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 4) {
+      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    }
+    setFormData(prev => ({ ...prev, phone: formatted }));
+  };
+
+  const handleDocIdChange = (e) => {
+    const val = e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12);
+    setFormData(prev => ({ ...prev, docId: val }));
+  };
+
+  const handlePaymentPhoneChange = (e) => {
+    const raw = e.target.value;
+    const digits = raw.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 4) {
+      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    }
+    setFormData(prev => ({ ...prev, payment_phone: formatted }));
+  };
+
+  const cleanPhone = (formData.phone || '').replace(/\D/g, '');
+  const cleanDoc = (formData.docId || '').replace(/\D/g, '');
+  const isNameValid = (formData.name || '').trim().length >= 3;
+  const isDocValid = cleanDoc.length >= 6;
+  const isPhoneValid = cleanPhone.length >= 11;
+
+  const cleanPayPhone = (formData.payment_phone || '').replace(/\D/g, '');
+  const cleanPayCedula = (formData.payment_cedula || '').replace(/\D/g, '');
+  const isPayPhoneValid = cleanPayPhone.length >= 11;
+  const isPayDocValid = cleanPayCedula.length >= 6;
+
+  const isStep0Valid = isNameValid && isDocValid && isPhoneValid;
+  const isStep1Valid = Boolean(formData.payment_bank) && isPayPhoneValid && isPayDocValid && Boolean(formData.payment_titular);
+  const isStep2Valid = Boolean(formData.addressSector) && Boolean(formData.addressDetail);
+  const isStep3Valid = Boolean(imageFile) || Boolean(formData.profile_pic);
+
+  let isCurrentStepValid = true;
+  if (step === 0) isCurrentStepValid = isStep0Valid;
+  if (step === 1) isCurrentStepValid = isStep1Valid;
+  if (step === 2) isCurrentStepValid = isStep2Valid;
+  if (step === 3) isCurrentStepValid = isStep3Valid;
+
+  const isNextDisabled = isSubmitting || !isCurrentStepValid;
+
   const handleNext = async () => {
     // Validate current step
-    if (step === 0 && (!formData.name || !formData.docId || !formData.phone)) return alert('Completa los datos personales');
-    if (step === 1 && (!formData.payment_bank || !formData.payment_phone || !formData.payment_cedula || !formData.payment_titular)) return alert('Completa los datos de pago móvil');
+    if (step === 0) {
+      if (!formData.name || formData.name.trim().length < 3) return alert('Por favor completa tu nombre completo.');
+      if (cleanDoc.length < 6) return alert('La cédula o RIF debe tener al menos 6 números.');
+      if (cleanPhone.length < 11) return alert('El teléfono debe tener al menos 11 números (Ej. 0414-1234567).');
+    }
+    if (step === 1) {
+      if (!formData.payment_bank) return alert('Selecciona tu banco para Pago Móvil.');
+      if (cleanPayPhone.length < 11) return alert('El teléfono de Pago Móvil debe tener al menos 11 números.');
+      if (cleanPayCedula.length < 6) return alert('La cédula de Pago Móvil debe tener al menos 6 números.');
+      if (!formData.payment_titular) return alert('El nombre del titular es requerido.');
+    }
     if (step === 2 && (!formData.addressSector || !formData.addressDetail)) return alert('Ingresa tu sector y dirección exacta de entrega');
 
     if (step < 3) {
@@ -308,9 +366,12 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
   };
 
   const renderStepIndicator = () => (
-    <div className="flex gap-2 mb-8 mt-2">
+    <div className="flex gap-2 mb-6">
       {[0,1,2,3].map((s) => (
-        <div key={s} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${s <= step ? 'bg-indigo-500' : 'bg-white/10'}`} />
+        <div 
+          key={s} 
+          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= step ? 'bg-amber-500' : 'bg-slate-200'}`} 
+        />
       ))}
     </div>
   );
@@ -321,210 +382,290 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       onClose={canClose ? onClose : () => {}}
       title="Completa tu Perfil"
       showCloseButton={canClose}
-      className="md:max-w-md !bg-[#111111] border border-white/10"
-      contentClassName="p-8 relative"
+      className="md:max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl"
+      contentClassName="p-6 sm:p-8 relative bg-white text-slate-800"
     >
-      <div className="mb-6 mt-2">
+      <div className="mb-6 mt-1">
         {renderStepIndicator()}
       </div>
 
-            <div className="min-h-[200px] flex flex-col justify-center">
-              <AnimatePresence mode="wait">
-                {step === 0 && (
-                  <motion.div key="step0" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl"><User size={24} /></div>
-                      <h3 className="text-xl font-bold text-white">Datos Personales</h3>
-                    </div>
-                    <div className="space-y-4">
-                      <input type="text" placeholder="Nombre Completo" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
-                      <input type="text" placeholder="Cédula o RIF" value={formData.docId} onChange={e => setFormData({...formData, docId: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
-                      <input type="tel" inputMode="numeric" placeholder="Teléfono (Ej. 0414-1234567)" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500" />
-                    </div>
-                  </motion.div>
-                )}
+      <div className="min-h-[220px] flex flex-col justify-center">
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div key="step0" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-200/60 shadow-sm"><User size={24} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Datos Personales</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Información básica para tus pedidos y entregas.</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <input 
+                    type="text" 
+                    placeholder="Nombre Completo" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-sm font-medium shadow-sm" 
+                  />
+                </div>
+                <div>
+                  <input 
+                    type="text" 
+                    placeholder="Cédula o RIF (Mínimo 6 dígitos)" 
+                    value={formData.docId} 
+                    onChange={handleDocIdChange} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-sm font-mono shadow-sm" 
+                  />
+                  <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                    <span className="text-slate-400">Mínimo 6 dígitos</span>
+                    <span className={cleanDoc.length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                      {cleanDoc.length}/6 {cleanDoc.length >= 6 ? "✓ Completa" : ""}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric" 
+                    placeholder="Teléfono (Ej. 0414-1234567)" 
+                    value={formData.phone} 
+                    onChange={handlePhoneChange} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-sm font-mono shadow-sm" 
+                  />
+                  <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                    <span className="text-slate-400">11 dígitos requeridos</span>
+                    <span className={cleanPhone.length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                      {cleanPhone.length}/11 {cleanPhone.length >= 11 ? "✓ Completo" : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-                {step === 1 && (
-                  <motion.div key="step1" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl"><Banknote size={24} /></div>
-                      <h3 className="text-xl font-bold text-white">Tu Pago Móvil</h3>
-                    </div>
-                    <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-xl mb-4 text-xs text-red-200">
-                      <strong>⚠️ Prevención de Fraude y Triangulación:</strong><br />
-                      El pago móvil afiliado DEBE pertenecer a tu misma titularidad. La cédula y nombre se han bloqueado por seguridad. No aceptamos pagos de terceros.
-                    </div>
-                    <p className="text-zinc-400 text-xs mb-4">Ingresa los datos desde donde harás los pagos para aprobarlos más rápido.</p>
-                    <div className="space-y-4">
-                      <select value={formData.payment_bank} onChange={e => setFormData({...formData, payment_bank: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
-                        <option value="" className="text-black bg-white">Selecciona un Banco</option>
-                        {VZLA_BANKS.map(b => <option key={b} value={b} className="text-black bg-white">{b}</option>)}
-                      </select>
-                      <input type="tel" inputMode="numeric" placeholder="Teléfono afiliado" value={formData.payment_phone} onChange={e => setFormData({...formData, payment_phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500" />
-                      <input type="text" placeholder="Cédula afiliada" value={formData.payment_cedula} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
-                      <input type="text" placeholder="Nombre del titular" value={formData.payment_titular} disabled className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
-                    </div>
-                  </motion.div>
-                )}
+          {step === 1 && (
+            <motion.div key="step1" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-200/60 shadow-sm"><Banknote size={24} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Tu Pago Móvil</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Cuenta desde donde emitirás tus pagos.</p>
+                </div>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl mb-4 text-xs text-amber-900 leading-relaxed shadow-sm">
+                <strong>⚠️ Prevención de Fraude y Triangulación:</strong><br />
+                El pago móvil afiliado DEBE pertenecer a tu misma titularidad. La cédula y nombre se han bloqueado por seguridad. No aceptamos pagos de terceros.
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <select 
+                    value={formData.payment_bank} 
+                    onChange={e => setFormData({...formData, payment_bank: e.target.value})} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white text-sm font-medium shadow-sm appearance-none"
+                  >
+                    <option value="" className="text-slate-900 bg-white">Selecciona tu Banco</option>
+                    {VZLA_BANKS.map(b => <option key={b} value={b} className="text-slate-900 bg-white">{b}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric" 
+                    placeholder="Teléfono afiliado (Ej. 0414-1234567)" 
+                    value={formData.payment_phone} 
+                    onChange={handlePaymentPhoneChange} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white text-sm font-mono shadow-sm" 
+                  />
+                  <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                    <span className="text-slate-400">11 dígitos requeridos</span>
+                    <span className={cleanPayPhone.length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                      {cleanPayPhone.length}/11 {cleanPayPhone.length >= 11 ? "✓ Completo" : ""}
+                    </span>
+                  </div>
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Cédula afiliada" 
+                  value={formData.payment_cedula} 
+                  disabled 
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm font-mono cursor-not-allowed shadow-inner" 
+                />
+                <input 
+                  type="text" 
+                  placeholder="Nombre del titular" 
+                  value={formData.payment_titular} 
+                  disabled 
+                  className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm cursor-not-allowed shadow-inner" 
+                />
+              </div>
+            </motion.div>
+          )}
 
-                {step === 2 && (
-                  <motion.div key="step2" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-orange-500/10 text-orange-400 rounded-xl"><MapPin size={24} /></div>
-                      <h3 className="text-xl font-bold text-white">Libreta de Direcciones</h3>
-                    </div>
-                    
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <label className="block text-xs font-bold text-zinc-400 mb-1">Urbanización / Zona</label>
-                        <select 
-                          value={formData.addressSector} 
-                          onChange={e => setFormData({...formData, addressSector: e.target.value})} 
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 transition-all appearance-none"
-                        >
-                          <option value="" className="text-black bg-white">Seleccione sector...</option>
-                          <option value="Corinsa" className="text-black bg-white">Corinsa (Urbanización Corinsa)</option>
-                          <option value="La Segundera / Rafael Urdaneta" className="text-black bg-white">La Segundera / Rafael Urdaneta</option>
-                          <option value="Prados de la Encrucijada" className="text-black bg-white">Prados de la Encrucijada</option>
-                          <option value="Prados de Aragua" className="text-black bg-white">Prados de Aragua</option>
-                          <option value="Ciudad Jardín" className="text-black bg-white">Ciudad Jardín</option>
-                          <option value="Suramericana" className="text-black bg-white">Suramericana</option>
-                          <option value="Fundacagua" className="text-black bg-white">Fundacagua (Urb. La Fundación)</option>
-                          <option value="Francisco de Miranda" className="text-black bg-white">Francisco de Miranda</option>
-                          <option value="Santa Rosalía" className="text-black bg-white">Santa Rosalía</option>
-                          <option value="Rómulo Gallegos" className="text-black bg-white">Rómulo Gallegos</option>
-                          <option value="Blandín" className="text-black bg-white">Blandín</option>
-                          <option value="El Corozal" className="text-black bg-white">El Corozal</option>
-                          <option value="Residencias Codazzi" className="text-black bg-white">Residencias Codazzi</option>
-                          <option value="La Exclusiva" className="text-black bg-white">La Exclusiva</option>
-                          <option value="Tamborito" className="text-black bg-white">Tamborito</option>
-                          <option value="La Carpiera" className="text-black bg-white">La Carpiera</option>
-                          <option value="Huete" className="text-black bg-white">Huete (Brisas de Aragua)</option>
-                          <option value="Alí Primera" className="text-black bg-white">Alí Primera</option>
-                          <option value="Las Vegas" className="text-black bg-white">Las Vegas</option>
-                          <option value="Guillén" className="text-black bg-white">Guillén</option>
-                          <option value="Bella Vista" className="text-black bg-white">Bella Vista</option>
-                          <option value="El Toco" className="text-black bg-white">El Toco</option>
-                          <option value="La Comuna de Chávez" className="text-black bg-white">La Comuna de Chávez</option>
-                          <option value="Casco Central" className="text-black bg-white">Casco Central (Centro de Cagua)</option>
-                          <option value="Barrancón" className="text-black bg-white">Barrancón</option>
-                          <option value="Los Meregotos" className="text-black bg-white">Los Meregotos</option>
-                          <option value="Campo Alegre" className="text-black bg-white">Campo Alegre</option>
-                          <option value="Zona Industrial Soco" className="text-black bg-white">Zona Industrial Soco</option>
-                          <option value="Zona Industrial Corinsa" className="text-black bg-white">Zona Industrial Corinsa</option>
-                          <option value="Zona Industrial Santa Rosalía" className="text-black bg-white">Zona Industrial Santa Rosalía</option>
-                          <option value="Zona Industrial Cagua" className="text-black bg-white">Zona Industrial Cagua</option>
-                          <option value="Otra Zona" className="text-black bg-white">Otra Zona (Cagua)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-zinc-400 mb-1">Calle / Casa / Piso <span className="font-normal text-zinc-500">(Opcional con GPS)</span></label>
-                        <input 
-                          type="text"
-                          placeholder="Ej. Calle 4, Casa 12" 
-                          value={formData.addressDetail}
-                          onChange={e => setFormData({...formData, addressDetail: e.target.value})}
-                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-500 focus:outline-none focus:border-orange-500"
-                        />
-                      </div>
-                    </div>
+          {step === 2 && (
+            <motion.div key="step2" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl border border-orange-200/60 shadow-sm"><MapPin size={24} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Libreta de Direcciones</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Lugar donde entregaremos tus despachos.</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Urbanización / Zona</label>
+                  <select 
+                    value={formData.addressSector} 
+                    onChange={e => setFormData({...formData, addressSector: e.target.value})} 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-orange-500 focus:bg-white text-sm font-medium transition-all appearance-none shadow-sm"
+                  >
+                    <option value="" className="text-slate-900 bg-white">Seleccione sector...</option>
+                    <option value="Corinsa" className="text-slate-900 bg-white">Corinsa (Urbanización Corinsa)</option>
+                    <option value="La Segundera / Rafael Urdaneta" className="text-slate-900 bg-white">La Segundera / Rafael Urdaneta</option>
+                    <option value="Prados de la Encrucijada" className="text-slate-900 bg-white">Prados de la Encrucijada</option>
+                    <option value="Prados de Aragua" className="text-slate-900 bg-white">Prados de Aragua</option>
+                    <option value="Ciudad Jardín" className="text-slate-900 bg-white">Ciudad Jardín</option>
+                    <option value="Suramericana" className="text-slate-900 bg-white">Suramericana</option>
+                    <option value="Fundacagua" className="text-slate-900 bg-white">Fundacagua (Urb. La Fundación)</option>
+                    <option value="Francisco de Miranda" className="text-slate-900 bg-white">Francisco de Miranda</option>
+                    <option value="Santa Rosalía" className="text-slate-900 bg-white">Santa Rosalía</option>
+                    <option value="Rómulo Gallegos" className="text-slate-900 bg-white">Rómulo Gallegos</option>
+                    <option value="Blandín" className="text-slate-900 bg-white">Blandín</option>
+                    <option value="El Corozal" className="text-slate-900 bg-white">El Corozal</option>
+                    <option value="Residencias Codazzi" className="text-slate-900 bg-white">Residencias Codazzi</option>
+                    <option value="La Exclusiva" className="text-slate-900 bg-white">La Exclusiva</option>
+                    <option value="Tamborito" className="text-slate-900 bg-white">Tamborito</option>
+                    <option value="La Carpiera" className="text-slate-900 bg-white">La Carpiera</option>
+                    <option value="Huete" className="text-slate-900 bg-white">Huete (Brisas de Aragua)</option>
+                    <option value="Alí Primera" className="text-slate-900 bg-white">Alí Primera</option>
+                    <option value="Las Vegas" className="text-slate-900 bg-white">Las Vegas</option>
+                    <option value="Guillén" className="text-slate-900 bg-white">Guillén</option>
+                    <option value="Bella Vista" className="text-slate-900 bg-white">Bella Vista</option>
+                    <option value="El Toco" className="text-slate-900 bg-white">El Toco</option>
+                    <option value="La Comuna de Chávez" className="text-slate-900 bg-white">La Comuna de Chávez</option>
+                    <option value="Casco Central" className="text-slate-900 bg-white">Casco Central (Centro de Cagua)</option>
+                    <option value="Barrancón" className="text-slate-900 bg-white">Barrancón</option>
+                    <option value="Los Meregotos" className="text-slate-900 bg-white">Los Meregotos</option>
+                    <option value="Campo Alegre" className="text-slate-900 bg-white">Campo Alegre</option>
+                    <option value="Zona Industrial Soco" className="text-slate-900 bg-white">Zona Industrial Soco</option>
+                    <option value="Zona Industrial Corinsa" className="text-slate-900 bg-white">Zona Industrial Corinsa</option>
+                    <option value="Zona Industrial Santa Rosalía" className="text-slate-900 bg-white">Zona Industrial Santa Rosalía</option>
+                    <option value="Zona Industrial Cagua" className="text-slate-900 bg-white">Zona Industrial Cagua</option>
+                    <option value="Otra Zona" className="text-slate-900 bg-white">Otra Zona (Cagua)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">Calle / Casa / Piso <span className="font-normal text-slate-400">(Opcional con GPS)</span></label>
+                  <input 
+                    type="text"
+                    placeholder="Ej. Calle 4, Casa 12" 
+                    value={formData.addressDetail}
+                    onChange={e => setFormData({...formData, addressDetail: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white text-sm font-medium transition-all shadow-sm"
+                  />
+                </div>
+              </div>
 
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-3 items-end">
-                        <div className="flex-1 w-full space-y-2">
-                          <label className="text-xs font-bold text-zinc-400 mb-2">Punto GPS (Opcional)</label>
-                          <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between h-[52px]">
-                             {formData.lat && formData.lng ? (
-                               <span className="font-mono text-sm text-amber-500">
-                                 {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)}
-                               </span>
-                             ) : (
-                               <span className="text-sm text-zinc-600 italic">No fijado en el mapa</span>
-                             )}
-                          </div>
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={handleDetectLocation}
-                          disabled={isDetectingLocation}
-                          className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 h-[52px]"
-                        >
-                          {isDetectingLocation ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
-                          Usar GPS
-                        </button>
-                      </div>
-                      
-                      <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 relative z-0">
-                        <MapContainer 
-                          center={formData.lat && formData.lng ? [formData.lat, formData.lng] : [10.1833, -67.4500]} 
-                          zoom={formData.lat && formData.lng ? 16 : 12} 
-                          style={{ height: '100%', width: '100%' }}
-                        >
-                          <TileLayer 
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
-                          />
-                          <LocationPickerMarker 
-                            position={formData.lat && formData.lng ? [formData.lat, formData.lng] : null} 
-                            setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
-                            setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
-                          />
-                        </MapContainer>
-                      </div>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="flex-1 w-full space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Punto GPS (Opcional)</label>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between h-[52px] shadow-sm">
+                       {formData.lat && formData.lng ? (
+                         <span className="font-mono text-sm text-amber-600 font-bold">
+                           {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)}
+                         </span>
+                       ) : (
+                         <span className="text-sm text-slate-400 italic">No fijado en el mapa</span>
+                       )}
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={isDetectingLocation}
+                    className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 h-[52px]"
+                  >
+                    {isDetectingLocation ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
+                    Usar GPS
+                  </button>
+                </div>
+                
+                <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0 shadow-sm">
+                  <MapContainer 
+                    center={formData.lat && formData.lng ? [formData.lat, formData.lng] : [10.1833, -67.4500]} 
+                    zoom={formData.lat && formData.lng ? 16 : 12} 
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer 
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                    />
+                    <LocationPickerMarker 
+                      position={formData.lat && formData.lng ? [formData.lat, formData.lng] : null} 
+                      setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
+                      setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
+                    />
+                  </MapContainer>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-                {step === 3 && (
-                  <motion.div key="step3" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-pink-500/10 text-pink-400 rounded-xl"><ImageIcon size={24} /></div>
-                      <h3 className="text-xl font-bold text-white">Foto de Perfil</h3>
-                    </div>
-                    <p className="text-zinc-400 text-xs mb-6">Sube una foto de tu rostro para identificarte mejor al momento de las entregas.</p>
-                    
-                    <div className="flex flex-col items-center justify-center">
-                      <label className="w-32 h-32 rounded-full border-2 border-dashed border-zinc-600 flex items-center justify-center cursor-pointer hover:border-pink-500 transition-colors overflow-hidden relative group">
-                        <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-                        {imagePreview || formData.profile_pic ? (
-                           <img src={imagePreview || formData.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
-                        ) : (
-                           <User size={40} className="text-zinc-600 group-hover:text-pink-500 transition-colors" />
-                        )}
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold">
-                          Cambiar
-                        </div>
-                      </label>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+          {step === 3 && (
+            <motion.div key="step3" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-pink-50 text-pink-600 rounded-2xl border border-pink-200/60 shadow-sm"><ImageIcon size={24} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">Foto de Perfil</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Sube una foto de tu rostro para identificarte en tus entregas.</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center py-4">
+                <label className="w-32 h-32 rounded-full border-2 border-dashed border-slate-300 hover:border-pink-500 bg-slate-50 flex items-center justify-center cursor-pointer transition-colors overflow-hidden relative group shadow-inner">
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  {imagePreview || formData.profile_pic ? (
+                     <img src={imagePreview || formData.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
+                  ) : (
+                     <User size={40} className="text-slate-400 group-hover:text-pink-500 transition-colors" />
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-xs font-bold backdrop-blur-xs">
+                    Cambiar
+                  </div>
+                </label>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-            <div className="mt-8 flex justify-end gap-3">
-              {step > 0 && (
-                 <button 
-                   onClick={() => setStep(step - 1)}
-                   className="text-zinc-400 hover:text-white px-4 py-3 rounded-full font-bold transition-colors"
-                 >
-                   Atrás
-                 </button>
-              )}
-              <button 
-                onClick={handleNext}
-                disabled={isSubmitting}
-                className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 transition-all disabled:opacity-50 disabled:hover:bg-indigo-500"
-              >
-                {isSubmitting ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <>
-                    {step < 3 ? 'Siguiente' : 'Finalizar'}
-                    {step < 3 ? <ChevronRight size={18} /> : <Check size={18} />}
-                  </>
-                )}
-              </button>
-            </div>
+      <div className="mt-8 flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
+        {step > 0 && (
+           <button 
+             onClick={() => setStep(step - 1)}
+             className="text-slate-500 hover:text-slate-900 px-5 py-3 rounded-full font-bold text-sm transition-colors"
+           >
+             Atrás
+           </button>
+        )}
+        <button 
+          onClick={handleNext}
+          disabled={isNextDisabled}
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-7 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500 disabled:active:scale-100"
+        >
+          {isSubmitting ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <>
+              {step < 3 ? 'Siguiente' : 'Finalizar'}
+              {step < 3 ? <ChevronRight size={18} /> : <Check size={18} />}
+            </>
+          )}
+        </button>
+      </div>
     </ResponsiveModal>
   );
 }

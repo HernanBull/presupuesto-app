@@ -531,7 +531,12 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep2 = async (e) => {
     e.preventDefault();
-    if (merchantForm.businessName && merchantForm.ownerName && merchantForm.contactPhone && merchantForm.contactEmail) {
+    const contactPhoneClean = (merchantForm.contactPhone || '').replace(/\D/g, '');
+    if (contactPhoneClean.length < 11) {
+      alert('El teléfono de contacto debe tener al menos 11 números (Ej. 0414-1234567).');
+      return;
+    }
+    if (merchantForm.businessName && merchantForm.ownerName && merchantForm.contactEmail) {
       setMerchantLoading(true);
       try {
         const { data, error } = await supabase
@@ -563,6 +568,21 @@ export default function MarketplaceDirectory() {
 
   const handleMerchantRegisterStep4 = async (e) => {
     e.preventDefault();
+    const rifClean = (merchantForm.rifNumber || '').replace(/\D/g, '');
+    if (rifClean.length < 6) {
+      alert('El número de RIF debe tener al menos 6 números.');
+      return;
+    }
+    const pmPhoneClean = (merchantForm.pagoMovilPhone || '').replace(/\D/g, '');
+    if (pmPhoneClean.length < 11) {
+      alert('El teléfono de Pago Móvil debe tener al menos 11 números (Ej. 0414-1234567).');
+      return;
+    }
+    const pmIdClean = (merchantForm.pagoMovilId || '').replace(/\D/g, '');
+    if (pmIdClean.length < 6) {
+      alert('La cédula o RIF de Pago Móvil debe tener al menos 6 números.');
+      return;
+    }
     if (merchantForm.rifNumber && merchantForm.pagoMovilPhone && merchantForm.pagoMovilBank) {
       setMerchantLoading(true);
       const fullRif = merchantForm.rifPrefix + merchantForm.rifNumber;
@@ -1507,39 +1527,39 @@ export default function MarketplaceDirectory() {
 
       {isMerchantModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="absolute inset-0 bg-zinc-950/95" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
-          <div className="bg-zinc-950 rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-amber-500/20 animate-in zoom-in-95 duration-150">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-slate-200 animate-in zoom-in-95 duration-150">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 to-amber-600"></div>
               
-              <div className="p-8 pb-6 flex items-center justify-between">
+              <div className="p-8 pb-6 flex items-center justify-between border-b border-slate-100">
                 <div>
                   <div className="flex items-center gap-4 mb-2">
-                    <div className="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center border border-amber-500/20">
-                      <Store size={24} className="text-amber-500" />
+                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-200/60 shadow-sm text-amber-500">
+                      <Store size={24} />
                     </div>
-                    <h2 className="text-3xl font-light text-white tracking-tight">
-                      {merchantAuthMode === 'pitch' ? 'El Control Total de tu Negocio' : merchantAuthMode === 'register' ? 'Inicia tu Imperio' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                      {merchantAuthMode === 'pitch' ? 'El Control Total de tu Negocio' : merchantAuthMode === 'register' ? 'Inicia tu Tienda' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
-                  <p className="text-zinc-500 font-light text-sm mt-4">
-                    {merchantAuthMode === 'pitch' ? 'Tu propia tienda en la nube con inventario ERP, pagos directos y delivery automatizado.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial más avanzada.' : 'Accede a tu infraestructura de ventas.'}
+                  <p className="text-slate-500 font-normal text-sm mt-1">
+                    {merchantAuthMode === 'pitch' ? 'Tu propia tienda en la nube con inventario ERP, pagos directos y delivery automatizado.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial de AxonMarket.' : 'Accede a tu infraestructura de ventas.'}
                   </p>
                 </div>
-                <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-zinc-400 hover:text-amber-500 hover:bg-white/10 rounded-full p-2 transition-colors self-start">
+                <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full p-2 transition-colors self-start">
                   <X size={20} />
                 </button>
               </div>
 
               {merchantAuthMode !== 'pitch' && (merchantAuthMode !== 'register' || merchantRegStep === 1) && (
-                <div className="px-8 pb-4">
-                  <div className="flex bg-zinc-900 rounded-full p-1 border border-white/5">
+                <div className="px-8 pt-4 pb-2">
+                  <div className="flex bg-slate-100 rounded-full p-1 border border-slate-200">
                     <button
                       type="button"
                       onClick={() => setMerchantAuthMode('register')}
                       className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
                         merchantAuthMode === 'register'
-                          ? 'bg-zinc-800 text-amber-500 shadow-lg border border-white/5'
-                          : 'text-zinc-400 hover:text-amber-500'
+                          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                          : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       Crear Tienda
@@ -1549,8 +1569,8 @@ export default function MarketplaceDirectory() {
                       onClick={() => setMerchantAuthMode('login')}
                       className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
                         (merchantAuthMode === 'login' || merchantAuthMode === 'recover' || merchantAuthMode === 'reset')
-                          ? 'bg-zinc-800 text-amber-500 shadow-lg border border-white/5'
-                          : 'text-zinc-400 hover:text-amber-500'
+                          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                          : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
                       Iniciar Sesión
@@ -1572,7 +1592,6 @@ export default function MarketplaceDirectory() {
                           <span className="text-zinc-900 font-black text-4xl leading-none">$40</span>
                           <span className="text-zinc-500 text-xs font-bold mb-1">/ MES</span>
                         </div>
-                        {/* Text removed */}
                       </div>
                     </div>
                     
@@ -1632,8 +1651,8 @@ export default function MarketplaceDirectory() {
                     </p>
                     
                     <div className="mt-4 text-center relative z-10">
-                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-400 hover:text-amber-500 font-medium transition-colors">
-                        Ya tengo una tienda. <span className="text-amber-500 underline">Iniciar sesión</span>
+                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-amber-600 font-medium transition-colors">
+                        Ya tengo una tienda. <span className="text-amber-600 underline font-bold">Iniciar sesión</span>
                       </button>
                     </div>
                   </div>
@@ -1643,26 +1662,26 @@ export default function MarketplaceDirectory() {
               {merchantAuthMode === 'recover' || merchantAuthMode === 'reset' ? (
                 <form onSubmit={(e) => merchantAuthMode === 'recover' ? handleRecoverPassword(e, 'merchant') : handleResetPassword(e, 'merchant')} className="p-8 pt-4 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico Administrador</label>
-                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} disabled={merchantAuthMode === 'reset'} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico Administrador</label>
+                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} disabled={merchantAuthMode === 'reset'} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
                   </div>
                   {merchantAuthMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
-                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-slate-400 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="123456" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
-                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
+                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
                       </div>
                     </>
                   )}
-                  <button type="submit" disabled={merchantLoading || !merchantForm.email} className="w-full bg-amber-500 text-black rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
+                  <button type="submit" disabled={merchantLoading || !merchantForm.email} className="w-full bg-amber-500 text-slate-950 rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3">
                     {merchantAuthMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'}
                   </button>
                   <div className="flex justify-center mt-4">
-                    <button type="button" onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-amber-500 transition-colors">
+                    <button type="button" onClick={() => setMerchantAuthMode('login')} className="text-xs text-slate-500 hover:text-amber-600 transition-colors font-medium">
                       Volver al inicio de sesión
                     </button>
                   </div>
@@ -1685,7 +1704,7 @@ export default function MarketplaceDirectory() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="text-lg font-bold text-white text-center"
+                          className="text-lg font-bold text-slate-900 text-center"
                         >
                           {loadingTexts[loadingTextIndex]}
                         </motion.h3>
@@ -1695,15 +1714,15 @@ export default function MarketplaceDirectory() {
                       {merchantRegStep === 1 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                            <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" autoFocus />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                            <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" autoFocus />
                           </div>
                           
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
                             <div className="relative">
-                              <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
-                              <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                              <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
+                              <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                                 {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                               </button>
                             </div>
@@ -1712,10 +1731,10 @@ export default function MarketplaceDirectory() {
                           <PasswordRequirements password={merchantForm.password} />
 
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
                             <div className="relative">
-                              <input type={showMerchantConfirmPassword ? "text" : "password"} required value={merchantConfirmPassword} onChange={e => setMerchantConfirmPassword(e.target.value)} className={`w-full bg-zinc-900 border ${merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password ? 'border-red-500/50' : 'border-white/5'} rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700`} placeholder="••••••••" />
-                              <button type="button" onClick={() => setShowMerchantConfirmPassword(!showMerchantConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                              <input type={showMerchantConfirmPassword ? "text" : "password"} required value={merchantConfirmPassword} onChange={e => setMerchantConfirmPassword(e.target.value)} className={`w-full bg-slate-50 border ${merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password ? 'border-red-500' : 'border-slate-200'} rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm`} placeholder="••••••••" />
+                              <button type="button" onClick={() => setShowMerchantConfirmPassword(!showMerchantConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                                 {showMerchantConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                               </button>
                             </div>
@@ -1726,14 +1745,14 @@ export default function MarketplaceDirectory() {
 
                           <div className="relative py-2">
                             <div className="absolute inset-0 flex items-center">
-                              <div className="w-full border-t border-zinc-800"></div>
+                              <div className="w-full border-t border-slate-200"></div>
                             </div>
                             <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                              <span className="bg-zinc-950 px-2 text-zinc-500">o continúa con</span>
+                              <span className="bg-white px-2 text-slate-400">o continúa con</span>
                             </div>
                           </div>
 
-                          <div className="flex items-start gap-3 bg-white/3 border border-white/5 rounded-2xl p-4">
+                          <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                             <input
                               type="checkbox"
                               id="merchant-terms-checkbox"
@@ -1741,17 +1760,17 @@ export default function MarketplaceDirectory() {
                               onChange={e => setMerchantTermsAccepted(e.target.checked)}
                               className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
                             />
-                            <label htmlFor="merchant-terms-checkbox" className="text-xs text-zinc-400 leading-relaxed cursor-pointer">
+                            <label htmlFor="merchant-terms-checkbox" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
                               He leído y acepto los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-600 hover:underline font-bold">Términos de Uso</button>
                               {' '}y los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/comerciantes'); }} className="text-amber-500 hover:underline font-bold">Términos para Comerciantes</button>.
+                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/comerciantes'); }} className="text-amber-600 hover:underline font-bold">Términos para Comerciantes</button>.
                             </label>
                           </div>
                             <GoogleLogin
                               onSuccess={handleGoogleMerchantSuccess}
                               onError={() => { console.log('Login Failed'); }}
-                              theme="filled_black"
+                              theme="outline"
                               shape="pill"
                               size="large"
                               width="100%"
@@ -1760,28 +1779,48 @@ export default function MarketplaceDirectory() {
                       )}
                       
                       {merchantRegStep === 2 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo del Contacto</label>
-                            <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({...merchantForm, ownerName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Juan Pérez" autoFocus />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre Completo del Contacto</label>
+                            <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({...merchantForm, ownerName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Juan Pérez" autoFocus />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Teléfono de Contacto</label>
-                            <input type="tel" required value={merchantForm.contactPhone} onChange={e => setMerchantForm({...merchantForm, contactPhone: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. 04141234567" />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Teléfono de Contacto (11 dígitos)</label>
+                            <input 
+                              type="tel" 
+                              required 
+                              value={merchantForm.contactPhone} 
+                              onChange={e => {
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                let formatted = digits;
+                                if (digits.length > 4) {
+                                  formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                                }
+                                setMerchantForm({...merchantForm, contactPhone: formatted});
+                              }} 
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm" 
+                              placeholder="Ej. 0414-1234567" 
+                            />
+                            <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                              <span className="text-slate-400">11 dígitos requeridos</span>
+                              <span className={(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                {(merchantForm.contactPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
+                              </span>
+                            </div>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo de Contacto</label>
-                            <input type="email" required value={merchantForm.contactEmail} onChange={e => setMerchantForm({...merchantForm, contactEmail: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="contacto@empresa.com" />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo de Contacto</label>
+                            <input type="email" required value={merchantForm.contactEmail} onChange={e => setMerchantForm({...merchantForm, contactEmail: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="contacto@empresa.com" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
-                            <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="Ej. Inversiones San José" />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
+                            <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Inversiones San José" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Categoría Principal</label>
-                            <select required value={merchantForm.category} onChange={e => setMerchantForm({...merchantForm, category: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light appearance-none">
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Categoría Principal</label>
+                            <select required value={merchantForm.category} onChange={e => setMerchantForm({...merchantForm, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium appearance-none shadow-sm">
                               {categories.slice(1).map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                <option key={cat.id} value={cat.id} className="bg-white text-slate-900">{cat.name}</option>
                               ))}
                             </select>
                           </div>
@@ -1790,14 +1829,14 @@ export default function MarketplaceDirectory() {
 
                       {merchantRegStep === 3 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10">
+                          <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <div>
-                              <p className="text-[11px] font-bold text-white uppercase tracking-wider">Activar Restricción de Horario</p>
-                              <p className="text-[10px] text-zinc-400 mt-1">Bloquea el carrito cuando estés cerrado.</p>
+                              <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Activar Restricción de Horario</p>
+                              <p className="text-[10px] text-slate-500 mt-1">Bloquea el carrito cuando estés cerrado.</p>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input type="checkbox" className="sr-only peer" checked={merchantForm.scheduleActive} onChange={e => setMerchantForm({...merchantForm, scheduleActive: e.target.checked})} />
-                              <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                             </label>
                           </div>
                           
@@ -1805,36 +1844,36 @@ export default function MarketplaceDirectory() {
                             <div className="space-y-4 pt-2">
                               <div className="flex gap-4">
                                 <div className="flex-1">
-                                  <label className="block text-[10px] font-bold text-zinc-500 mb-1 uppercase tracking-widest">Hora Apertura</label>
-                                  <input type="time" required value={merchantForm.scheduleOpen} onChange={e => setMerchantForm({...merchantForm, scheduleOpen: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" />
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Apertura</label>
+                                  <input type="time" required value={merchantForm.scheduleOpen} onChange={e => setMerchantForm({...merchantForm, scheduleOpen: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
                                 </div>
                                 <div className="flex-1">
-                                  <label className="block text-[10px] font-bold text-zinc-500 mb-1 uppercase tracking-widest">Hora Cierre</label>
-                                  <input type="time" required value={merchantForm.scheduleClose} onChange={e => setMerchantForm({...merchantForm, scheduleClose: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" />
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Cierre</label>
+                                  <input type="time" required value={merchantForm.scheduleClose} onChange={e => setMerchantForm({...merchantForm, scheduleClose: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
                                 </div>
                               </div>
                               
                               <div>
-                                <label className="block text-[10px] font-bold text-zinc-500 mb-1 uppercase tracking-widest">Margen de Cierre (Amarillo)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Margen de Cierre (Amarillo)</label>
                                 <div className="flex items-center gap-3">
-                                  <input type="number" min="0" max="120" required value={merchantForm.closeWarningMinutes} onChange={e => setMerchantForm({...merchantForm, closeWarningMinutes: Number(e.target.value)})} className="w-24 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50" />
-                                  <span className="text-[10px] text-zinc-400">minutos antes del cierre se bloquearán las compras.</span>
+                                  <input type="number" min="0" max="120" required value={merchantForm.closeWarningMinutes} onChange={e => setMerchantForm({...merchantForm, closeWarningMinutes: Number(e.target.value)})} className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
+                                  <span className="text-[10px] text-slate-500">minutos antes del cierre se bloquearán las compras.</span>
                                 </div>
                               </div>
 
-                              <div className="p-4 rounded-xl border border-white/5 flex flex-col gap-3 bg-zinc-900/50">
+                              <div className="p-4 rounded-xl border border-slate-200 flex flex-col gap-3 bg-slate-50">
                                 <div>
-                                  <p className="text-xs font-bold text-white">Vista previa del semáforo actual:</p>
-                                  <p className="text-[10px] text-zinc-400 mt-0.5">Así ve el estado el cliente en este momento exacto.</p>
+                                  <p className="text-xs font-bold text-slate-900">Vista previa del semáforo actual:</p>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">Así ve el estado el cliente en este momento exacto.</p>
                                 </div>
-                                <div className="self-start px-3 py-1.5 rounded-full flex items-center gap-2 font-bold text-xs bg-emerald-500/20 text-emerald-400">
-                                  <div className="w-2 h-2 rounded-full animate-pulse bg-emerald-500"></div>
+                                <div className="self-start px-3 py-1.5 rounded-full flex items-center gap-2 font-bold text-xs bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  <div className="w-2 h-2 rounded-full animate-pulse bg-emerald-600"></div>
                                   Abierto (Cierra a las {merchantForm.scheduleClose})
                                 </div>
                               </div>
 
                               <div>
-                                <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Días Laborables</label>
+                                <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Días Laborables</label>
                                 <div className="flex flex-wrap gap-2">
                                   {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(dia => (
                                     <button 
@@ -1849,8 +1888,8 @@ export default function MarketplaceDirectory() {
                                       }}
                                       className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-colors uppercase tracking-wider ${
                                         merchantForm.workingDays[dia] 
-                                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' 
-                                        : 'bg-zinc-900 border-white/5 text-zinc-500 hover:bg-zinc-800'
+                                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-800' 
+                                        : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
                                       }`}
                                     >
                                       {dia}
@@ -1866,12 +1905,12 @@ export default function MarketplaceDirectory() {
                       {merchantRegStep === 4 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                           <div>
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">RIF (Jurídico o Personal)</label>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">RIF (Jurídico o Personal, Mínimo 6 dígitos)</label>
                             <div className="flex gap-2">
                               <select 
                                 value={merchantForm.rifPrefix} 
                                 onChange={e => setMerchantForm({...merchantForm, rifPrefix: e.target.value})} 
-                                className="w-[80px] bg-zinc-900 border border-white/5 rounded-2xl px-4 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light appearance-none text-center"
+                                className="w-[80px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-slate-900 focus:outline-none focus:border-amber-500 font-bold appearance-none text-center shadow-sm"
                               >
                                 <option value="V">V</option>
                                 <option value="J">J</option>
@@ -1883,17 +1922,50 @@ export default function MarketplaceDirectory() {
                                 type="text" 
                                 required 
                                 value={merchantForm.rifNumber} 
-                                onChange={e => setMerchantForm({...merchantForm, rifNumber: e.target.value.replace(/[^0-9-]/g, '')})} 
-                                className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" 
+                                onChange={e => setMerchantForm({...merchantForm, rifNumber: e.target.value.replace(/[^0-9-]/g, '').slice(0, 11)})} 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm" 
                                 placeholder="12345678 o 12345678-9" 
                               />
                             </div>
+                            <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                              <span className="text-slate-400">Mínimo 6 dígitos</span>
+                              <span className={(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                {(merchantForm.rifNumber || '').replace(/\D/g, '').length}/6 {(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
+                              </span>
+                            </div>
                           </div>
-                          <div className="bg-white/5 p-4 rounded-2xl space-y-3">
-                            <p className="text-xs text-amber-500 font-bold tracking-wider">DATOS PARA RECIBIR PAGO MÓVIL</p>
-                            <input type="text" required value={merchantForm.pagoMovilPhone} onChange={e => setMerchantForm({...merchantForm, pagoMovilPhone: e.target.value})} className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Teléfono (Ej. 04141234567)" />
-                            <select required value={merchantForm.pagoMovilBank} onChange={e => setMerchantForm({...merchantForm, pagoMovilBank: e.target.value})} className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm appearance-none">
-                              <option value="">Selecciona tu Banco</option>
+                          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
+                            <p className="text-xs text-amber-600 font-bold tracking-wider">DATOS PARA RECIBIR PAGO MÓVIL</p>
+                            <div>
+                              <input 
+                                type="tel" 
+                                required 
+                                value={merchantForm.pagoMovilPhone} 
+                                onChange={e => {
+                                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                  let formatted = digits;
+                                  if (digits.length > 4) {
+                                    formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                                  }
+                                  setMerchantForm({...merchantForm, pagoMovilPhone: formatted});
+                                }} 
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm" 
+                                placeholder="Teléfono Pago Móvil (Ej. 0414-1234567)" 
+                              />
+                              <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                                <span className="text-slate-400">11 dígitos requeridos</span>
+                                <span className={(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                  {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
+                                </span>
+                              </div>
+                            </div>
+                            <select 
+                              required 
+                              value={merchantForm.pagoMovilBank} 
+                              onChange={e => setMerchantForm({...merchantForm, pagoMovilBank: e.target.value})} 
+                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm appearance-none shadow-sm"
+                            >
+                              <option value="" className="text-slate-900 bg-white">Selecciona tu Banco</option>
                               <option value="0156 - 100% Banco">0156 - 100% Banco</option>
                               <option value="0172 - Bancamiga">0172 - Bancamiga</option>
                               <option value="0171 - Banco Activo">0171 - Banco Activo</option>
@@ -1923,7 +1995,22 @@ export default function MarketplaceDirectory() {
                               <option value="0169 - Mi Banco">0169 - Mi Banco</option>
                               <option value="0137 - Sofitasa">0137 - Sofitasa</option>
                             </select>
-                            <input type="text" required value={merchantForm.pagoMovilId} onChange={e => setMerchantForm({...merchantForm, pagoMovilId: e.target.value})} className="w-full bg-zinc-950 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Cédula / RIF asociado" />
+                            <div>
+                              <input 
+                                type="text" 
+                                required 
+                                value={merchantForm.pagoMovilId} 
+                                onChange={e => setMerchantForm({...merchantForm, pagoMovilId: e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12)})} 
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm" 
+                                placeholder="Cédula / RIF asociado (Mínimo 6 dígitos)" 
+                              />
+                              <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                                <span className="text-slate-400">Mínimo 6 dígitos</span>
+                                <span className={(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                  {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length}/6 {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       )}
@@ -1933,29 +2020,29 @@ export default function MarketplaceDirectory() {
                           {(() => {
                             const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                             return isMobileDevice ? (
-                              <div className="bg-zinc-800/50 p-6 rounded-2xl text-center space-y-4 mb-4 border border-white/10">
-                                <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-500/20">
-                                  <MapPin size={24} className="text-amber-500" />
+                              <div className="bg-slate-50 p-6 rounded-2xl text-center space-y-4 mb-4 border border-slate-200">
+                                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-200 text-amber-500">
+                                  <MapPin size={24} />
                                 </div>
-                                <h3 className="text-white font-bold text-lg tracking-tight">Ubicación de tu Negocio</h3>
-                                <p className="text-sm text-zinc-400 leading-relaxed">Presiona el botón para detectar automáticamente la ubicación exacta de tu negocio usando el GPS de tu dispositivo.</p>
-                                <button type="button" onClick={handleDetectGPS} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-4 shadow-lg shadow-amber-500/20">
+                                <h3 className="text-slate-900 font-bold text-lg tracking-tight">Ubicación de tu Negocio</h3>
+                                <p className="text-sm text-slate-500 leading-relaxed">Presiona el botón para detectar automáticamente la ubicación exacta de tu negocio usando el GPS de tu dispositivo.</p>
+                                <button type="button" onClick={handleDetectGPS} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-4 shadow-lg shadow-amber-500/20">
                                   <MapPin size={18} /> Detectar mi ubicación por GPS
                                 </button>
-                                {merchantForm.gpsCoords && <p className="text-sm text-emerald-500 font-bold mt-4 bg-emerald-500/10 py-3 rounded-xl border border-emerald-500/20">¡Ubicación GPS Guardada Exitosamente!</p>}
+                                {merchantForm.gpsCoords && <p className="text-sm text-emerald-600 font-bold mt-4 bg-emerald-50 py-3 rounded-xl border border-emerald-200">¡Ubicación GPS Guardada Exitosamente!</p>}
                               </div>
                             ) : (
                               <>
-                                <div className="bg-zinc-800/50 p-5 rounded-2xl text-center space-y-2 mb-4 border border-white/10">
+                                <div className="bg-slate-50 p-5 rounded-2xl text-center space-y-2 mb-4 border border-slate-200">
                                   <MapPin size={24} className="text-amber-500 mx-auto mb-1" />
-                                  <h3 className="text-white font-bold text-lg tracking-tight">Dirección del Negocio</h3>
-                                  <p className="text-xs text-zinc-400">Ingresa tu dirección detallada para que tus clientes puedan visitarte.</p>
+                                  <h3 className="text-slate-900 font-bold text-lg tracking-tight">Dirección del Negocio</h3>
+                                  <p className="text-xs text-slate-500">Ingresa tu dirección detallada para que tus clientes puedan visitarte.</p>
                                 </div>
                                 <div className="flex gap-2">
-                                  <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Estado (Obligatorio)" />
-                                  <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm placeholder-zinc-600" placeholder="Ciudad (Obligatorio)" />
+                                  <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 shadow-sm" placeholder="Estado (Obligatorio)" />
+                                  <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 shadow-sm" placeholder="Ciudad (Obligatorio)" />
                                 </div>
-                                <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 text-sm min-h-[80px] placeholder-zinc-600" placeholder="Dirección detallada (Obligatorio)"></textarea>
+                                <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm min-h-[80px] placeholder-slate-400 shadow-sm" placeholder="Dirección detallada (Obligatorio)"></textarea>
                               </>
                             );
                           })()}
@@ -1964,59 +2051,70 @@ export default function MarketplaceDirectory() {
 
                       {merchantRegStep === 6 && (
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center space-y-4">
-                          <p className="text-center text-sm text-zinc-400">Escanea este código QR en tu app de Google Authenticator para asegurar tu cuenta de comercio.</p>
-                          <div className="bg-white p-4 rounded-xl shadow-lg border border-white/20">
+                          <p className="text-center text-sm text-slate-500">Escanea este código QR en tu app de Google Authenticator para asegurar tu cuenta de comercio.</p>
+                          <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200">
                             <QRCodeSVG value={merchantMfaUrl} size={180} />
                           </div>
-                          <p className="text-xs text-zinc-600">Clave manual: <span className="font-mono text-amber-500">{merchantMfaSecret}</span></p>
+                          <p className="text-xs text-slate-500">Clave manual: <span className="font-mono text-amber-600 font-bold">{merchantMfaSecret}</span></p>
                           
                           <div className="w-full mt-4">
-                            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest text-center">Código de 6 dígitos</label>
-                            <input type="text" required maxLength={6} value={merchantMfaCode} onChange={e => setMerchantMfaCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-mono text-center tracking-[0.5em] text-lg" placeholder="123456" autoFocus />
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest text-center">Código de 6 dígitos</label>
+                            <input type="text" required maxLength={6} value={merchantMfaCode} onChange={e => setMerchantMfaCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors font-mono text-center tracking-[0.5em] text-lg shadow-sm" placeholder="123456" autoFocus />
                           </div>
                         </motion.div>
                       )}
 
-                      <button 
-                        type="submit" 
-                        disabled={
-                          merchantLoading || 
-                          (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
-                          (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactPhone || !merchantForm.contactEmail || !merchantForm.category)) || 
-                          (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
-                          (merchantRegStep === 4 && (!merchantForm.rifNumber || !merchantForm.pagoMovilPhone || !merchantForm.pagoMovilBank || !merchantForm.pagoMovilId)) ||
-                          (merchantRegStep === 5 && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
-                          (merchantRegStep === 6 && merchantMfaCode.length < 6)
-                        }
-                        className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 disabled:opacity-50 flex items-center justify-center gap-3"
-                      >
-                        {merchantLoading ? (
-                          <><Loader2 className="animate-spin" size={18} /> Procesando...</>
-                        ) : (
-                          <>{merchantRegStep < 6 ? 'Continuar' : 'Verificar y Acceder'} <ArrowRight size={16} /></>
+                      <div className="flex gap-3 items-center mt-6">
+                        {merchantRegStep > 1 && (
+                          <button 
+                            type="button" 
+                            onClick={() => setMerchantRegStep(prev => prev - 1)}
+                            className="py-4 px-6 text-slate-500 hover:text-slate-800 text-xs font-bold tracking-widest uppercase transition-colors"
+                          >
+                            Atrás
+                          </button>
                         )}
-                      </button>
+                        <button 
+                          type="submit" 
+                          disabled={
+                            merchantLoading || 
+                            (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
+                            (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactEmail || !merchantForm.category || (merchantForm.contactPhone || '').replace(/\D/g, '').length < 11)) || 
+                            (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
+                            (merchantRegStep === 4 && (!merchantForm.pagoMovilBank || (merchantForm.rifNumber || '').replace(/\D/g, '').length < 6 || (merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length < 11 || (merchantForm.pagoMovilId || '').replace(/\D/g, '').length < 6)) ||
+                            (merchantRegStep === 5 && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
+                            (merchantRegStep === 6 && merchantMfaCode.length < 6)
+                          }
+                          className="flex-1 bg-amber-500 text-slate-950 rounded-full py-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                        >
+                          {merchantLoading ? (
+                            <><Loader2 className="animate-spin" size={18} /> Procesando...</>
+                          ) : (
+                            <>{merchantRegStep < 6 ? 'Continuar' : 'Verificar y Acceder'} <ArrowRight size={16} /></>
+                          )}
+                        </button>
+                      </div>
                     </>
                     )
                   ) : (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                        <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="admin@empresa.com" />
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                        <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
                         <div className="relative">
-                          <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-zinc-900 border border-white/5 rounded-2xl px-5 py-4 pr-12 text-white focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-700" placeholder="••••••••" />
-                          <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors">
+                          <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
+                          <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                             {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
                       </div>
 
                       <div className="flex justify-end mt-2">
-                        <button type="button" onClick={() => setMerchantAuthMode('recover')} className="text-[10px] text-amber-500 hover:text-amber-400 font-bold uppercase tracking-wider transition-colors">
+                        <button type="button" onClick={() => setMerchantAuthMode('recover')} className="text-[10px] text-amber-600 hover:text-amber-700 font-bold uppercase tracking-wider transition-colors">
                           ¿Olvidaste tu contraseña?
                         </button>
                       </div>
@@ -2024,7 +2122,7 @@ export default function MarketplaceDirectory() {
                       <button 
                         type="submit" 
                         disabled={merchantLoading || !merchantForm.email}
-                        className="w-full bg-amber-500 text-black rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:bg-amber-400 hover:shadow-[0_0_40px_rgba(245,158,11,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                        className="w-full bg-amber-500 text-slate-950 rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                       >
                         {merchantLoading ? (
                           <><Loader2 className="animate-spin" size={18} /> Procesando...</>
@@ -2035,17 +2133,17 @@ export default function MarketplaceDirectory() {
 
                       <div className="relative py-2 mt-4">
                         <div className="absolute inset-0 flex items-center">
-                          <div className="w-full border-t border-zinc-800"></div>
+                          <div className="w-full border-t border-slate-200"></div>
                         </div>
                         <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                          <span className="bg-zinc-950 px-2 text-zinc-500">o continúa con</span>
+                          <span className="bg-white px-2 text-slate-400">o continúa con</span>
                         </div>
                       </div>
 
                       <GoogleLogin
                         onSuccess={handleGoogleMerchantSuccess}
                         onError={() => { alert('Fallo al conectar con Google'); }}
-                        theme="filled_black"
+                        theme="outline"
                         shape="pill"
                         size="large"
                         width="100%"

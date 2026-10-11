@@ -20,26 +20,26 @@ const iconMap = {
 const ToggleSwitch = ({ enabled, onChange, label, icon: Icon, description }) => (
   <div 
     onClick={onChange}
-    className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+    className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
       enabled 
-        ? 'border-indigo-500 bg-indigo-500/10' 
-        : 'border-zinc-800 bg-zinc-900/50 hover:border-zinc-700'
+        ? 'border-amber-500 bg-amber-500/10 shadow-sm' 
+        : 'border-slate-200 bg-slate-50 hover:border-slate-300'
     }`}
   >
     <div className="flex items-center gap-4">
-      <div className={`p-2 rounded-lg ${enabled ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'}`}>
+      <div className={`p-2.5 rounded-xl ${enabled ? 'bg-amber-500/20 text-amber-600' : 'bg-slate-200 text-slate-500'}`}>
         <Icon size={20} />
       </div>
       <div>
-        <h4 className={`font-bold ${enabled ? 'text-white' : 'text-zinc-300'}`}>{label}</h4>
-        <p className="text-xs text-zinc-500 mt-0.5">{description}</p>
+        <h4 className={`font-bold text-sm ${enabled ? 'text-slate-900' : 'text-slate-700'}`}>{label}</h4>
+        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
       </div>
     </div>
-    <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${enabled ? 'bg-indigo-500' : 'bg-zinc-700'}`}>
+    <div className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 ${enabled ? 'bg-amber-500' : 'bg-slate-300'}`}>
       <motion.div 
         layout 
         className="w-4 h-4 bg-white rounded-full shadow-sm"
-        animate={{ x: enabled ? 16 : 0 }}
+        animate={{ x: enabled ? 20 : 0 }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
       />
     </div>
@@ -99,18 +99,17 @@ export const RegisterWizard = () => {
   };
 
   const formatRIF = (value) => {
-    // Permitir solo números y guiones
     let formatted = value.replace(/[^\d-]/g, '');
-    if (formatted.length > 9 && !formatted.includes('-')) {
-      formatted = formatted.slice(0, 8) + '-' + formatted.slice(8);
-    }
-    return formatted.slice(0, 10);
+    return formatted.slice(0, 12);
   };
 
   const formatWhatsApp = (value) => {
     let formatted = value.replace(/\D/g, '');
-    return formatted.slice(0, 10);
+    return formatted.slice(0, 11);
   };
+
+  const cleanRif = formData.rif.replace(/\D/g, '');
+  const cleanWhatsApp = formData.whatsapp.replace(/\D/g, '');
 
   const simulateSetup = async () => {
     const messages = [
@@ -161,7 +160,7 @@ export const RegisterWizard = () => {
           rif: formData.legalType + '-' + formData.rif,
           state: formData.state,
           city: formData.city,
-          whatsapp: '+58' + formData.whatsapp,
+          whatsapp: cleanWhatsApp.startsWith('0') ? '+58' + cleanWhatsApp.slice(1) : (cleanWhatsApp.startsWith('58') ? '+' + cleanWhatsApp : '+58' + cleanWhatsApp),
           instagram: formData.instagram
         },
         adminEmail: formData.email,
@@ -203,25 +202,25 @@ export const RegisterWizard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-indigo-900/10 to-transparent"></div>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-amber-500/5 to-transparent"></div>
         <motion.div 
-          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.15, 0.1] }}
+          animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.25, 0.15] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-[120px]"
+          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px]"
         />
       </div>
 
-      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-2xl">
-        <div className="bg-zinc-950/80 backdrop-blur-2xl p-8 sm:p-10 shadow-2xl sm:rounded-[2rem] border border-white/5 min-h-[500px] flex flex-col justify-center relative">
+      <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-2xl px-4 sm:px-0">
+        <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-10 shadow-2xl sm:rounded-[2.5rem] border border-slate-200 min-h-[500px] flex flex-col justify-center relative">
           
           {step > 1 && step < 7 && (
             <div className="absolute top-8 left-8 right-8 flex justify-between items-center">
-              <button onClick={handlePrev} className="text-zinc-500 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium">
+              <button onClick={handlePrev} className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-sm font-semibold">
                 <ArrowLeft size={16} /> Atrás
               </button>
-              <div className="text-xs font-bold tracking-widest text-zinc-600 uppercase">
+              <div className="text-xs font-bold tracking-widest text-slate-400 uppercase">
                 Paso {step} de 6
               </div>
             </div>
@@ -235,25 +234,25 @@ export const RegisterWizard = () => {
                 key="step1" variants={slideVariants} initial="hidden" animate="visible" exit="exit"
                 className="max-w-lg mx-auto w-full text-center"
               >
-                <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-inner border border-indigo-500/20">
-                  <Store size={32} className="text-indigo-400" />
+                <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-amber-500/20 text-amber-600 shadow-sm">
+                  <Store size={32} />
                 </div>
-                <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">
+                <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">
                   ¡Hola! Empecemos.
                 </h2>
-                <p className="text-zinc-400 mb-10 text-lg">
+                <p className="text-slate-500 mb-8 text-base">
                   ¿Cuál es el nombre de tu tienda virtual?
                 </p>
                 <input
                   type="text" autoFocus value={formData.businessName}
                   onChange={(e) => setFormData({...formData, businessName: e.target.value})}
                   onKeyDown={(e) => { if (e.key === 'Enter' && formData.businessName) handleNext(); }}
-                  className="w-full bg-zinc-900/50 border-2 border-zinc-800 rounded-2xl py-4 px-6 text-white text-xl focus:outline-none focus:border-indigo-500 transition-all text-center mb-8 placeholder-zinc-700"
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl py-4 px-6 text-slate-900 text-xl focus:outline-none focus:border-amber-500 focus:bg-white transition-all text-center mb-8 placeholder-slate-400 font-medium"
                   placeholder="Ej. Inversiones San José"
                 />
                 <button
-                  onClick={handleNext} disabled={!formData.businessName}
-                  className="w-full sm:w-auto mx-auto flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-xl font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed text-lg"
+                  onClick={handleNext} disabled={!formData.businessName.trim()}
+                  className="w-full sm:w-auto mx-auto flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed text-base shadow-lg shadow-amber-500/20"
                 >
                   Continuar <ArrowRight size={20} />
                 </button>
@@ -267,10 +266,10 @@ export const RegisterWizard = () => {
                 className="w-full pt-8"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2">
-                    ¿Qué venderás en <span className="text-indigo-400">{formData.businessName}</span>?
+                  <h2 className="text-2xl font-black text-slate-900 mb-2">
+                    ¿Qué venderás en <span className="text-amber-600">{formData.businessName}</span>?
                   </h2>
-                  <p className="text-zinc-400">Selecciona tu rubro para sugerirte la mejor configuración.</p>
+                  <p className="text-slate-500 text-sm">Selecciona tu rubro para sugerirte la mejor configuración.</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {BUSINESS_TYPES.map((type) => {
@@ -278,12 +277,12 @@ export const RegisterWizard = () => {
                     return (
                       <button
                         key={type.id} onClick={() => handleSelectType(type.id)}
-                        className="text-left p-4 rounded-2xl border-2 border-zinc-800/60 bg-zinc-900/30 hover:border-indigo-500/50 hover:bg-indigo-500/5 transition-all duration-300 flex flex-col gap-3 group"
+                        className="text-left p-4 rounded-2xl border-2 border-slate-200 bg-slate-50/50 hover:border-amber-500/60 hover:bg-amber-50/50 transition-all duration-300 flex flex-col gap-3 group"
                       >
-                        <div className="p-2.5 rounded-xl bg-zinc-800 text-zinc-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/20 transition-colors inline-flex self-start">
+                        <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 group-hover:text-amber-600 group-hover:border-amber-400 group-hover:bg-amber-50 transition-colors inline-flex self-start shadow-sm">
                           <Icon size={24} />
                         </div>
-                        <span className="text-sm font-semibold text-zinc-300 group-hover:text-white transition-colors leading-snug">
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-slate-950 transition-colors leading-snug">
                           {type.label}
                         </span>
                       </button>
@@ -300,16 +299,16 @@ export const RegisterWizard = () => {
                 className="w-full max-w-lg mx-auto pt-8"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                    <FileText className="text-indigo-400" size={24} /> Expediente Fiscal
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 flex items-center justify-center gap-2">
+                    <FileText className="text-amber-500" size={24} /> Expediente Fiscal
                   </h2>
-                  <p className="text-zinc-400">Requerido en Venezuela para facturación y envíos.</p>
+                  <p className="text-slate-500 text-sm">Requerido en Venezuela para facturación y envíos.</p>
                 </div>
 
                 <div className="space-y-6 mb-8">
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-3 text-center">Eres una persona...</label>
-                    <div className="flex bg-zinc-900 p-1.5 rounded-xl border border-zinc-800">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 text-center">Eres una persona...</label>
+                    <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
                       {[
                         { id: 'J', label: 'Jurídica (J)' },
                         { id: 'V', label: 'Natural (V)' },
@@ -319,10 +318,10 @@ export const RegisterWizard = () => {
                         <button
                           key={type.id}
                           onClick={() => setFormData({...formData, legalType: type.id})}
-                          className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
                             formData.legalType === type.id 
-                              ? 'bg-indigo-600 text-white shadow-md' 
-                              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                              ? 'bg-white text-slate-900 shadow-sm' 
+                              : 'text-slate-500 hover:text-slate-900'
                           }`}
                         >
                           {type.label}
@@ -332,16 +331,21 @@ export const RegisterWizard = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-2">Número de RIF / Cédula</label>
-                    <div className="flex items-stretch border-2 border-zinc-800 bg-zinc-900/50 rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors">
-                      <div className="px-4 flex items-center justify-center bg-zinc-800 text-white font-bold text-lg border-r border-zinc-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Número de RIF / Cédula</label>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cleanRif.length >= 6 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {cleanRif.length}/6 mín {cleanRif.length >= 6 ? '✓' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-stretch border-2 border-slate-200 bg-slate-50 rounded-xl overflow-hidden focus-within:border-amber-500 focus-within:bg-white transition-all">
+                      <div className="px-4 flex items-center justify-center bg-slate-100 text-slate-700 font-bold text-lg border-r border-slate-200">
                         {formData.legalType}-
                       </div>
                       <input
                         type="text"
                         value={formData.rif}
                         onChange={(e) => setFormData({...formData, rif: formatRIF(e.target.value)})}
-                        className="w-full bg-transparent py-4 px-4 text-white text-lg focus:outline-none placeholder-zinc-700 font-mono tracking-widest"
+                        className="w-full bg-transparent py-3.5 px-4 text-slate-900 text-lg focus:outline-none placeholder-slate-400 font-mono tracking-widest"
                         placeholder="12345678-9"
                       />
                     </div>
@@ -349,8 +353,8 @@ export const RegisterWizard = () => {
                 </div>
 
                 <button
-                  onClick={handleNext} disabled={formData.rif.length < 6}
-                  className="w-full flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-xl font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed text-lg"
+                  onClick={handleNext} disabled={cleanRif.length < 6}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed text-base shadow-lg shadow-amber-500/20"
                 >
                   Continuar <ArrowRight size={20} />
                 </button>
@@ -364,55 +368,61 @@ export const RegisterWizard = () => {
                 className="w-full max-w-lg mx-auto pt-8"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                    <MapPin className="text-indigo-400" size={24} /> Logística y Contacto
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 flex items-center justify-center gap-2">
+                    <MapPin className="text-amber-500" size={24} /> Logística y Contacto
                   </h2>
-                  <p className="text-zinc-400">¿De dónde salen tus paquetes y cómo te contactan?</p>
+                  <p className="text-slate-500 text-sm">¿De dónde salen tus paquetes y cómo te contactan?</p>
                 </div>
 
                 <div className="space-y-5 mb-8">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-zinc-400 mb-2">Estado</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Estado</label>
                       <input
                         type="text" value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})}
-                        className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-zinc-700"
+                        className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all placeholder-slate-400 font-medium"
                         placeholder="Ej. Miranda"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-zinc-400 mb-2">Ciudad</label>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Ciudad</label>
                       <input
                         type="text" value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})}
-                        className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-zinc-700"
+                        className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all placeholder-slate-400 font-medium"
                         placeholder="Ej. Caracas"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-1.5"><Phone size={14}/> WhatsApp de Ventas</label>
-                    <div className="flex items-stretch border border-zinc-800 bg-zinc-900/50 rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors">
-                      <div className="px-4 flex items-center justify-center bg-zinc-800/80 text-zinc-300 font-bold border-r border-zinc-800">
-                        +58
-                      </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                        <Phone size={14} className="text-amber-500" /> WhatsApp de Ventas
+                      </label>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cleanWhatsApp.length >= 11 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {cleanWhatsApp.length}/11 mín {cleanWhatsApp.length >= 11 ? '✓' : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-stretch border-2 border-slate-200 bg-slate-50 rounded-xl overflow-hidden focus-within:border-amber-500 focus-within:bg-white transition-all">
                       <input
                         type="tel" value={formData.whatsapp} onChange={(e) => setFormData({...formData, whatsapp: formatWhatsApp(e.target.value)})}
-                        className="w-full bg-transparent py-3 px-4 text-white focus:outline-none placeholder-zinc-700 font-mono tracking-widest"
-                        placeholder="4141234567"
+                        className="w-full bg-transparent py-3 px-4 text-slate-900 focus:outline-none placeholder-slate-400 font-mono tracking-wider font-semibold"
+                        placeholder="Ej. 04141234567"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-1.5"><span className="text-indigo-400 font-bold">@</span> Instagram (Opcional)</label>
-                    <div className="flex items-stretch border border-zinc-800 bg-zinc-900/50 rounded-xl overflow-hidden focus-within:border-indigo-500 transition-colors">
-                      <div className="px-4 flex items-center justify-center bg-zinc-800/80 text-zinc-300 font-bold border-r border-zinc-800">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
+                      <span className="text-amber-500 font-bold">@</span> Instagram (Opcional)
+                    </label>
+                    <div className="flex items-stretch border-2 border-slate-200 bg-slate-50 rounded-xl overflow-hidden focus-within:border-amber-500 focus-within:bg-white transition-all">
+                      <div className="px-4 flex items-center justify-center bg-slate-100 text-slate-500 font-bold border-r border-slate-200">
                         @
                       </div>
                       <input
                         type="text" value={formData.instagram} onChange={(e) => setFormData({...formData, instagram: e.target.value.replace('@','')})}
-                        className="w-full bg-transparent py-3 px-4 text-white focus:outline-none placeholder-zinc-700"
+                        className="w-full bg-transparent py-3 px-4 text-slate-900 focus:outline-none placeholder-slate-400 font-medium"
                         placeholder="tu_tienda"
                       />
                     </div>
@@ -420,8 +430,8 @@ export const RegisterWizard = () => {
                 </div>
 
                 <button
-                  onClick={handleNext} disabled={!formData.state || !formData.city || formData.whatsapp.length < 10}
-                  className="w-full flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-xl font-bold transition-all disabled:opacity-20 disabled:cursor-not-allowed text-lg"
+                  onClick={handleNext} disabled={!formData.state.trim() || !formData.city.trim() || cleanWhatsApp.length < 11}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed text-base shadow-lg shadow-amber-500/20"
                 >
                   Continuar <ArrowRight size={20} />
                 </button>
@@ -435,10 +445,10 @@ export const RegisterWizard = () => {
                 className="w-full max-w-lg mx-auto pt-8"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-bold text-white mb-2">Ajustemos tu E-commerce</h2>
-                  <p className="text-zinc-400">Preseleccionamos esto basado en tu rubro. Ajusta si lo deseas.</p>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2">Ajustemos tu E-commerce</h2>
+                  <p className="text-slate-500 text-sm">Preseleccionamos esto basado en tu rubro. Ajusta si lo deseas.</p>
                 </div>
-                <div className="space-y-4 mb-10">
+                <div className="space-y-3 mb-10">
                   <ToggleSwitch 
                     enabled={formData.features.delivery} onChange={() => handleToggleFeature('delivery')}
                     label="Delivery y Envíos" description="Gestiona despachos por agencias (MRW, Zoom) o locales." icon={Truck}
@@ -462,7 +472,7 @@ export const RegisterWizard = () => {
                 </div>
                 <button
                   onClick={handleNext}
-                  className="w-full flex items-center justify-center gap-2 bg-white hover:bg-zinc-200 text-black px-8 py-4 rounded-xl font-bold transition-all text-lg"
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all text-base shadow-lg shadow-amber-500/20"
                 >
                   Confirmar Funciones <ArrowRight size={20} />
                 </button>
@@ -476,38 +486,38 @@ export const RegisterWizard = () => {
                 className="w-full max-w-md mx-auto pt-8"
               >
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-green-500/20">
-                    <CheckCircle size={32} className="text-green-400" />
+                  <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-emerald-500/20 text-emerald-600 shadow-sm">
+                    <CheckCircle size={32} />
                   </div>
-                  <h2 className="text-3xl font-extrabold text-white mb-2">¡Casi terminamos!</h2>
-                  <p className="text-zinc-400">Aseguremos tu cuenta para guardar tu expediente y configuración.</p>
+                  <h2 className="text-3xl font-black text-slate-900 mb-2">¡Casi terminamos!</h2>
+                  <p className="text-slate-500 text-sm">Aseguremos tu cuenta para guardar tu expediente y configuración.</p>
                 </div>
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 text-sm">
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl flex items-start gap-3 mb-6 text-sm">
                     <AlertCircle className="shrink-0 mt-0.5" size={18} /><span>{error}</span>
                   </div>
                 )}
-                <div className="space-y-5 mb-8">
+                <div className="space-y-4 mb-8">
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-2">Correo Electrónico (Admin)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Correo Electrónico (Admin)</label>
                     <input
                       type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-zinc-700"
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all placeholder-slate-400 font-medium"
                       placeholder="ejemplo@correo.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-zinc-400 mb-2">Contraseña Segura</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Contraseña Segura</label>
                     <input
                       type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-indigo-500 transition-all placeholder-zinc-700"
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl py-3 px-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all placeholder-slate-400 font-medium"
                       placeholder="••••••••"
                     />
                   </div>
                 </div>
                 <button
-                  onClick={handleRegister} disabled={!formData.email || !formData.password}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(99,102,241,0.2)] text-lg"
+                  onClick={handleRegister} disabled={!formData.email.trim() || !formData.password.trim()}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-amber-500/25 text-base"
                 >
                   Finalizar y Configurar
                 </button>
@@ -523,20 +533,20 @@ export const RegisterWizard = () => {
                 <div className="relative w-24 h-24 mx-auto mb-8">
                   <motion.div 
                     animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="absolute inset-0 rounded-full border-[3px] border-indigo-500/20 border-t-indigo-500"
+                    className="absolute inset-0 rounded-full border-[3px] border-amber-500/20 border-t-amber-500"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Store size={32} className="text-indigo-400" />
+                    <Store size={32} className="text-amber-500" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-6">Armando tu Sistema...</h2>
+                <h2 className="text-2xl font-black text-slate-900 mb-6">Armando tu Sistema...</h2>
                 <div className="space-y-3">
                   {setupMessages.map((msg, idx) => (
                     <motion.div 
                       key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-3 text-sm font-medium text-zinc-400"
+                      className="flex items-center gap-3 text-sm font-semibold text-slate-700"
                     >
-                      <CheckCircle size={16} className="text-indigo-500" /> {msg}
+                      <CheckCircle size={16} className="text-amber-500" /> {msg}
                     </motion.div>
                   ))}
                 </div>
@@ -550,8 +560,8 @@ export const RegisterWizard = () => {
       <style dangerouslySetInnerHTML={{__html: `
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(82, 82, 91, 0.3); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.6); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.6); }
       `}} />
     </div>
   );
