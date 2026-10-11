@@ -1,26 +1,18 @@
 import React from 'react';
-import { X } from 'lucide-react';
 
-const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZones, setShowZones, onlyMalls, setOnlyMalls }) => {
+const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius }) => {
   if (!isOpen) return null;
 
-  // Local state for the slider to show immediate updates before applying
   const [localRadius, setLocalRadius] = React.useState(scanRadius);
-  const [localShowZones, setLocalShowZones] = React.useState(showZones);
-  const [localOnlyMalls, setLocalOnlyMalls] = React.useState(onlyMalls);
 
   React.useEffect(() => {
     if (isOpen) {
       setLocalRadius(scanRadius);
-      setLocalShowZones(showZones);
-      setLocalOnlyMalls(onlyMalls);
     }
-  }, [isOpen, scanRadius, showZones, onlyMalls]);
+  }, [isOpen, scanRadius]);
 
   const handleApply = () => {
     setScanRadius(localRadius);
-    setShowZones(localShowZones);
-    setOnlyMalls(localOnlyMalls);
     onClose();
   };
 
@@ -29,41 +21,15 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
       <div className="w-full max-w-sm bg-[#111111] rounded-[32px] p-6 shadow-2xl border border-white/10 relative overflow-hidden">
         
         {/* Title */}
-        <h2 className="text-xl font-bold text-zinc-100 text-center mb-8 tracking-tight">Ajustes del mapa</h2>
-
-        {/* Mostrar Zonas */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex-1 pr-4">
-            <h3 className="text-base font-semibold text-zinc-100">Mostrar zonas</h3>
-            <p className="text-[13px] text-zinc-400 mt-1 leading-snug">Muestra en el mapa las zonas donde se concentran los restaurantes cercanos</p>
-          </div>
-          <button 
-            onClick={() => setLocalShowZones(!localShowZones)}
-            className={`w-12 h-7 rounded-full flex items-center transition-colors px-1 flex-shrink-0 ${localShowZones ? 'bg-amber-500' : 'bg-zinc-700'}`}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${localShowZones ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-        </div>
-
-        {/* Centros comerciales */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex-1 pr-4">
-            <h3 className="text-base font-semibold text-zinc-100">Centros comerciales</h3>
-            <p className="text-[13px] text-zinc-400 mt-1 leading-snug">Deja el mapa solo con los centros comerciales de la zona</p>
-          </div>
-          <button 
-            onClick={() => setLocalOnlyMalls(!localOnlyMalls)}
-            className={`w-12 h-7 rounded-full flex items-center transition-colors px-1 flex-shrink-0 ${localOnlyMalls ? 'bg-amber-500' : 'bg-zinc-700'}`}
-          >
-            <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${localOnlyMalls ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-        </div>
+        <h2 className="text-xl font-bold text-zinc-100 text-center mb-6 tracking-tight">Radio de búsqueda</h2>
 
         {/* Distancia analizada */}
-        <div className="mb-10">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-semibold text-zinc-100">Distancia analizada</h3>
-            <span className="text-sm font-bold text-amber-500">{localRadius} m</span>
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-zinc-200">Distancia analizada</h3>
+            <span className="text-sm font-bold text-amber-500">
+              {(localRadius / 1000).toFixed(1)} km <span className="text-xs text-zinc-500">({localRadius} m)</span>
+            </span>
           </div>
           
           <input 
@@ -73,34 +39,39 @@ const MapSettingsModal = ({ isOpen, onClose, scanRadius, setScanRadius, showZone
             step="100"
             value={localRadius}
             onChange={(e) => setLocalRadius(parseInt(e.target.value))}
-            className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            className="w-full h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
           />
           <style>{`
             input[type=range]::-webkit-slider-thumb {
               -webkit-appearance: none;
               appearance: none;
-              width: 16px;
-              height: 16px;
+              width: 18px;
+              height: 18px;
               border-radius: 50%;
-              background: #84ccb4; /* tealish indicator matching original img */
+              background: #f59e0b;
               cursor: pointer;
+              box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
             }
           `}</style>
           
-          <p className="text-[13px] text-zinc-400 mt-4 leading-snug text-center">Radio de búsqueda alrededor de tu ubicación</p>
+          <p className="text-[12px] text-zinc-400 mt-3 leading-snug text-center">
+            Define la distancia máxima alrededor de tu ubicación para detectar comercios.
+          </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <button 
+            type="button"
             onClick={onClose}
-            className="flex-1 py-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm rounded-2xl transition-colors border border-zinc-700"
+            className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm rounded-2xl transition-colors border border-zinc-700"
           >
             Cancelar
           </button>
           <button 
+            type="button"
             onClick={handleApply}
-            className="flex-1 py-3.5 bg-amber-500 text-zinc-900 hover:bg-amber-400 font-bold text-sm rounded-2xl transition-colors shadow-lg"
+            className="flex-1 py-3 bg-amber-500 text-zinc-950 hover:bg-amber-400 font-bold text-sm rounded-2xl transition-colors shadow-lg"
           >
             Aplicar
           </button>
