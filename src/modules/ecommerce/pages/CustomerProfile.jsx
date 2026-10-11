@@ -177,16 +177,18 @@ export default function CustomerProfile() {
       if (typeof pProfile === 'string') {
         try { pProfile = JSON.parse(pProfile); } catch(e) { pProfile = []; }
       }
-      if (pProfile && !Array.isArray(pProfile)) pProfile = [pProfile];
-      if (!pProfile) pProfile = [];
+      if (pProfile && !Array.isArray(pProfile)) {
+        pProfile = (typeof pProfile === 'object' && Object.keys(pProfile).length > 0) ? [pProfile] : [];
+      }
+      if (!Array.isArray(pProfile)) pProfile = [];
       parsed.payment_profile = pProfile;
       
       // Phase 4: Migrate old profilePic to profile_pic if it exists
       if (parsed.profilePic && !parsed.profile_pic) {
         parsed.profile_pic = parsed.profilePic;
         delete parsed.profilePic;
-        localStorage.setItem('ecommerce_current_customer', JSON.stringify(parsed));
       }
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(parsed));
       
       setCurrentCustomer(parsed);
       setPaymentProfiles(pProfile);
@@ -441,7 +443,8 @@ export default function CustomerProfile() {
       cedula: currentCustomer.docId,
       titular: currentCustomer.name
     };
-    const updatedProfiles = [...paymentProfiles, newProfile];
+    const currentList = Array.isArray(paymentProfiles) ? paymentProfiles : [];
+    const updatedProfiles = [...currentList, newProfile];
     setPaymentProfiles(updatedProfiles);
     await updateCustomerData({ payment_profile: updatedProfiles });
     setIsAddingPayment(false);
@@ -450,7 +453,8 @@ export default function CustomerProfile() {
 
   const handleDeletePaymentProfile = async (idx) => {
     if(!confirm('¿Estás seguro de eliminar esta cuenta?')) return;
-    const updatedProfiles = paymentProfiles.filter((_, i) => i !== idx);
+    const currentList = Array.isArray(paymentProfiles) ? paymentProfiles : [];
+    const updatedProfiles = currentList.filter((_, i) => i !== idx);
     setPaymentProfiles(updatedProfiles);
     await updateCustomerData({ payment_profile: updatedProfiles });
   };
@@ -683,13 +687,25 @@ export default function CustomerProfile() {
     setRatingModal({ isOpen: false, orderId: null, rating: 0, comment: '' });
   };
 
-  if (!currentCustomer) return null;
+  if (!currentCustomer) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="animate-spin text-amber-500" size={36} />
+      </div>
+    );
+  }
 
-  const parsedFavorites = currentCustomer.favorites || [];
+  const parsedFavorites = Array.isArray(currentCustomer.favorites) 
+    ? currentCustomer.favorites 
+    : (typeof currentCustomer.favorites === 'string' ? (() => { try { return JSON.parse(currentCustomer.favorites); } catch(e){ return []; } })() : []);
   
-  const parsedWishlist = currentCustomer.wishlist || [];
+  const parsedWishlist = Array.isArray(currentCustomer.wishlist) 
+    ? currentCustomer.wishlist 
+    : (typeof currentCustomer.wishlist === 'string' ? (() => { try { return JSON.parse(currentCustomer.wishlist); } catch(e){ return []; } })() : []);
 
-  const parsedAddresses = currentCustomer.addresses || [];
+  const parsedAddresses = Array.isArray(currentCustomer.addresses) 
+    ? currentCustomer.addresses 
+    : (typeof currentCustomer.addresses === 'string' ? (() => { try { return JSON.parse(currentCustomer.addresses); } catch(e){ return []; } })() : []);
 
   return (
     <div className="min-h-screen bg-black font-sans text-slate-50 selection:bg-amber-500/30 relative overflow-x-hidden">
@@ -957,24 +973,24 @@ export default function CustomerProfile() {
                       </div>
                       
                       <div className="space-y-4">
-                        {paymentProfiles.map((p, idx) => (
+                        {(Array.isArray(paymentProfiles) ? paymentProfiles : []).map((p, idx) => (
                           <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-900/50 p-6 rounded-2xl border border-white/5 relative group">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
                               <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Banco</label>
-                                <p className="text-white font-medium">{p.bank}</p>
+                                <p className="text-white font-medium">{p?.bank || '-'}</p>
                               </div>
                               <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Teléfono</label>
-                                <p className="text-white font-medium">{p.phone}</p>
+                                <p className="text-white font-medium">{p?.phone || '-'}</p>
                               </div>
                               <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Cédula</label>
-                                <p className="text-white font-medium">{p.cedula}</p>
+                                <p className="text-white font-medium">{p?.cedula || '-'}</p>
                               </div>
                               <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Titular</label>
-                                <p className="text-white font-medium">{p.titular}</p>
+                                <p className="text-white font-medium">{p?.titular || '-'}</p>
                               </div>
                             </div>
                             <button onClick={() => handleDeletePaymentProfile(idx)} className="mt-4 sm:mt-0 p-2 text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors">
@@ -982,7 +998,7 @@ export default function CustomerProfile() {
                             </button>
                           </div>
                         ))}
-                        {paymentProfiles.length === 0 && (
+                        {(Array.isArray(paymentProfiles) ? paymentProfiles.length : 0) === 0 && (
                           <p className="text-zinc-500 text-sm text-center py-4 bg-white/5 rounded-xl border border-white/5">No tienes cuentas de Pago Móvil autorizadas. Añade una para poder realizar compras.</p>
                         )}
                       </div>
@@ -1268,7 +1284,7 @@ export default function CustomerProfile() {
                           </div>
                           
                           <div className="space-y-3">
-                            {order.items && order.items.map(item => (
+                            {Array.isArray(order.items) && order.items.map(item => (
                               <div key={item.id} className="flex justify-between text-sm">
                                 <span className="font-medium text-zinc-300">{item.quantity}x {item.name}</span>
                                 <span className="text-zinc-500">${(item.price * item.quantity).toFixed(2)}</span>
@@ -1681,16 +1697,43 @@ export default function CustomerProfile() {
         customer={currentCustomer}
         canClose={false}
         onComplete={(updatedCustomer) => {
-          setCurrentCustomer(updatedCustomer);
-          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
+          const rawPay = updatedCustomer?.payment_profile;
+          let safePay = [];
+          if (Array.isArray(rawPay)) {
+            safePay = rawPay;
+          } else if (rawPay && typeof rawPay === 'object' && Object.keys(rawPay).length > 0) {
+            safePay = [rawPay];
+          } else if (typeof rawPay === 'string') {
+            try {
+              const parsed = JSON.parse(rawPay);
+              safePay = Array.isArray(parsed) ? parsed : [parsed];
+            } catch(e) { safePay = []; }
+          }
           
-          setPaymentProfiles(updatedCustomer.payment_profile || []);
+          let safeAddresses = [];
+          if (Array.isArray(updatedCustomer?.addresses)) {
+            safeAddresses = updatedCustomer.addresses;
+          } else if (typeof updatedCustomer?.addresses === 'string') {
+            try { safeAddresses = JSON.parse(updatedCustomer.addresses); } catch(e){}
+          }
+          
+          const safeCust = {
+            ...updatedCustomer,
+            payment_profile: safePay,
+            addresses: safeAddresses,
+            docId: updatedCustomer?.docId || updatedCustomer?.doc_id || ''
+          };
+
+          setCurrentCustomer(safeCust);
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(safeCust));
+          
+          setPaymentProfiles(safePay);
           setProfileForm({
-            name: updatedCustomer.name || '',
-            docId: updatedCustomer.docId || '',
-            phone: updatedCustomer.phone || '',
-            address: updatedCustomer.address || '',
-            profile_pic: updatedCustomer.profile_pic || ''
+            name: safeCust.name || '',
+            docId: safeCust.docId || '',
+            phone: safeCust.phone || '',
+            address: safeCust.address || '',
+            profile_pic: safeCust.profile_pic || ''
           });
           
           setIsWizardOpen(false);

@@ -91,42 +91,53 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   }, []);
 
+  // Obtener cliente seguro de props o de localStorage
+  const activeCustomer = customer || (() => {
+    try {
+      const saved = localStorage.getItem('ecommerce_current_customer');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
   useEffect(() => {
-    if (isOpen && customer) {
-      const defaultName = customer.name;
-      const isDefaultName = defaultName === customer.email || defaultName === customer.email.split('@')[0];
-      const paymentProfile = customer.payment_profile || {};
+    if (isOpen && activeCustomer) {
+      const defaultName = activeCustomer.name;
+      const isDefaultName = !defaultName || defaultName === activeCustomer.email || defaultName === activeCustomer.email?.split('@')[0];
+      const rawPay = activeCustomer.payment_profile;
+      const paymentProfile = (Array.isArray(rawPay) ? rawPay[0] : rawPay) || {};
       
       let defaultAddress = '';
-      if (Array.isArray(customer.addresses) && customer.addresses.length > 0) {
-        defaultAddress = customer.addresses.find(a => a.isDefault)?.address || customer.addresses[0].address;
-      } else if (typeof customer.addresses === 'string') {
+      if (Array.isArray(activeCustomer.addresses) && activeCustomer.addresses.length > 0) {
+        defaultAddress = activeCustomer.addresses.find(a => a.isDefault)?.address || activeCustomer.addresses[0].address;
+      } else if (typeof activeCustomer.addresses === 'string') {
         try {
-          const parsed = JSON.parse(customer.addresses);
+          const parsed = JSON.parse(activeCustomer.addresses);
           if (parsed.length > 0) defaultAddress = parsed.find(a => a.isDefault)?.address || parsed[0].address;
         } catch(e){}
       }
-      if (!defaultAddress && customer.address) defaultAddress = customer.address;
+      if (!defaultAddress && activeCustomer.address) defaultAddress = activeCustomer.address;
 
       let defaultLat = null;
       let defaultLng = null;
-      if (Array.isArray(customer.addresses) && customer.addresses.length > 0) {
-        const addr = customer.addresses.find(a => a.isDefault) || customer.addresses[0];
+      if (Array.isArray(activeCustomer.addresses) && activeCustomer.addresses.length > 0) {
+        const addr = activeCustomer.addresses.find(a => a.isDefault) || activeCustomer.addresses[0];
         if (addr.lat) defaultLat = addr.lat;
         if (addr.lng) defaultLng = addr.lng;
       }
 
       setFormData({
         name: isDefaultName ? '' : (defaultName || ''),
-        phone: customer.phone || '',
-        docId: customer.docId || customer.doc_id || '',
+        phone: activeCustomer.phone || '',
+        docId: activeCustomer.docId || activeCustomer.doc_id || '',
         addressSector: '',
         addressDetail: defaultAddress || '',
         payment_bank: paymentProfile.bank || '',
         payment_phone: paymentProfile.phone || '',
-        payment_cedula: paymentProfile.cedula || customer.docId || customer.doc_id || '',
+        payment_cedula: paymentProfile.cedula || activeCustomer.docId || activeCustomer.doc_id || '',
         payment_titular: paymentProfile.titular || (isDefaultName ? '' : (defaultName || '')),
-        profile_pic: customer.profile_pic || '',
+        profile_pic: activeCustomer.profile_pic || '',
         lat: defaultLat,
         lng: defaultLng
       });
@@ -216,8 +227,15 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       }
       setIsSubmitting(true);
 
-      if (formData.name && formData.name !== customer.name) {
-         const { data } = await supabase.from('ecommerce_customers').select('id').ilike('name', formData.name.trim()).neq('id', customer.id).maybeSingle();
+      const targetId = activeCustomer?.id;
+      if (!targetId) {
+        alert('No se pudo identificar tu sesión de cliente. Por favor inicia sesión nuevamente.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (formData.name && formData.name !== activeCustomer?.name) {
+         const { data } = await supabase.from('ecommerce_customers').select('id').ilike('name', formData.name.trim()).neq('id', targetId).maybeSingle();
          if (data) {
              alert('Ese nombre ya está registrado por otra persona. Usa uno distinto.');
              setIsSubmitting(false);
@@ -225,8 +243,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
          }
       }
       
-      if (formData.docId && formData.docId !== customer.doc_id) {
-         const { data } = await supabase.from('ecommerce_customers').select('id').eq('doc_id', formData.docId.trim()).neq('id', customer.id).maybeSingle();
+      const currentDoc = activeCustomer?.doc_id || activeCustomer?.docId;
+      if (formData.docId && formData.docId !== currentDoc) {
+         const { data } = await supabase.from('ecommerce_customers').select('id').eq('doc_id', formData.docId.trim()).neq('id', targetId).maybeSingle();
          if (data) {
              alert('Esa cédula/documento ya está registrada en otra cuenta.');
              setIsSubmitting(false);
@@ -262,10 +281,10 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         const finalAddressText = formData.addressSector ? `${formData.addressSector}, ${formData.addressDetail}` : formData.addressDetail;
         
         let existingAddresses = [];
-        if (Array.isArray(customer.addresses)) {
-          existingAddresses = customer.addresses;
-        } else if (typeof customer.addresses === 'string') {
-          try { existingAddresses = JSON.parse(customer.addresses); } catch (e) {}
+        if (Array.isArray(activeCustomer?.addresses)) {
+          existingAddresses = [...activeCustomer.addresses];
+        } else if (typeof activeCustomer?.addresses === 'string') {
+          try { existingAddresses = JSON.parse(activeCustomer.addresses); } catch (e) {}
         }
 
         if (existingAddresses.length === 0) {
@@ -297,14 +316,14 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           doc_id: formData.docId,
           address: finalAddressText,
           addresses: existingAddresses,
-          payment_profile: paymentProfile,
+          payment_profile: [paymentProfile],
           profile_pic: pictureUrl
         };
 
         let { error } = await supabase
           .from('ecommerce_customers')
           .update(updatePayload)
-          .eq('id', customer.id);
+          .eq('id', targetId);
           
         if (error) {
           // Fallback if columns don't exist yet
@@ -314,11 +333,16 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
             doc_id: formData.docId,
             address: finalAddressText
           };
-          const retry = await supabase.from('ecommerce_customers').update(fallbackPayload).eq('id', customer.id);
+          const retry = await supabase.from('ecommerce_customers').update(fallbackPayload).eq('id', targetId);
           if (retry.error) throw retry.error;
         }
         
-        const updatedCustomer = { ...customer, ...updatePayload, docId: formData.docId };
+        const updatedCustomer = { 
+          ...activeCustomer, 
+          ...updatePayload, 
+          docId: formData.docId,
+          payment_profile: [paymentProfile] 
+        };
         onComplete(updatedCustomer);
       } catch (err) {
         console.error(err);

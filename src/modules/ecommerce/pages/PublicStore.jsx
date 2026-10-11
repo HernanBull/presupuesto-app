@@ -612,22 +612,73 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
-      const { data: user, error } = await supabase
-        .from('ecommerce_customers')
-        .select('*')
-        .eq('email', authForm.email)
-        .eq('password', authForm.password)
-        .maybeSingle();
+      let user = null;
+      // 1. Probar primero con Supabase Auth (para cuentas registradas vía Marketplace o Auth unificado)
+      try {
+        const { data: authData } = await supabase.auth.signInWithPassword({
+          email: authForm.email,
+          password: authForm.password
+        });
+        if (authData?.user) {
+          const { data: cData } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .or(`id.eq.${authData.user.id},email.ilike.${authForm.email.trim()}`)
+            .maybeSingle();
+          if (cData) user = cData;
+        }
+      } catch (authErr) {
+        // Continuar con verificación directa si falla
+      }
+
+      // 2. Verificación directa en base de datos
+      if (!user) {
+        const { data: legacyUser } = await supabase
+          .from('ecommerce_customers')
+          .select('*')
+          .ilike('email', authForm.email.trim())
+          .eq('password', authForm.password)
+          .maybeSingle();
+          
+        if (legacyUser) user = legacyUser;
+      }
         
-      if (error || !user) {
+      if (!user) {
         alert('Credenciales incorrectas');
         setAuthLoading(false);
         return false;
       }
+
+      let safePaymentProfiles = [];
+      if (user.payment_profile) {
+        if (Array.isArray(user.payment_profile)) {
+          safePaymentProfiles = user.payment_profile;
+        } else if (typeof user.payment_profile === 'object' && Object.keys(user.payment_profile).length > 0) {
+          safePaymentProfiles = [user.payment_profile];
+        } else if (typeof user.payment_profile === 'string') {
+          try {
+            const p = JSON.parse(user.payment_profile);
+            safePaymentProfiles = Array.isArray(p) ? p : [p];
+          } catch(e){}
+        }
+      }
+
+      let safeAddresses = [];
+      if (user.addresses) {
+        if (Array.isArray(user.addresses)) {
+          safeAddresses = user.addresses;
+        } else if (typeof user.addresses === 'string') {
+          try { safeAddresses = JSON.parse(user.addresses); } catch(e){}
+        }
+      }
       
       const mappedUser = {
         ...user,
-        docId: user.doc_id,
+        docId: user.doc_id || user.docId || '',
+        addresses: safeAddresses,
+        payment_profile: safePaymentProfiles,
+        favorites: Array.isArray(user.favorites) ? user.favorites : [],
+        wishlist: Array.isArray(user.wishlist) ? user.wishlist : [],
         orders: []
       };
       
@@ -635,7 +686,9 @@ export default function PublicStore() {
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       
-      if (!mappedUser.phone || !mappedUser.docId || !mappedUser.address || !mappedUser.name || mappedUser.name === mappedUser.email.split('@')[0] || mappedUser.name === mappedUser.email) {
+      const cleanPhone = (mappedUser.phone || '').replace(/\D/g, '');
+      const cleanDoc = (mappedUser.docId || mappedUser.doc_id || '').replace(/\D/g, '');
+      if (!mappedUser.name || mappedUser.name === mappedUser.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !mappedUser.address) {
         setIsWizardOpen(true);
       }
 
@@ -2841,8 +2894,18 @@ export default function PublicStore() {
         customer={currentCustomer} 
         canClose={true}
         onComplete={(updatedCustomer) => {
-          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
-          setCurrentCustomer(updatedCustomer);
+          const rawPay = updatedCustomer?.payment_profile;
+          let safePay = [];
+          if (Array.isArray(rawPay)) safePay = rawPay;
+          else if (rawPay && typeof rawPay === 'object' && Object.keys(rawPay).length > 0) safePay = [rawPay];
+          
+          const safeCust = {
+            ...updatedCustomer,
+            payment_profile: safePay,
+            addresses: Array.isArray(updatedCustomer?.addresses) ? updatedCustomer.addresses : []
+          };
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(safeCust));
+          setCurrentCustomer(safeCust);
           setIsWizardOpen(false);
           // Si el carrito estaba abierto y quería hacer checkout, lo habilitamos
           if (isCartOpen && totalCartItems > 0) {

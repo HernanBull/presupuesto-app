@@ -315,7 +315,15 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      const user = { ...newCustomer, docId: newCustomer.doc_id, orders: [] };
+      const user = { 
+        ...newCustomer, 
+        docId: newCustomer.doc_id, 
+        addresses: [], 
+        payment_profile: [], 
+        favorites: [], 
+        wishlist: [], 
+        orders: [] 
+      };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
@@ -342,22 +350,87 @@ export default function MarketplaceDirectory() {
     try {
       const authData = await loginUser(authForm.email, authForm.password);
       
-      const { data: customerData, error } = await supabase
+      let { data: customerData } = await supabase
         .from('ecommerce_customers')
         .select('*')
         .eq('id', authData.user.id)
-        .single();
-        
-      if (error && error.code !== 'PGRST116') throw error;
+        .maybeSingle();
 
-      const user = customerData ? { ...customerData, docId: customerData.doc_id, orders: [] } : { id: authData.user.id, email: authData.user.email, name: authData.user.user_metadata?.name || 'Usuario', orders: [] };
+      if (!customerData) {
+        const { data: byEmail } = await supabase
+          .from('ecommerce_customers')
+          .select('*')
+          .ilike('email', authForm.email.trim())
+          .maybeSingle();
+        if (byEmail) {
+          customerData = byEmail;
+          await supabase.from('ecommerce_customers').update({ id: authData.user.id }).eq('email', authForm.email.trim());
+        }
+      }
+
+      let safePaymentProfiles = [];
+      if (customerData?.payment_profile) {
+        if (Array.isArray(customerData.payment_profile)) {
+          safePaymentProfiles = customerData.payment_profile;
+        } else if (typeof customerData.payment_profile === 'object' && Object.keys(customerData.payment_profile).length > 0) {
+          safePaymentProfiles = [customerData.payment_profile];
+        } else if (typeof customerData.payment_profile === 'string') {
+          try {
+            const p = JSON.parse(customerData.payment_profile);
+            safePaymentProfiles = Array.isArray(p) ? p : [p];
+          } catch(e){}
+        }
+      }
+
+      let safeAddresses = [];
+      if (customerData?.addresses) {
+        if (Array.isArray(customerData.addresses)) {
+          safeAddresses = customerData.addresses;
+        } else if (typeof customerData.addresses === 'string') {
+          try { safeAddresses = JSON.parse(customerData.addresses); } catch(e){}
+        }
+      }
+
+      let safeFavorites = [];
+      if (customerData?.favorites) {
+        if (Array.isArray(customerData.favorites)) {
+          safeFavorites = customerData.favorites;
+        } else if (typeof customerData.favorites === 'string') {
+          try { safeFavorites = JSON.parse(customerData.favorites); } catch(e){}
+        }
+      }
+
+      const user = customerData ? {
+        ...customerData,
+        docId: customerData.doc_id || customerData.docId || '',
+        addresses: safeAddresses,
+        payment_profile: safePaymentProfiles,
+        favorites: safeFavorites,
+        wishlist: Array.isArray(customerData.wishlist) ? customerData.wishlist : [],
+        orders: []
+      } : {
+        id: authData.user.id,
+        email: authData.user.email,
+        name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'Usuario',
+        doc_id: '',
+        docId: '',
+        phone: '',
+        address: '',
+        addresses: [],
+        payment_profile: [],
+        favorites: [],
+        wishlist: [],
+        orders: []
+      };
       
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
       
-      if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
+      const cleanPhone = (user.phone || '').replace(/\D/g, '');
+      const cleanDoc = (user.docId || user.doc_id || '').replace(/\D/g, '');
+      if (!user.name || user.name === user.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !user.address) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
         navigate(`/${pendingStoreSlug}`);
@@ -441,7 +514,38 @@ export default function MarketplaceDirectory() {
         }).catch(e => console.error('Error sending welcome email:', e));
       }
       
-      const mappedUser = { ...user, docId: user.doc_id || user.docId || '', orders: [] };
+      let safePaymentProfiles = [];
+      if (user?.payment_profile) {
+        if (Array.isArray(user.payment_profile)) {
+          safePaymentProfiles = user.payment_profile;
+        } else if (typeof user.payment_profile === 'object' && Object.keys(user.payment_profile).length > 0) {
+          safePaymentProfiles = [user.payment_profile];
+        } else if (typeof user.payment_profile === 'string') {
+          try {
+            const p = JSON.parse(user.payment_profile);
+            safePaymentProfiles = Array.isArray(p) ? p : [p];
+          } catch(e){}
+        }
+      }
+
+      let safeAddresses = [];
+      if (user?.addresses) {
+        if (Array.isArray(user.addresses)) {
+          safeAddresses = user.addresses;
+        } else if (typeof user.addresses === 'string') {
+          try { safeAddresses = JSON.parse(user.addresses); } catch(e){}
+        }
+      }
+
+      const mappedUser = { 
+        ...user, 
+        docId: user.doc_id || user.docId || '', 
+        addresses: safeAddresses,
+        payment_profile: safePaymentProfiles,
+        favorites: Array.isArray(user.favorites) ? user.favorites : [],
+        wishlist: Array.isArray(user.wishlist) ? user.wishlist : [],
+        orders: [] 
+      };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
@@ -2202,8 +2306,18 @@ export default function MarketplaceDirectory() {
         customer={currentCustomer}
         canClose={true}
         onComplete={(updatedCustomer) => {
-          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
-          setCurrentCustomer(updatedCustomer);
+          const rawPay = updatedCustomer?.payment_profile;
+          let safePay = [];
+          if (Array.isArray(rawPay)) safePay = rawPay;
+          else if (rawPay && typeof rawPay === 'object' && Object.keys(rawPay).length > 0) safePay = [rawPay];
+          
+          const safeCust = {
+            ...updatedCustomer,
+            payment_profile: safePay,
+            addresses: Array.isArray(updatedCustomer?.addresses) ? updatedCustomer.addresses : []
+          };
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(safeCust));
+          setCurrentCustomer(safeCust);
           setIsWizardOpen(false);
           if (pendingStoreSlug) {
             navigate(`/${pendingStoreSlug}`);
