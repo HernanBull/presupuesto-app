@@ -263,15 +263,22 @@ export default function PublicStore() {
   }, []);
 
   const getStoreScheduleStatus = () => {
-    if (!config?.scheduleProfile?.openTime) return { status: 'unknown', message: 'Horario no especificado' };
-    const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = config.scheduleProfile;
-    if (!workDays || !openTime || !closeTime) return { status: 'unknown', message: 'Horario no especificado' };
+    const sched = config?.scheduleProfile || config?.schedule || config?.expediente?.scheduleProfile;
+    if (!sched) return { status: 'unknown', message: 'Horario no especificado' };
+    if (sched.scheduleActive === false) {
+      if (sched.openTime && sched.closeTime) {
+        return { status: 'open', message: `Horario (${sched.openTime} - ${sched.closeTime})` };
+      }
+      return { status: 'open', message: 'Abierto 24/7' };
+    }
+    const { workDays, openTime, closeTime, closeWarningMinutes = 30 } = sched;
+    if (!openTime || !closeTime) return { status: 'unknown', message: 'Horario no especificado' };
     
     const currentDayIdx = new Date().getDay();
     const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
     const currentDayName = daysMap[currentDayIdx];
     
-    if (!workDays[currentDayName]) return { status: 'closed', message: `Cerrado (Hoy ${currentDayName} no laborable)` };
+    if (workDays && workDays[currentDayName] === false) return { status: 'closed', message: `Cerrado (Hoy ${currentDayName} no laborable)` };
     
     const now = new Date();
     const currentHour = now.getHours();
@@ -1207,8 +1214,16 @@ export default function PublicStore() {
         
         setWorkspaceId(storeData.id);
         
-        let saved = storeData.config?.storefront || storeData.config;
-        if (!saved || Object.keys(saved).length === 0) {
+        const baseConf = storeData.config || {};
+        const storefrontConf = storeData.config?.storefront || {};
+        
+        let saved = {
+          ...baseConf,
+          ...storefrontConf,
+          business_name: storeData.name
+        };
+
+        if (!saved || Object.keys(saved).length <= 1) {
           saved = {
             themeMode: 'dark', primaryColor: '#f59e0b', typography: 'font-sans', baseFontSize: 'text-base', headingWeight: 'font-light',
             logoUrl: null, headerStyle: 'transparent', showBanner: false, heroUrl: null, heroLayout: 'centered',
@@ -1217,7 +1232,10 @@ export default function PublicStore() {
               { id: 'sec-hero-1', type: 'hero' },
               { id: 'sec-feat-1', type: 'featured' }
             ],
-            animationsEnabled: true
+            animationsEnabled: true,
+            ...baseConf,
+            ...storefrontConf,
+            business_name: storeData.name
           };
         }
         
@@ -1227,9 +1245,29 @@ export default function PublicStore() {
         }
         
         // Ensure logo and cover are taken from the main store config if not explicitly set in storefront
-        if (storeData.config) {
-          saved.logoUrl = storeData.config.logoUrl || saved.logoUrl;
-          saved.heroUrl = storeData.config.coverUrl || saved.heroUrl || saved.coverUrl;
+        saved.logoUrl = baseConf.logoUrl || storefrontConf.logoUrl || saved.logoUrl;
+        saved.heroUrl = baseConf.coverUrl || storefrontConf.heroUrl || saved.heroUrl || saved.coverUrl;
+
+        // Resolve location & address with complete fallbacks
+        const storeLat = baseConf.location?.lat || baseConf.expediente?.gps?.lat || storeData.latitude;
+        const storeLng = baseConf.location?.lng || baseConf.expediente?.gps?.lng || storeData.longitude;
+        const storeAddr = baseConf.address || baseConf.location?.address || baseConf.expediente?.address || storeData.map_address || '';
+
+        if (storeLat && storeLng) {
+          saved.location = {
+            lat: Number(storeLat),
+            lng: Number(storeLng),
+            address: storeAddr
+          };
+        }
+        if (storeAddr) {
+          saved.address = storeAddr;
+        }
+        if (baseConf.scheduleProfile || baseConf.schedule) {
+          saved.scheduleProfile = baseConf.scheduleProfile || baseConf.schedule;
+        }
+        if (baseConf.description) {
+          saved.description = baseConf.description;
         }
         
         saved.business_name = storeData.name;
@@ -1885,12 +1923,12 @@ export default function PublicStore() {
               <div className="mt-8">
                 <h2 className="text-lg font-bold mb-3">Acerca de</h2>
                 <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
-                  {config?.description || 'La mejor calidad para ti.'}
+                  {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
                   <div className="flex flex-col gap-1.5 mt-3 text-zinc-400">
-                    {config?.address && (
+                    {(config?.address || config?.location?.address || config?.expediente?.address) && (
                       <div className="flex items-center gap-2">
                         <MapPin size={14} className="text-red-500" />
-                        <span>{config.address}</span>
+                        <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
                       </div>
                     )}
                   </div>
@@ -1928,7 +1966,7 @@ export default function PublicStore() {
               <div className="mt-8 border-t border-white/5 pt-8">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold">Horario</h2>
-                  {config?.scheduleProfile?.workDays && (
+                  {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
                     <span 
                       onClick={() => setShowFullSchedule(!showFullSchedule)}
                       className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors"
@@ -1958,34 +1996,52 @@ export default function PublicStore() {
                 </div>
 
                 {/* Vista Detallada de Horario (Oculta por defecto) */}
-                {showFullSchedule && config?.scheduleProfile?.workDays && (
-                  <div className="mt-4 flex flex-col gap-2 text-sm text-zinc-400 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
-                    {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(day => (
-                      <div key={day} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                        <span className="capitalize">{day}</span>
-                        <span className="font-bold text-white tracking-wide">
-                          {config.scheduleProfile.workDays[day] 
-                            ? `${config.scheduleProfile.openTime} - ${config.scheduleProfile.closeTime}` 
-                            : <span className="text-red-400">Cerrado</span>}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {showFullSchedule && (config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (() => {
+                  const sched = config?.scheduleProfile || config?.schedule;
+                  return (
+                    <div className="mt-4 flex flex-col gap-2 text-sm text-zinc-400 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
+                      {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(day => (
+                        <div key={day} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
+                          <span className="capitalize">{day}</span>
+                          <span className="font-bold text-white tracking-wide">
+                            {sched?.workDays?.[day] 
+                              ? `${sched.openTime || '08:00'} - ${sched.closeTime || '18:00'}` 
+                              : <span className="text-red-400">Cerrado</span>}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Ubicación */}
               <div className="mt-8 border-t border-white/5 pt-8">
                 <div className="flex justify-between items-center mb-3">
                   <h2 className="text-lg font-bold">Ubicación</h2>
-                  <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.location?.lat ? `${config.location.lat},${config.location.lng}` : (config?.address || config?.businessName || 'Venezuela'))}`)} className="text-sm font-bold text-zinc-400 hover:text-white transition-colors">Abrir en Maps</button>
+                  <button 
+                    onClick={() => {
+                      const lat = config?.location?.lat || config?.expediente?.gps?.lat;
+                      const lng = config?.location?.lng || config?.expediente?.gps?.lng;
+                      const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
+                      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
+                    }} 
+                    className="text-sm font-bold text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Abrir en Maps
+                  </button>
                 </div>
-                {config?.address && <p className="text-sm text-zinc-300 mb-4">{config.address}</p>}
+                {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                  <p className="text-sm text-zinc-300 mb-4">{config?.address || config?.location?.address || config?.expediente?.address}</p>
+                )}
                 
                 <div className="w-full h-40 rounded-3xl relative overflow-hidden bg-zinc-900 shadow-inner border border-white/5 z-0 group">
-                  {config?.location?.lat && config?.location?.lng ? (
+                  {(config?.location?.lat || config?.expediente?.gps?.lat) && (config?.location?.lng || config?.expediente?.gps?.lng) ? (
                     <MapContainer 
-                      center={[config.location.lat, config.location.lng]} 
+                      center={[
+                        Number(config?.location?.lat || config?.expediente?.gps?.lat), 
+                        Number(config?.location?.lng || config?.expediente?.gps?.lng)
+                      ]} 
                       zoom={15} 
                       style={{ height: "100%", width: "100%", zIndex: 0 }}
                       zoomControl={false}
@@ -1998,11 +2054,17 @@ export default function PublicStore() {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                       />
-                      <Marker position={[config.location.lat, config.location.lng]} />
+                      <Marker position={[
+                        Number(config?.location?.lat || config?.expediente?.gps?.lat), 
+                        Number(config?.location?.lng || config?.expediente?.gps?.lng)
+                      ]} />
                     </MapContainer>
                   ) : (
                     <div 
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config?.address || config?.businessName || 'Venezuela')}`)}
+                      onClick={() => {
+                        const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
+                      }}
                       className="w-full h-full cursor-pointer relative bg-zinc-100 flex items-center justify-center overflow-hidden group"
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 to-zinc-100 opacity-50"></div>
@@ -2022,8 +2084,15 @@ export default function PublicStore() {
                       </div>
                     </div>
                   )}
-                  {config?.location?.lat && (
-                    <div className="absolute inset-0 z-[1] cursor-pointer" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${config.location.lat},${config.location.lng}`)}></div>
+                  {(config?.location?.lat || config?.expediente?.gps?.lat) && (
+                    <div 
+                      className="absolute inset-0 z-[1] cursor-pointer" 
+                      onClick={() => {
+                        const lat = config?.location?.lat || config?.expediente?.gps?.lat;
+                        const lng = config?.location?.lng || config?.expediente?.gps?.lng;
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+                      }}
+                    ></div>
                   )}
                 </div>
               </div>

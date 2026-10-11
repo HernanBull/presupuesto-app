@@ -151,15 +151,28 @@ export const RegisterWizard = () => {
       if (formData.features.analytics) finalModules.push('analytics');
       finalModules.push('product_studio');
 
+      const resolvedAddress = [formData.city, formData.state].filter(Boolean).join(', ') || 'Venezuela';
       const config = {
         business_type: formData.businessType,
+        description: `Bienvenido a ${formData.businessName}. Especialistas en ${selectedType?.name || 'productos de calidad'}.`,
         modules: finalModules,
         categories: selectedType.defaultCategories,
+        address: resolvedAddress,
+        scheduleProfile: {
+          scheduleActive: true,
+          openTime: "08:00",
+          closeTime: "18:00",
+          closeWarningMinutes: 30,
+          workDays: {
+            lunes: true, martes: true, miercoles: true, jueves: true, viernes: true, sabado: true, domingo: false
+          }
+        },
         expediente: {
           legalType: formData.legalType,
           rif: formData.legalType + '-' + formData.rif,
           state: formData.state,
           city: formData.city,
+          address: resolvedAddress,
           whatsapp: cleanWhatsApp.startsWith('0') ? '+58' + cleanWhatsApp.slice(1) : (cleanWhatsApp.startsWith('58') ? '+' + cleanWhatsApp : '+58' + cleanWhatsApp),
           instagram: formData.instagram
         },
@@ -171,6 +184,7 @@ export const RegisterWizard = () => {
         id,
         name: formData.businessName,
         store_slug: generatedSlug,
+        map_address: resolvedAddress,
         config: config,
         owner_email: formData.email,
         created_at: new Date().toISOString()

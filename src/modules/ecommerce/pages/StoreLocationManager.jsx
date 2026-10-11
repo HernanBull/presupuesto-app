@@ -41,10 +41,15 @@ export default function StoreLocationManager() {
 
   const fetchConfig = async (id) => {
     try {
-      const { data: ws, error } = await supabase.from('workspaces').select('config').eq('id', id).single();
-      if (ws && ws.config && ws.config.location) {
-        setPosition({ lat: ws.config.location.lat, lng: ws.config.location.lng });
-        setAddressText(ws.config.location.address || '');
+      const { data: ws, error } = await supabase.from('workspaces').select('*').eq('id', id).single();
+      if (ws) {
+        const lat = ws.config?.location?.lat || ws.config?.expediente?.gps?.lat || ws.latitude;
+        const lng = ws.config?.location?.lng || ws.config?.expediente?.gps?.lng || ws.longitude;
+        const addr = ws.config?.location?.address || ws.config?.address || ws.config?.expediente?.address || ws.map_address || '';
+        if (lat && lng) {
+          setPosition({ lat: Number(lat), lng: Number(lng) });
+        }
+        setAddressText(addr);
       }
     } catch (error) {
       console.error(error);
@@ -62,6 +67,7 @@ export default function StoreLocationManager() {
       
       const newConfig = {
         ...(ws?.config || {}),
+        address: addressText,
         location: {
           lat: position.lat,
           lng: position.lng,
@@ -69,7 +75,12 @@ export default function StoreLocationManager() {
         }
       };
 
-      const { error: updateErr } = await supabase.from('workspaces').update({ config: newConfig }).eq('id', workspaceId);
+      const { error: updateErr } = await supabase.from('workspaces').update({ 
+        config: newConfig,
+        latitude: position.lat,
+        longitude: position.lng,
+        map_address: addressText
+      }).eq('id', workspaceId);
       if (updateErr) throw updateErr;
       
       alert('Ubicación guardada con éxito.');

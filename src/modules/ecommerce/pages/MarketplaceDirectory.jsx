@@ -82,6 +82,7 @@ export default function MarketplaceDirectory() {
     contactPhone: '',
     contactEmail: '',
     businessName: '', 
+    description: '',
     email: '', 
     password: '',
     category: 'Víveres',
@@ -784,15 +785,42 @@ export default function MarketplaceDirectory() {
       setMerchantMfaSecret(secret.base32);
       setMerchantMfaUrl(totp.toString());
       
+      const resolvedAddress = merchantForm.addressLine || [merchantForm.addressCity, merchantForm.addressState].filter(v => v && v !== 'Por definir').join(', ') || 'Venezuela';
+      const resolvedDescription = merchantForm.description?.trim() || `Bienvenido a ${merchantForm.businessName}. Especialistas en ${merchantForm.category}. Calidad y atención garantizada.`;
+
       const initialConfig = {
         adminEmail: merchantForm.email,
+        description: resolvedDescription,
         business_type: merchantForm.category,
         categories: [merchantForm.category],
+        modules: ['orders', 'inventory', 'analytics', 'product_studio'],
         paymentProfile: {
+          paymentMobile: true,
           pmBank: merchantForm.pagoMovilBank,
           pmPhone: merchantForm.pagoMovilPhone,
-          pmId: merchantForm.pagoMovilId || `${merchantForm.rifPrefix}-${merchantForm.rifNumber}`
+          pmId: merchantForm.pagoMovilId || `${merchantForm.rifPrefix}-${merchantForm.rifNumber}`,
+          zelleActive: false,
+          zelleEmail: '',
+          zelleName: '',
+          cashActive: false
         },
+        shippingProfile: {
+          flatRate: 0,
+          freeShipping: false
+        },
+        scheduleProfile: {
+          scheduleActive: merchantForm.scheduleActive,
+          workDays: merchantForm.workingDays,
+          openTime: merchantForm.scheduleOpen,
+          closeTime: merchantForm.scheduleClose,
+          closeWarningMinutes: merchantForm.closeWarningMinutes || 30
+        },
+        address: resolvedAddress,
+        location: merchantForm.gpsCoords ? {
+          lat: merchantForm.gpsCoords.lat,
+          lng: merchantForm.gpsCoords.lng,
+          address: resolvedAddress
+        } : null,
         expediente: {
           ownerName: merchantForm.ownerName || '',
           legalType: merchantForm.rifPrefix || 'V',
@@ -802,6 +830,7 @@ export default function MarketplaceDirectory() {
           address: merchantForm.addressLine || '',
           gps: merchantForm.gpsCoords,
           whatsapp: merchantForm.contactPhone || merchantForm.pagoMovilPhone || '',
+          instagram: ''
         },
         contact: {
           phone: merchantForm.contactPhone,
@@ -815,6 +844,9 @@ export default function MarketplaceDirectory() {
         name: merchantForm.businessName,
         store_slug: generatedSlug,
         status: 'Pendiente',
+        latitude: merchantForm.gpsCoords?.lat || null,
+        longitude: merchantForm.gpsCoords?.lng || null,
+        map_address: resolvedAddress,
         config: initialConfig
       };
 
@@ -888,8 +920,12 @@ export default function MarketplaceDirectory() {
       const delta = totp.validate({ token: merchantMfaCode, window: 10 });
       if (delta === null) throw new Error('Código 2FA inválido');
 
+      const resolvedAddress = merchantForm.addressLine || [merchantForm.addressCity, merchantForm.addressState].filter(v => v && v !== 'Por definir').join(', ') || 'Venezuela';
+      const resolvedDescription = merchantForm.description?.trim() || `Bienvenido a ${merchantForm.businessName}. Especialistas en ${merchantForm.category}. Calidad y atención garantizada.`;
+
       const configPayload = {
         adminEmail: merchantForm.email,
+        description: resolvedDescription,
         generatedPassword: merchantForm.password,
         business_type: merchantForm.category,
         modules: ['orders', 'inventory', 'analytics', 'product_studio'],
@@ -915,6 +951,12 @@ export default function MarketplaceDirectory() {
           closeTime: merchantForm.scheduleClose,
           closeWarningMinutes: merchantForm.closeWarningMinutes
         },
+        address: resolvedAddress,
+        location: merchantForm.gpsCoords ? {
+          lat: merchantForm.gpsCoords.lat,
+          lng: merchantForm.gpsCoords.lng,
+          address: resolvedAddress
+        } : null,
         expediente: {
           ownerName: merchantForm.ownerName || '',
           legalType: merchantForm.rifPrefix || 'V',
@@ -932,7 +974,12 @@ export default function MarketplaceDirectory() {
 
       const { error } = await supabase
         .from('workspaces')
-        .update({ config: configPayload })
+        .update({ 
+          config: configPayload,
+          latitude: merchantForm.gpsCoords?.lat || null,
+          longitude: merchantForm.gpsCoords?.lng || null,
+          map_address: resolvedAddress
+        })
         .eq('id', tempWorkspace.id);
 
       if (error) throw new Error('Error al configurar los módulos en Supabase');
@@ -1249,8 +1296,8 @@ export default function MarketplaceDirectory() {
                         {store.name}
                         {store.config?.is_verified && <CheckCircle size={12} className="text-blue-500 fill-blue-500/20" />}
                       </span>
-                      <span className="text-zinc-500 text-[11px] flex items-center gap-1 mt-0.5">
-                        <MapPin size={10} /> A 2.5 Km de ti
+                      <span className="text-zinc-500 text-[11px] flex items-center gap-1 mt-0.5 line-clamp-1">
+                        <MapPin size={10} className="text-amber-500 shrink-0" /> {store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela'}
                       </span>
                     </div>
                   </div>
@@ -1344,7 +1391,11 @@ export default function MarketplaceDirectory() {
                       </h4>
                     </div>
                     <p className="text-zinc-500 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
-                    <div className="flex items-center justify-end pt-4 mt-2 border-t border-zinc-100">
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-1">
+                      <MapPin size={12} className="text-amber-500 shrink-0" />
+                      <span className="line-clamp-1">{store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela'}</span>
+                    </div>
+                    <div className="flex items-center justify-end pt-3 mt-2 border-t border-zinc-100">
                       <span className="text-xs text-zinc-600 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
                     </div>
                   </div>
@@ -2036,6 +2087,16 @@ export default function MarketplaceDirectory() {
                               ))}
                             </select>
                           </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Descripción / Acerca de tu Negocio (Opcional)</label>
+                            <textarea 
+                              rows="2"
+                              value={merchantForm.description} 
+                              onChange={e => setMerchantForm({...merchantForm, description: e.target.value})} 
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none" 
+                              placeholder={`Ej. Especialistas en ${merchantForm.category || 'productos'}, ofrecemos la mejor calidad y atención directa a nuestros clientes.`} 
+                            />
+                          </div>
                         </motion.div>
                       )}
 
@@ -2229,35 +2290,63 @@ export default function MarketplaceDirectory() {
 
                       {merchantRegStep === 5 && (
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          {(() => {
-                            const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                            return isMobileDevice ? (
-                              <div className="bg-slate-50 p-6 rounded-2xl text-center space-y-4 mb-4 border border-slate-200">
-                                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-2 border border-amber-200 text-amber-500">
-                                  <MapPin size={24} />
-                                </div>
-                                <h3 className="text-slate-900 font-bold text-lg tracking-tight">Ubicación de tu Negocio</h3>
-                                <p className="text-sm text-slate-500 leading-relaxed">Presiona el botón para detectar automáticamente la ubicación exacta de tu negocio usando el GPS de tu dispositivo.</p>
-                                <button type="button" onClick={handleDetectGPS} className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors mt-4 shadow-lg shadow-amber-500/20">
-                                  <MapPin size={18} /> Detectar mi ubicación por GPS
-                                </button>
-                                {merchantForm.gpsCoords && <p className="text-sm text-emerald-600 font-bold mt-4 bg-emerald-50 py-3 rounded-xl border border-emerald-200">¡Ubicación GPS Guardada Exitosamente!</p>}
+                          <div className="bg-slate-50 p-5 rounded-2xl text-center space-y-3 mb-2 border border-slate-200">
+                            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto border border-amber-200 text-amber-500">
+                              <MapPin size={22} />
+                            </div>
+                            <h3 className="text-slate-900 font-bold text-base tracking-tight">Ubicación y Dirección de tu Negocio</h3>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                              Permite que tus clientes te ubiquen en el mapa interactivo y visiten tu tienda física.
+                            </p>
+                            
+                            <button 
+                              type="button" 
+                              onClick={handleDetectGPS} 
+                              className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md shadow-amber-500/10 text-xs uppercase tracking-wider"
+                            >
+                              <MapPin size={16} /> {merchantForm.gpsCoords ? 'Actualizar Coordenadas GPS' : 'Detectar mi ubicación por GPS'}
+                            </button>
+
+                            {merchantForm.gpsCoords ? (
+                              <div className="bg-emerald-50 text-emerald-700 py-2.5 px-3 rounded-xl border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5">
+                                <CheckCircle size={15} className="text-emerald-600 shrink-0" />
+                                <span>Punto GPS Fijado ({merchantForm.gpsCoords.lat.toFixed(4)}, {merchantForm.gpsCoords.lng.toFixed(4)})</span>
                               </div>
                             ) : (
-                              <>
-                                <div className="bg-slate-50 p-5 rounded-2xl text-center space-y-2 mb-4 border border-slate-200">
-                                  <MapPin size={24} className="text-amber-500 mx-auto mb-1" />
-                                  <h3 className="text-slate-900 font-bold text-lg tracking-tight">Dirección del Negocio</h3>
-                                  <p className="text-xs text-slate-500">Ingresa tu dirección detallada para que tus clientes puedan visitarte.</p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <input required type="text" value={merchantForm.addressState} onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 shadow-sm" placeholder="Estado (Obligatorio)" />
-                                  <input required type="text" value={merchantForm.addressCity} onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 shadow-sm" placeholder="Ciudad (Obligatorio)" />
-                                </div>
-                                <textarea required value={merchantForm.addressLine} onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm min-h-[80px] placeholder-slate-400 shadow-sm" placeholder="Dirección detallada (Obligatorio)"></textarea>
-                              </>
-                            );
-                          })()}
+                              <p className="text-[11px] text-slate-400 italic">Puedes fijar el GPS ahora o escribir tu dirección física abajo.</p>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 pt-1">
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                              Dirección Escrita / Punto de Referencia {merchantForm.gpsCoords ? '(Opcional)' : '(Obligatoria sin GPS)'}
+                            </label>
+                            <div className="flex gap-2">
+                              <input 
+                                required={!merchantForm.gpsCoords} 
+                                type="text" 
+                                value={merchantForm.addressState} 
+                                onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} 
+                                className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm" 
+                                placeholder="Estado (Ej. Aragua)" 
+                              />
+                              <input 
+                                required={!merchantForm.gpsCoords} 
+                                type="text" 
+                                value={merchantForm.addressCity} 
+                                onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} 
+                                className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm" 
+                                placeholder="Ciudad (Ej. Cagua)" 
+                              />
+                            </div>
+                            <textarea 
+                              required={!merchantForm.gpsCoords} 
+                              value={merchantForm.addressLine} 
+                              onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} 
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs min-h-[70px] placeholder-slate-400 shadow-sm resize-none" 
+                              placeholder="Calle, Centro Comercial, Local o Punto de referencia..."
+                            />
+                          </div>
                         </motion.div>
                       )}
 
@@ -2294,7 +2383,7 @@ export default function MarketplaceDirectory() {
                             (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactEmail || !merchantForm.category || (merchantForm.contactPhone || '').replace(/\D/g, '').length < 11)) || 
                             (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
                             (merchantRegStep === 4 && (!merchantForm.pagoMovilBank || (merchantForm.rifNumber || '').replace(/\D/g, '').length < 6 || (merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length < 11 || (merchantForm.pagoMovilId || '').replace(/\D/g, '').length < 6)) ||
-                            (merchantRegStep === 5 && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? !merchantForm.gpsCoords : (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine))) ||
+                            (merchantRegStep === 5 && !merchantForm.gpsCoords && (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine)) ||
                             (merchantRegStep === 6 && merchantMfaCode.length < 6)
                           }
                           className="flex-1 bg-amber-500 text-slate-950 rounded-full py-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"

@@ -147,16 +147,23 @@ export default function StoreScannerMap() {
   const fetchStores = async (location) => {
     try {
       setIsScanning(true);
-      // Query stores that have lat & lng
+      // Query stores and resolve coordinates from table columns or config fallbacks
       const { data, error } = await supabase
         .from('workspaces')
-        .select('*')
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null);
+        .select('*');
 
       if (error) throw error;
       
-      let finalStores = data || [];
+      let finalStores = (data || []).map(store => {
+        const lat = store.latitude || store.config?.location?.lat || store.config?.expediente?.gps?.lat;
+        const lng = store.longitude || store.config?.location?.lng || store.config?.expediente?.gps?.lng;
+        return {
+          ...store,
+          latitude: (lat !== undefined && lat !== null && !isNaN(Number(lat))) ? Number(lat) : null,
+          longitude: (lng !== undefined && lng !== null && !isNaN(Number(lng))) ? Number(lng) : null
+        };
+      }).filter(s => s.latitude !== null && s.longitude !== null);
+
       if (location && location.length === 2) {
         const [lat, lng] = location;
         
@@ -409,7 +416,7 @@ export default function StoreScannerMap() {
                           </div>
                         </div>
                         <button 
-                          onClick={() => navigate(`/store/${selectedStore.store_slug || selectedStore.id}`)}
+                          onClick={() => navigate(`/${selectedStore.store_slug || selectedStore.id}`)}
                           className="w-full bg-amber-500 text-white hover:bg-amber-600 font-black text-sm uppercase tracking-widest py-4 rounded-2xl mt-6 hover:bg-zinc-200 transition-colors"
                         >
                           Visitar Tienda
