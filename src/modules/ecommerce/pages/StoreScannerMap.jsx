@@ -17,7 +17,9 @@ import {
   MapPin, 
   ArrowLeft, 
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -187,7 +189,10 @@ export default function StoreScannerMap() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFiltersModalOpen, setIsFiltersModalOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState({ ofertas: [], categorias: [], abiertoAhora: false });
-  const [isBottomSheetVisible, setIsBottomSheetVisible] = useState(true);
+  
+  // Snap Points del Bottom Sheet: 'collapsed' (~115px), 'half' (~52vh), 'expanded' (~88vh)
+  const [sheetSnap, setSheetSnap] = useState('half');
+  
   const [scanRadius, setScanRadius] = useState(1000);
   const [showZones, setShowZones] = useState(false);
   const [onlyMalls, setOnlyMalls] = useState(false);
@@ -238,7 +243,6 @@ export default function StoreScannerMap() {
   const fetchStores = async (location) => {
     try {
       setIsScanning(true);
-      // Extraer tiendas de workspaces en Supabase con todas las propiedades de perfil
       const { data, error } = await supabase
         .from('workspaces')
         .select('*');
@@ -301,7 +305,7 @@ export default function StoreScannerMap() {
       
       setTimeout(() => {
         setIsScanning(false);
-      }, 800);
+      }, 700);
 
     } catch (error) {
       console.error("Error fetching stores for map:", error);
@@ -332,6 +336,28 @@ export default function StoreScannerMap() {
       store.address?.toLowerCase().includes(term)
     );
   });
+
+  // Manejador de arrastre táctil para el Bottom Sheet
+  const handleSheetDragEnd = (event, info) => {
+    const offset = info.offset.y;
+    const velocity = info.velocity.y;
+    
+    if (offset < -45 || velocity < -200) {
+      // Arrastrado hacia arriba -> Expandir
+      if (sheetSnap === 'collapsed') setSheetSnap('half');
+      else if (sheetSnap === 'half') setSheetSnap('expanded');
+    } else if (offset > 45 || velocity > 200) {
+      // Arrastrado hacia abajo -> Colapsar
+      if (sheetSnap === 'expanded') setSheetSnap('half');
+      else if (sheetSnap === 'half') setSheetSnap('collapsed');
+    }
+  };
+
+  const toggleSheetSnap = () => {
+    if (sheetSnap === 'collapsed') setSheetSnap('half');
+    else if (sheetSnap === 'half') setSheetSnap('expanded');
+    else setSheetSnap('collapsed');
+  };
 
   return (
     <div className="relative w-full h-screen bg-slate-900 overflow-hidden font-sans">
@@ -384,7 +410,7 @@ export default function StoreScannerMap() {
                   click: () => {
                     setSelectedStore(store);
                     setTargetMapLocation({ lat: store.latitude, lng: store.longitude });
-                    setIsBottomSheetVisible(true);
+                    if (sheetSnap === 'collapsed') setSheetSnap('half');
                   },
                 }}
               >
@@ -393,7 +419,7 @@ export default function StoreScannerMap() {
                     className="p-3 min-w-[200px] text-zinc-900 font-sans cursor-pointer"
                     onClick={() => {
                       setSelectedStore(store);
-                      setIsBottomSheetVisible(true);
+                      if (sheetSnap === 'collapsed') setSheetSnap('half');
                     }}
                   >
                     <div className="flex items-center gap-2.5 mb-2">
@@ -509,28 +535,14 @@ export default function StoreScannerMap() {
         </AnimatePresence>
       </div>
 
-      {/* FLOATING ACTION BUTTONS (DERECHA) */}
-      <div className="absolute top-20 right-4 z-40 flex flex-col gap-2.5">
-        <button 
-          onClick={() => setIsFiltersModalOpen(true)} 
-          className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md hover:bg-white transition-colors"
-          title="Filtros"
-        >
-          <SlidersHorizontal size={18} />
-        </button>
-        <button 
-          onClick={() => setIsSettingsOpen(true)} 
-          className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md hover:bg-white transition-colors"
-          title="Ajustes de radio"
-        >
-          <Settings size={18} />
-        </button>
+      {/* FLOATING GPS BUTTON ÚNICO (DESPEJANDO EL MAPA) */}
+      <div className="absolute top-20 right-4 z-40">
         <button 
           onClick={centerOnUser} 
-          className="w-10 h-10 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md hover:bg-white transition-colors"
-          title="Mi ubicación"
+          className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200/80 shadow-md hover:bg-white active:scale-95 transition-all"
+          title="Centrar en mi ubicación"
         >
-          <Crosshair size={18} />
+          <Crosshair size={20} className="text-amber-600" />
         </button>
       </div>
 
@@ -552,331 +564,384 @@ export default function StoreScannerMap() {
         setFilters={setActiveFilters} 
       />
 
-      {/* BOTTOM SHEET / LISTA DE COMERCIOS ENCONTRADOS O FICHA DE COMERCIO */}
+      {/* BOTTOM SHEET DESLIZABLE CON EL DEDO (TOUCH & DRAG SWIPEABLE) */}
       <div className="absolute bottom-0 left-0 right-0 z-50 flex flex-col pointer-events-none">
-        <div className="relative pointer-events-auto">
+        <div className="relative pointer-events-auto w-full">
           <motion.div 
-            layout
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="bg-white rounded-t-[2.5rem] border-t border-zinc-200/80 shadow-[0_-12px_45px_rgba(0,0,0,0.45)] overflow-hidden"
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.15}
+            onDragEnd={handleSheetDragEnd}
+            animate={{
+              height: sheetSnap === 'expanded' ? '88vh' : sheetSnap === 'half' ? '52vh' : '112px'
+            }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="bg-white rounded-t-[2.5rem] border-t border-zinc-200/90 shadow-[0_-12px_45px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col w-full"
           >
-            {/* Drag Handle superior */}
-            <button 
-              onClick={() => setIsBottomSheetVisible(!isBottomSheetVisible)}
-              className="w-full flex justify-center pt-3 pb-2 cursor-pointer focus:outline-none"
-              title="Expandir / Contraer"
+            {/* Barra superior de arrastre táctil (Drag Handle) */}
+            <div 
+              onClick={toggleSheetSnap}
+              className="w-full flex flex-col items-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none"
+              title="Desliza hacia arriba o abajo"
             >
               <div className="w-12 h-1.5 bg-zinc-300 rounded-full hover:bg-zinc-400 transition-colors"></div>
-            </button>
-            
-            <AnimatePresence initial={false}>
-              {isBottomSheetVisible && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="px-5 pb-7 max-h-[72vh] overflow-y-auto hide-scrollbar"
+            </div>
+
+            {/* CABECERA INTEGRADA CON BOTONES DE AJUSTES Y FILTRO */}
+            <div className="px-5 pt-1 pb-3 flex items-center justify-between border-b border-zinc-100 gap-2 select-none">
+              <div 
+                onClick={toggleSheetSnap}
+                className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600 flex-shrink-0">
+                  <Store size={18} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-zinc-900 font-black text-sm sm:text-base leading-tight truncate">
+                    {displayedStores.length} {displayedStores.length === 1 ? 'comercio encontrado' : 'comercios encontrados'}
+                  </h3>
+                  <p className="text-zinc-500 text-[10px] sm:text-[11px] truncate font-medium">
+                    {sheetSnap === 'collapsed' ? 'Toca o desliza hacia arriba para ver tiendas' : `Radio de búsqueda: ${(scanRadius / 1000).toFixed(1)} km`}
+                  </p>
+                </div>
+              </div>
+
+              {/* BOTONES INTEGRADOS AL LADO DE LA CANTIDAD DE TIENDAS */}
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Botón de Ajustes de Radio */}
+                <button 
+                  type="button"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setIsSettingsOpen(true); 
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-bold transition-all border border-zinc-200/80 shadow-sm active:scale-95"
+                  title="Ajustar radio de búsqueda"
                 >
-                  <div className="mt-1">
-                    {/* CASO A: COMERCIO SELECCIONADO (FICHA COMPLETA DEL PERFIL) */}
-                    {selectedStore ? (
-                      <div className="flex flex-col">
-                        {/* Botón para regresar a la lista de comercios */}
-                        <button 
-                          onClick={() => setSelectedStore(null)}
-                          className="self-start mb-3 text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/60"
-                        >
-                          <ArrowLeft size={14} />
-                          <span>Ver todas las tiendas encontradas ({displayedStores.length})</span>
-                        </button>
+                  <Settings size={14} className="text-zinc-600" />
+                  <span>{(scanRadius / 1000).toFixed(1)} km</span>
+                </button>
 
-                        <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
-                          {/* Portada HD de la tienda */}
-                          <div className="relative h-32 sm:h-36 w-full bg-slate-900 overflow-hidden">
-                            {selectedStore.coverUrl ? (
-                              <img 
-                                src={resolveImageUrl(selectedStore.coverUrl)} 
-                                alt={selectedStore.name} 
-                                className="w-full h-full object-cover" 
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
-                                <Store size={36} className="text-zinc-700" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                            
-                            {/* Badges superiores sobre portada */}
-                            <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
-                              <span className="text-xs font-semibold text-white bg-black/50 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-                                {selectedStore.category}
-                              </span>
-                              <span className={`text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border flex items-center gap-1.5 ${
-                                selectedStore.isOpen 
-                                  ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                                  : 'bg-zinc-800/90 text-zinc-300 border-white/10'
-                              }`}>
-                                <span className={`w-2 h-2 rounded-full ${selectedStore.isOpen ? 'bg-white animate-pulse' : 'bg-zinc-400'}`}></span>
-                                {selectedStore.isOpen ? 'Abierto' : 'Cerrado'}
-                              </span>
-                            </div>
+                {/* Botón de Filtros */}
+                <button 
+                  type="button"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setIsFiltersModalOpen(true); 
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shadow-sm active:scale-95 ${
+                    (activeFilters.categorias?.length > 0 || activeFilters.abiertoAhora || activeFilters.ofertas?.length > 0)
+                      ? 'bg-amber-500 text-zinc-950 border-amber-400'
+                      : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200/80'
+                  }`}
+                  title="Filtrar comercios"
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filtros</span>
+                  {(activeFilters.categorias?.length > 0 || activeFilters.abiertoAhora) && (
+                    <span className="w-2 h-2 rounded-full bg-zinc-950 animate-pulse"></span>
+                  )}
+                </button>
 
-                            {/* Logotipo Circular Superpuesto */}
-                            <div className="absolute -bottom-4 left-4 z-20">
-                              <div className="w-16 h-16 rounded-2xl border-3 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center">
-                                {selectedStore.logoUrl ? (
-                                  <img src={resolveImageUrl(selectedStore.logoUrl)} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <Store size={26} className="text-amber-500" />
-                                )}
-                              </div>
-                            </div>
+                {/* Botón de alternancia de altura */}
+                <button
+                  type="button"
+                  onClick={toggleSheetSnap}
+                  className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center transition-colors border border-zinc-200/80"
+                  title={sheetSnap === 'expanded' ? 'Reducir' : 'Expandir'}
+                >
+                  {sheetSnap === 'expanded' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </button>
+              </div>
+            </div>
+            
+            {/* CUERPO DEL BOTTOM SHEET (VISIBLE EN POSICIONES HALF Y EXPANDED) */}
+            <div className={`px-5 pt-3 pb-8 flex-1 overflow-y-auto hide-scrollbar ${sheetSnap === 'collapsed' ? 'hidden' : 'block'}`}>
+              <div>
+                {/* CASO A: COMERCIO SELECCIONADO (FICHA COMPLETA DEL PERFIL) */}
+                {selectedStore ? (
+                  <div className="flex flex-col">
+                    {/* Botón para regresar a la lista de comercios */}
+                    <button 
+                      onClick={() => setSelectedStore(null)}
+                      className="self-start mb-3 text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors border border-amber-200/60"
+                    >
+                      <ArrowLeft size={14} />
+                      <span>Ver todas las tiendas encontradas ({displayedStores.length})</span>
+                    </button>
+
+                    <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
+                      {/* Portada HD de la tienda */}
+                      <div className="relative h-32 sm:h-36 w-full bg-slate-900 overflow-hidden">
+                        {selectedStore.coverUrl ? (
+                          <img 
+                            src={resolveImageUrl(selectedStore.coverUrl)} 
+                            alt={selectedStore.name} 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
+                            <Store size={36} className="text-zinc-700" />
                           </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                        
+                        {/* Badges superiores sobre portada (Letras blancas forzadas) */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
+                          <span 
+                            style={{ color: '#ffffff' }}
+                            className="text-xs font-black text-white bg-black/75 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/30 shadow-md tracking-wide"
+                          >
+                            {selectedStore.category}
+                          </span>
+                          <span className={`text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border flex items-center gap-1.5 ${
+                            selectedStore.isOpen 
+                              ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
+                              : 'bg-zinc-800/90 text-zinc-300 border-white/10'
+                          }`}>
+                            <span className={`w-2 h-2 rounded-full ${selectedStore.isOpen ? 'bg-white animate-pulse' : 'bg-zinc-400'}`}></span>
+                            {selectedStore.isOpen ? 'Abierto' : 'Cerrado'}
+                          </span>
+                        </div>
 
-                          {/* Info del Comercio */}
-                          <div className="pt-6 px-4 pb-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <h2 className="text-zinc-900 font-black text-xl leading-tight">
-                                  {selectedStore.name}
-                                </h2>
-                                <p className="text-zinc-500 text-xs mt-0.5 font-medium">
-                                  {selectedStore.scheduleLabel}
-                                </p>
-                              </div>
-                              <div className="text-right flex-shrink-0">
-                                <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                  <Navigation size={12} /> {selectedStore.distanceKm || '0.5'} km
-                                </span>
-                              </div>
-                            </div>
-
-                            {selectedStore.address && (
-                              <p className="text-zinc-600 text-xs mt-3 flex items-start gap-1.5 bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
-                                <MapPin size={14} className="text-zinc-400 flex-shrink-0 mt-0.5" />
-                                <span>{selectedStore.address}</span>
-                              </p>
+                        {/* Logotipo Circular Superpuesto */}
+                        <div className="absolute -bottom-4 left-4 z-20">
+                          <div className="w-16 h-16 rounded-2xl border-3 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center">
+                            {selectedStore.logoUrl ? (
+                              <img src={resolveImageUrl(selectedStore.logoUrl)} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <Store size={26} className="text-amber-500" />
                             )}
-
-                            {/* Botones de Acción */}
-                            <div className="space-y-2 mt-4">
-                              {/* Botón Principal: Visitar Tienda */}
-                              <button 
-                                onClick={() => navigate(`/${selectedStore.slug}`)}
-                                className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2"
-                              >
-                                <ShoppingBag size={18} />
-                                <span>Visitar Tienda / Catálogo</span>
-                              </button>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                {/* Cómo llegar (Google Maps GPS) */}
-                                <a 
-                                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedStore.latitude},${selectedStore.longitude}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-center"
-                                >
-                                  <Navigation size={14} className="text-amber-400" />
-                                  <span>Cómo Llegar (GPS)</span>
-                                </a>
-
-                                {/* WhatsApp o Centrar Mapa */}
-                                {selectedStore.phone ? (
-                                  <a 
-                                    href={`https://wa.me/${selectedStore.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu tienda ${selectedStore.name} en AxonMarket y quisiera información.`)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-center"
-                                  >
-                                    <MessageCircle size={14} />
-                                    <span>WhatsApp</span>
-                                  </a>
-                                ) : (
-                                  <button 
-                                    onClick={() => {
-                                      setTargetMapLocation({ lat: selectedStore.latitude, lng: selectedStore.longitude });
-                                    }}
-                                    className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <Crosshair size={14} />
-                                    <span>Centrar Mapa</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
                           </div>
                         </div>
                       </div>
-                    ) : (
-                      /* CASO B: LISTA DE COMERCIOS ENCONTRADOS (MOSTRADOS POR SEPARADO) */
-                      <div>
-                        {isScanning ? (
-                          <div className="flex flex-col items-center justify-center py-6">
-                            <div className="w-12 h-12 rounded-full border-4 border-zinc-200 border-t-amber-500 animate-spin mb-3"></div>
-                            <p className="text-zinc-900 font-bold text-base">Escaneando zona...</p>
-                            <p className="text-zinc-500 text-xs mt-0.5">Buscando comercios cercanos a tu ubicación</p>
+
+                      {/* Info del Comercio */}
+                      <div className="pt-6 px-4 pb-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h2 className="text-zinc-900 font-black text-xl leading-tight">
+                              {selectedStore.name}
+                            </h2>
+                            <p className="text-zinc-500 text-xs mt-0.5 font-medium">
+                              {selectedStore.scheduleLabel}
+                            </p>
                           </div>
-                        ) : displayedStores.length > 0 ? (
-                          <div className="space-y-3.5">
-                            {/* Cabecera con contador */}
-                            <div className="flex items-center justify-between pb-1.5 border-b border-zinc-100">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-600">
-                                  <Store size={18} />
+                          <div className="text-right flex-shrink-0">
+                            <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                              <Navigation size={12} /> {selectedStore.distanceKm || '0.5'} km
+                            </span>
+                          </div>
+                        </div>
+
+                        {selectedStore.address && (
+                          <p className="text-zinc-600 text-xs mt-3 flex items-start gap-1.5 bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
+                            <MapPin size={14} className="text-zinc-400 flex-shrink-0 mt-0.5" />
+                            <span>{selectedStore.address}</span>
+                          </p>
+                        )}
+
+                        {/* Botones de Acción */}
+                        <div className="space-y-2 mt-4">
+                          {/* Botón Principal: Visitar Tienda */}
+                          <button 
+                            onClick={() => navigate(`/${selectedStore.slug}`)}
+                            className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center justify-center gap-2"
+                          >
+                            <ShoppingBag size={18} />
+                            <span>Visitar Tienda / Catálogo</span>
+                          </button>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            {/* Cómo llegar (Google Maps GPS) */}
+                            <a 
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${selectedStore.latitude},${selectedStore.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-center"
+                            >
+                              <Navigation size={14} className="text-amber-400" />
+                              <span>Cómo Llegar (GPS)</span>
+                            </a>
+
+                            {/* WhatsApp o Centrar Mapa */}
+                            {selectedStore.phone ? (
+                              <a 
+                                href={`https://wa.me/${selectedStore.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu tienda ${selectedStore.name} en AxonMarket y quisiera información.`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-center"
+                              >
+                                <MessageCircle size={14} />
+                                <span>WhatsApp</span>
+                              </a>
+                            ) : (
+                              <button 
+                                onClick={() => {
+                                  setTargetMapLocation({ lat: selectedStore.latitude, lng: selectedStore.longitude });
+                                }}
+                                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Crosshair size={14} />
+                                <span>Centrar Mapa</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* CASO B: LISTA DE COMERCIOS ENCONTRADOS (MOSTRADOS POR SEPARADO) */
+                  <div>
+                    {isScanning ? (
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <div className="w-12 h-12 rounded-full border-4 border-zinc-200 border-t-amber-500 animate-spin mb-3"></div>
+                        <p className="text-zinc-900 font-bold text-base">Escaneando zona...</p>
+                        <p className="text-zinc-500 text-xs mt-0.5">Buscando comercios cercanos a tu ubicación</p>
+                      </div>
+                    ) : displayedStores.length > 0 ? (
+                      <div className="space-y-3.5">
+                        {/* LISTA DE TARJETAS INDIVIDUALES POR SEPARADO */}
+                        <div className="space-y-3 pr-1 pb-2">
+                          {displayedStores.map((store) => (
+                            <div 
+                              key={store.id}
+                              className="group bg-white rounded-2xl border border-zinc-200/90 shadow-sm hover:shadow-md hover:border-amber-400/80 transition-all overflow-hidden"
+                            >
+                              {/* BANNER / PORTADA MINIATURA */}
+                              <div className="relative h-24 w-full bg-slate-900 overflow-hidden">
+                                {store.coverUrl ? (
+                                  <img 
+                                    src={resolveImageUrl(store.coverUrl)} 
+                                    alt={store.name} 
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
+                                    <Store size={28} className="text-zinc-700" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+
+                                {/* Badges superiores sobre la portada (Letras blancas forzadas) */}
+                                <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
+                                  <span 
+                                    style={{ color: '#ffffff' }}
+                                    className="text-[11px] font-black text-white bg-black/75 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/30 shadow-md tracking-wide"
+                                  >
+                                    {store.category}
+                                  </span>
+                                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border flex items-center gap-1 ${
+                                    store.isOpen 
+                                      ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
+                                      : 'bg-zinc-800/90 text-zinc-300 border-white/10'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white animate-pulse' : 'bg-zinc-400'}`}></span>
+                                    {store.isOpen ? 'Abierto' : 'Cerrado'}
+                                  </span>
                                 </div>
-                                <div>
-                                  <h3 className="text-zinc-900 font-extrabold text-base leading-tight">
-                                    {displayedStores.length} {displayedStores.length === 1 ? 'comercio encontrado' : 'comercios encontrados'}
-                                  </h3>
-                                  <p className="text-zinc-500 text-[11px]">Radio de {(scanRadius / 1000).toFixed(1)} km</p>
+
+                                {/* LOGO SUPERPUESTO */}
+                                <div className="absolute -bottom-3 left-4 z-20">
+                                  <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md bg-white overflow-hidden flex items-center justify-center">
+                                    {store.logoUrl ? (
+                                      <img src={resolveImageUrl(store.logoUrl)} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Store size={20} className="text-amber-500" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Distancia flotante */}
+                                <div className="absolute bottom-2 right-3 z-10">
+                                  <span className="text-[11px] font-bold text-amber-300 drop-shadow flex items-center gap-1">
+                                    <Navigation size={11} /> {store.distanceKm} km
+                                  </span>
                                 </div>
                               </div>
-                              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                                En tu zona
-                              </span>
-                            </div>
 
-                            {/* LISTA DE TARJETAS INDIVIDUALES POR SEPARADO */}
-                            <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1 pb-2 hide-scrollbar">
-                              {displayedStores.map((store) => (
-                                <div 
-                                  key={store.id}
-                                  className="group bg-white rounded-2xl border border-zinc-200/90 shadow-sm hover:shadow-md hover:border-amber-400/80 transition-all overflow-hidden"
-                                >
-                                  {/* BANNER / PORTADA MINIATURA */}
-                                  <div className="relative h-24 w-full bg-slate-900 overflow-hidden">
-                                    {store.coverUrl ? (
-                                      <img 
-                                        src={resolveImageUrl(store.coverUrl)} 
-                                        alt={store.name} 
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
-                                        <Store size={28} className="text-zinc-700" />
-                                      </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-                                    {/* Badges superiores sobre la portada */}
-                                    <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
-                                      <span className="text-[10px] font-semibold text-white bg-black/50 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/10">
-                                        {store.category}
-                                      </span>
-                                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border flex items-center gap-1 ${
-                                        store.isOpen 
-                                          ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                                          : 'bg-zinc-800/90 text-zinc-300 border-white/10'
-                                      }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white animate-pulse' : 'bg-zinc-400'}`}></span>
-                                        {store.isOpen ? 'Abierto' : 'Cerrado'}
-                                      </span>
-                                    </div>
-
-                                    {/* LOGO SUPERPUESTO */}
-                                    <div className="absolute -bottom-3 left-4 z-20">
-                                      <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md bg-white overflow-hidden flex items-center justify-center">
-                                        {store.logoUrl ? (
-                                          <img src={resolveImageUrl(store.logoUrl)} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                          <Store size={20} className="text-amber-500" />
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Distancia flotante */}
-                                    <div className="absolute bottom-2 right-3 z-10">
-                                      <span className="text-[11px] font-bold text-amber-300 drop-shadow flex items-center gap-1">
-                                        <Navigation size={11} /> {store.distanceKm} km
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* CUERPO DE LA TARJETA */}
-                                  <div className="pt-4 px-4 pb-3.5">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="pl-14">
-                                        <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
-                                          {store.name}
-                                        </h4>
-                                        <p className="text-zinc-500 text-[11px] mt-0.5 font-medium line-clamp-1">
-                                          {store.scheduleLabel}
-                                        </p>
-                                      </div>
-                                    </div>
-
-                                    {store.address && (
-                                      <p className="text-zinc-600 text-xs mt-2.5 flex items-center gap-1.5 line-clamp-1">
-                                        <MapPin size={12} className="text-zinc-400 flex-shrink-0" />
-                                        <span className="truncate">{store.address}</span>
-                                      </p>
-                                    )}
-
-                                    {/* BOTONES DE ACCIÓN INDIVIDUALES */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-zinc-100">
-                                      {/* Botón: Visitar Tienda */}
-                                      <button 
-                                        onClick={() => navigate(`/${store.slug}`)}
-                                        className="col-span-2 sm:col-span-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs py-2.5 px-3 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 uppercase tracking-wider"
-                                      >
-                                        <ShoppingBag size={14} />
-                                        <span>Visitar Tienda</span>
-                                      </button>
-
-                                      {/* Botón: Ver en Mapa */}
-                                      <button 
-                                        onClick={() => {
-                                          setTargetMapLocation({ lat: store.latitude, lng: store.longitude });
-                                          setSelectedStore(store);
-                                        }}
-                                        className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
-                                        title="Ubicar en el mapa"
-                                      >
-                                        <Crosshair size={13} className="text-zinc-600" />
-                                        <span>Ver en Mapa</span>
-                                      </button>
-
-                                      {/* Botón: Cómo llegar (Google Maps GPS) */}
-                                      <a 
-                                        href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="col-span-2 sm:col-span-1 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 text-center"
-                                        title="Trazar ruta con Google Maps"
-                                      >
-                                        <Navigation size={13} className="text-amber-400" />
-                                        <span>Cómo Llegar</span>
-                                      </a>
-                                    </div>
+                              {/* CUERPO DE LA TARJETA */}
+                              <div className="pt-4 px-4 pb-3.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="pl-14">
+                                    <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
+                                      {store.name}
+                                    </h4>
+                                    <p className="text-zinc-500 text-[11px] mt-0.5 font-medium line-clamp-1">
+                                      {store.scheduleLabel}
+                                    </p>
                                   </div>
                                 </div>
-                              ))}
+
+                                {store.address && (
+                                  <p className="text-zinc-600 text-xs mt-2.5 flex items-center gap-1.5 line-clamp-1">
+                                    <MapPin size={12} className="text-zinc-400 flex-shrink-0" />
+                                    <span className="truncate">{store.address}</span>
+                                  </p>
+                                )}
+
+                                {/* BOTONES DE ACCIÓN INDIVIDUALES */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-zinc-100">
+                                  {/* Botón: Visitar Tienda */}
+                                  <button 
+                                    onClick={() => navigate(`/${store.slug}`)}
+                                    className="col-span-2 sm:col-span-1 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs py-2.5 px-3 rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-1.5 uppercase tracking-wider"
+                                  >
+                                    <ShoppingBag size={14} />
+                                    <span>Visitar Tienda</span>
+                                  </button>
+
+                                  {/* Botón: Ver en Mapa */}
+                                  <button 
+                                    onClick={() => {
+                                      setTargetMapLocation({ lat: store.latitude, lng: store.longitude });
+                                      setSelectedStore(store);
+                                      if (sheetSnap === 'collapsed') setSheetSnap('half');
+                                    }}
+                                    className="bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold text-xs py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                                    title="Ubicar en el mapa"
+                                  >
+                                    <Crosshair size={13} className="text-zinc-600" />
+                                    <span>Ver en Mapa</span>
+                                  </button>
+
+                                  {/* Botón: Cómo llegar (Google Maps GPS) */}
+                                  <a 
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="col-span-2 sm:col-span-1 bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 text-center"
+                                    title="Trazar ruta con Google Maps"
+                                  >
+                                    <Navigation size={13} className="text-amber-400" />
+                                    <span>Cómo Llegar</span>
+                                  </a>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-6 text-center">
-                            <Store size={36} className="text-zinc-400 mb-2" />
-                            <p className="text-zinc-800 font-bold text-base">No hay comercios en este radio</p>
-                            <p className="text-zinc-500 text-xs mt-1 max-w-xs">
-                              Intenta ampliar la distancia en los ajustes del mapa o moverte a otra zona.
-                            </p>
-                            <button 
-                              onClick={() => setIsSettingsOpen(true)}
-                              className="mt-3.5 px-4 py-2 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-sm hover:bg-amber-400 transition-colors"
-                            >
-                              Ajustar Radio de Búsqueda
-                            </button>
-                          </div>
-                        )}
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-6 text-center">
+                        <Store size={36} className="text-zinc-400 mb-2" />
+                        <p className="text-zinc-800 font-bold text-base">No hay comercios en este radio</p>
+                        <p className="text-zinc-500 text-xs mt-1 max-w-xs">
+                          Intenta ampliar la distancia en los ajustes del mapa o moverte a otra zona.
+                        </p>
+                        <button 
+                          onClick={() => setIsSettingsOpen(true)}
+                          className="mt-3.5 px-4 py-2 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-sm hover:bg-amber-400 transition-colors"
+                        >
+                          Ajustar Radio de Búsqueda
+                        </button>
                       </div>
                     )}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
