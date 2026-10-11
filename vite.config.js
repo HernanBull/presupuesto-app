@@ -78,12 +78,12 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+            urlPattern: /^https:\/\/.*tile\.openstreetmap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'osm-map-tiles-cache',
               expiration: {
-                maxEntries: 1000,
+                maxEntries: 1500,
                 maxAgeSeconds: 60 * 60 * 24 * 30
               },
               cacheableResponse: {

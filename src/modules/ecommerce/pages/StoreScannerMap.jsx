@@ -357,12 +357,11 @@ export default function StoreScannerMap() {
             <ChangeView center={userLocation} zoom={14} />
             <MapFlyController targetLocation={targetMapLocation} />
             
-            {/* Dark themed map using CARTO Dark Matter (alto rendimiento nativo sin filtros CSS pesados) */}
+            {/* Mapa oscuro OpenStreetMap sin API Key ni marcas de agua, cacheado en PWA con aceleración por hardware */}
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              subdomains="abcd"
-              maxZoom={19}
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              className="dark-map-tiles"
             />
 
             {/* Active Search Area Circle and Marker */}
@@ -908,8 +907,10 @@ export default function StoreScannerMap() {
           z-index: 10;
           background: #0f172a;
         }
-        .map-tiles {
-          /* Nativo oscuro: no requiere filtros CSS */
+        .dark-map-tiles {
+          filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+          transform: translateZ(0);
+          will-change: transform;
         }
         .custom-store-pin {
           background: transparent !important;
