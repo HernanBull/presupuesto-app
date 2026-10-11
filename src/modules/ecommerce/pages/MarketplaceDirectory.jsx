@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -83,6 +83,10 @@ export default function MarketplaceDirectory() {
     contactEmail: '',
     businessName: '', 
     description: '',
+    logoFile: null,
+    logoPreview: '',
+    coverFile: null,
+    coverPreview: '',
     email: '', 
     password: '',
     category: 'Víveres',
@@ -103,6 +107,49 @@ export default function MarketplaceDirectory() {
     addressLine: '',
     gpsCoords: null
   });
+
+  const merchantLogoInputRef = useRef(null);
+  const merchantCoverInputRef = useRef(null);
+
+  const handleMerchantLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('El logotipo no debe superar los 5 MB.');
+      return;
+    }
+    setMerchantForm(prev => ({
+      ...prev,
+      logoFile: file,
+      logoPreview: URL.createObjectURL(file)
+    }));
+  };
+
+  const handleMerchantCoverChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('La foto de portada no debe superar los 10 MB.');
+      return;
+    }
+    setMerchantForm(prev => ({
+      ...prev,
+      coverFile: file,
+      coverPreview: URL.createObjectURL(file)
+    }));
+  };
+
+  const handleRemoveMerchantLogo = (e) => {
+    e.stopPropagation();
+    setMerchantForm(prev => ({ ...prev, logoFile: null, logoPreview: '' }));
+    if (merchantLogoInputRef.current) merchantLogoInputRef.current.value = '';
+  };
+
+  const handleRemoveMerchantCover = (e) => {
+    e.stopPropagation();
+    setMerchantForm(prev => ({ ...prev, coverFile: null, coverPreview: '' }));
+    if (merchantCoverInputRef.current) merchantCoverInputRef.current.value = '';
+  };
   const [merchantLoading, setMerchantLoading] = useState(false);
   const [showMerchantPassword, setShowMerchantPassword] = useState(false);
   const [showMerchantConfirmPassword, setShowMerchantConfirmPassword] = useState(false);
@@ -788,12 +835,56 @@ export default function MarketplaceDirectory() {
       const resolvedAddress = merchantForm.addressLine || [merchantForm.addressCity, merchantForm.addressState].filter(v => v && v !== 'Por definir').join(', ') || 'Venezuela';
       const resolvedDescription = merchantForm.description?.trim() || `Bienvenido a ${merchantForm.businessName}. Especialistas en ${merchantForm.category}. Calidad y atención garantizada.`;
 
+      // Subida de Logo y Portada HD a Supabase Storage (bucket ecommerce)
+      let uploadedLogoUrl = null;
+      let uploadedCoverUrl = null;
+
+      if (merchantForm.logoFile) {
+        try {
+          const logoExt = merchantForm.logoFile.name.split('.').pop() || 'png';
+          const logoPath = `store_assets/${authData.user.id}/logo_${Date.now()}.${logoExt}`;
+          const { error: logoErr } = await supabase.storage.from('ecommerce').upload(logoPath, merchantForm.logoFile, { upsert: true });
+          if (!logoErr) {
+            const { data: logoData } = supabase.storage.from('ecommerce').getPublicUrl(logoPath);
+            if (logoData?.publicUrl) uploadedLogoUrl = logoData.publicUrl;
+          } else {
+            console.warn("Error subiendo logo a storage:", logoErr);
+          }
+        } catch (e) {
+          console.warn("Error procesando logo:", e);
+        }
+      }
+
+      if (merchantForm.coverFile) {
+        try {
+          const coverExt = merchantForm.coverFile.name.split('.').pop() || 'jpg';
+          const coverPath = `store_assets/${authData.user.id}/cover_${Date.now()}.${coverExt}`;
+          const { error: coverErr } = await supabase.storage.from('ecommerce').upload(coverPath, merchantForm.coverFile, { upsert: true });
+          if (!coverErr) {
+            const { data: coverData } = supabase.storage.from('ecommerce').getPublicUrl(coverPath);
+            if (coverData?.publicUrl) uploadedCoverUrl = coverData.publicUrl;
+          } else {
+            console.warn("Error subiendo portada a storage:", coverErr);
+          }
+        } catch (e) {
+          console.warn("Error procesando portada:", e);
+        }
+      }
+
       const initialConfig = {
         adminEmail: merchantForm.email,
         description: resolvedDescription,
         business_type: merchantForm.category,
         categories: [merchantForm.category],
         modules: ['orders', 'inventory', 'analytics', 'product_studio'],
+        logoUrl: uploadedLogoUrl,
+        coverUrl: uploadedCoverUrl,
+        heroUrl: uploadedCoverUrl,
+        storefront: {
+          logoUrl: uploadedLogoUrl,
+          coverUrl: uploadedCoverUrl,
+          heroUrl: uploadedCoverUrl
+        },
         paymentProfile: {
           paymentMobile: true,
           pmBank: merchantForm.pagoMovilBank,
@@ -869,7 +960,12 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      setTempWorkspace({ id: newWorkspace.id, slug: generatedSlug });
+      setTempWorkspace({ 
+        id: newWorkspace.id, 
+        slug: generatedSlug,
+        logoUrl: uploadedLogoUrl,
+        coverUrl: uploadedCoverUrl
+      });
       setMerchantRegStep(6);
       setMerchantLoading(false);
     } catch (err) {
@@ -928,6 +1024,14 @@ export default function MarketplaceDirectory() {
         description: resolvedDescription,
         generatedPassword: merchantForm.password,
         business_type: merchantForm.category,
+        logoUrl: tempWorkspace?.logoUrl || null,
+        coverUrl: tempWorkspace?.coverUrl || null,
+        heroUrl: tempWorkspace?.coverUrl || null,
+        storefront: {
+          logoUrl: tempWorkspace?.logoUrl || null,
+          coverUrl: tempWorkspace?.coverUrl || null,
+          heroUrl: tempWorkspace?.coverUrl || null
+        },
         modules: ['orders', 'inventory', 'analytics', 'product_studio'],
         categories: [merchantForm.category],
         paymentProfile: {
@@ -2096,6 +2200,163 @@ export default function MarketplaceDirectory() {
                               className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none" 
                               placeholder={`Ej. Especialistas en ${merchantForm.category || 'productos'}, ofrecemos la mejor calidad y atención directa a nuestros clientes.`} 
                             />
+                          </div>
+
+                          {/* IDENTIDAD VISUAL: LOGOTIPO Y PORTADA HD */}
+                          <div className="bg-gradient-to-br from-slate-50 to-amber-50/30 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
+                                  <Sparkles size={16} />
+                                </div>
+                                <div>
+                                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Identidad Visual de tu Vitrina</h4>
+                                  <p className="text-[11px] text-slate-500">Personaliza el encabezado HD de tu tienda pública</p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-semibold text-amber-600 bg-amber-100/70 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                Opcional HD
+                              </span>
+                            </div>
+
+                            {/* CONTENEDOR DE VISTA PREVIA COMBINADA (PORTADA + LOGO) */}
+                            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-inner group/header">
+                              {/* PORTADA DROPZONE / PREVIEW */}
+                              <div 
+                                onClick={() => merchantCoverInputRef.current?.click()}
+                                className="relative w-full h-36 sm:h-44 bg-slate-800 cursor-pointer overflow-hidden transition-all duration-300 hover:brightness-105"
+                                title="Haz clic para subir foto de portada"
+                              >
+                                {merchantForm.coverPreview ? (
+                                  <>
+                                    <img 
+                                      src={merchantForm.coverPreview} 
+                                      alt="Portada de tienda" 
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-80 group-hover/header:opacity-90 transition-opacity" />
+                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          merchantCoverInputRef.current?.click();
+                                        }}
+                                        className="px-2.5 py-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-lg text-[10px] font-semibold flex items-center gap-1.5 border border-white/20 transition-all shadow-sm"
+                                      >
+                                        <Camera size={12} />
+                                        <span>Cambiar Portada</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveMerchantCover}
+                                        className="p-1.5 bg-rose-600/80 hover:bg-rose-600 text-white rounded-lg text-[10px] transition-all shadow-sm border border-rose-400/30"
+                                        title="Quitar portada"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-dashed border-slate-700 hover:border-amber-500/60 transition-all">
+                                    <div className="w-10 h-10 rounded-full bg-slate-700/60 flex items-center justify-center text-amber-400 mb-2 border border-slate-600/50 group-hover/header:scale-110 transition-transform">
+                                      <UploadCloud size={20} />
+                                    </div>
+                                    <p className="text-xs font-bold text-white mb-0.5">Subir Foto de Portada (HD)</p>
+                                    <p className="text-[10px] text-slate-300 max-w-xs">
+                                      Formato horizontal panorámico · <span className="text-amber-400 font-semibold">1920 × 600 px</span>
+                                    </p>
+                                    <span className="mt-2 text-[9px] uppercase tracking-wider text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                                      JPG, WebP o PNG (Máx 10 MB)
+                                    </span>
+                                  </div>
+                                )}
+
+                                <input 
+                                  ref={merchantCoverInputRef}
+                                  type="file" 
+                                  accept="image/png, image/jpeg, image/webp" 
+                                  className="hidden" 
+                                  onChange={handleMerchantCoverChange}
+                                />
+                              </div>
+
+                              {/* LOGO SUPERPUESTO (CIRCULAR CON BORDE HD) */}
+                              <div className="absolute bottom-3 left-4 sm:left-6 z-20 flex items-end gap-3">
+                                <div 
+                                  onClick={() => merchantLogoInputRef.current?.click()}
+                                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 sm:border-3 border-white shadow-xl bg-slate-800 cursor-pointer overflow-hidden flex items-center justify-center group/logo hover:scale-105 transition-all duration-300 ring-2 ring-black/10 flex-shrink-0"
+                                  title="Haz clic para subir logotipo"
+                                >
+                                  {merchantForm.logoPreview ? (
+                                    <>
+                                      <img 
+                                        src={merchantForm.logoPreview} 
+                                        alt="Logo de tienda" 
+                                        className="w-full h-full object-cover bg-white"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                        <Camera size={16} />
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveMerchantLogo}
+                                        className="absolute top-0 right-0 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all shadow-md z-30"
+                                        title="Quitar logo"
+                                      >
+                                        <X size={10} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600/50">
+                                      <Camera size={20} />
+                                      <span className="text-[8px] font-bold text-white mt-0.5">LOGO</span>
+                                    </div>
+                                  )}
+
+                                  <input 
+                                    ref={merchantLogoInputRef}
+                                    type="file" 
+                                    accept="image/png, image/jpeg, image/webp" 
+                                    className="hidden" 
+                                    onChange={handleMerchantLogoChange}
+                                  />
+                                </div>
+
+                                {/* Info badges al lado del logo */}
+                                <div className="pb-1 text-white drop-shadow-md">
+                                  <p className="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5">
+                                    {merchantForm.businessName || 'Tu Negocio'}
+                                    {merchantForm.logoPreview && <CheckCircle size={12} className="text-emerald-400 inline" />}
+                                  </p>
+                                  <p className="text-[10px] text-slate-200">
+                                    Logo recomendado: <span className="text-amber-300 font-bold">512 × 512 px (1:1 HD)</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Guía informativa de calidad HD */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600">
+                              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                                <div className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 font-bold text-xs">
+                                  1:1
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-slate-900 text-[11px]">Logotipo Cuadrado</p>
+                                  <p className="text-[10px] text-slate-500">Mínimo 400×400 px, óptimo 512×512 px.</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
+                                <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 font-bold text-xs">
+                                  16:9
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-slate-900 text-[11px]">Portada Panorámica</p>
+                                  <p className="text-[10px] text-slate-500">Óptimo 1920×600 px para monitores y móviles.</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </motion.div>
                       )}
