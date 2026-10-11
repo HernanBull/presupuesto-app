@@ -65,10 +65,10 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading && !isEcommerceRoute && !isDeliveryRoute && !isSuperAdminRoute) {
+  if (authLoading && !isEcommerceRoute && !isDeliveryRoute) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
