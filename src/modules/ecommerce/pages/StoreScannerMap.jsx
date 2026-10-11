@@ -117,13 +117,13 @@ function MapEventsHandler({ setMapCenter, setIsMapMoved }) {
   return null;
 }
 
-// Icono elegante GPS para la ubicación del usuario (Punto azul pulsante estilo Google Maps)
+// Icono elegante GPS para la ubicación del usuario (Punto azul estático con halo suave, cero bucles de animación)
 const userLocationMarkerIcon = new L.DivIcon({
   className: 'custom-user-gps-pin',
   html: renderToStaticMarkup(
     <div className="relative flex items-center justify-center">
       <div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white shadow-md z-10"></div>
-      <div className="absolute w-7 h-7 rounded-full bg-blue-500/30 animate-ping pointer-events-none"></div>
+      <div className="absolute w-6 h-6 rounded-full bg-blue-500/25 border border-blue-400/40 pointer-events-none"></div>
     </div>
   ),
   iconSize: [24, 24],
@@ -481,12 +481,12 @@ export default function StoreScannerMap() {
         </div>
       </div>
 
-      {/* TOP FLOATING HEADER (BUSCADOR REACTIVO) */}
+      {/* TOP FLOATING HEADER (BUSCADOR REACTIVO SÓLIDO) */}
       <div className="absolute top-0 left-0 right-0 z-40 p-4 safe-area-pt">
         <div className="flex gap-2 items-center">
           <button 
             onClick={() => navigate(-1)} 
-            className="flex-shrink-0 w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-800 border border-zinc-200/80 shadow-lg hover:bg-white transition-colors"
+            className="flex-shrink-0 w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-zinc-800 border border-zinc-200 shadow-md"
             title="Volver"
           >
             <X size={20} />
@@ -501,7 +501,7 @@ export default function StoreScannerMap() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar tiendas o categorías..." 
-              className="w-full bg-white/95 backdrop-blur-xl border border-zinc-200/80 rounded-2xl py-3 pl-10 pr-9 text-zinc-800 text-sm focus:outline-none focus:border-amber-500 transition-colors shadow-lg placeholder:text-zinc-400 font-medium"
+              className="w-full bg-white border border-zinc-200 rounded-2xl py-3 pl-10 pr-9 text-zinc-800 text-sm focus:outline-none focus:border-amber-500 shadow-md placeholder:text-zinc-400 font-medium"
             />
             {searchTerm && (
               <button 
@@ -517,8 +517,8 @@ export default function StoreScannerMap() {
 
       {/* Indicador sutil de autoguardado de mapa en caché local */}
       {autoCacheStatus && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none animate-fadeIn">
-          <div className="bg-zinc-900/95 backdrop-blur-md border border-amber-500/40 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none">
+          <div className="bg-zinc-900 border border-amber-500/40 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
             {autoCacheStatus.done ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
@@ -546,7 +546,7 @@ export default function StoreScannerMap() {
                 fetchStores([target.lat, target.lng]);
               }
             }}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-full shadow-2xl flex items-center gap-2 active:scale-95 transition-transform border border-amber-300"
+            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-full shadow-2xl flex items-center gap-2 border border-amber-300"
           >
             <Search size={14} className="text-zinc-950" /> Buscar en esta zona
           </button>
@@ -557,7 +557,7 @@ export default function StoreScannerMap() {
       <div className="absolute top-20 right-4 z-40 flex flex-col gap-2">
         <button 
           onClick={centerOnUser} 
-          className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200/80 shadow-md hover:bg-white active:scale-95 transition-all"
+          className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md"
           title="Centrar en mi ubicación"
         >
           <Crosshair size={20} className="text-amber-600" />
@@ -565,7 +565,7 @@ export default function StoreScannerMap() {
 
         <button 
           onClick={() => setIsOfflineModalOpen(true)} 
-          className="w-11 h-11 bg-zinc-900/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-amber-400 border border-zinc-800 shadow-md hover:bg-zinc-800 active:scale-95 transition-all"
+          className="w-11 h-11 bg-zinc-900 rounded-2xl flex items-center justify-center text-amber-400 border border-zinc-800 shadow-md"
           title="Descargar mapa offline en teléfono (Cero datos)"
         >
           <HardDrive size={18} />
@@ -585,12 +585,11 @@ export default function StoreScannerMap() {
         currentCenter={mapCenter || (userLocation ? { lat: userLocation[0], lng: userLocation[1] } : null)}
       />
 
-      {/* BOTTOM SHEET DESLIZABLE ULTRA FLUIDO CON CSS NATIVO (CERO LAG) */}
+      {/* BOTTOM SHEET DESLIZABLE NATIVO ULTRA FLUIDO (CERO LAG, CERO ANIMACIONES PESADAS) */}
       <div className="absolute bottom-0 left-0 right-0 z-50 flex flex-col pointer-events-none">
         <div className="relative pointer-events-auto w-full">
           <div 
-            style={{ willChange: 'height' }}
-            className={`bg-white rounded-t-[2.5rem] border-t border-zinc-200/90 shadow-[0_-12px_45px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col w-full transition-[height] duration-200 ease-out ${
+            className={`bg-white rounded-t-[2.5rem] border-t border-zinc-200 shadow-[0_-12px_45px_rgba(0,0,0,0.35)] overflow-hidden flex flex-col w-full ${
               sheetSnap === 'expanded' ? 'h-[88vh]' : sheetSnap === 'half' ? 'h-[52vh]' : 'h-[105px]'
             }`}
           >
@@ -602,7 +601,7 @@ export default function StoreScannerMap() {
               className="w-full flex flex-col items-center pt-3 pb-1 cursor-pointer select-none"
               title="Desliza hacia arriba o abajo"
             >
-              <div className="w-12 h-1.5 bg-zinc-300 rounded-full hover:bg-zinc-400 transition-colors"></div>
+              <div className="w-12 h-1.5 bg-zinc-300 rounded-full"></div>
             </div>
 
             {/* CABECERA: TEXTO CON MÁXIMO ESPACIO PARA NO TRUNCAR NUNCA EN MÓVIL */}
@@ -642,7 +641,7 @@ export default function StoreScannerMap() {
                     e.stopPropagation(); 
                     setIsSettingsOpen(true); 
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold transition-colors border border-zinc-200/90 shadow-sm active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-100 text-zinc-800 text-xs font-bold border border-zinc-200"
                   title="Ajustar radio de búsqueda"
                 >
                   <Settings size={14} className="text-zinc-600" />
@@ -652,7 +651,7 @@ export default function StoreScannerMap() {
                 <button
                   type="button"
                   onClick={toggleSheetSnap}
-                  className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center transition-colors border border-zinc-200/90"
+                  className="w-8 h-8 rounded-xl bg-zinc-100 text-zinc-600 flex items-center justify-center border border-zinc-200"
                   title={sheetSnap === 'expanded' ? 'Reducir' : 'Expandir'}
                 >
                   {sheetSnap === 'expanded' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -660,8 +659,11 @@ export default function StoreScannerMap() {
               </div>
             </div>
             
-            {/* CUERPO DEL BOTTOM SHEET CON SCROLL NATIVO ULTRA FLUIDO */}
-            <div className={`px-5 pt-3 pb-8 flex-1 overflow-y-auto hide-scrollbar ${sheetSnap === 'collapsed' ? 'hidden' : 'block'}`}>
+            {/* CUERPO DEL BOTTOM SHEET CON SCROLL NATIVO ULTRA FLUIDO AISLADO EN GPU */}
+            <div 
+              style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', transform: 'translateZ(0)' }}
+              className={`px-5 pt-3 pb-8 flex-1 overflow-y-auto hide-scrollbar ${sheetSnap === 'collapsed' ? 'hidden' : 'block'}`}
+            >
               <div>
                 {/* CASO A: COMERCIO SELECCIONADO (FICHA COMPLETA DEL PERFIL) */}
                 {selectedStore ? (
@@ -682,6 +684,8 @@ export default function StoreScannerMap() {
                           <img 
                             src={resolveImageUrl(selectedStore.coverUrl)} 
                             alt={selectedStore.name} 
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover" 
                           />
                         ) : (
@@ -691,29 +695,35 @@ export default function StoreScannerMap() {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                         
-                        {/* Badges superiores sobre portada (Letras blancas forzadas) */}
-                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
-                          <span 
-                            style={{ color: '#ffffff' }}
-                            className="text-xs font-black text-white bg-black/85 backdrop-blur-md px-3.5 py-1 rounded-full border border-white/30 shadow-md tracking-wide"
-                          >
-                            {selectedStore.category}
-                          </span>
-                          <span className={`text-xs font-bold px-3 py-1 rounded-full backdrop-blur-md border flex items-center gap-1.5 ${
+                        {/* Badges superiores sobre portada - Blanco sólido de alto contraste y cero lag */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
+                          <div className="flex items-center gap-1.5 bg-white px-3.5 py-1 rounded-full border border-zinc-200 shadow-md">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="text-xs font-black text-zinc-950 uppercase tracking-wide">
+                              {selectedStore.category}
+                            </span>
+                          </div>
+                          <div className={`text-xs font-extrabold px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-md ${
                             selectedStore.isOpen 
-                              ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                              : 'bg-zinc-800/90 text-zinc-300 border-white/10'
+                              ? 'bg-emerald-600 border-emerald-500 text-white' 
+                              : 'bg-zinc-900 border-zinc-700 text-zinc-300'
                           }`}>
                             <span className={`w-2 h-2 rounded-full ${selectedStore.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
-                            {selectedStore.isOpen ? 'Abierto' : 'Cerrado'}
-                          </span>
+                            <span className="uppercase tracking-wider">{selectedStore.isOpen ? 'Abierto' : 'Cerrado'}</span>
+                          </div>
                         </div>
 
                         {/* Logotipo Circular Superpuesto */}
                         <div className="absolute -bottom-4 left-4 z-20">
-                          <div className="w-16 h-16 rounded-2xl border-3 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center">
+                          <div className="w-16 h-16 rounded-2xl border-2 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center">
                             {selectedStore.logoUrl ? (
-                              <img src={resolveImageUrl(selectedStore.logoUrl)} alt="" className="w-full h-full object-cover" />
+                              <img 
+                                src={resolveImageUrl(selectedStore.logoUrl)} 
+                                alt="" 
+                                loading="lazy"
+                                decoding="async"
+                                className="w-full h-full object-cover" 
+                              />
                             ) : (
                               <Store size={26} className="text-amber-500" />
                             )}
@@ -861,27 +871,27 @@ export default function StoreScannerMap() {
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
 
-                                {/* Badges superiores sobre la portada */}
+                                {/* Badges superiores sobre la portada - Blanco sólido de alto contraste y cero lag */}
                                 <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-                                  <span 
-                                    style={{ color: '#ffffff', textShadow: '0 1px 2px rgba(0, 0, 0, 0.95)' }}
-                                    className="text-[11px] font-black text-white bg-black/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/40 shadow-sm tracking-wide"
-                                  >
-                                    {store.category}
-                                  </span>
-                                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md border flex items-center gap-1 shadow-sm ${
+                                  <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-zinc-200 shadow-md">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span className="text-[11px] font-black text-zinc-950 uppercase tracking-wider">
+                                      {store.category}
+                                    </span>
+                                  </div>
+                                  <div className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shadow-md ${
                                     store.isOpen 
-                                      ? 'bg-emerald-600 text-white border-emerald-400/50' 
-                                      : 'bg-zinc-900/90 text-zinc-200 border-white/20'
+                                      ? 'bg-emerald-600 border-emerald-500 text-white' 
+                                      : 'bg-zinc-900 border-zinc-700 text-zinc-300'
                                   }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
-                                    <span style={{ color: '#ffffff' }}>{store.isOpen ? 'Abierto' : 'Cerrado'}</span>
-                                  </span>
+                                    <span className="uppercase tracking-wider">{store.isOpen ? 'Abierto' : 'Cerrado'}</span>
+                                  </div>
                                 </div>
 
-                                {/* Distancia flotante */}
+                                {/* Distancia flotante sólida */}
                                 <div className="absolute bottom-2 right-3 z-10">
-                                  <span className="text-[11px] font-black text-amber-300 drop-shadow flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/10">
+                                  <span className="text-[11px] font-black text-amber-300 flex items-center gap-1 bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 shadow-sm">
                                     <Navigation size={11} className="text-amber-400" /> {store.distanceKm} km
                                   </span>
                                 </div>
@@ -894,6 +904,8 @@ export default function StoreScannerMap() {
                                     <img 
                                       src={resolveImageUrl(store.logoUrl)} 
                                       alt={store.name} 
+                                      loading="lazy"
+                                      decoding="async"
                                       className="w-full h-full object-cover" 
                                     />
                                   ) : (
