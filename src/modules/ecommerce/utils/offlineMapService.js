@@ -154,6 +154,49 @@ export async function getOfflineZoneInfo() {
 }
 
 /**
+ * Evaluar si un punto geográfico ya está cubierto por una zona en caché
+ */
+export function isPointWithinCachedZone(lat, lng, cachedZone) {
+  if (!cachedZone || !cachedZone.lat || !cachedZone.lng) return false;
+  const R = 6371; // Radio de la tierra en km
+  const dLat = ((lat - cachedZone.lat) * Math.PI) / 180;
+  const dLng = ((lng - cachedZone.lng) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((cachedZone.lat * Math.PI) / 180) *
+      Math.cos((lat * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distanceKm = R * c;
+
+  const coveredRadius = (cachedZone.radiusKm || 3.5) - 0.8;
+  return distanceKm <= coveredRadius;
+}
+
+/**
+ * Precarga automática en segundo plano:
+ * Si la zona no está en caché o tiene más de 15 días, la descarga automáticamente.
+ */
+export async function autoCacheZoneIfNeeded(lat, lng, onProgress = null) {
+  try {
+    const cached = await getOfflineZoneInfo();
+    if (cached) {
+      const isInside = isPointWithinCachedZone(lat, lng, cached);
+      const ageDays = (Date.now() - new Date(cached.date).getTime()) / (1000 * 60 * 60 * 24);
+      if (isInside && ageDays < 15) {
+        return { alreadyCached: true, meta: cached };
+      }
+    }
+
+    return await downloadZoneTiles(lat, lng, 3.5, onProgress);
+  } catch (err) {
+    console.warn('Error en auto-cache de mapa:', err);
+    return null;
+  }
+}
+
+/**
  * Limpiar toda la caché de mosaicos del mapa
  */
 export async function clearMapCache() {
@@ -162,3 +205,4 @@ export async function clearMapCache() {
   }
   localStorage.removeItem('axon_offline_zone_info');
 }
+

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
 import MapSettingsModal from '../components/MapSettingsModal';
 import OfflineMapModal from '../components/OfflineMapModal';
+import { autoCacheZoneIfNeeded } from '../utils/offlineMapService';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -182,12 +183,32 @@ export default function StoreScannerMap() {
   const [selectedStore, setSelectedStore] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [hasScanned, setHasScanned] = useState(false);
+  const [autoCacheStatus, setAutoCacheStatus] = useState(null);
 
-  // Coordenadas fallback (Caracas, Venezuela)
-  const defaultLocation = [10.4806, -66.9036]; 
+  // Coordenadas fallback (Cagua, Estado Aragua, Venezuela)
+  const defaultLocation = [10.1864, -67.4594]; 
+
+  const triggerAutoCache = async (lat, lng) => {
+    try {
+      const res = await autoCacheZoneIfNeeded(lat, lng, (prog) => {
+        setAutoCacheStatus({ done: false, percent: prog.percent });
+      });
+      if (res) {
+        if (res.alreadyCached) {
+          setAutoCacheStatus(null);
+        } else {
+          setAutoCacheStatus({ done: true, percent: 100 });
+          setTimeout(() => setAutoCacheStatus(null), 3500);
+        }
+      }
+    } catch (err) {
+      console.warn("Auto-cache background error:", err);
+      setAutoCacheStatus(null);
+    }
+  };
 
   useEffect(() => {
-    // 1. Obtener ubicación GPS una sola vez al montar (SIN escanear automáticamente)
+    // 1. Obtener ubicación GPS una sola vez al montar y descargar mapa en caché local automáticamente
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -196,6 +217,7 @@ export default function StoreScannerMap() {
           setMapCenter({ lat: coords[0], lng: coords[1] });
           setActiveSearchLocation({ lat: coords[0], lng: coords[1] });
           setIsScanning(false);
+          triggerAutoCache(coords[0], coords[1]);
         },
         (error) => {
           console.error("Error obtaining location", error);
@@ -203,6 +225,7 @@ export default function StoreScannerMap() {
           setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
           setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
           setIsScanning(false);
+          triggerAutoCache(defaultLocation[0], defaultLocation[1]);
         },
         { enableHighAccuracy: true }
       );
@@ -211,6 +234,7 @@ export default function StoreScannerMap() {
       setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
       setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
       setIsScanning(false);
+      triggerAutoCache(defaultLocation[0], defaultLocation[1]);
     }
   }, []);
 
@@ -490,6 +514,25 @@ export default function StoreScannerMap() {
           </div>
         </div>
       </div>
+
+      {/* Indicador sutil de autoguardado de mapa en caché local */}
+      {autoCacheStatus && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none animate-fadeIn">
+          <div className="bg-zinc-900/95 backdrop-blur-md border border-amber-500/40 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
+            {autoCacheStatus.done ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span className="text-zinc-200">Mapa guardado en el teléfono (0 datos)</span>
+              </>
+            ) : (
+              <>
+                <div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></div>
+                <span className="text-zinc-200">Guardando mapa local en segundo plano ({autoCacheStatus.percent}%)...</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Botón Buscar en esta Zona (Si aún no ha escaneado O si arrastró el mapa) */}
       {(!hasScanned || isMapMoved) && (
