@@ -660,12 +660,31 @@ export default function PublicStore() {
       }).join(''));
       const decoded = JSON.parse(jsonPayload);
       
-      const { email, name } = decoded;
+      const { email, name, picture } = decoded;
+      if (!email) {
+        alert('No se pudo obtener el email de Google');
+        setAuthLoading(false);
+        return;
+      }
+
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Sincronizar Supabase Auth si está habilitado
+      try {
+        if (supabase.auth?.signInWithIdToken) {
+          await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: credentialResponse.credential,
+          });
+        }
+      } catch (authErr) {
+        console.warn('Supabase signInWithIdToken omitido:', authErr);
+      }
       
       let { data: user } = await supabase
         .from('ecommerce_customers')
         .select('*')
-        .eq('email', email)
+        .ilike('email', cleanEmail)
         .maybeSingle();
         
       let isNewUser = false;
@@ -674,17 +693,23 @@ export default function PublicStore() {
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
         const payload = {
           id,
-          email,
+          email: cleanEmail,
           password: 'oauth-google',
-          name,
+          name: name || cleanEmail.split('@')[0],
+          profile_pic: picture || '',
           phone: '',
           doc_id: '',
           address: '',
           wishlist: [],
           join_date: new Date().toISOString()
         };
-        await supabase.from('ecommerce_customers').insert([payload]);
-        user = payload;
+        const { error: insertErr } = await supabase.from('ecommerce_customers').insert([payload]);
+        if (insertErr) {
+          const { data: retryUser } = await supabase.from('ecommerce_customers').select('*').ilike('email', cleanEmail).maybeSingle();
+          user = retryUser || payload;
+        } else {
+          user = payload;
+        }
         
         // Send Welcome Email
         supabase.functions.invoke('send-welcome-email', {
@@ -692,12 +717,16 @@ export default function PublicStore() {
         }).catch(e => console.error('Error sending welcome email:', e));
       }
       
-      const mappedUser = { ...user, docId: user.doc_id, orders: [] };
+      const mappedUser = { ...user, docId: user.doc_id || user.docId || '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       
-      if (isNewUser) {
+      const cleanPhone = (mappedUser.phone || '').replace(/\D/g, '');
+      const cleanDoc = (mappedUser.doc_id || mappedUser.docId || '').replace(/\D/g, '');
+      const isProfileIncomplete = isNewUser || !mappedUser.address || cleanPhone.length < 11 || cleanDoc.length < 6;
+
+      if (isProfileIncomplete) {
         setIsWizardOpen(true);
       }
 

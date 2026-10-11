@@ -377,56 +377,82 @@ export default function MarketplaceDirectory() {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       const payload = JSON.parse(jsonPayload);
-      const { email, name } = payload;
+      const { email, name, picture } = payload;
       
       if (!email) {
         alert('No se pudo obtener el email de Google');
         return;
       }
-      
-      let { data: user } = await supabase.from('ecommerce_customers').select('*').eq('email', email).maybeSingle();
-      
-      if (authMode === 'login') {
-        if (!user) {
-          alert('No tienes una cuenta registrada con este correo. Por favor, regístrate primero.');
-          setAuthMode('register');
-          return;
+
+      const cleanEmail = email.trim().toLowerCase();
+
+      // Sincronizar sesión con Supabase Auth si está configurado
+      try {
+        if (supabase.auth?.signInWithIdToken) {
+          await supabase.auth.signInWithIdToken({
+            provider: 'google',
+            token: credentialResponse.credential,
+          });
         }
-      } else if (authMode === 'register') {
-        if (user) {
-          alert('Este correo ya está registrado. Por favor, inicia sesión.');
-          setAuthMode('login');
-          return;
-        }
+      } catch (authErr) {
+        console.warn('Supabase signInWithIdToken omitido o no configurado:', authErr);
+      }
+      
+      // Buscar cliente existente por email (insensible a mayúsculas/minúsculas)
+      let { data: user } = await supabase
+        .from('ecommerce_customers')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+      
+      let isNewUser = false;
+      if (!user) {
+        // Auto-creación de cuenta sin bloqueos ni errores
+        isNewUser = true;
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
         const newUser = {
           id,
-          email,
+          email: cleanEmail,
           password: 'GOOGLE_AUTH',
-          name: name || email.split('@')[0],
+          name: name || cleanEmail.split('@')[0],
+          profile_pic: picture || '',
           phone: '',
           doc_id: '',
           address: '',
           wishlist: [],
           join_date: new Date().toISOString()
         };
-        const { error } = await supabase.from('ecommerce_customers').insert([newUser]);
-        if (error) throw error;
-        user = newUser;
+        const { error: insertErr } = await supabase.from('ecommerce_customers').insert([newUser]);
+        if (insertErr) {
+          console.error('Error insertando cliente en ecommerce_customers:', insertErr);
+          const { data: retryUser } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .ilike('email', cleanEmail)
+            .maybeSingle();
+          user = retryUser || newUser;
+        } else {
+          user = newUser;
+        }
 
-        // Send Welcome Email
+        // Enviar correo de bienvenida en segundo plano
         supabase.functions.invoke('send-welcome-email', {
-          body: { email: newUser.email, name: newUser.name }
+          body: { email: user.email, name: user.name }
         }).catch(e => console.error('Error sending welcome email:', e));
       }
       
-      const mappedUser = { ...user, docId: user.doc_id, orders: [] };
+      const mappedUser = { ...user, docId: user.doc_id || user.docId || '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
       
-      if (authMode === 'register') {
+      // Verificar si requiere completar perfil (teléfono 11 dígitos, cédula 6 dígitos)
+      const cleanPhone = (mappedUser.phone || '').replace(/\D/g, '');
+      const cleanDoc = (mappedUser.doc_id || mappedUser.docId || '').replace(/\D/g, '');
+      const isProfileIncomplete = isNewUser || !mappedUser.address || cleanPhone.length < 11 || cleanDoc.length < 6;
+
+      if (isProfileIncomplete) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
         navigate(`/${pendingStoreSlug}`);
@@ -474,33 +500,47 @@ export default function MarketplaceDirectory() {
       }).join(''));
       const payload = JSON.parse(jsonPayload);
       if (payload.email) {
-        // Verificar si la tienda ya existe
-        const { data: wsData } = await supabase
+        const cleanEmail = payload.email.trim().toLowerCase();
+
+        // Sincronizar Supabase Auth si está soportado
+        try {
+          if (supabase.auth?.signInWithIdToken) {
+            await supabase.auth.signInWithIdToken({
+              provider: 'google',
+              token: credentialResponse.credential,
+            });
+          }
+        } catch (authErr) {
+          console.warn('Supabase signInWithIdToken omitido:', authErr);
+        }
+
+        // Verificar si la tienda ya existe (por adminEmail o owner_email)
+        let { data: wsData } = await supabase
           .from('workspaces')
           .select('*')
-          .eq('config->>adminEmail', payload.email)
+          .or(`config->>adminEmail.ilike.${cleanEmail},owner_email.ilike.${cleanEmail}`)
           .maybeSingle();
 
-        if (merchantAuthMode === 'login') {
-          if (wsData) {
-            localStorage.setItem('activeWorkspace', wsData.id);
-            localStorage.setItem('storeSlug', wsData.store_slug || '');
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 500);
-          } else {
-            alert('No se encontró una tienda asociada a este correo de Google. Por favor, crea tu tienda primero.');
-            setMerchantAuthMode('register');
-          }
-        } else if (merchantAuthMode === 'register') {
-          if (wsData) {
-            alert('Ya existe una tienda con este correo de Google. Por favor, inicia sesión.');
-            setMerchantAuthMode('login');
-          } else {
-            const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
-            setMerchantForm({ ...merchantForm, email: payload.email, password: randomPassword });
-            setMerchantRegStep(2);
-          }
+        if (wsData) {
+          // Si ya tiene tienda, iniciar sesión directamente en el ERP
+          localStorage.setItem('activeWorkspace', wsData.id);
+          localStorage.setItem('storeSlug', wsData.store_slug || '');
+          setIsMerchantModalOpen(false);
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 400);
+        } else {
+          // Si no tiene tienda, avanzar fluidamente al paso 2 de registro de tienda
+          const randomPassword = Math.random().toString(36).slice(-10) + "Aa1!";
+          setMerchantForm(prev => ({
+            ...prev,
+            email: cleanEmail,
+            contactEmail: cleanEmail,
+            ownerName: payload.name || prev.ownerName,
+            password: randomPassword
+          }));
+          setMerchantAuthMode('register');
+          setMerchantRegStep(2);
         }
       }
     } catch (err) {
@@ -959,9 +999,20 @@ export default function MarketplaceDirectory() {
           
           {/* User Profile / Login Icon */}
           {currentCustomer ? (
-             <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
-               <User size={22} strokeWidth={2} />
-             </button>
+             <div className="flex items-center gap-2">
+               {currentCustomer?.email?.toLowerCase() === 'tecnologiacomerciocagua@gmail.com' && (
+                 <button 
+                   onClick={() => navigate('/axs-vault-99xqz')} 
+                   title="Bóveda SuperAdmin"
+                   className="flex items-center gap-1 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-200 transition-colors"
+                 >
+                   <ShieldAlert size={13} /> Admin
+                 </button>
+               )}
+               <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
+                 <User size={22} strokeWidth={2} />
+               </button>
+             </div>
           ) : !currentMerchant && (
              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
                <User size={22} strokeWidth={2} />
@@ -2212,6 +2263,17 @@ export default function MarketplaceDirectory() {
                 
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Explorar</h3>
+                  {currentCustomer?.email?.toLowerCase() === 'tecnologiacomerciocagua@gmail.com' && (
+                    <button onClick={() => { setIsMobileMenuOpen(false); navigate('/axs-vault-99xqz'); }} className="w-full flex items-center justify-between p-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 font-bold transition-all group mb-2 border border-red-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                          <ShieldAlert size={16} />
+                        </div>
+                        Bóveda SuperAdmin
+                      </div>
+                      <ChevronRight size={16} className="text-red-400" />
+                    </button>
+                  )}
                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
