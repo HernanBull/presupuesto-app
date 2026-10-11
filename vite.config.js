@@ -62,6 +62,34 @@ export default defineConfig({
               cacheName: 'supabase-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 }
             }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.basemaps\.cartocdn\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'carto-map-tiles-cache',
+              expiration: {
+                maxEntries: 1200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 días en caché local
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-map-tiles-cache',
+              expiration: {
+                maxEntries: 1000,
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       },

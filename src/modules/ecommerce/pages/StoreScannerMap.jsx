@@ -351,15 +351,18 @@ export default function StoreScannerMap() {
             zoom={14} 
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
+            preferCanvas={true}
+            keepBuffer={3}
           >
             <ChangeView center={userLocation} zoom={14} />
             <MapFlyController targetLocation={targetMapLocation} />
             
-            {/* Dark themed map using OSM with CSS filter */}
+            {/* Dark themed map using CARTO Dark Matter (alto rendimiento nativo sin filtros CSS pesados) */}
             <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              className="map-tiles"
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={19}
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
 
             {/* Active Search Area Circle and Marker */}
@@ -750,62 +753,69 @@ export default function StoreScannerMap() {
                             key={store.id}
                             className="bg-white rounded-2xl border border-zinc-200 shadow-sm overflow-hidden"
                           >
-                            {/* BANNER / PORTADA MINIATURA */}
-                            <div className="relative h-24 w-full bg-slate-900 overflow-hidden">
-                              {store.coverUrl ? (
-                                <img 
-                                  src={resolveImageUrl(store.coverUrl)} 
-                                  alt={store.name} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
-                                  <Store size={28} className="text-zinc-700" />
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                            {/* PORTADA Y LOGO SIN CORTAR */}
+                            <div className="relative">
+                              {/* BANNER / PORTADA MINIATURA */}
+                              <div className="relative h-24 w-full bg-slate-900 overflow-hidden rounded-t-2xl">
+                                {store.coverUrl ? (
+                                  <img 
+                                    src={resolveImageUrl(store.coverUrl)} 
+                                    alt={store.name} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
+                                    <Store size={28} className="text-zinc-700" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
 
-                              {/* Badges superiores sobre la portada (Letras blancas forzadas) */}
-                              <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10">
-                                <span 
-                                  style={{ color: '#ffffff' }}
-                                  className="text-[11px] font-black text-white bg-black/85 backdrop-blur-md px-3 py-0.5 rounded-full border border-white/30 shadow-md tracking-wide"
-                                >
-                                  {store.category}
-                                </span>
-                                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full backdrop-blur-md border flex items-center gap-1 ${
-                                  store.isOpen 
-                                    ? 'bg-emerald-500/90 text-white border-emerald-400/30' 
-                                    : 'bg-zinc-800/90 text-zinc-300 border-white/10'
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
-                                  {store.isOpen ? 'Abierto' : 'Cerrado'}
-                                </span>
+                                {/* Badges superiores sobre la portada */}
+                                <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
+                                  <span 
+                                    style={{ color: '#ffffff', textShadow: '0 1px 2px rgba(0, 0, 0, 0.95)' }}
+                                    className="text-[11px] font-black text-white bg-black/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/40 shadow-sm tracking-wide"
+                                  >
+                                    {store.category}
+                                  </span>
+                                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md border flex items-center gap-1 shadow-sm ${
+                                    store.isOpen 
+                                      ? 'bg-emerald-600 text-white border-emerald-400/50' 
+                                      : 'bg-zinc-900/90 text-zinc-200 border-white/20'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
+                                    <span style={{ color: '#ffffff' }}>{store.isOpen ? 'Abierto' : 'Cerrado'}</span>
+                                  </span>
+                                </div>
+
+                                {/* Distancia flotante */}
+                                <div className="absolute bottom-2 right-3 z-10">
+                                  <span className="text-[11px] font-black text-amber-300 drop-shadow flex items-center gap-1 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/10">
+                                    <Navigation size={11} className="text-amber-400" /> {store.distanceKm} km
+                                  </span>
+                                </div>
                               </div>
 
-                              {/* LOGO SUPERPUESTO */}
-                              <div className="absolute -bottom-3 left-4 z-20">
-                                <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md bg-white overflow-hidden flex items-center justify-center">
+                              {/* LOGO SUPERPUESTO (fuera del contenedor overflow-hidden para que NO se corte en la mitad) */}
+                              <div className="absolute -bottom-5 left-4 z-20">
+                                <div className="w-14 h-14 rounded-2xl border-2 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center ring-2 ring-black/10">
                                   {store.logoUrl ? (
-                                    <img src={resolveImageUrl(store.logoUrl)} alt="" className="w-full h-full object-cover" />
+                                    <img 
+                                      src={resolveImageUrl(store.logoUrl)} 
+                                      alt={store.name} 
+                                      className="w-full h-full object-cover" 
+                                    />
                                   ) : (
-                                    <Store size={20} className="text-amber-500" />
+                                    <Store size={24} className="text-amber-500" />
                                   )}
                                 </div>
-                              </div>
-
-                              {/* Distancia flotante */}
-                              <div className="absolute bottom-2 right-3 z-10">
-                                <span className="text-[11px] font-bold text-amber-300 drop-shadow flex items-center gap-1">
-                                  <Navigation size={11} /> {store.distanceKm} km
-                                </span>
                               </div>
                             </div>
 
                             {/* CUERPO DE LA TARJETA */}
-                            <div className="pt-4 px-4 pb-3.5">
+                            <div className="pt-6 px-4 pb-3.5">
                               <div className="flex items-start justify-between gap-2">
-                                <div className="pl-14">
+                                <div className="pl-16">
                                   <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
                                     {store.name}
                                   </h4>
@@ -899,7 +909,7 @@ export default function StoreScannerMap() {
           background: #0f172a;
         }
         .map-tiles {
-          filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+          /* Nativo oscuro: no requiere filtros CSS */
         }
         .custom-store-pin {
           background: transparent !important;
