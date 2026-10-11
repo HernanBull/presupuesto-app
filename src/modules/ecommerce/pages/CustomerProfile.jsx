@@ -743,8 +743,14 @@ export default function CustomerProfile() {
     await updateCustomerData({ addresses: updatedAddresses });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error('Error cerrando sesión en Supabase:', e);
+    }
     localStorage.removeItem('ecommerce_current_customer');
+    localStorage.removeItem('activeWorkspace');
     navigate('/');
   };
   
@@ -800,20 +806,14 @@ export default function CustomerProfile() {
             <span className="font-bold text-xl tracking-[0.2em] text-slate-900">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-6">
+          <div className="flex items-center">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-slate-600 hover:text-amber-600 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-slate-600 hover:text-amber-600 bg-slate-100/90 hover:bg-slate-200/90 px-3.5 py-2 rounded-full transition-colors"
+              title="Volver a la tienda"
             >
               <ArrowLeft size={16} /> 
-              <span className="hidden sm:inline">Volver</span>
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase bg-red-50 text-red-600 border border-red-200/80 px-3 sm:px-4 py-2 rounded-full hover:bg-red-100 transition-colors"
-            >
-              <LogOut size={16} /> 
-              <span className="hidden sm:inline">Salir</span>
+              <span>Volver</span>
             </button>
           </div>
         </div>
@@ -964,7 +964,7 @@ export default function CustomerProfile() {
           </div>
 
           {/* Group 4 */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-8">
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-4">
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
                <div className="flex items-center gap-4">
                   <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
@@ -978,6 +978,25 @@ export default function CustomerProfile() {
                   <span className="text-[15px] font-medium">Seguidos</span>
                </div>
                <ChevronRight size={18} className="text-slate-300" />
+            </button>
+          </div>
+
+          {/* Botón Apartado Cerrar Sesión */}
+          <div className="bg-white rounded-2xl overflow-hidden border border-red-200/80 shadow-xs hover:border-red-300 transition-all mb-8">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center justify-between px-5 py-4 bg-red-50/30 hover:bg-red-50 transition-colors text-red-600 font-bold group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <LogOut size={18} />
+                </div>
+                <div className="text-left">
+                  <span className="text-[15px] block leading-tight font-bold">Cerrar Sesión</span>
+                  <span className="text-[11px] text-red-400 font-medium block">Salir de la cuenta en este dispositivo</span>
+                </div>
+              </div>
+              <ChevronRight size={18} className="text-red-300 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
@@ -1112,6 +1131,20 @@ export default function CustomerProfile() {
                           <p className="text-slate-500 text-sm text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No tienes cuentas de Pago Móvil autorizadas. Añade una para poder realizar compras.</p>
                         )}
                       </div>
+                    </div>
+
+                    {/* Apartado para cerrar sesión en Ajustes de Perfil */}
+                    <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">Cerrar Sesión</h4>
+                        <p className="text-xs text-slate-500">Desconectar tu cuenta en este navegador</p>
+                      </div>
+                      <button 
+                        onClick={handleLogout}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-200 hover:bg-red-100 transition-colors"
+                      >
+                        <LogOut size={15} /> Cerrar Sesión
+                      </button>
                     </div>
                   </div>
                 ) : (
