@@ -774,34 +774,41 @@ export default function CustomerProfile() {
            </div>
            <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">Cliente Frecuente</span>
 
-           {/* Alerta de Verificación de Correo si aplica */}
-           {!isEmailConfirmed && authProvider !== 'google' && (
-             <div className="mt-5 w-full max-w-md bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-               <div className="flex items-center gap-3">
-                 <MailWarning size={20} className="text-amber-600 shrink-0" />
-                 <span className="text-xs text-amber-900 font-medium text-center sm:text-left">
-                   Tu correo no está verificado aún.
-                 </span>
-               </div>
-               <div className="flex items-center gap-2">
-                 <button 
-                   onClick={handleResendConfirmation} 
-                   disabled={isResending}
-                   className="text-xs font-bold text-amber-800 bg-white border border-amber-300 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-all"
-                 >
-                   {isResending ? 'Enviando...' : 'Reenviar'}
-                 </button>
-                 <button 
-                   onClick={handleRefreshAuthStatus} 
-                   disabled={isRefreshingAuth}
-                   className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-                 >
-                   <RefreshCw size={12} className={isRefreshingAuth ? "animate-spin" : ""} />
-                   Verificar
-                 </button>
-               </div>
-             </div>
-           )}
+            {/* Estado de Cuenta / Verificación */}
+            {(isEmailConfirmed || authProvider === 'google') ? (
+              <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
+                <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
+                <span>Cuenta Activa / Verificada</span>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col items-center gap-2 max-w-sm w-full">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-xs">
+                  <MailWarning size={14} className="text-amber-600 shrink-0" />
+                  <span>Cuenta Inactiva (No Verificada)</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium text-center">
+                  Revisa tu bandeja de entrada o reenvía el correo para activar tu cuenta.
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <button 
+                    onClick={handleResendConfirmation} 
+                    disabled={isResending}
+                    className="text-xs font-bold text-amber-800 bg-white border border-amber-300 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl transition-all shadow-xs disabled:opacity-50"
+                  >
+                    {isResending ? 'Enviando...' : 'Reenviar Correo'}
+                  </button>
+                  <button 
+                    onClick={handleRefreshAuthStatus} 
+                    disabled={isRefreshingAuth}
+                    className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
+                    title="Actualizar estado si ya confirmaste"
+                  >
+                    <RefreshCw size={12} className={isRefreshingAuth ? "animate-spin" : ""} />
+                    <span>{isRefreshingAuth ? 'Comprobando...' : 'Comprobar Estado'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
          </div>
       </div>
 
