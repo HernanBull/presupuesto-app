@@ -770,7 +770,7 @@ export default function PublicStore() {
         }).catch(e => console.error('Error sending welcome email:', e));
       }
       
-      const mappedUser = { ...user, docId: user.doc_id || user.docId || '', orders: [] };
+      const mappedUser = { ...user, auth_provider: 'google', is_verified: true, status: 'Activo', docId: user.doc_id || user.docId || '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
@@ -913,15 +913,21 @@ export default function PublicStore() {
       return;
     }
 
-    // Bloqueo estricto: Verificar confirmación de correo antes de añadir al carrito
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && !user.email_confirmed_at) {
-        alert("Para añadir productos al carrito y comprar, primero debes verificar tu correo electrónico. Por favor, revisa tu bandeja de entrada o verifica desde tu perfil.");
-        return;
+    // Bloqueo estricto: Verificar confirmación de correo antes de añadir al carrito (los usuarios de Google ya están verificados)
+    const isGoogleAuth = currentCustomer?.password === 'GOOGLE_AUTH' || 
+                         currentCustomer?.password === 'oauth-google' || 
+                         currentCustomer?.auth_provider === 'google' || 
+                         (currentCustomer?.profile_pic && currentCustomer.profile_pic.includes('googleusercontent.com'));
+    if (!isGoogleAuth) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && !user.email_confirmed_at) {
+          alert("Para añadir productos al carrito y comprar, primero debes verificar tu correo electrónico. Por favor, revisa tu bandeja de entrada o verifica desde tu perfil.");
+          return;
+        }
+      } catch (e) {
+        console.error("Error verificando estado del correo:", e);
       }
-    } catch (e) {
-      console.error("Error verificando estado del correo:", e);
     }
 
     const product = products.find(p => p.id === productId);

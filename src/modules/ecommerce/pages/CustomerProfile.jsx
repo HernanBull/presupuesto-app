@@ -53,6 +53,21 @@ export default function CustomerProfile() {
   const handleRefreshAuthStatus = async () => {
     setIsRefreshingAuth(true);
     try {
+      // 1. Si es cuenta autenticada vía Google o en BD está activa
+      const isGoogleAccount = currentCustomer?.password === 'GOOGLE_AUTH' || 
+                              currentCustomer?.password === 'oauth-google' || 
+                              currentCustomer?.auth_provider === 'google' || 
+                              authProvider === 'google' || 
+                              (currentCustomer?.profile_pic && currentCustomer.profile_pic.includes('googleusercontent.com'));
+
+      if (isGoogleAccount) {
+        setIsEmailConfirmed(true);
+        setAuthProvider('google');
+        alert('¡Tu cuenta está activa y verificada con Google!');
+        return;
+      }
+
+      // 2. Verificar sesión de Supabase Auth
       await supabase.auth.refreshSession();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -63,6 +78,21 @@ export default function CustomerProfile() {
           alert('Tu correo aún no aparece como verificado. Si ya hiciste clic en el enlace desde otro dispositivo (como tu celular), por favor cierra sesión y vuelve a ingresar para actualizar el estado.');
         }
       } else {
+        // 3. Fallback: consultar estado en ecommerce_customers
+        if (currentCustomer?.email) {
+          const { data: dbCust } = await supabase
+            .from('ecommerce_customers')
+            .select('status, password')
+            .ilike('email', currentCustomer.email)
+            .maybeSingle();
+
+          if (dbCust && (dbCust.status === 'Activo' || dbCust.password === 'GOOGLE_AUTH' || dbCust.password === 'oauth-google')) {
+            setIsEmailConfirmed(true);
+            if (dbCust.password === 'GOOGLE_AUTH' || dbCust.password === 'oauth-google') setAuthProvider('google');
+            alert('¡Tu cuenta ha sido verificada con éxito!');
+            return;
+          }
+        }
         alert('No se detecta una sesión activa. Si confirmaste el correo en otro dispositivo, por favor cierra sesión y vuelve a ingresar.');
       }
     } catch (err) {
@@ -135,6 +165,32 @@ export default function CustomerProfile() {
     });
 
     const checkSession = async () => {
+      // 1. Revisar si el cliente guardado es de Google o está activo en BD
+      const saved = localStorage.getItem('ecommerce_current_customer');
+      if (saved) {
+        try {
+          const p = JSON.parse(saved);
+          if (p.password === 'GOOGLE_AUTH' || p.password === 'oauth-google' || p.auth_provider === 'google' || (p.profile_pic && p.profile_pic.includes('googleusercontent.com'))) {
+            setIsEmailConfirmed(true);
+            setAuthProvider('google');
+            return;
+          }
+          if (p.email) {
+            const { data: dbUser } = await supabase
+              .from('ecommerce_customers')
+              .select('status, password')
+              .ilike('email', p.email)
+              .maybeSingle();
+            if (dbUser && (dbUser.password === 'GOOGLE_AUTH' || dbUser.password === 'oauth-google' || dbUser.status === 'Activo')) {
+              setIsEmailConfirmed(true);
+              if (dbUser.password === 'GOOGLE_AUTH' || dbUser.password === 'oauth-google') setAuthProvider('google');
+              return;
+            }
+          }
+        } catch(e) {}
+      }
+
+      // 2. Revisar sesión en Supabase Auth
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setIsEmailConfirmed(!!user.email_confirmed_at);
@@ -169,6 +225,16 @@ export default function CustomerProfile() {
     const savedCustomer = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomer) {
       const parsed = JSON.parse(savedCustomer);
+      const isGoogleUser = parsed.password === 'GOOGLE_AUTH' || 
+                           parsed.password === 'oauth-google' || 
+                           parsed.auth_provider === 'google' || 
+                           (parsed.profile_pic && parsed.profile_pic.includes('googleusercontent.com'));
+      if (isGoogleUser) {
+        setIsEmailConfirmed(true);
+        setAuthProvider('google');
+      } else if (parsed.status === 'Activo' && (parsed.is_verified || parsed.password === 'GOOGLE_AUTH')) {
+        setIsEmailConfirmed(true);
+      }
       parsed.favorites = Array.isArray(parsed.favorites) ? parsed.favorites : (typeof parsed.favorites === 'string' ? JSON.parse(parsed.favorites || '[]') : []);
       parsed.wishlist = Array.isArray(parsed.wishlist) ? parsed.wishlist : (typeof parsed.wishlist === 'string' ? JSON.parse(parsed.wishlist || '[]') : []);
       parsed.addresses = Array.isArray(parsed.addresses) ? parsed.addresses : (typeof parsed.addresses === 'string' ? JSON.parse(parsed.addresses || '[]') : []);
@@ -707,6 +773,14 @@ export default function CustomerProfile() {
     ? currentCustomer.addresses 
     : (typeof currentCustomer.addresses === 'string' ? (() => { try { return JSON.parse(currentCustomer.addresses); } catch(e){ return []; } })() : []);
 
+  const isAccountVerified = isEmailConfirmed || 
+                            authProvider === 'google' || 
+                            currentCustomer?.password === 'GOOGLE_AUTH' || 
+                            currentCustomer?.password === 'oauth-google' || 
+                            currentCustomer?.auth_provider === 'google' || 
+                            (currentCustomer?.profile_pic && currentCustomer.profile_pic.includes('googleusercontent.com')) ||
+                            (currentCustomer?.status === 'Activo' && (currentCustomer?.is_verified || currentCustomer?.password === 'GOOGLE_AUTH' || currentCustomer?.password === 'oauth-google'));
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-amber-500/30 relative overflow-x-hidden">
       
@@ -775,7 +849,7 @@ export default function CustomerProfile() {
            <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">Cliente Frecuente</span>
 
             {/* Estado de Cuenta / Verificación */}
-            {(isEmailConfirmed || authProvider === 'google') ? (
+            {isAccountVerified ? (
               <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
                 <ShieldCheck size={14} className="text-emerald-600 shrink-0" />
                 <span>Cuenta Activa / Verificada</span>

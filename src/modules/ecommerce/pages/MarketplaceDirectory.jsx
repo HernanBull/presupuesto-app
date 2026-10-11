@@ -539,6 +539,9 @@ export default function MarketplaceDirectory() {
 
       const mappedUser = { 
         ...user, 
+        auth_provider: 'google',
+        is_verified: true,
+        status: 'Activo',
         docId: user.doc_id || user.docId || '', 
         addresses: safeAddresses,
         payment_profile: safePaymentProfiles,
