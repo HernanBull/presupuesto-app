@@ -689,7 +689,7 @@ export default function CustomerProfile() {
 
   if (!currentCustomer) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="animate-spin text-amber-500" size={36} />
       </div>
     );
@@ -708,35 +708,35 @@ export default function CustomerProfile() {
     : (typeof currentCustomer.addresses === 'string' ? (() => { try { return JSON.parse(currentCustomer.addresses); } catch(e){ return []; } })() : []);
 
   return (
-    <div className="min-h-screen bg-black font-sans text-slate-50 selection:bg-amber-500/30 relative overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-amber-500/30 relative overflow-x-hidden">
       
-      {/* Luces de Fondo */}
+      {/* Luces de Fondo Sutiles */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-500/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-zinc-800/20 blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
+        <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-amber-500/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-200/20 blur-[100px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
       </div>
 
-      {/* Navbar Premium */}
-      <nav className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl">
+      {/* Navbar Premium Claro */}
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.5)] transition-all">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-slate-950 shadow-sm group-hover:shadow-md transition-all">
               <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
-            <span className="font-bold text-xl tracking-[0.2em] text-white">AXON<span className="text-amber-500 font-light">MARKET</span></span>
+            <span className="font-bold text-xl tracking-[0.2em] text-slate-900">AXON<span className="text-amber-500 font-light">MARKET</span></span>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-6">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-amber-500 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase text-slate-600 hover:text-amber-600 transition-colors"
             >
               <ArrowLeft size={16} /> 
               <span className="hidden sm:inline">Volver</span>
             </button>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase bg-red-500/10 text-red-500 border border-red-500/20 px-3 sm:px-4 py-2 rounded-full hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold tracking-wider uppercase bg-red-50 text-red-600 border border-red-200/80 px-3 sm:px-4 py-2 rounded-full hover:bg-red-100 transition-colors"
             >
               <LogOut size={16} /> 
               <span className="hidden sm:inline">Salir</span>
@@ -745,129 +745,158 @@ export default function CustomerProfile() {
         </div>
       </nav>
 
-      {/* Hero Header Oscuro (Mobile Centered) */}
-      <div className="bg-[#121212] px-6 pt-10 pb-8 relative overflow-hidden flex flex-col items-center border-b border-white/5">
+      {/* Hero Header Claro */}
+      <div className="bg-white px-6 pt-10 pb-8 relative overflow-hidden flex flex-col items-center border-b border-slate-200/80 shadow-xs">
          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent"></div>
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent"></div>
          </div>
          
          <div className="w-full max-w-5xl mx-auto flex flex-col items-center relative z-10">
-           <h2 className="text-white font-bold text-lg mb-6">{currentCustomer.name}</h2>
+           <h2 className="text-slate-900 font-extrabold text-xl mb-4 tracking-tight">{currentCustomer.name}</h2>
 
-           <div className="w-24 h-24 bg-red-600 text-white rounded-full flex items-center justify-center text-4xl font-black shadow-lg mb-4 relative group overflow-hidden">
+           <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 rounded-full flex items-center justify-center text-4xl font-black shadow-md ring-4 ring-slate-100 mb-3 relative group overflow-hidden">
              {isUploadingPhoto ? (
                <Loader2 size={24} className="animate-spin text-white z-30" />
              ) : currentCustomer.profile_pic ? (
                <img src={currentCustomer.profile_pic} alt="Perfil" className="w-full h-full object-cover" />
              ) : (
-               <span>{currentCustomer.name.charAt(0).toUpperCase()}</span>
+               <span>{currentCustomer.name?.charAt(0)?.toUpperCase() || 'U'}</span>
              )}
-             <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-20">
+             <label className="absolute inset-0 bg-slate-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity z-20">
                <span className="text-white text-xs font-bold text-center px-1">{isUploadingPhoto ? '...' : 'Editar'}</span>
                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploadingPhoto} />
              </label>
            </div>
            
-           <div className="flex items-center gap-2 mb-1 cursor-pointer hover:bg-white/5 px-3 py-1 rounded-full transition-colors" onClick={() => { setActiveTab('datos'); setIsEditingProfile(true); }}>
-             <h1 className="text-lg font-bold text-white tracking-tight">@{currentCustomer.email?.split('@')[0] || 'usuario'}</h1>
-             <Edit3 size={14} className="text-zinc-400" />
+           <div className="flex items-center gap-2 mb-2 cursor-pointer hover:bg-slate-100 px-3 py-1 rounded-full transition-colors" onClick={() => { setActiveTab('datos'); setIsEditingProfile(true); }}>
+             <h1 className="text-base font-bold text-slate-700 tracking-tight">@{currentCustomer.email?.split('@')[0] || 'usuario'}</h1>
+             <Edit3 size={14} className="text-slate-400" />
            </div>
-           <p className="text-zinc-500 text-sm">Cliente Frecuente</p>
+           <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">Cliente Frecuente</span>
+
+           {/* Alerta de Verificación de Correo si aplica */}
+           {!isEmailConfirmed && authProvider !== 'google' && (
+             <div className="mt-5 w-full max-w-md bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+               <div className="flex items-center gap-3">
+                 <MailWarning size={20} className="text-amber-600 shrink-0" />
+                 <span className="text-xs text-amber-900 font-medium text-center sm:text-left">
+                   Tu correo no está verificado aún.
+                 </span>
+               </div>
+               <div className="flex items-center gap-2">
+                 <button 
+                   onClick={handleResendConfirmation} 
+                   disabled={isResending}
+                   className="text-xs font-bold text-amber-800 bg-white border border-amber-300 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-all"
+                 >
+                   {isResending ? 'Enviando...' : 'Reenviar'}
+                 </button>
+                 <button 
+                   onClick={handleRefreshAuthStatus} 
+                   disabled={isRefreshingAuth}
+                   className="text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                 >
+                   <RefreshCw size={12} className={isRefreshingAuth ? "animate-spin" : ""} />
+                   Verificar
+                 </button>
+               </div>
+             </div>
+           )}
          </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-8 relative z-10">
         
-        {/* Mobile/Desktop Menu List */}
+        {/* Mobile/Desktop Menu List Claro */}
         <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
           {/* Group 1 */}
-          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'niveles' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('niveles')}>
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'niveles' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('niveles')}>
                <div className="flex items-center gap-4">
-                  <Award size={20} className={activeTab === 'niveles' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <Award size={20} className={activeTab === 'niveles' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Niveles y logros</span>
                </div>
-               <ChevronRight size={18} className="text-zinc-500" />
+               <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
           
           {/* Group 2 */}
-          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'pedidos' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('pedidos')}>
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'pedidos' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('pedidos')}>
                <div className="flex items-center gap-4">
-                  <ShoppingBag size={20} className={activeTab === 'pedidos' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <ShoppingBag size={20} className={activeTab === 'pedidos' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Mis pedidos</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">{orders.length}</span>
-                  <ChevronRight size={18} className="text-zinc-500" />
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{orders.length}</span>
+                  <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'direcciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('direcciones')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'direcciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('direcciones')}>
                <div className="flex items-center gap-4">
-                  <MapPin size={20} className={activeTab === 'direcciones' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <MapPin size={20} className={activeTab === 'direcciones' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Mis direcciones</span>
                </div>
-               <ChevronRight size={18} className="text-zinc-500" />
+               <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
 
           {/* Group 3 */}
-          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'calificaciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'calificaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
                <div className="flex items-center gap-4">
-                  <Star size={20} className={activeTab === 'calificaciones' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <Star size={20} className={activeTab === 'calificaciones' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Mis calificaciones</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
-                  <ChevronRight size={18} className="text-zinc-500" />
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'recomendaciones' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'recomendaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
                <div className="flex items-center gap-4">
-                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Recomendaciones</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
-                  <ChevronRight size={18} className="text-zinc-500" />
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'visitas' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'visitas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
                <div className="flex items-center gap-4">
-                  <Store size={20} className={activeTab === 'visitas' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <Store size={20} className={activeTab === 'visitas' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Visitas</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-zinc-800 text-xs font-bold px-2 py-0.5 rounded-full text-zinc-300">0</span>
-                  <ChevronRight size={18} className="text-zinc-500" />
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${(activeTab === 'datos' || activeTab === 'menu') ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('datos')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${(activeTab === 'datos' || activeTab === 'menu') ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('datos')}>
                <div className="flex items-center gap-4">
-                  <User size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-500' : 'text-zinc-300'} />
+                  <User size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Ajustes de Perfil</span>
                </div>
-               <ChevronRight size={18} className="text-zinc-500" />
+               <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
 
           {/* Group 4 */}
-          <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl mb-8">
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors border-b border-white/5 ${activeTab === 'wishlist' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-8">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
                <div className="flex items-center gap-4">
-                  <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Guardados</span>
                </div>
-               <ChevronRight size={18} className="text-zinc-500" />
+               <ChevronRight size={18} className="text-slate-300" />
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'favoritas' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
                <div className="flex items-center gap-4">
-                  <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-500' : 'text-zinc-300'} />
+                  <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Seguidos</span>
                </div>
-               <ChevronRight size={18} className="text-zinc-500" />
+               <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
         </div>
@@ -876,7 +905,7 @@ export default function CustomerProfile() {
         <div className={`${activeTab === 'menu' ? 'hidden md:block' : 'block'} md:col-span-3`}>
           {/* Mobile Back Button */}
           <div className="md:hidden mb-6">
-             <button onClick={() => setActiveTab('menu')} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors bg-white/5 px-4 py-2 rounded-full w-max border border-white/10">
+             <button onClick={() => setActiveTab('menu')} className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors bg-white px-4 py-2 rounded-full w-max border border-slate-200 shadow-xs">
                <ArrowLeft size={18} /> <span className="font-bold text-sm">Volver al menú</span>
              </button>
           </div>
@@ -889,13 +918,13 @@ export default function CustomerProfile() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden group"
+                className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs relative overflow-hidden group"
               >
                 <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 blur-[80px] rounded-full pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
                 <div className="relative z-10 flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-extrabold text-white">Información Personal</h2>
+                  <h2 className="text-2xl font-black text-slate-900">Información Personal</h2>
                   {!isEditingProfile && (
-                    <button onClick={() => setIsEditingProfile(true)} className="flex items-center gap-2 text-amber-500 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full text-sm font-bold hover:bg-amber-500/20 transition-colors">
+                    <button onClick={() => setIsEditingProfile(true)} className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200/80 px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors">
                       <Edit3 size={16} /> Editar
                     </button>
                   )}
@@ -905,101 +934,101 @@ export default function CustomerProfile() {
                   <div className="space-y-8 relative z-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                       <div>
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><User size={14} className="text-amber-500"/> Nombre Completo</label>
-                        <p className="text-white font-semibold text-lg">{currentCustomer.name}</p>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><User size={14} className="text-amber-500"/> Nombre Completo</label>
+                        <p className="text-slate-900 font-semibold text-lg">{currentCustomer.name}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><FileText size={14} className="text-amber-500"/> Documento (CI/RUT)</label>
-                        <p className="text-white font-semibold text-lg">{currentCustomer.docId || '-'}</p>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><FileText size={14} className="text-amber-500"/> Documento (CI/RUT)</label>
+                        <p className="text-slate-900 font-semibold text-lg">{currentCustomer.docId || '-'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Phone size={14} className="text-amber-500"/> Teléfono</label>
-                        <p className="text-white font-semibold text-lg">{currentCustomer.phone || '-'}</p>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Phone size={14} className="text-amber-500"/> Teléfono</label>
+                        <p className="text-slate-900 font-semibold text-lg">{currentCustomer.phone || '-'}</p>
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
                           <span className="flex items-center gap-2"><Lock size={14} className="text-amber-500"/> Contraseña</span>
-                          <button onClick={() => setShowPassword(!showPassword)} className="text-amber-500 hover:text-amber-400 text-[10px]">
+                          <button onClick={() => setShowPassword(!showPassword)} className="text-amber-600 hover:text-amber-700 text-xs font-semibold">
                             {showPassword ? 'Ocultar' : 'Mostrar'}
                           </button>
                         </label>
-                        <p className="text-white font-semibold text-lg">
+                        <p className="text-slate-900 font-semibold text-lg">
                           {showPassword ? (currentCustomer.password || 'No definida') : '••••••••'}
                         </p>
                       </div>
                     </div>
 
                     
-                    <div className="border-t border-white/10 pt-6 mb-6">
-                      <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Lock size={18} className="text-amber-500" /> Cambiar Contraseña</h3>
-                      <form onSubmit={handleChangePassword} className="bg-zinc-900/50 p-5 rounded-2xl border border-white/5 space-y-4">
+                    <div className="border-t border-slate-200 pt-6 mb-6">
+                      <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2"><Lock size={18} className="text-amber-500" /> Cambiar Contraseña</h3>
+                      <form onSubmit={handleChangePassword} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Contraseña Actual</label>
-                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Contraseña Actual</label>
+                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors shadow-xs" />
                           </div>
                           <div>
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Nueva Contraseña</label>
-                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Nueva Contraseña</label>
+                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors shadow-xs" />
                           </div>
                           <div>
-                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 block">Confirmar Nueva</label>
-                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-500 transition-colors" />
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Confirmar Nueva</label>
+                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors shadow-xs" />
                           </div>
                         </div>
                         <div className="flex justify-end pt-2">
-                          <button type="submit" disabled={isChangingPassword || !newPassword} className="px-6 py-2.5 bg-zinc-800 text-amber-500 rounded-xl font-bold hover:bg-zinc-700 disabled:opacity-50 transition-colors">
+                          <button type="submit" disabled={isChangingPassword || !newPassword} className="px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 disabled:opacity-50 transition-colors shadow-xs">
                             {isChangingPassword ? 'Cambiando...' : 'Actualizar Contraseña'}
                           </button>
                         </div>
                       </form>
-                      {passwordMsg && <p className={`mt-3 text-sm font-medium ${passwordMsg.includes('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{passwordMsg}</p>}
+                      {passwordMsg && <p className={`mt-3 text-sm font-medium ${passwordMsg.includes('Error') ? 'text-red-600' : 'text-emerald-600'}`}>{passwordMsg}</p>}
                     </div>
 
-                    <div className="border-t border-white/10 pt-6">
+                    <div className="border-t border-slate-200 pt-6">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
-                          <Lock size={18} className="text-emerald-500" />
-                          <h3 className="text-lg font-bold text-white">Cuentas de Pago Móvil Autorizadas</h3>
+                          <Lock size={18} className="text-emerald-600" />
+                          <h3 className="text-lg font-bold text-slate-900">Cuentas de Pago Móvil Autorizadas</h3>
                         </div>
-                        <button onClick={() => setIsAddingPayment(true)} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm font-bold border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                        <button onClick={() => setIsAddingPayment(true)} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors">
                           <Plus size={16} /> Añadir
                         </button>
                       </div>
                       
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-6">
-                        <p className="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">Seguridad Antifraude Activada</p>
-                        <p className="text-emerald-500/80 text-sm leading-relaxed">Los comercios de AxonMarket <strong>solo aceptarán</strong> pagos provenientes de estas cuentas registradas, las cuales están ancladas obligatoriamente a tu cédula. Pagos de terceros no registrados serán retenidos por sospecha de triangulación/fraude.</p>
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-6">
+                        <p className="text-emerald-800 text-xs font-bold uppercase tracking-wider mb-2">Seguridad Antifraude Activada</p>
+                        <p className="text-emerald-900/90 text-sm leading-relaxed">Los comercios de AxonMarket <strong>solo aceptarán</strong> pagos provenientes de estas cuentas registradas, las cuales están ancladas obligatoriamente a tu cédula. Pagos de terceros no registrados serán retenidos por sospecha de triangulación/fraude.</p>
                       </div>
                       
                       <div className="space-y-4">
                         {(Array.isArray(paymentProfiles) ? paymentProfiles : []).map((p, idx) => (
-                          <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-zinc-900/50 p-6 rounded-2xl border border-white/5 relative group">
+                          <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-slate-50 p-6 rounded-2xl border border-slate-200 relative group">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 w-full">
                               <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Banco</label>
-                                <p className="text-white font-medium">{p?.bank || '-'}</p>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Banco</label>
+                                <p className="text-slate-900 font-semibold">{p?.bank || '-'}</p>
                               </div>
                               <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Teléfono</label>
-                                <p className="text-white font-medium">{p?.phone || '-'}</p>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Teléfono</label>
+                                <p className="text-slate-900 font-semibold">{p?.phone || '-'}</p>
                               </div>
                               <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Cédula</label>
-                                <p className="text-white font-medium">{p?.cedula || '-'}</p>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Cédula</label>
+                                <p className="text-slate-900 font-semibold">{p?.cedula || '-'}</p>
                               </div>
                               <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 block">Titular</label>
-                                <p className="text-white font-medium">{p?.titular || '-'}</p>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Titular</label>
+                                <p className="text-slate-900 font-semibold">{p?.titular || '-'}</p>
                               </div>
                             </div>
-                            <button onClick={() => handleDeletePaymentProfile(idx)} className="mt-4 sm:mt-0 p-2 text-red-400 bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors">
+                            <button onClick={() => handleDeletePaymentProfile(idx)} className="mt-4 sm:mt-0 p-2 text-red-600 bg-red-50 border border-red-200 rounded-xl hover:bg-red-100 transition-colors">
                               <Trash2 size={16} />
                             </button>
                           </div>
                         ))}
                         {(Array.isArray(paymentProfiles) ? paymentProfiles.length : 0) === 0 && (
-                          <p className="text-zinc-500 text-sm text-center py-4 bg-white/5 rounded-xl border border-white/5">No tienes cuentas de Pago Móvil autorizadas. Añade una para poder realizar compras.</p>
+                          <p className="text-slate-500 text-sm text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No tienes cuentas de Pago Móvil autorizadas. Añade una para poder realizar compras.</p>
                         )}
                       </div>
                     </div>
@@ -1007,26 +1036,126 @@ export default function CustomerProfile() {
                 ) : (
                   <form onSubmit={handleUpdateProfile} className="space-y-6 relative z-10">
                     <div>
-                      <label className="block text-sm font-bold text-zinc-400 mb-2">Nombre Completo</label>
-                      <input type="text" required value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Nombre Completo</label>
+                      <input type="text" required value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-bold text-zinc-400 mb-2">Documento de Identidad General</label>
-                        <input type="text" value={profileForm.docId} onChange={e => setProfileForm({...profileForm, docId: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Documento de Identidad General</label>
+                        <input type="text" value={profileForm.docId} onChange={e => setProfileForm({...profileForm, docId: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-zinc-400 mb-2">Teléfono General</label>
-                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                        <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono General</label>
+                        <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
                       </div>
                     </div>
                     
-                    <div className="pt-6 flex gap-4 border-t border-white/10 mt-6">
-                      <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancelar</button>
-                      <button type="submit" className="px-8 py-3 bg-amber-500 text-black rounded-xl font-bold hover:bg-amber-400 transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)]">Guardar Cambios</button>
+                    <div className="pt-6 flex gap-4 border-t border-slate-200 mt-6">
+                      <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                      <button type="submit" className="px-8 py-3 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-colors shadow-xs">Guardar Cambios</button>
                     </div>
                   </form>
                 )}
+              </motion.div>
+            )}
+
+            {/* TABS: NIVELES Y LOGROS */}
+            {activeTab === 'niveles' && (
+              <motion.div key="niveles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs relative overflow-hidden">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-200/80 shadow-xs">
+                      <Award size={28} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900">Niveles y Logros</h2>
+                      <p className="text-slate-500 text-sm">Tu reputación y beneficios como comprador frecuente en AxonMarket.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Nivel Actual</span>
+                      <span className="text-xl font-black text-amber-600">Bronce</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Puntos Acumulados</span>
+                      <span className="text-xl font-black text-slate-900">{orders.length * 10} pts</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Pedidos Exitosos</span>
+                      <span className="text-xl font-black text-emerald-600">{orders.filter(o => o.status === 'Completado').length}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-6 bg-amber-50/70 border border-amber-200/80 rounded-2xl">
+                    <h3 className="font-bold text-amber-900 text-base mb-1">Próximo Nivel: Plata (50 pts)</h3>
+                    <p className="text-amber-800/80 text-sm mb-3">Sigue completando pedidos para desbloquear descuentos especiales en envíos.</p>
+                    <div className="w-full bg-amber-200/60 rounded-full h-2.5 overflow-hidden">
+                      <div className="bg-amber-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, (orders.length * 10 / 50) * 100)}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TABS: CALIFICACIONES */}
+            {activeTab === 'calificaciones' && (
+              <motion.div key="calificaciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Mis Calificaciones</h2>
+                      <p className="text-slate-500 text-sm">Reseñas y opiniones que has dejado a los comercios.</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
+                    <Star size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Aún no has dejado calificaciones</h3>
+                    <p className="text-slate-500 text-sm mt-2">Cuando completes un pedido, podrás calificar la calidad de los productos y la atención del comercio.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TABS: RECOMENDACIONES */}
+            {activeTab === 'recomendaciones' && (
+              <motion.div key="recomendaciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Recomendaciones para ti</h2>
+                      <p className="text-slate-500 text-sm">Productos y tiendas sugeridos según tus preferencias y ubicación.</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
+                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Personalizando recomendaciones...</h3>
+                    <p className="text-slate-500 text-sm mt-2">Visita tiendas y guarda productos para recibir recomendaciones personalizadas.</p>
+                    <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
+                      Explorar Marketplace
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* TABS: VISITAS */}
+            {activeTab === 'visitas' && (
+              <motion.div key="visitas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Historial de Visitas</h2>
+                      <p className="text-slate-500 text-sm">Comercios y tiendas que has visitado recientemente.</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
+                    <Store size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Historial limpio</h3>
+                    <p className="text-slate-500 text-sm mt-2">Tus visitas recientes a tiendas del ecosistema se reflejarán aquí para un acceso directo.</p>
+                  </div>
+                </div>
               </motion.div>
             )}
             
@@ -1035,21 +1164,21 @@ export default function CustomerProfile() {
               <motion.div key="direcciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-extrabold text-white mb-2">Libreta de Direcciones</h2>
-                    <p className="text-zinc-400 text-sm">Gestiona tus direcciones de entrega.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Libreta de Direcciones</h2>
+                    <p className="text-slate-500 text-sm">Gestiona tus direcciones de entrega.</p>
                   </div>
                   {!isAddingAddress && (
-                     <button onClick={() => setIsAddingAddress(true)} className="flex items-center gap-2 bg-amber-500 text-black px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                     <button onClick={() => setIsAddingAddress(true)} className="flex items-center gap-2 bg-amber-500 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all shadow-xs">
                        <Plus size={16} /> Nueva Dirección
                      </button>
                   )}
                 </div>
 
                 {isAddingAddress && (
-                  <form onSubmit={handleAddAddress} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl mb-6 space-y-6">
+                  <form onSubmit={handleAddAddress} className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs mb-6 space-y-6">
                     
-                    <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex gap-3 text-blue-400 text-sm">
-                      <Info size={20} className="shrink-0 mt-0.5" />
+                    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 text-blue-900 text-sm">
+                      <Info size={20} className="shrink-0 mt-0.5 text-blue-600" />
                       <div>
                         <strong>Ubicación Exacta:</strong> Te recomendamos fuertemente usar tu <strong>teléfono móvil</strong> y presionar el botón de GPS para capturar tu ubicación exacta. Esto asegurará que los repartidores lleguen sin problemas.
                       </div>
@@ -1058,51 +1187,51 @@ export default function CustomerProfile() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-bold text-zinc-400 mb-2">Nombre (Ej: Casa, Oficina)</label>
-                          <input type="text" required value={newAddressName} onChange={e => setNewAddressName(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                          <label className="block text-sm font-bold text-slate-700 mb-2">Nombre (Ej: Casa, Oficina)</label>
+                          <input type="text" required value={newAddressName} onChange={e => setNewAddressName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-bold text-zinc-400 mb-2">Urbanización / Zona</label>
-                            <select value={newAddressSector} onChange={e => setNewAddressSector(e.target.value)} className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner appearance-none">
-                              <option value="" className="text-black bg-white">Seleccione sector...</option>
-                              <option value="Corinsa" className="text-black bg-white">Corinsa (Urbanización Corinsa)</option>
-                              <option value="La Segundera / Rafael Urdaneta" className="text-black bg-white">La Segundera / Rafael Urdaneta</option>
-                              <option value="Prados de la Encrucijada" className="text-black bg-white">Prados de la Encrucijada</option>
-                              <option value="Prados de Aragua" className="text-black bg-white">Prados de Aragua</option>
-                              <option value="Ciudad Jardín" className="text-black bg-white">Ciudad Jardín</option>
-                              <option value="Suramericana" className="text-black bg-white">Suramericana</option>
-                              <option value="Fundacagua" className="text-black bg-white">Fundacagua (Urb. La Fundación)</option>
-                              <option value="Francisco de Miranda" className="text-black bg-white">Francisco de Miranda</option>
-                              <option value="Santa Rosalía" className="text-black bg-white">Santa Rosalía</option>
-                              <option value="Rómulo Gallegos" className="text-black bg-white">Rómulo Gallegos</option>
-                              <option value="Blandín" className="text-black bg-white">Blandín</option>
-                              <option value="El Corozal" className="text-black bg-white">El Corozal</option>
-                              <option value="Residencias Codazzi" className="text-black bg-white">Residencias Codazzi</option>
-                              <option value="La Exclusiva" className="text-black bg-white">La Exclusiva</option>
-                              <option value="Tamborito" className="text-black bg-white">Tamborito</option>
-                              <option value="La Carpiera" className="text-black bg-white">La Carpiera</option>
-                              <option value="Huete" className="text-black bg-white">Huete (Brisas de Aragua)</option>
-                              <option value="Alí Primera" className="text-black bg-white">Alí Primera</option>
-                              <option value="Las Vegas" className="text-black bg-white">Las Vegas</option>
-                              <option value="Guillén" className="text-black bg-white">Guillén</option>
-                              <option value="Bella Vista" className="text-black bg-white">Bella Vista</option>
-                              <option value="El Toco" className="text-black bg-white">El Toco</option>
-                              <option value="La Comuna de Chávez" className="text-black bg-white">La Comuna de Chávez</option>
-                              <option value="Casco Central" className="text-black bg-white">Casco Central (Centro de Cagua)</option>
-                              <option value="Barrancón" className="text-black bg-white">Barrancón</option>
-                              <option value="Los Meregotos" className="text-black bg-white">Los Meregotos</option>
-                              <option value="Campo Alegre" className="text-black bg-white">Campo Alegre</option>
-                              <option value="Zona Industrial Soco" className="text-black bg-white">Zona Industrial Soco</option>
-                              <option value="Zona Industrial Corinsa" className="text-black bg-white">Zona Industrial Corinsa</option>
-                              <option value="Zona Industrial Santa Rosalía" className="text-black bg-white">Zona Industrial Santa Rosalía</option>
-                              <option value="Zona Industrial Cagua" className="text-black bg-white">Zona Industrial Cagua</option>
-                              <option value="Otra Zona" className="text-black bg-white">Otra Zona (Cagua)</option>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Urbanización / Zona</label>
+                            <select value={newAddressSector} onChange={e => setNewAddressSector(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs appearance-none">
+                              <option value="" className="text-slate-900 bg-white">Seleccione sector...</option>
+                              <option value="Corinsa" className="text-slate-900 bg-white">Corinsa (Urbanización Corinsa)</option>
+                              <option value="La Segundera / Rafael Urdaneta" className="text-slate-900 bg-white">La Segundera / Rafael Urdaneta</option>
+                              <option value="Prados de la Encrucijada" className="text-slate-900 bg-white">Prados de la Encrucijada</option>
+                              <option value="Prados de Aragua" className="text-slate-900 bg-white">Prados de Aragua</option>
+                              <option value="Ciudad Jardín" className="text-slate-900 bg-white">Ciudad Jardín</option>
+                              <option value="Suramericana" className="text-slate-900 bg-white">Suramericana</option>
+                              <option value="Fundacagua" className="text-slate-900 bg-white">Fundacagua (Urb. La Fundación)</option>
+                              <option value="Francisco de Miranda" className="text-slate-900 bg-white">Francisco de Miranda</option>
+                              <option value="Santa Rosalía" className="text-slate-900 bg-white">Santa Rosalía</option>
+                              <option value="Rómulo Gallegos" className="text-slate-900 bg-white">Rómulo Gallegos</option>
+                              <option value="Blandín" className="text-slate-900 bg-white">Blandín</option>
+                              <option value="El Corozal" className="text-slate-900 bg-white">El Corozal</option>
+                              <option value="Residencias Codazzi" className="text-slate-900 bg-white">Residencias Codazzi</option>
+                              <option value="La Exclusiva" className="text-slate-900 bg-white">La Exclusiva</option>
+                              <option value="Tamborito" className="text-slate-900 bg-white">Tamborito</option>
+                              <option value="La Carpiera" className="text-slate-900 bg-white">La Carpiera</option>
+                              <option value="Huete" className="text-slate-900 bg-white">Huete (Brisas de Aragua)</option>
+                              <option value="Alí Primera" className="text-slate-900 bg-white">Alí Primera</option>
+                              <option value="Las Vegas" className="text-slate-900 bg-white">Las Vegas</option>
+                              <option value="Guillén" className="text-slate-900 bg-white">Guillén</option>
+                              <option value="Bella Vista" className="text-slate-900 bg-white">Bella Vista</option>
+                              <option value="El Toco" className="text-slate-900 bg-white">El Toco</option>
+                              <option value="La Comuna de Chávez" className="text-slate-900 bg-white">La Comuna de Chávez</option>
+                              <option value="Casco Central" className="text-slate-900 bg-white">Casco Central (Centro de Cagua)</option>
+                              <option value="Barrancón" className="text-slate-900 bg-white">Barrancón</option>
+                              <option value="Los Meregotos" className="text-slate-900 bg-white">Los Meregotos</option>
+                              <option value="Campo Alegre" className="text-slate-900 bg-white">Campo Alegre</option>
+                              <option value="Zona Industrial Soco" className="text-slate-900 bg-white">Zona Industrial Soco</option>
+                              <option value="Zona Industrial Corinsa" className="text-slate-900 bg-white">Zona Industrial Corinsa</option>
+                              <option value="Zona Industrial Santa Rosalía" className="text-slate-900 bg-white">Zona Industrial Santa Rosalía</option>
+                              <option value="Zona Industrial Cagua" className="text-slate-900 bg-white">Zona Industrial Cagua</option>
+                              <option value="Otra Zona" className="text-slate-900 bg-white">Otra Zona (Cagua)</option>
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-bold text-zinc-400 mb-2">Calle / Casa / Piso <span className="text-zinc-500 text-xs font-normal">(Opcional si usas GPS)</span></label>
-                            <input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Ej: Calle 4, Casa 12" className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition-all shadow-inner" />
+                            <label className="block text-sm font-bold text-slate-700 mb-2">Calle / Casa / Piso <span className="text-slate-400 text-xs font-normal">(Opcional si usas GPS)</span></label>
+                            <input type="text" value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="Ej: Calle 4, Casa 12" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
                           </div>
                         </div>
                       </div>
@@ -1110,14 +1239,14 @@ export default function CustomerProfile() {
                       <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-3 items-end">
                           <div className="flex-1 w-full space-y-2">
-                            <label className="text-sm font-bold text-zinc-400 mb-2">Punto GPS (Opcional)</label>
-                            <div className="bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 flex items-center justify-between shadow-inner h-[52px]">
+                            <label className="text-sm font-bold text-slate-700 mb-2">Punto GPS (Opcional)</label>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-xs h-[52px]">
                                {position ? (
-                                 <span className="font-mono text-sm text-amber-500">
+                                 <span className="font-mono text-sm text-amber-600 font-bold">
                                    {position.lat.toFixed(5)}, {position.lng.toFixed(5)}
                                  </span>
                                ) : (
-                                 <span className="text-sm text-zinc-600 italic">No fijado en el mapa</span>
+                                 <span className="text-sm text-slate-400 italic">No fijado en el mapa</span>
                                )}
                             </div>
                           </div>
@@ -1125,15 +1254,15 @@ export default function CustomerProfile() {
                             type="button"
                             onClick={getLocationFromGPS}
                             disabled={gpsLoading}
-                            className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 h-[52px]"
+                            className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-xs h-[52px]"
                           >
                             {gpsLoading ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
                             Usar GPS
                           </button>
                         </div>
-                        {gpsError && <p className="text-red-400 text-xs font-bold">{gpsError}</p>}
+                        {gpsError && <p className="text-red-500 text-xs font-bold">{gpsError}</p>}
                         
-                        <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-white/10 relative z-0">
+                        <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0">
                           <MapContainer 
                             center={position || { lat: 10.4806, lng: -66.9036 }} 
                             zoom={position ? 16 : 12} 
@@ -1152,30 +1281,30 @@ export default function CustomerProfile() {
                       </div>
                     </div>
 
-                    <div className="flex gap-4 pt-4 border-t border-white/10">
-                      <button type="submit" className="px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold text-sm hover:bg-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]">Guardar Dirección</button>
-                      <button type="button" onClick={() => { setIsAddingAddress(false); setPosition(null); setGpsError(''); }} className="px-6 py-2.5 bg-zinc-800 text-zinc-300 rounded-xl font-bold text-sm hover:bg-zinc-700">Cancelar</button>
+                    <div className="flex gap-4 pt-4 border-t border-slate-200">
+                      <button type="submit" className="px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold text-sm hover:bg-amber-400 shadow-xs">Guardar Dirección</button>
+                      <button type="button" onClick={() => { setIsAddingAddress(false); setPosition(null); setGpsError(''); }} className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200">Cancelar</button>
                     </div>
                   </form>
                 )}
 
                 {parsedAddresses.length === 0 ? (
-                  <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
-                    <MapPin size={48} className="mx-auto text-zinc-600 mb-4" />
-                    <h3 className="text-lg font-bold text-white">No tienes direcciones</h3>
-                    <p className="text-zinc-500 text-sm mt-2">Añade una dirección para facilitar tu próxima compra.</p>
+                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                    <MapPin size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">No tienes direcciones</h3>
+                    <p className="text-slate-500 text-sm mt-2">Añade una dirección para facilitar tu próxima compra.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {parsedAddresses.map(addr => (
-                      <div key={addr.id} className={`bg-zinc-900/50 backdrop-blur-xl rounded-2xl p-5 border ${addr.isDefault ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 'border-white/5'} relative`}>
+                      <div key={addr.id} className={`bg-white rounded-2xl p-5 border ${addr.isDefault ? 'border-amber-400 shadow-xs' : 'border-slate-200/80 shadow-xs'} relative`}>
                         {addr.isDefault && (
-                          <span className="absolute top-4 right-4 bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase px-2 py-1 rounded-md border border-amber-500/20">Por defecto</span>
+                          <span className="absolute top-4 right-4 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase px-2 py-1 rounded-md border border-amber-200">Por defecto</span>
                         )}
-                        <h4 className="font-bold text-white mb-1 flex items-center gap-2"><MapPin size={16} className={addr.isDefault ? "text-amber-500" : "text-zinc-500"} /> {addr.name}</h4>
-                        <p className="text-zinc-400 text-sm mb-4 leading-relaxed pr-12">{addr.address}</p>
+                        <h4 className="font-bold text-slate-900 mb-1 flex items-center gap-2"><MapPin size={16} className={addr.isDefault ? "text-amber-500" : "text-slate-400"} /> {addr.name}</h4>
+                        <p className="text-slate-600 text-sm mb-4 leading-relaxed pr-12">{addr.address}</p>
                         {(addr.lat && addr.lng) && (
-                           <div className="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase rounded-md">
+                           <div className="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase rounded-md">
                              <Navigation size={12} />
                              Ubicación GPS Guardada
                            </div>
@@ -1183,9 +1312,9 @@ export default function CustomerProfile() {
                         
                         <div className="flex items-center gap-3">
                           {!addr.isDefault && (
-                            <button onClick={() => setDefaultAddress(addr.id)} className="text-amber-500 text-sm font-bold hover:text-amber-400 transition-colors">Hacer principal</button>
+                            <button onClick={() => setDefaultAddress(addr.id)} className="text-amber-600 text-sm font-bold hover:text-amber-700 transition-colors">Hacer principal</button>
                           )}
-                          <button onClick={() => removeAddress(addr.id)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 p-2 rounded-lg ml-auto transition-colors"><Trash2 size={16}/></button>
+                          <button onClick={() => removeAddress(addr.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg ml-auto transition-colors"><Trash2 size={16}/></button>
                         </div>
                       </div>
                     ))}
@@ -1198,16 +1327,16 @@ export default function CustomerProfile() {
               <motion.div key="pedidos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-2xl font-extrabold text-white mb-2">Historial de Pedidos</h2>
-                    <p className="text-zinc-400 text-sm">Revisa el estado de tus compras anteriores y deja reseñas.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Historial de Pedidos</h2>
+                    <p className="text-slate-500 text-sm">Revisa el estado de tus compras anteriores y deja reseñas.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Estado</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado</label>
                       <select 
                         value={orderFilterStatus}
                         onChange={(e) => setOrderFilterStatus(e.target.value)}
-                        className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-all"
+                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-xs"
                       >
                         <option value="Todos">Todos</option>
                         <option value="Activos">En Proceso</option>
@@ -1216,18 +1345,19 @@ export default function CustomerProfile() {
                       </select>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Fecha</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</label>
                       <input 
                         type="date"
                         value={orderFilterDate}
                         onChange={(e) => setOrderFilterDate(e.target.value)}
-                        className="bg-zinc-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 transition-all [color-scheme:dark]"
-                      />
+                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-xs"
+                      >
+                      </input>
                     </div>
                     {orderFilterDate && (
                       <button 
                         onClick={() => setOrderFilterDate('')}
-                        className="self-end h-[38px] px-3 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl flex items-center justify-center hover:bg-red-500/20 transition-all"
+                        className="self-end h-[38px] px-3 bg-red-50 text-red-600 border border-red-200 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all"
                       >
                         <X size={16} />
                       </button>
@@ -1259,11 +1389,11 @@ export default function CustomerProfile() {
 
                   if (filteredOrders.length === 0) {
                     return (
-                      <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
-                        <Package size={48} className="mx-auto text-zinc-600 mb-4" />
-                        <h3 className="text-lg font-bold text-white">{orders.length > 0 ? "No hay pedidos con estos filtros" : "No tienes pedidos"}</h3>
-                        <p className="text-zinc-500 text-sm mt-2">{orders.length > 0 ? "Prueba cambiando el estado o la fecha." : "Tus futuras compras aparecerán aquí."}</p>
-                        {orders.length === 0 && <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-black rounded-xl font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
+                      <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                        <Package size={48} className="mx-auto text-slate-300 mb-4" />
+                        <h3 className="text-lg font-bold text-slate-900">{orders.length > 0 ? "No hay pedidos con estos filtros" : "No tienes pedidos"}</h3>
+                        <p className="text-slate-500 text-sm mt-2">{orders.length > 0 ? "Prueba cambiando el estado o la fecha." : "Tus futuras compras aparecerán aquí."}</p>
+                        {orders.length === 0 && <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold shadow-xs hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
                       </div>
                     );
                   }
@@ -1271,13 +1401,13 @@ export default function CustomerProfile() {
                   return (
                     <div className="space-y-4">
                       {filteredOrders.map(order => (
-                      <div key={order.id} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl flex flex-col md:flex-row gap-6">
+                      <div key={order.id} className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row gap-6">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-4">
-                            <span className="bg-zinc-800 text-zinc-300 px-3 py-1 rounded-lg text-xs font-bold font-mono border border-white/5">{order.id}</span>
-                            <span className="text-sm text-zinc-400 flex items-center gap-1"><Clock size={14}/> {order.date}</span>
+                            <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-xs font-bold font-mono border border-slate-200">{order.id}</span>
+                            <span className="text-sm text-slate-500 flex items-center gap-1"><Clock size={14}/> {order.date}</span>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                              order.status === 'Completado' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                              order.status === 'Completado' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                             }`}>
                               {order.status === 'Completado' && <CheckCircle size={14} />} {order.status}
                             </span>
@@ -1286,78 +1416,78 @@ export default function CustomerProfile() {
                           <div className="space-y-3">
                             {Array.isArray(order.items) && order.items.map(item => (
                               <div key={item.id} className="flex justify-between text-sm">
-                                <span className="font-medium text-zinc-300">{item.quantity}x {item.name}</span>
-                                <span className="text-zinc-500">${(item.price * item.quantity).toFixed(2)}</span>
+                                <span className="font-medium text-slate-800">{item.quantity}x {item.name}</span>
+                                <span className="text-slate-500 font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
                               </div>
                             ))}
                           </div>
 
                           {order.paymentStatus === 'review' && (
-                            <div className="mt-6 border border-orange-500/30 bg-orange-500/10 rounded-xl p-4 flex gap-4 items-start">
-                              <AlertCircle size={24} className="text-orange-500 shrink-0" />
+                            <div className="mt-6 border border-amber-300 bg-amber-50 rounded-xl p-4 flex gap-4 items-start">
+                              <AlertCircle size={24} className="text-amber-600 shrink-0" />
                               <div>
-                                <h4 className="font-bold text-orange-400 mb-1">Pago En Revisión por Tercero</h4>
-                                <p className="text-sm text-orange-500/80 mb-3">El comercio ha detectado que el pago proviene de una cuenta no autorizada en tu perfil. Su orden está congelada.</p>
-                                <div className="text-xs text-orange-300 font-medium p-3 bg-orange-950/50 rounded-lg">
-                                  <strong>ACCIÓN REQUERIDA:</strong> Tienes 24 horas para comunicarte directamente con el comercio y proveer <strong>pruebas verificables</strong> (Cédula del titular, parentesco) de que el pago es legítimo. De lo contrario, los fondos no serán devueltos y se denunciará fraude.
+                                <h4 className="font-bold text-amber-900 mb-1">Pago En Revisión por Tercero</h4>
+                                <p className="text-sm text-amber-800/80 mb-3">El comercio ha detectado que el pago proviene de una cuenta no autorizada en tu perfil. Su orden está congelada.</p>
+                                <div className="text-xs text-amber-900 font-medium p-3 bg-amber-100/60 rounded-lg">
+                                  <strong>ACCIÓN REQUERIDA:</strong> Tienes 24 horas para comunicarte directamente con el comercio y proveer <strong>pruebas verificables</strong> (Cédula del titular, parentesco) de que el pago es legítimo.
                                 </div>
-                                <button onClick={() => openChat(order)} className="mt-4 bg-orange-500 hover:bg-orange-600 text-black px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+                                <button onClick={() => openChat(order)} className="mt-4 bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors shadow-xs">
                                   <MessageSquare size={16} /> Contactar Soporte / Enviar Pruebas
                                 </button>
                               </div>
                             </div>
                           )}
                           {order.paymentStatus === 'fraud' && (
-                            <div className="mt-6 border border-red-500/30 bg-red-500/10 rounded-xl p-4 flex gap-4 items-start">
-                              <AlertCircle size={24} className="text-red-500 shrink-0" />
+                            <div className="mt-6 border border-red-300 bg-red-50 rounded-xl p-4 flex gap-4 items-start">
+                              <AlertCircle size={24} className="text-red-600 shrink-0" />
                               <div>
-                                <h4 className="font-bold text-red-400 mb-1">Orden Cancelada - Fraude Reportado</h4>
-                                <p className="text-sm text-red-500/80 mb-3">No se pudo verificar la procedencia del pago. Se ha emitido un reporte de fraude a la plataforma y no hay derecho a reembolso.</p>
+                                <h4 className="font-bold text-red-900 mb-1">Orden Cancelada - Fraude Reportado</h4>
+                                <p className="text-sm text-red-800/80 mb-3">No se pudo verificar la procedencia del pago. Se ha emitido un reporte de fraude a la plataforma y no hay derecho a reembolso.</p>
                               </div>
                             </div>
                           )}
                           
                           {/* Seguridad: PIN del Delivery */}
-                          <div className="mt-6 border-t border-white/5 pt-4">
-                            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Seguridad de Entrega</h4>
+                          <div className="mt-6 border-t border-slate-100 pt-4">
+                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Seguridad de Entrega</h4>
                             {order.deliveryPin ? (
-                              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
                                 <div>
-                                  <span className="block text-[10px] font-bold text-emerald-500/80 mb-1">PIN SECRETO DE ENTREGA</span>
-                                  <span className="text-3xl font-black text-emerald-400 tracking-[0.3em] font-mono">{order.deliveryPin}</span>
+                                  <span className="block text-[10px] font-bold text-emerald-800 mb-1">PIN SECRETO DE ENTREGA</span>
+                                  <span className="text-3xl font-black text-emerald-600 tracking-[0.3em] font-mono">{order.deliveryPin}</span>
                                 </div>
                                 <div className="text-right">
-                                  <Lock size={24} className="text-emerald-500/60 inline-block mb-1" />
-                                  <p className="text-xs text-emerald-500/80 max-w-[120px] leading-tight font-medium">Dicta este código al repartidor al recibir tu pedido.</p>
+                                  <Lock size={24} className="text-emerald-600 inline-block mb-1" />
+                                  <p className="text-xs text-emerald-800 max-w-[120px] leading-tight font-medium">Dicta este código al repartidor al recibir tu pedido.</p>
                                 </div>
                               </div>
                             ) : (
-                              <div className="bg-zinc-900 border border-white/5 rounded-xl p-4 flex items-center justify-center gap-2 text-zinc-500 text-xs font-medium text-center">
-                                <Clock size={14} className="flex-shrink-0" />
+                              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-center gap-2 text-slate-500 text-xs font-medium text-center">
+                                <Clock size={14} className="shrink-0" />
                                 El PIN de seguridad se generará cuando el comercio valide tu pago.
                               </div>
                             )}
                           </div>
                         </div>
                         
-                        <div className="w-full md:w-64 bg-zinc-950/50 p-4 rounded-2xl flex flex-col justify-between shrink-0 border border-white/5">
+                        <div className="w-full md:w-64 bg-slate-50 p-5 rounded-2xl flex flex-col justify-between shrink-0 border border-slate-200">
                           <div>
-                            <div className="text-xs text-zinc-500 font-bold uppercase mb-1">Total del Pedido</div>
-                            <div className="text-2xl font-black text-amber-500">${order.total.toFixed(2)}</div>
+                            <div className="text-xs text-slate-500 font-bold uppercase mb-1">Total del Pedido</div>
+                            <div className="text-2xl font-black text-slate-900">${order.total.toFixed(2)}</div>
                           </div>
                           <div className="space-y-2 mt-4">
-                            <button className="w-full py-2.5 bg-zinc-800 border border-transparent text-white rounded-xl text-sm font-bold hover:border-amber-500/50 hover:text-amber-500 transition-colors flex items-center justify-center gap-2">
+                            <button className="w-full py-2.5 bg-white border border-slate-200 text-slate-800 rounded-xl text-sm font-bold hover:border-amber-500 hover:text-amber-600 transition-colors shadow-xs flex items-center justify-center gap-2">
                               Ver Tienda <ChevronRight size={16} />
                             </button>
                             {order.status === 'Enviado' && (
                               order.customer_confirmed ? (
-                                <div className="w-full py-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold border border-emerald-500/30 flex items-center justify-center gap-2 text-center px-2">
+                                <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 flex items-center justify-center gap-2 text-center px-2">
                                   <Clock size={16} /> Esperando al repartidor
                                 </div>
                               ) : (
                                 <button 
                                   onClick={() => confirmOrderReceived(order.id)}
-                                  className="w-full py-2.5 bg-emerald-500 text-black rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:bg-emerald-400 transition-all flex items-center justify-center gap-2"
+                                  className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-xs hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
                                 >
                                   <CheckCircle size={16} /> Confirmar Recibido
                                 </button>
@@ -1366,7 +1496,7 @@ export default function CustomerProfile() {
                             {(order.status === 'Completado' || order.status === 'Entregado') && (
                               <button 
                                 onClick={() => setRatingModal({ isOpen: true, orderId: order.id, rating: 0, comment: '' })}
-                                className="w-full py-2.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-xl text-sm font-bold hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
                               >
                                 <Star size={16} /> Calificar Compra
                               </button>
@@ -1384,43 +1514,42 @@ export default function CustomerProfile() {
             {/* TABS: PRODUCTOS GUARDADOS (WISHLIST) */}
             {activeTab === 'wishlist' && (
               <motion.div key="wishlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-extrabold text-white mb-2">Productos Guardados</h2>
-                <p className="text-zinc-400 text-sm mb-6">Tus artículos favoritos listos para cuando quieras comprar.</p>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Productos Guardados</h2>
+                <p className="text-slate-500 text-sm mb-6">Tus artículos favoritos listos para cuando quieras comprar.</p>
                 
                 {parsedWishlist.length === 0 ? (
-                  <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
-                    <Package size={48} className="mx-auto text-zinc-600 mb-4" />
-                    <h3 className="text-lg font-bold text-white">Tu lista está vacía</h3>
-                    <p className="text-zinc-500 text-sm mt-2">Guarda productos haciendo clic en el corazón mientras navegas por las tiendas.</p>
+                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                    <Package size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Tu lista está vacía</h3>
+                    <p className="text-slate-500 text-sm mt-2">Guarda productos haciendo clic en el corazón mientras navegas por las tiendas.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {parsedWishlist.map(product => (
-                      <div key={product.productId} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl overflow-hidden border border-white/5 shadow-2xl flex flex-col group hover:border-amber-500/30 transition-all">
-                        <div className="h-40 w-full relative bg-zinc-800">
+                      <div key={product.productId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
+                        <div className="h-40 w-full relative bg-slate-100">
                           {product.imageUrl ? (
                             <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-600"><Package size={40}/></div>
+                            <div className="w-full h-full flex items-center justify-center text-slate-400"><Package size={40}/></div>
                           )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent opacity-80"></div>
                           <button 
                             onClick={() => removeWishlist(product.productId)}
-                            className="absolute top-3 right-3 w-8 h-8 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:text-red-400 hover:bg-black/70 transition-all shadow-sm"
+                            className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-white transition-all shadow-sm"
                           >
                             <Heart size={16} fill="currentColor" />
                           </button>
                         </div>
-                        <div className="p-4 flex-1 flex flex-col justify-between relative z-10 -mt-2">
+                        <div className="p-4 flex-1 flex flex-col justify-between">
                           <div>
-                            <div className="text-xs text-amber-500 font-bold mb-1 uppercase tracking-wide truncate">{product.storeName}</div>
-                            <h4 className="font-bold text-white leading-tight mb-2 line-clamp-2">{product.productName}</h4>
+                            <div className="text-xs text-amber-600 font-bold mb-1 uppercase tracking-wide truncate">{product.storeName}</div>
+                            <h4 className="font-bold text-slate-900 leading-tight mb-2 line-clamp-2">{product.productName}</h4>
                           </div>
                           <div className="flex items-center justify-between mt-4">
-                            <span className="font-black text-amber-500 text-lg">${product.productPrice?.toFixed(2)}</span>
+                            <span className="font-black text-slate-900 text-lg">${product.productPrice?.toFixed(2)}</span>
                             <button 
                               onClick={() => navigate(`/${product.storeSlug}`)}
-                              className="px-4 py-2 bg-amber-500 text-black rounded-xl text-sm font-bold shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:bg-amber-400 transition-all"
+                              className="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-sm font-bold shadow-xs hover:bg-amber-400 transition-all"
                             >
                               Ver Tienda
                             </button>
@@ -1436,29 +1565,29 @@ export default function CustomerProfile() {
             {/* TABS: FAVORITAS */}
             {activeTab === 'favoritas' && (
               <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-extrabold text-white mb-2">Tiendas Favoritas</h2>
-                <p className="text-zinc-400 text-sm mb-6">Tus negocios preferidos para un acceso rápido.</p>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Tiendas Favoritas</h2>
+                <p className="text-slate-500 text-sm mb-6">Tus negocios preferidos para un acceso rápido.</p>
                 
                 {parsedFavorites.length === 0 ? (
-                  <div className="bg-zinc-900/30 rounded-3xl p-12 border border-white/10 border-dashed text-center">
-                    <Heart size={48} className="mx-auto text-zinc-600 mb-4" />
-                    <h3 className="text-lg font-bold text-white">Aún no tienes favoritas</h3>
-                    <p className="text-zinc-500 text-sm mt-2">Navega por el marketplace y guarda las tiendas que más te gusten.</p>
+                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Aún no tienes favoritas</h3>
+                    <p className="text-slate-500 text-sm mt-2">Navega por el marketplace y guarda las tiendas que más te gusten.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {parsedFavorites.map(store => (
-                      <div key={store.slug} className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-6 border border-white/5 shadow-2xl flex items-center gap-4 hover:border-amber-500/50 hover:bg-amber-500/5 transition-all group cursor-pointer" onClick={() => navigate(`/${store.slug}`)}>
-                        <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center shadow-inner border border-amber-500/20">
+                      <div key={store.slug} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" onClick={() => navigate(`/${store.slug}`)}>
+                        <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
                            <Store size={24} />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-bold text-white group-hover:text-amber-500 transition-colors">{store.name}</h4>
-                          <span className="text-xs text-zinc-500 mt-1 block">Toca para visitar</span>
+                          <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors">{store.name}</h4>
+                          <span className="text-xs text-slate-500 mt-1 block">Toca para visitar</span>
                         </div>
                         <button 
                           onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug); }}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                         >
                           <Heart size={20} fill="currentColor" />
                         </button>
@@ -1472,34 +1601,32 @@ export default function CustomerProfile() {
             {/* TABS: AJUSTES */}
             {activeTab === 'ajustes' && (
               <motion.div key="ajustes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-extrabold text-white mb-2">Configuración y Soporte</h2>
-                <p className="text-zinc-400 text-sm mb-6">Administra la seguridad de tu cuenta y obtén ayuda.</p>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Configuración y Soporte</h2>
+                <p className="text-slate-500 text-sm mb-6">Administra la seguridad de tu cuenta y obtén ayuda.</p>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Seguridad */}
-                  <div className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
-                    <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-6 border border-amber-500/20 shadow-inner">
+                  <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xs relative overflow-hidden group">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-6 border border-amber-200/80 shadow-xs">
                       <Settings size={24} />
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-2 relative z-10">Seguridad de la cuenta</h3>
-                    <p className="text-zinc-400 text-sm mb-6 leading-relaxed relative z-10">Actualiza tu contraseña periódicamente para mantener tu cuenta segura.</p>
-                    <button className="px-5 py-2.5 bg-zinc-800 text-white font-bold rounded-xl text-sm hover:bg-zinc-700 transition-colors border border-white/5 relative z-10">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 relative z-10">Seguridad de la cuenta</h3>
+                    <p className="text-slate-500 text-sm mb-6 leading-relaxed relative z-10">Actualiza tu contraseña periódicamente para mantener tu cuenta segura.</p>
+                    <button onClick={() => setActiveTab('datos')} className="px-5 py-2.5 bg-slate-100 text-slate-800 font-bold rounded-xl text-sm hover:bg-slate-200 transition-colors border border-slate-200 relative z-10">
                       Cambiar Contraseña
                     </button>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
                   </div>
                   
                   {/* Centro de Ayuda */}
-                  <div className="bg-zinc-900/50 backdrop-blur-xl rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
-                    <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center mb-6 border border-emerald-500/20 shadow-inner">
+                  <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xs relative overflow-hidden group">
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6 border border-emerald-200/80 shadow-xs">
                       <HelpCircle size={24} />
                     </div>
-                    <h3 className="text-lg font-bold text-white mb-2 relative z-10">Centro de Ayuda</h3>
-                    <p className="text-zinc-400 text-sm mb-6 leading-relaxed relative z-10">¿Tienes problemas con un pedido? Consulta nuestras preguntas frecuentes.</p>
-                    <button className="px-5 py-2.5 bg-zinc-800 text-white font-bold rounded-xl text-sm hover:bg-zinc-700 transition-colors border border-white/5 relative z-10">
+                    <h3 className="text-lg font-bold text-slate-900 mb-2 relative z-10">Centro de Ayuda</h3>
+                    <p className="text-slate-500 text-sm mb-6 leading-relaxed relative z-10">¿Tienes problemas con un pedido? Consulta nuestras preguntas frecuentes.</p>
+                    <button onClick={() => navigate('/legal/terminos')} className="px-5 py-2.5 bg-slate-100 text-slate-800 font-bold rounded-xl text-sm hover:bg-slate-200 transition-colors border border-slate-200 relative z-10">
                       Ir a Preguntas Frecuentes
                     </button>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[40px] rounded-full pointer-events-none group-hover:bg-emerald-500/10 transition-colors"></div>
                   </div>
                 </div>
               </motion.div>
@@ -1509,124 +1636,125 @@ export default function CustomerProfile() {
         </div>
       </div>
       
-      {/* Modal de Chat de Resolución */}
+      {/* Modal de Añadir Pago Móvil */}
       {isAddingPayment && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-zinc-950 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2"><Banknote className="text-emerald-500" /> Añadir Pago Móvil</h3>
-              <button onClick={() => setIsAddingPayment(false)} className="text-zinc-400 hover:text-white transition-colors p-2"><X size={20}/></button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl relative">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2"><Banknote className="text-emerald-600" /> Añadir Pago Móvil</h3>
+              <button onClick={() => setIsAddingPayment(false)} className="text-slate-400 hover:text-slate-700 transition-colors p-2"><X size={20}/></button>
             </div>
             
             <form onSubmit={handleAddPaymentProfile} className="p-6 space-y-6">
-              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-xs text-red-200">
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-xs text-amber-900">
                 <strong>⚠️ Prevención de Triangulación:</strong><br />
                 Por seguridad, la cuenta que afilies <strong>DEBE</strong> pertenecer a ti. Tu Cédula y Nombre están bloqueados permanentemente para esta acción.
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-zinc-400 mb-2">Cédula Bloqueada</label>
-                  <input type="text" disabled value={currentCustomer?.docId || ''} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
+                  <label className="block text-sm font-bold text-slate-600 mb-2">Cédula Bloqueada</label>
+                  <input type="text" disabled value={currentCustomer?.docId || ''} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed text-sm" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-zinc-400 mb-2">Nombre Bloqueado</label>
-                  <input type="text" disabled value={currentCustomer?.name || ''} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-white/50 cursor-not-allowed" />
+                  <label className="block text-sm font-bold text-slate-600 mb-2">Nombre Bloqueado</label>
+                  <input type="text" disabled value={currentCustomer?.name || ''} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed text-sm" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-zinc-400 mb-2">Banco Emisor</label>
-                  <select required value={newPayment.bank} onChange={e => setNewPayment({...newPayment, bank: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-all appearance-none">
-                    <option value="" className="text-black bg-white">Selecciona...</option>
-                    <option value="Banesco" className="text-black bg-white">Banesco</option>
-                    <option value="Mercantil" className="text-black bg-white">Mercantil</option>
-                    <option value="Provincial" className="text-black bg-white">Provincial</option>
-                    <option value="Venezuela" className="text-black bg-white">Banco de Venezuela</option>
-                    <option value="BNC" className="text-black bg-white">BNC</option>
-                    <option value="Bicentenario" className="text-black bg-white">Bicentenario</option>
-                    <option value="BOD" className="text-black bg-white">BOD</option>
-                    <option value="Exterior" className="text-black bg-white">Exterior</option>
+                  <label className="block text-sm font-bold text-slate-600 mb-2">Banco Emisor</label>
+                  <select required value={newPayment.bank} onChange={e => setNewPayment({...newPayment, bank: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all appearance-none text-sm">
+                    <option value="" className="text-slate-900 bg-white">Selecciona...</option>
+                    <option value="Banesco" className="text-slate-900 bg-white">Banesco</option>
+                    <option value="Mercantil" className="text-slate-900 bg-white">Mercantil</option>
+                    <option value="Provincial" className="text-slate-900 bg-white">Provincial</option>
+                    <option value="Venezuela" className="text-slate-900 bg-white">Banco de Venezuela</option>
+                    <option value="BNC" className="text-slate-900 bg-white">BNC</option>
+                    <option value="Bicentenario" className="text-slate-900 bg-white">Bicentenario</option>
+                    <option value="BOD" className="text-slate-900 bg-white">BOD</option>
+                    <option value="Exterior" className="text-slate-900 bg-white">Exterior</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-zinc-400 mb-2">Teléfono Asociado</label>
-                  <input type="tel" required placeholder="Ej. 04141234567" value={newPayment.phone} onChange={e => setNewPayment({...newPayment, phone: e.target.value})} className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500 transition-all" />
+                  <label className="block text-sm font-bold text-slate-600 mb-2">Teléfono Asociado</label>
+                  <input type="tel" required placeholder="Ej. 04141234567" value={newPayment.phone} onChange={e => setNewPayment({...newPayment, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all text-sm" />
                 </div>
               </div>
 
-              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 flex gap-4 mt-2">
-                <input type="checkbox" required checked={newPayment.legalAccepted} onChange={e => setNewPayment({...newPayment, legalAccepted: e.target.checked})} className="w-5 h-5 mt-0.5 rounded border-emerald-500/30 text-emerald-500 bg-zinc-950 shrink-0 cursor-pointer" />
-                <label className="text-sm text-emerald-200 cursor-pointer leading-relaxed" onClick={() => setNewPayment({...newPayment, legalAccepted: !newPayment.legalAccepted})}>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex gap-4 mt-2">
+                <input type="checkbox" required checked={newPayment.legalAccepted} onChange={e => setNewPayment({...newPayment, legalAccepted: e.target.checked})} className="w-5 h-5 mt-0.5 rounded border-emerald-300 text-emerald-600 bg-white shrink-0 cursor-pointer" />
+                <label className="text-sm text-emerald-900 cursor-pointer leading-relaxed" onClick={() => setNewPayment({...newPayment, legalAccepted: !newPayment.legalAccepted})}>
                   <strong>Declaración Jurada:</strong> Declaro que esta cuenta bancaria me pertenece. Acepto que pagos de terceros serán retenidos y procesados como sospechosos de fraude.
                 </label>
               </div>
 
               <div className="pt-4 flex gap-4">
-                <button type="button" onClick={() => setIsAddingPayment(false)} className="flex-1 py-3 bg-zinc-800 text-zinc-300 rounded-xl font-bold hover:bg-zinc-700 transition-colors">Cancelar</button>
-                <button type="submit" disabled={!newPayment.legalAccepted} className="flex-1 py-3 bg-emerald-500 text-black rounded-xl font-bold hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Añadir Cuenta</button>
+                <button type="button" onClick={() => setIsAddingPayment(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors">Cancelar</button>
+                <button type="submit" disabled={!newPayment.legalAccepted} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-xs">Añadir Cuenta</button>
               </div>
             </form>
           </motion.div>
         </div>
       )}
 
+      {/* Modal de Chat de Resolución */}
       {isChatOpen && activeChatOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsChatOpen(false)} />
-          <div className="bg-zinc-950 rounded-3xl w-full max-w-md shadow-2xl relative z-10 flex flex-col h-[80vh] overflow-hidden border border-white/10">
-            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-zinc-900/50">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsChatOpen(false)} />
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl relative z-10 flex flex-col h-[80vh] overflow-hidden border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div>
-                <h3 className="font-bold text-white flex items-center gap-2"><MessageSquare size={18} className="text-amber-500" /> Resolución de Disputa</h3>
-                <p className="text-xs font-mono text-zinc-500 mt-1">Orden: {activeChatOrder.id}</p>
+                <h3 className="font-bold text-slate-900 flex items-center gap-2"><MessageSquare size={18} className="text-amber-500" /> Resolución de Disputa</h3>
+                <p className="text-xs font-mono text-slate-500 mt-1">Orden: {activeChatOrder.id}</p>
               </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-zinc-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-full p-2 transition-colors">
+              <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full p-2 transition-colors">
                 <X size={20} />
               </button>
             </div>
             
-            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/40">
+            <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
               {chatMessages.length === 0 ? (
-                <div className="text-center text-zinc-500 text-sm py-10 italic">Cargando chat... o aún no hay mensajes.</div>
+                <div className="text-center text-slate-400 text-sm py-10 italic">Cargando chat... o aún no hay mensajes.</div>
               ) : (
                 chatMessages.map(msg => (
                   <div key={msg.id} className={`flex flex-col max-w-[85%] ${msg.sender === 'customer' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
-                    <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.sender === 'customer' ? 'bg-amber-500 text-black rounded-tr-none font-medium' : 'bg-zinc-800 text-zinc-200 border border-white/5 rounded-tl-none'}`}>
+                    <div className={`p-3 rounded-2xl text-sm shadow-xs ${msg.sender === 'customer' ? 'bg-amber-500 text-slate-950 rounded-tr-none font-medium' : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'}`}>
                       {msg.text && <p className="whitespace-pre-wrap">{msg.text}</p>}
                       {msg.imageUrl && (
-                        <img src={msg.imageUrl} alt="Evidencia" className="mt-2 rounded-xl max-w-full h-auto max-h-64 object-cover cursor-pointer border border-black/20" onClick={() => window.open(msg.imageUrl, '_blank')} />
+                        <img src={msg.imageUrl} alt="Evidencia" className="mt-2 rounded-xl max-w-full h-auto max-h-64 object-cover cursor-pointer border border-black/10" onClick={() => window.open(msg.imageUrl, '_blank')} />
                       )}
                     </div>
                     <div className="flex items-center gap-1 mt-1 mx-1">
-                      <span className="text-[10px] text-zinc-500">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <span className="text-[10px] text-slate-400">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                       {msg.sender === 'customer' && (
-                        <CheckCheck size={12} className={msg.read ? 'text-blue-500' : 'text-zinc-500'} />
+                        <CheckCheck size={12} className={msg.read ? 'text-blue-500' : 'text-slate-400'} />
                       )}
                     </div>
                   </div>
                 ))
               )}
               {isTyping && (
-                <div className="mr-auto flex items-center gap-2 p-3 bg-zinc-800 text-zinc-400 rounded-2xl rounded-tl-none text-sm w-fit">
+                <div className="mr-auto flex items-center gap-2 p-3 bg-white border border-slate-200 text-slate-500 rounded-2xl rounded-tl-none text-sm w-fit shadow-xs">
                   <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 bg-zinc-900 border-t border-white/10">
+            <div className="p-4 bg-white border-t border-slate-200">
               {chatImage && (
                  <div className="relative inline-block mb-3">
-                   <img src={chatImage} alt="Preview" className="h-16 rounded-lg border border-white/20" />
+                   <img src={chatImage} alt="Preview" className="h-16 rounded-lg border border-slate-200" />
                    <button onClick={() => setChatImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md"><X size={12}/></button>
                  </div>
               )}
               <form onSubmit={sendChatMessage} className="flex gap-2 items-end">
-                <label className="p-3 bg-zinc-800 text-zinc-400 hover:text-amber-500 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-amber-500/30">
+                <label className="p-3 bg-slate-100 text-slate-500 hover:text-amber-600 rounded-xl cursor-pointer transition-colors border border-transparent hover:border-amber-400">
                   <input type="file" accept="image/*" className="hidden" onChange={handleChatImageUpload} />
                   <ImageIcon size={20} />
                 </label>
@@ -1634,11 +1762,11 @@ export default function CustomerProfile() {
                   value={chatInput} 
                   onChange={handleTyping} 
                   placeholder="Escribe al comercio..." 
-                  className="flex-1 max-h-32 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500/50 resize-none text-white"
+                  className="flex-1 max-h-32 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:bg-white resize-none text-slate-900 shadow-xs"
                   rows="1"
                   onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
                 />
-                <button type="submit" disabled={isSendingChat || (!chatInput.trim() && !chatImage) || activeChatOrder?.paymentStatus === 'approved' || activeChatOrder?.paymentStatus === 'fraud'} className="p-3 bg-amber-500 text-black rounded-xl hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md shadow-amber-500/20">
+                <button type="submit" disabled={isSendingChat || (!chatInput.trim() && !chatImage) || activeChatOrder?.paymentStatus === 'approved' || activeChatOrder?.paymentStatus === 'fraud'} className="p-3 bg-amber-500 text-slate-950 rounded-xl hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-xs">
                   {isSendingChat ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                 </button>
               </form>
@@ -1649,12 +1777,11 @@ export default function CustomerProfile() {
 
       {/* RATING MODAL */}
       {ratingModal.isOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-xl">
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-zinc-900/90 border border-white/10 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[40px] rounded-full pointer-events-none"></div>
-            <button onClick={() => setRatingModal({ isOpen: false, orderId: null, rating: 0, comment: '' })} className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors z-10"><X size={24}/></button>
-            <h3 className="text-2xl font-black text-white mb-2 text-center relative z-10">Calificar Pedido</h3>
-            <p className="text-zinc-400 text-sm text-center mb-6 relative z-10">¿Qué tal te pareció tu experiencia de compra y los productos recibidos?</p>
+        <div className="fixed inset-0 bg-slate-900/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white border border-slate-200 rounded-3xl p-8 max-w-sm w-full shadow-2xl relative overflow-hidden">
+            <button onClick={() => setRatingModal({ isOpen: false, orderId: null, rating: 0, comment: '' })} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors z-10"><X size={24}/></button>
+            <h3 className="text-2xl font-black text-slate-900 mb-2 text-center relative z-10">Calificar Pedido</h3>
+            <p className="text-slate-500 text-sm text-center mb-6 relative z-10">¿Qué tal te pareció tu experiencia de compra y los productos recibidos?</p>
             
             <div className="flex items-center justify-center gap-2 mb-6 relative z-10">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -1663,26 +1790,26 @@ export default function CustomerProfile() {
                   onClick={() => setRatingModal({...ratingModal, rating: star})}
                   className="transition-transform hover:scale-110 focus:outline-none"
                 >
-                  <Star size={32} fill={ratingModal.rating >= star ? '#F59E0B' : 'transparent'} className={ratingModal.rating >= star ? 'text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'text-zinc-700'} />
+                  <Star size={32} fill={ratingModal.rating >= star ? '#F59E0B' : '#E2E8F0'} className={ratingModal.rating >= star ? 'text-amber-500' : 'text-slate-200'} />
                 </button>
               ))}
             </div>
             
             <div className="mb-6 relative z-10">
-              <label className="block text-sm font-bold text-zinc-400 mb-2">Comentarios (Opcional)</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Comentarios (Opcional)</label>
               <textarea 
                 rows="3" 
                 value={ratingModal.comment}
                 onChange={(e) => setRatingModal({...ratingModal, comment: e.target.value})}
                 placeholder="Escribe tu reseña aquí..."
-                className="w-full bg-zinc-950 border-2 border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 shadow-inner"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white shadow-xs text-sm"
               ></textarea>
             </div>
             
             <button 
               onClick={submitRating}
               disabled={ratingModal.rating === 0}
-              className={`w-full py-3 rounded-xl font-bold transition-all relative z-10 ${ratingModal.rating > 0 ? 'bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:bg-amber-400' : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}`}
+              className={`w-full py-3 rounded-xl font-bold transition-all relative z-10 ${ratingModal.rating > 0 ? 'bg-amber-500 text-slate-950 shadow-xs hover:bg-amber-400' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
             >
               Enviar Calificación
             </button>
