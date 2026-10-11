@@ -1615,6 +1615,26 @@ export default function PublicStore() {
                  <User size={14} /> Ingresar
                </button>
              ) : (
+               <div className="flex items-center gap-3">
+                 {currentCustomer && (
+                   <button 
+                     onClick={() => navigate('/profile')} 
+                     className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-amber-500/50 transition-all focus:outline-none"
+                     title="Mi Perfil"
+                   >
+                     {currentCustomer.profile_pic ? (
+                       <img 
+                         src={resolveImageUrl(currentCustomer.profile_pic)} 
+                         alt="Perfil" 
+                         className="w-7 h-7 rounded-full object-cover border border-amber-500 shadow-sm" 
+                       />
+                     ) : (
+                       <div className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center border border-amber-300 shadow-sm">
+                         {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                       </div>
+                     )}
+                   </button>
+                 )}
                <motion.button 
                  ref={cartIconRef}
                  onClick={() => setIsCartOpen(true)} 
@@ -1638,6 +1658,7 @@ export default function PublicStore() {
                    )}
                  </AnimatePresence>
                </motion.button>
+               </div>
              )}
           </div>
         </div>
@@ -1660,7 +1681,23 @@ export default function PublicStore() {
                 <span className="font-bold text-lg text-pure-white">{config?.business_name || 'Mi Tienda'}</span>
                 <span className="text-xs text-pure-white opacity-80">A 13.98 Km de ti</span>
               </div>
-              <div className="w-10"></div>
+              <div className="w-10 flex items-center justify-end">
+                {currentCustomer ? (
+                  <button onClick={() => navigate('/profile')} className="transition-transform hover:scale-105" title="Mi Perfil">
+                    {currentCustomer.profile_pic ? (
+                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-sm" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-white/50 shadow-sm">
+                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                ) : !isMerchantOwner && (
+                  <button onClick={() => setShowAuthModal(true)} className="p-2 text-white/80 hover:text-white transition-colors" title="Ingresar">
+                    <User size={20} />
+                  </button>
+                )}
+              </div>
 
             </div>
 

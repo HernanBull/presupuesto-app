@@ -1082,37 +1082,91 @@ export default function MarketplaceDirectory() {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
       </div>
 
-      {/* App Header (Mobile Only) - Light Theme */}
-      <div className="md:hidden sticky top-0 z-50 bg-white border-b border-zinc-100 pt-4 pb-3 px-5 flex items-center justify-between shadow-sm">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="text-amber-500 hover:text-amber-600 transition-colors">
-          <Menu size={26} strokeWidth={2} />
-        </button>
-        <div className="flex items-center gap-2 select-none cursor-default">
-          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-            <ShoppingBag size={16} className="stroke-[2.5]"/>
+      {/* App Header - Light Theme */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-5 md:px-8 shadow-xs">
+        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-amber-500 hover:text-amber-600 transition-colors p-1 -ml-1">
+              <Menu size={24} strokeWidth={2} />
+            </button>
+            <div className="flex items-center gap-2 select-none cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                <ShoppingBag size={16} className="stroke-[2.5]"/>
+              </div>
+              <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+            </div>
           </div>
-          <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+
+          {/* Desktop Search Bar in Header */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search size={16} className="text-zinc-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="¿Qué quieres pedir hoy?"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-zinc-900 text-xs font-medium focus:outline-none focus:border-amber-500 shadow-inner placeholder-zinc-400"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            {currentCustomer ? (
+              /* Usuario logueado: Mostramos ÚNICAMENTE su foto de perfil */
+              <button 
+                onClick={() => navigate('/profile')} 
+                className="flex items-center gap-2.5 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
+              >
+                {currentCustomer.profile_pic ? (
+                  <img 
+                    src={resolveImageUrl(currentCustomer.profile_pic)} 
+                    alt="Perfil" 
+                    className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                    {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="hidden sm:inline-block text-xs font-bold text-slate-700 max-w-[120px] truncate">
+                  {currentCustomer.name || currentCustomer.email?.split('@')[0]}
+                </span>
+              </button>
+            ) : currentMerchant ? (
+              /* Comercio logueado */
+              <button 
+                onClick={() => navigate('/dashboard')} 
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
+              >
+                <Store size={14} /> Panel
+              </button>
+            ) : (
+              /* Visitante no logueado: Mostramos opciones para crear tienda e iniciar sesión */
+              <>
+                <button 
+                  onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
+                  className="text-amber-500 hover:text-amber-600 transition-colors p-1 flex items-center gap-1.5"
+                  title="Abrir mi Tienda"
+                >
+                  <Store size={22} strokeWidth={2} />
+                  <span className="hidden sm:inline-block text-xs font-bold text-slate-700">Abrir Tienda</span>
+                </button>
+                
+                <button 
+                  onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                  className="text-amber-500 hover:text-amber-600 transition-colors p-1 flex items-center gap-1.5"
+                  title="Iniciar Sesión"
+                >
+                  <User size={22} strokeWidth={2} />
+                  <span className="hidden sm:inline-block text-xs font-bold text-slate-700">Iniciar Sesión</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          {/* Sell in Axon Icon */}
-          {!currentMerchant && (
-             <button onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
-               <Store size={22} strokeWidth={2} />
-             </button>
-          )}
-          
-          {/* User Profile / Login Icon */}
-          {currentCustomer ? (
-             <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
-               <User size={22} strokeWidth={2} />
-             </button>
-          ) : !currentMerchant && (
-             <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
-               <User size={22} strokeWidth={2} />
-             </button>
-          )}
-        </div>
-      </div>
+      </header>
 
       {/* App Search Bar (Mobile Only) */}
       <div className="px-5 py-4 relative z-40 bg-white md:hidden border-b border-zinc-100 shadow-sm">
@@ -2362,7 +2416,26 @@ export default function MarketplaceDirectory() {
                 </button>
               </div>
               
-              <div className="flex-1 py-4 px-4 flex flex-col gap-8">
+              <div className="flex-1 py-4 px-4 flex flex-col gap-6">
+                {currentCustomer && (
+                  <div 
+                    onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
+                    className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200/80 rounded-2xl cursor-pointer hover:bg-amber-100/50 transition-colors"
+                  >
+                    {currentCustomer.profile_pic ? (
+                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-10 h-10 rounded-full object-cover border-2 border-amber-500" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-amber-300">
+                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{currentCustomer.name || 'Mi Perfil'}</p>
+                      <p className="text-xs text-amber-700 truncate">@{currentCustomer.email?.split('@')[0] || 'cliente'}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-amber-600 shrink-0" />
+                  </div>
+                )}
                 
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Explorar</h3>
