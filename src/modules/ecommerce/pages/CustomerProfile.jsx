@@ -764,20 +764,6 @@ export default function CustomerProfile() {
         
         {/* Mobile/Desktop Menu List */}
         <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
-          {currentCustomer?.email?.toLowerCase() === 'tecnologiacomerciocagua@gmail.com' && (
-            <div className="bg-red-950/40 rounded-2xl overflow-hidden border border-red-500/30 shadow-xl">
-              <button 
-                className="w-full flex items-center justify-between px-5 py-4 text-white hover:bg-red-500/10 transition-colors"
-                onClick={() => navigate('/axs-vault-99xqz')}
-              >
-                 <div className="flex items-center gap-4">
-                    <ShieldAlert size={20} className="text-red-500" />
-                    <span className="text-[15px] font-bold text-red-300">Bóveda SuperAdmin</span>
-                 </div>
-                 <ChevronRight size={18} className="text-red-400" />
-              </button>
-            </div>
-          )}
           {/* Group 1 */}
           <div className="bg-[#1a1a1a] rounded-2xl overflow-hidden border border-white/5 shadow-xl">
             <button className={`w-full flex items-center justify-between px-5 py-4 text-white hover:bg-white/5 transition-colors ${activeTab === 'niveles' ? 'bg-white/5 border-l-4 border-amber-500' : 'border-l-4 border-transparent'}`} onClick={() => setActiveTab('niveles')}>

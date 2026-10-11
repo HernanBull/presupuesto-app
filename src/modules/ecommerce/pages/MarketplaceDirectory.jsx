@@ -999,20 +999,9 @@ export default function MarketplaceDirectory() {
           
           {/* User Profile / Login Icon */}
           {currentCustomer ? (
-             <div className="flex items-center gap-2">
-               {currentCustomer?.email?.toLowerCase() === 'tecnologiacomerciocagua@gmail.com' && (
-                 <button 
-                   onClick={() => navigate('/axs-vault-99xqz')} 
-                   title="Bóveda SuperAdmin"
-                   className="flex items-center gap-1 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-200 transition-colors"
-                 >
-                   <ShieldAlert size={13} /> Admin
-                 </button>
-               )}
-               <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
-                 <User size={22} strokeWidth={2} />
-               </button>
-             </div>
+             <button onClick={() => navigate('/profile')} className="text-amber-500 hover:text-amber-600 transition-colors">
+               <User size={22} strokeWidth={2} />
+             </button>
           ) : !currentMerchant && (
              <button onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} className="text-amber-500 hover:text-amber-600 transition-colors">
                <User size={22} strokeWidth={2} />
@@ -2263,17 +2252,6 @@ export default function MarketplaceDirectory() {
                 
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Explorar</h3>
-                  {currentCustomer?.email?.toLowerCase() === 'tecnologiacomerciocagua@gmail.com' && (
-                    <button onClick={() => { setIsMobileMenuOpen(false); navigate('/axs-vault-99xqz'); }} className="w-full flex items-center justify-between p-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-700 font-bold transition-all group mb-2 border border-red-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                          <ShieldAlert size={16} />
-                        </div>
-                        Bóveda SuperAdmin
-                      </div>
-                      <ChevronRight size={16} className="text-red-400" />
-                    </button>
-                  )}
                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
