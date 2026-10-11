@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
 import MapSettingsModal from '../components/MapSettingsModal';
+import OfflineMapModal from '../components/OfflineMapModal';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -16,7 +17,8 @@ import {
   ArrowLeft, 
   MessageCircle,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  HardDrive
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -114,63 +116,49 @@ function MapEventsHandler({ setMapCenter, setIsMapMoved }) {
   return null;
 }
 
-// Icono del punto central de búsqueda
-const searchLocationIcon = new L.DivIcon({
-  className: 'custom-search-location-icon',
+// Icono elegante GPS para la ubicación del usuario (Punto azul pulsante estilo Google Maps)
+const userLocationMarkerIcon = new L.DivIcon({
+  className: 'custom-user-gps-pin',
   html: renderToStaticMarkup(
-    <div className="relative mt-2" style={{ filter: 'drop-shadow(0px 8px 12px rgba(0, 0, 0, 0.4))' }}>
-      <svg width="34" height="45" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -translate-y-1/2">
-        <defs>
-          <linearGradient id="searchPinGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fbbf24" />
-            <stop offset="100%" stopColor="#d97706" />
-          </linearGradient>
-        </defs>
-        <path d="M22 2C10.954 2 2 10.954 2 22C2 37 22 56 22 56C22 56 42 37 42 22C42 10.954 33.046 2 22 2Z" fill="url(#searchPinGrad)" stroke="white" strokeWidth="3"/>
-        <path d="M22 4C11.5 4 4 11.5 4 22C4 32 18 48 22 52C26 48 40 32 40 22C40 11.5 32.5 4 22 4Z" fill="white" fillOpacity="0.15" />
-        <g transform="translate(12, 11) scale(0.85)">
-          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M3 6h18" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M16 10a4 4 0 0 1-8 0" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-        </g>
-      </svg>
+    <div className="relative flex items-center justify-center">
+      <div className="w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white shadow-md z-10"></div>
+      <div className="absolute w-7 h-7 rounded-full bg-blue-500/30 animate-ping pointer-events-none"></div>
     </div>
   ),
-  iconSize: [34, 45],
-  iconAnchor: [17, 45]
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
 });
 
-// Icono personalizado para los pines de las tiendas en el mapa
+// Pincito minimalista y profesional para los comercios en el mapa (28x34px)
 const createStoreMarkerIcon = (isSelected, store) => {
   const logo = resolveImageUrl(store.logoUrl);
   return new L.DivIcon({
     className: 'custom-store-pin',
     html: renderToStaticMarkup(
-      <div className={`relative flex items-center justify-center transition-transform ${isSelected ? 'scale-125 z-50' : 'hover:scale-110'}`}>
-        <div className={`w-11 h-11 rounded-2xl p-0.5 shadow-2xl flex items-center justify-center transition-all ${
+      <div className={`relative flex flex-col items-center cursor-pointer transition-transform ${isSelected ? 'scale-115 z-50' : 'hover:scale-105'}`}>
+        <div className={`w-7 h-7 rounded-full p-0.5 shadow-lg flex items-center justify-center transition-all ${
           isSelected 
-            ? 'bg-amber-500 ring-4 ring-amber-400/50 shadow-amber-500/50' 
-            : 'bg-zinc-900 border-2 border-amber-400 shadow-black/80'
+            ? 'bg-amber-500 ring-2 ring-amber-400 shadow-amber-500/50' 
+            : 'bg-zinc-900 border border-amber-400/90 shadow-black/80'
         }`}>
           {logo ? (
-            <img src={logo} alt="" className="w-full h-full object-cover rounded-[14px] bg-white" />
+            <img src={logo} alt="" className="w-full h-full object-cover rounded-full bg-white" />
           ) : (
-            <div className="w-full h-full rounded-[14px] bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-zinc-950 font-black">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
-                <path d="M2 7h20"/>
-              </svg>
-            </div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={isSelected ? '#09090b' : '#f59e0b'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+              <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
+              <path d="M2 7h20"/>
+            </svg>
           )}
         </div>
-        <div className="absolute -bottom-1 w-2.5 h-2.5 bg-amber-500 rotate-45 rounded-[2px] shadow-sm"></div>
+        {/* Punta afilada del pin */}
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-[1px] ${isSelected ? 'bg-amber-500' : 'bg-zinc-900 border-r border-b border-amber-400/90'}`}></div>
       </div>
     ),
-    iconSize: [44, 48],
-    iconAnchor: [22, 46],
-    popupAnchor: [0, -46]
+    iconSize: [28, 34],
+    iconAnchor: [14, 34],
+    popupAnchor: [0, -34]
   });
 };
 
@@ -183,6 +171,7 @@ export default function StoreScannerMap() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isMapMoved, setIsMapMoved] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   
   // Snap Points del Bottom Sheet: 'collapsed' (105px), 'half' (52vh), 'expanded' (88vh)
   const [sheetSnap, setSheetSnap] = useState('half');
@@ -191,13 +180,14 @@ export default function StoreScannerMap() {
   const [scanRadius, setScanRadius] = useState(1000);
   const [stores, setStores] = useState([]);
   const [selectedStore, setSelectedStore] = useState(null);
-  const [isScanning, setIsScanning] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
+  const [hasScanned, setHasScanned] = useState(false);
 
   // Coordenadas fallback (Caracas, Venezuela)
   const defaultLocation = [10.4806, -66.9036]; 
 
   useEffect(() => {
-    // 1. Obtener ubicación GPS una sola vez al montar
+    // 1. Obtener ubicación GPS una sola vez al montar (SIN escanear automáticamente)
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -205,14 +195,14 @@ export default function StoreScannerMap() {
           setUserLocation(coords);
           setMapCenter({ lat: coords[0], lng: coords[1] });
           setActiveSearchLocation({ lat: coords[0], lng: coords[1] });
-          fetchStores(coords);
+          setIsScanning(false);
         },
         (error) => {
           console.error("Error obtaining location", error);
           setUserLocation(defaultLocation);
           setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
           setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
-          fetchStores(defaultLocation);
+          setIsScanning(false);
         },
         { enableHighAccuracy: true }
       );
@@ -220,22 +210,25 @@ export default function StoreScannerMap() {
       setUserLocation(defaultLocation);
       setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
       setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
-      fetchStores(defaultLocation);
+      setIsScanning(false);
     }
   }, []);
 
-  // 2. Re-consultar cuando cambie el radio
+  // 2. Re-consultar cuando cambie el radio (solo si el usuario ya ha iniciado una búsqueda)
   useEffect(() => {
-    if (activeSearchLocation) {
-      fetchStores([activeSearchLocation.lat, activeSearchLocation.lng]);
-    } else if (mapCenter) {
-      fetchStores([mapCenter.lat, mapCenter.lng]);
+    if (hasScanned) {
+      if (activeSearchLocation) {
+        fetchStores([activeSearchLocation.lat, activeSearchLocation.lng]);
+      } else if (mapCenter) {
+        fetchStores([mapCenter.lat, mapCenter.lng]);
+      }
     }
   }, [scanRadius]);
 
   const fetchStores = async (location) => {
     try {
       setIsScanning(true);
+      setHasScanned(true);
       const { data, error } = await supabase
         .from('workspaces')
         .select('*');
@@ -353,6 +346,7 @@ export default function StoreScannerMap() {
             zoomControl={false}
             preferCanvas={true}
             keepBuffer={3}
+            fadeAnimation={false}
           >
             <ChangeView center={userLocation} zoom={14} />
             <MapFlyController targetLocation={targetMapLocation} />
@@ -364,20 +358,20 @@ export default function StoreScannerMap() {
               className="dark-map-tiles"
             />
 
-            {/* Active Search Area Circle and Marker */}
-            {activeSearchLocation && (
-              <>
-                <Circle 
-                  center={{ lat: activeSearchLocation.lat, lng: activeSearchLocation.lng }} 
-                  radius={scanRadius} 
-                  pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.1, weight: 1.5 }} 
-                />
-                <Marker 
-                  position={[activeSearchLocation.lat, activeSearchLocation.lng]} 
-                  icon={searchLocationIcon} 
-                  zIndexOffset={900}
-                />
-              </>
+            {/* Marcador GPS discreto del usuario (Punto azul pulsante) */}
+            <Marker 
+              position={userLocation} 
+              icon={userLocationMarkerIcon} 
+              zIndexOffset={1000}
+            />
+
+            {/* Círculo de radio de búsqueda (se dibuja únicamente cuando el usuario escanea) */}
+            {hasScanned && activeSearchLocation && (
+              <Circle 
+                center={{ lat: activeSearchLocation.lat, lng: activeSearchLocation.lng }} 
+                radius={scanRadius} 
+                pathOptions={{ color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.08, weight: 1.5, dashArray: '4, 4' }} 
+              />
             )}
 
             {/* User Location Event Handler */}
@@ -497,30 +491,41 @@ export default function StoreScannerMap() {
         </div>
       </div>
 
-      {/* Botón Buscar en esta Zona (Aparece tras arrastrar el mapa) */}
-      {isMapMoved && (
+      {/* Botón Buscar en esta Zona (Si aún no ha escaneado O si arrastró el mapa) */}
+      {(!hasScanned || isMapMoved) && (
         <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] flex justify-center w-full pointer-events-auto">
           <button 
             onClick={() => {
               setIsMapMoved(false);
-              setActiveSearchLocation({ lat: mapCenter.lat, lng: mapCenter.lng });
-              fetchStores([mapCenter.lat, mapCenter.lng]);
+              const target = mapCenter || (userLocation ? { lat: userLocation[0], lng: userLocation[1] } : null);
+              if (target) {
+                setActiveSearchLocation(target);
+                fetchStores([target.lat, target.lng]);
+              }
             }}
-            className="px-4 py-2.5 bg-zinc-900 text-white font-bold text-xs rounded-full shadow-2xl border border-zinc-700 flex items-center gap-2 active:scale-95 transition-transform"
+            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-full shadow-2xl flex items-center gap-2 active:scale-95 transition-transform border border-amber-300"
           >
-            <Search size={14} className="text-amber-400" /> Buscar en esta zona
+            <Search size={14} className="text-zinc-950" /> Buscar en esta zona
           </button>
         </div>
       )}
 
-      {/* FLOATING GPS BUTTON ÚNICO (DESPEJANDO EL MAPA) */}
-      <div className="absolute top-20 right-4 z-40">
+      {/* FLOATING ACTION BUTTONS: GPS Y DESCARGA OFFLINE */}
+      <div className="absolute top-20 right-4 z-40 flex flex-col gap-2">
         <button 
           onClick={centerOnUser} 
           className="w-11 h-11 bg-white/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200/80 shadow-md hover:bg-white active:scale-95 transition-all"
           title="Centrar en mi ubicación"
         >
           <Crosshair size={20} className="text-amber-600" />
+        </button>
+
+        <button 
+          onClick={() => setIsOfflineModalOpen(true)} 
+          className="w-11 h-11 bg-zinc-900/95 backdrop-blur-xl rounded-2xl flex items-center justify-center text-amber-400 border border-zinc-800 shadow-md hover:bg-zinc-800 active:scale-95 transition-all"
+          title="Descargar mapa offline en teléfono (Cero datos)"
+        >
+          <HardDrive size={18} />
         </button>
       </div>
 
@@ -529,6 +534,12 @@ export default function StoreScannerMap() {
         onClose={() => setIsSettingsOpen(false)} 
         scanRadius={scanRadius} 
         setScanRadius={setScanRadius}
+      />
+
+      <OfflineMapModal 
+        isOpen={isOfflineModalOpen}
+        onClose={() => setIsOfflineModalOpen(false)}
+        currentCenter={mapCenter || (userLocation ? { lat: userLocation[0], lng: userLocation[1] } : null)}
       />
 
       {/* BOTTOM SHEET DESLIZABLE ULTRA FLUIDO CON CSS NATIVO (CERO LAG) */}
@@ -566,10 +577,16 @@ export default function StoreScannerMap() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-zinc-900 font-black text-sm sm:text-base leading-tight">
-                    {displayedStores.length} {displayedStores.length === 1 ? 'comercio encontrado' : 'comercios encontrados'}
+                    {!hasScanned 
+                      ? 'Explorar comercios' 
+                      : `${displayedStores.length} ${displayedStores.length === 1 ? 'comercio encontrado' : 'comercios encontrados'}`
+                    }
                   </h3>
                   <p className="text-zinc-500 text-[11px] font-medium mt-0.5">
-                    {sheetSnap === 'collapsed' ? 'Toca para ver comercios' : `Radio de búsqueda: ${(scanRadius / 1000).toFixed(1)} km`}
+                    {!hasScanned 
+                      ? 'Toca para buscar en tu zona' 
+                      : (sheetSnap === 'collapsed' ? 'Toca para ver comercios' : `Radio de búsqueda: ${(scanRadius / 1000).toFixed(1)} km`)
+                    }
                   </p>
                 </div>
               </div>
@@ -737,9 +754,41 @@ export default function StoreScannerMap() {
                     </div>
                   </div>
                 ) : (
-                  /* CASO B: LISTA DE COMERCIOS ENCONTRADOS (MOSTRADOS POR SEPARADO) */
+                  /* CASO B: LISTA DE COMERCIOS ENCONTRADOS */
                   <div>
-                    {isScanning ? (
+                    {!hasScanned ? (
+                      <div className="py-8 px-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 mb-3.5 shadow-sm">
+                          <Search size={26} />
+                        </div>
+                        <h4 className="text-zinc-900 font-extrabold text-base">Encuentra tiendas a tu alrededor</h4>
+                        <p className="text-zinc-500 text-xs mt-1 max-w-xs leading-relaxed">
+                          Explora comercios, promociones y catálogos en esta zona tocando el botón a continuación.
+                        </p>
+                        
+                        <button
+                          onClick={() => {
+                            const target = mapCenter || (userLocation ? { lat: userLocation[0], lng: userLocation[1] } : null);
+                            if (target) {
+                              setActiveSearchLocation(target);
+                              fetchStores([target.lat, target.lng]);
+                            }
+                          }}
+                          className="mt-4 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                        >
+                          <Search size={15} />
+                          <span>Buscar en esta zona</span>
+                        </button>
+
+                        <button
+                          onClick={() => setIsOfflineModalOpen(true)}
+                          className="mt-3.5 text-zinc-500 hover:text-zinc-800 text-xs font-bold flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-lg hover:bg-zinc-100"
+                        >
+                          <HardDrive size={13} className="text-amber-500" />
+                          <span>Guardar mapa offline (Ahorra memoria y datos)</span>
+                        </button>
+                      </div>
+                    ) : isScanning ? (
                       <div className="flex flex-col items-center justify-center py-6">
                         <div className="w-10 h-10 rounded-full border-4 border-zinc-200 border-t-amber-500 animate-spin mb-3"></div>
                         <p className="text-zinc-900 font-bold text-base">Escaneando zona...</p>
@@ -908,9 +957,13 @@ export default function StoreScannerMap() {
           background: #0f172a;
         }
         .dark-map-tiles {
-          filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
-          transform: translateZ(0);
+          filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+          transform: translate3d(0, 0, 0);
           will-change: transform;
+        }
+        .custom-user-gps-pin {
+          background: transparent !important;
+          border: none !important;
         }
         .custom-store-pin {
           background: transparent !important;
