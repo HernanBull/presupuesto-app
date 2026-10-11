@@ -961,7 +961,7 @@ export default function MarketplaceDirectory() {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
       
-      alert('Se ha enviado un código de 6 dígitos a tu correo electrónico para restablecer tu contraseña.');
+      alert('Se ha enviado un código de recuperación a tu correo electrónico para restablecer tu contraseña.');
       if (type === 'customer') setAuthMode('reset');
       else setMerchantAuthMode('reset');
     } catch (err) {
@@ -976,17 +976,19 @@ export default function MarketplaceDirectory() {
     if (!newPassword) {
       return alert('Por favor ingresa la nueva contraseña.');
     }
+
+    const cleanToken = (recoveryCode || '').trim().replace(/\s+/g, '');
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        if (!recoveryCode) return alert('Por favor ingresa el código de 6 dígitos que enviamos a tu correo.');
+        if (!cleanToken) return alert('Por favor ingresa el código de recuperación que enviamos a tu correo.');
         
-        // Paso 1: Verificar el código OTP
+        // Paso 1: Verificar el código OTP (acepta 6 u 8 dígitos según lo enviado por Supabase)
         const { error: verifyError } = await supabase.auth.verifyOtp({
           email,
-          token: recoveryCode,
+          token: cleanToken,
           type: 'recovery'
         });
         if (verifyError) throw verifyError;
@@ -995,6 +997,15 @@ export default function MarketplaceDirectory() {
       // Paso 2: Actualizar la contraseña ahora que estamos autenticados por la recuperación
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
+
+      // Paso 3: Sincronizar en ecommerce_customers si es tipo customer
+      if (type === 'customer' && email) {
+        try {
+          await supabase.from('ecommerce_customers').update({ password: newPassword }).ilike('email', email.trim());
+        } catch (e) {
+          console.error("Error sincronizando contraseña en ecommerce_customers:", e);
+        }
+      }
       
       alert('Contraseña actualizada con éxito. Por favor inicia sesión con tu nueva clave.');
       setRecoveryCode('');
@@ -1613,8 +1624,8 @@ export default function MarketplaceDirectory() {
                   {authMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
-                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Código de Recuperación <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-medium placeholder-zinc-400 font-mono tracking-wider" placeholder="Ej. 10669615" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
@@ -1869,8 +1880,8 @@ export default function MarketplaceDirectory() {
                   {merchantAuthMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Código de 6 dígitos <span className="lowercase text-slate-400 font-normal">(Opcional si usaste un enlace mágico)</span></label>
-                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="123456" />
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Código de Recuperación <span className="lowercase text-slate-400 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm font-mono tracking-wider" placeholder="Ej. 10669615" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
