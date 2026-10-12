@@ -127,9 +127,23 @@ export default function PublicStore() {
     if (p && !Array.isArray(p)) return [p];
     return p || [];
   }, [currentCustomer]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('pago_movil');
   const [ocrStatus, setOcrStatus] = useState('idle');
   const [ocrMessage, setOcrMessage] = useState('');
+
+  useEffect(() => {
+    if (checkoutStep === 2 && !selectedPaymentMethod) {
+      if (config?.paymentProfile?.paymentMobile !== false) {
+        setSelectedPaymentMethod('pago_movil');
+      } else if (config?.paymentProfile?.zelleActive) {
+        setSelectedPaymentMethod('zelle');
+      } else if (config?.paymentProfile?.cashActive) {
+        setSelectedPaymentMethod('cash');
+      } else {
+        setSelectedPaymentMethod('pago_movil');
+      }
+    }
+  }, [checkoutStep, selectedPaymentMethod, config]);
   
   const cartIconRef = useRef(null);
   const [flyingItems, setFlyingItems] = useState([]);
@@ -458,7 +472,7 @@ export default function PublicStore() {
       return;
     }
     if (!receiptUrl && (selectedPaymentMethod === 'pago_movil' || selectedPaymentMethod === 'zelle')) {
-      alert(`Por favor sube la captura de tu ${selectedPaymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'}`);
+      alert(`Por favor sube la captura del comprobante de tu ${selectedPaymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'}`);
       return;
     }
     setIsSubmittingOrder(true);
@@ -492,7 +506,7 @@ export default function PublicStore() {
       paymentdetails: {
         capture: receiptUrl,
         ref: paymentReference,
-        bank: selectedPaymentMethod === 'zelle' ? 'Zelle' : paymentBank,
+        bank: selectedPaymentMethod === 'zelle' ? 'Zelle' : (paymentBank || (selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx]?.bank) || 'Pago Móvil'),
         phone: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].phone : (currentCustomer.phone || ''),
         docId: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].cedula : (currentCustomer.docId || ''),
         titular: selectedPaymentMethod === 'pago_movil' && selectedPaymentProfileIdx !== '' && customerPaymentProfiles[selectedPaymentProfileIdx] ? customerPaymentProfiles[selectedPaymentProfileIdx].titular : currentCustomer.name,
@@ -604,32 +618,37 @@ export default function PublicStore() {
           setOcrMessage(`✅ Referencia detectada: ${foundRef}`);
         } else {
           setOcrStatus('error');
-          setOcrMessage('❌ No pudimos leer la referencia de forma segura. Por favor, ingrésala manualmente.');
+          setOcrMessage('ℹ️ Puedes escribir la referencia de pago manualmente abajo.');
         }
       } catch (err) {
         console.error("Error en OCR:", err);
         setOcrStatus('error');
-        setOcrMessage('❌ Error de IA al escanear comprobante.');
+        setOcrMessage('ℹ️ Puedes ingresar la referencia de pago manualmente abajo.');
       }
     }
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `receipts/${workspaceId}/${fileName}`;
+      const fileExt = file.name.split('.').pop() || 'png';
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const targetWs = workspaceId || slug || 'general';
+      const filePath = `receipts/${targetWs}/${fileName}`;
       
       const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file);
       if (!uploadError) {
         const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
         if(data && data.publicUrl) {
           setReceiptUrl(data.publicUrl);
+          return;
         }
-      } else {
-        throw uploadError;
       }
+      throw uploadError || new Error('No public URL');
     } catch (error) {
-      console.error(error);
-      alert('Error subiendo imagen');
+      console.warn("Storage upload failed, fallback to DataURL:", error);
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setReceiptUrl(loadEvent.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -1315,6 +1334,21 @@ export default function PublicStore() {
         if (baseConf.description) {
           saved.description = baseConf.description;
         }
+
+        // Resolucion completa de métodos de pago con fallbacks
+        const basePay = baseConf.paymentProfile || {};
+        saved.paymentProfile = {
+          paymentMobile: basePay.paymentMobile !== false && baseConf.paymentMobile !== false,
+          pmBank: basePay.pmBank || baseConf.pagoMovilBank || baseConf.pmBank || '',
+          pmPhone: basePay.pmPhone || baseConf.pagoMovilPhone || baseConf.pmPhone || baseConf.expediente?.whatsapp || baseConf.socialLinks?.whatsapp || '',
+          pmId: basePay.pmId || baseConf.pagoMovilId || baseConf.pmId || baseConf.docId || '',
+          zelleActive: basePay.zelleActive || baseConf.zelleActive || false,
+          zelleEmail: basePay.zelleEmail || baseConf.zelleEmail || '',
+          zelleName: basePay.zelleName || baseConf.zelleName || '',
+          cashActive: basePay.cashActive || baseConf.cashActive || false,
+          ...basePay
+        };
+        saved.bcvRate = baseConf.bcvRate || saved.bcvRate || 36.50;
         
         saved.business_name = storeData.name;
         setConfig(saved);
@@ -2835,84 +2869,161 @@ export default function PublicStore() {
                       </div>
                     ) : (
                       <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Paso 2: Método de Pago</h3>
-                        {/* Payment Method Selection */}
-                        <div className="space-y-3">
+                                 <div className="space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                         {config?.paymentProfile?.paymentMobile && (
-                           <button onClick={() => setSelectedPaymentMethod('pago_movil')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'pago_movil' ? 'bg-zinc-200 border-zinc-200 text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`} style={selectedPaymentMethod === 'pago_movil' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}><Smartphone size={18} /> Pago Móvil</button>
+                         {(config?.paymentProfile?.paymentMobile !== false) && (
+                           <button 
+                             onClick={() => setSelectedPaymentMethod('pago_movil')} 
+                             className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'pago_movil' ? 'bg-amber-500 border-amber-500 text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`} 
+                             style={selectedPaymentMethod === 'pago_movil' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+                           >
+                             <Smartphone size={18} /> Pago Móvil
+                           </button>
                          )}
                          {config?.paymentProfile?.zelleActive && (
-                           <button onClick={() => setSelectedPaymentMethod('zelle')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'zelle' ? 'bg-[#741eed] border-[#741eed] text-white shadow-lg shadow-[#741eed]/20 scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}><Zap size={18} /> Zelle</button>
+                           <button 
+                             onClick={() => setSelectedPaymentMethod('zelle')} 
+                             className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'zelle' ? 'bg-[#741eed] border-[#741eed] text-white shadow-lg shadow-[#741eed]/20 scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                           >
+                             <Zap size={18} /> Zelle
+                           </button>
                          )}
                          {config?.paymentProfile?.cashActive && (
-                           <button onClick={() => setSelectedPaymentMethod('cash')} className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'cash' ? 'bg-white border-white text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}><Building2 size={18} /> Efectivo</button>
+                           <button 
+                             onClick={() => setSelectedPaymentMethod('cash')} 
+                             className={`p-4 rounded-xl border flex items-center justify-center gap-2 text-sm font-bold transition-all ${selectedPaymentMethod === 'cash' ? 'bg-white border-white text-black shadow-lg scale-[1.02]' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}
+                           >
+                             <Building2 size={18} /> Efectivo
+                           </button>
                          )}
                        </div>
                      </div>
 
                      {/* Payment Mobile Information */}
-                     {selectedPaymentMethod === 'pago_movil' && config?.paymentProfile?.paymentMobile && (
-                        <div className="pt-4 space-y-3 animate-in slide-in-from-top-2">
-                           <div className="p-4 border border-white/10 rounded-xl bg-white/5">
-                              <div className="flex flex-col gap-2 mb-4 text-sm text-zinc-300">
-                                <p><span className="font-bold text-white">Banco:</span> {config.paymentProfile.pmBank}</p>
-                                <p><span className="font-bold text-white">Teléfono:</span> {config.paymentProfile.pmPhone}</p>
-                                <p><span className="font-bold text-white">Cédula/RIF:</span> {config.paymentProfile.pmId}</p>
-                                <p className="text-xs text-zinc-500 mt-2">
-                                  Monto: ${finalCartTotal.toFixed(2)} | Bs. {(finalCartTotal * (config.bcvRate || 36.50)).toFixed(2)}
-                                </p>
+                     {selectedPaymentMethod === 'pago_movil' && (config?.paymentProfile?.paymentMobile !== false) && (
+                        <div className="pt-2 space-y-3 animate-in slide-in-from-top-2">
+                           <div className="p-4 border border-white/10 rounded-2xl bg-white/5 space-y-4">
+                              <div className="flex flex-col gap-2 text-sm text-zinc-300">
+                                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                                  <span className="font-extrabold text-white text-base flex items-center gap-2">
+                                    <Smartphone size={18} className="text-amber-400" /> Datos de Pago Móvil
+                                  </span>
+                                  <span className="text-[11px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2.5 py-1 rounded-full font-bold">
+                                    Tasa BCV: Bs. {bcvRate || config?.bcvRate || 36.50}
+                                  </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-xs sm:text-sm">
+                                  <p><span className="font-bold text-white">Banco:</span> {config?.paymentProfile?.pmBank || 'Consultar con la tienda'}</p>
+                                  <p><span className="font-bold text-white">Teléfono:</span> {config?.paymentProfile?.pmPhone || config?.expediente?.whatsapp || 'Consultar con la tienda'}</p>
+                                  <p className="sm:col-span-2"><span className="font-bold text-white">Cédula / RIF:</span> {config?.paymentProfile?.pmId || 'Consultar con la tienda'}</p>
+                                </div>
+
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mt-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-zinc-300">Total en Divisa:</span>
+                                    <span className="text-sm font-bold text-white">${finalCartTotal.toFixed(2)} USD</span>
+                                  </div>
+                                  <div className="flex items-center justify-between mt-1">
+                                    <span className="text-xs font-bold text-amber-400">Total a Pagar (Bs):</span>
+                                    <span className="text-base font-black text-amber-400">
+                                      Bs. {(finalCartTotal * Number(bcvRate || config?.bcvRate || 36.50)).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                               
-                              <div className="mt-4 space-y-3">
-                                <select value={selectedPaymentProfileIdx} onChange={e => {
-                                    const val = e.target.value;
-                                    setSelectedPaymentProfileIdx(val);
-                                    if (val !== '') {
-                                      const profile = customerPaymentProfiles[Number(val)];
-                                      if (profile) setPaymentBank(profile.bank);
-                                    } else {
-                                      setPaymentBank('');
-                                    }
-                                  }} className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-white/30 text-white">
-                                    <option value="" disabled hidden>¿Desde qué Pago Móvil enviarás el dinero?</option>
-                                    {customerPaymentProfiles.map((p, idx) => (
-                                      <option key={idx} value={idx}>{p.bank} - {p.phone} ({p.titular})</option>
-                                    ))}
-                                    {customerPaymentProfiles.length === 0 && (
-                                      <option value="" disabled>No tienes cuentas registradas. Actualiza tu perfil.</option>
+                              <div className="space-y-3 pt-2 border-t border-white/10">
+                                {customerPaymentProfiles.length > 0 && (
+                                  <div>
+                                    <label className="text-xs font-semibold text-zinc-300 mb-1 block">¿Desde qué cuenta envías?</label>
+                                    <select value={selectedPaymentProfileIdx} onChange={e => {
+                                        const val = e.target.value;
+                                        setSelectedPaymentProfileIdx(val);
+                                        if (val !== '') {
+                                          const profile = customerPaymentProfiles[Number(val)];
+                                          if (profile) setPaymentBank(profile.bank || '');
+                                        }
+                                      }} className="w-full px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-black/50 focus:outline-none focus:border-amber-500 text-white">
+                                        <option value="">Selecciona cuenta guardada (opcional)</option>
+                                        {customerPaymentProfiles.map((p, idx) => (
+                                          <option key={idx} value={idx}>{p.bank} - {p.phone} ({p.titular})</option>
+                                        ))}
+                                    </select>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <label className="text-xs font-semibold text-zinc-300 mb-1 block">Banco Emisor (desde donde pagas)</label>
+                                  <input 
+                                    type="text" 
+                                    value={paymentBank} 
+                                    onChange={e => {
+                                      setPaymentBank(e.target.value);
+                                      setSelectedPaymentProfileIdx('');
+                                    }} 
+                                    placeholder="Ej: Banesco, Banco de Venezuela, Mercantil, Provincial" 
+                                    className="w-full px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-black/50 focus:outline-none focus:border-amber-500 text-white placeholder-zinc-500" 
+                                  />
+                                </div>
+
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs font-semibold text-zinc-300">Número de Referencia</label>
+                                    {ocrStatus === 'analyzing' && (
+                                      <span className="text-[11px] text-amber-400 flex items-center gap-1 font-bold animate-pulse">
+                                        <Loader2 size={12} className="animate-spin" /> Analizando comprobante...
+                                      </span>
                                     )}
-                                  </select>
-                                 {ocrStatus === 'idle' || ocrStatus === 'analyzing' || ocrStatus === 'success' ? (
-                                   <div className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 text-white/50 flex items-center justify-between">
-                                     <span className={ocrStatus === 'success' ? 'text-emerald-400 font-bold' : ''}>{ocrStatus === 'analyzing' ? ocrMessage : (ocrStatus === 'success' ? ocrMessage : "Sube el comprobante para extraer la referencia")}</span>
-                                     {ocrStatus === 'analyzing' && <Loader2 size={16} className="animate-spin text-amber-500" />}
-                                   </div>
-                                 ) : (
-                                   <div className="space-y-1">
-                                     <input type="text" inputMode="numeric" pattern="[0-9]*" value={paymentReference} onChange={e => setPaymentReference(e.target.value.replace(/\\D/g, ''))} placeholder="Referencia de Pago manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
-                                     <p className="text-xs text-red-400 font-bold">{ocrMessage}</p>
-                                   </div>
-                                 )}
+                                    {ocrStatus === 'success' && (
+                                      <span className="text-[11px] text-emerald-400 font-bold">
+                                        ✅ Detectada automáticamente
+                                      </span>
+                                    )}
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    inputMode="numeric" 
+                                    value={paymentReference} 
+                                    onChange={e => setPaymentReference(e.target.value)} 
+                                    placeholder="Ej: 123456 (últimos 4 a 6 dígitos o completa)" 
+                                    className="w-full px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-black/50 focus:outline-none focus:border-amber-500 text-white font-mono placeholder-zinc-500" 
+                                  />
+                                  {ocrMessage && ocrStatus !== 'analyzing' && (
+                                    <p className={`text-[11px] mt-1 ${ocrStatus === 'success' ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                      {ocrMessage}
+                                    </p>
+                                  )}
+                                </div>
                                 
-                                <div className="relative overflow-hidden mt-3 p-4 border border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center gap-2 bg-black/30 hover:bg-white/5 transition-colors cursor-pointer">
-                                   <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                   {receiptUrl ? (
-                                     <div className="text-center">
-                                       <ShieldCheck size={24} className="mx-auto text-emerald-400 mb-2" />
-                                       <span className="text-xs font-medium text-emerald-400">Comprobante Subido Correctamente</span>
-                                     </div>
-                                   ) : receiptFile ? (
-                                     <div className="text-center">
-                                       <Loader2 size={24} className="mx-auto text-zinc-400 mb-2 animate-spin" />
-                                       <span className="text-xs font-medium text-zinc-400">Subiendo...</span>
-                                     </div>
-                                   ) : (
-                                     <div className="text-center">
-                                       <UploadCloud size={24} className="mx-auto text-zinc-400 mb-2" />
-                                       <span className="text-xs font-medium text-zinc-300">Toca para Subir Captura del Pago</span>
-                                     </div>
-                                   )}
+                                <div>
+                                  <label className="text-xs font-semibold text-zinc-300 mb-1 block">Comprobante de Pago</label>
+                                  <div className="relative overflow-hidden p-4 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center gap-2 bg-black/30 hover:bg-white/5 transition-colors cursor-pointer group">
+                                     <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                     {receiptUrl ? (
+                                       <div className="flex flex-col items-center text-center">
+                                         <div className="w-16 h-16 rounded-xl overflow-hidden border border-emerald-500/50 mb-2 relative shadow-md">
+                                           <img src={receiptUrl} alt="Comprobante" className="w-full h-full object-cover" />
+                                           <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
+                                             <ShieldCheck size={20} className="text-emerald-400" />
+                                           </div>
+                                         </div>
+                                         <span className="text-xs font-bold text-emerald-400">Comprobante Cargado Exitosamente</span>
+                                         <span className="text-[10px] text-zinc-400 mt-0.5">Toca para cambiar la imagen</span>
+                                       </div>
+                                     ) : receiptFile ? (
+                                       <div className="text-center py-2">
+                                         <Loader2 size={24} className="mx-auto text-amber-400 mb-2 animate-spin" />
+                                         <span className="text-xs font-medium text-zinc-300">Procesando comprobante...</span>
+                                       </div>
+                                     ) : (
+                                       <div className="text-center py-2 group-hover:scale-[1.02] transition-transform">
+                                         <UploadCloud size={28} className="mx-auto text-amber-400 mb-2" />
+                                         <span className="text-xs font-bold text-white block">Toca para subir captura del pago</span>
+                                         <span className="text-[10px] text-zinc-400 mt-0.5 block">Formatos: JPG, PNG, WEBP</span>
+                                       </div>
+                                     )}
+                                  </div>
                                 </div>
                               </div>
                            </div>
@@ -2921,54 +3032,83 @@ export default function PublicStore() {
 
                      {/* Zelle Information */}
                      {selectedPaymentMethod === 'zelle' && config?.paymentProfile?.zelleActive && (
-                        <div className="pt-4 space-y-3 animate-in slide-in-from-top-2">
-                           <div className="p-4 border border-[#741eed]/30 rounded-xl bg-[#741eed]/5">
-                              <div className="flex flex-col gap-2 mb-4 text-sm text-zinc-300">
+                        <div className="pt-2 space-y-3 animate-in slide-in-from-top-2">
+                           <div className="p-4 border border-[#741eed]/30 rounded-2xl bg-[#741eed]/5 space-y-4">
+                              <div className="flex flex-col gap-2 text-sm text-zinc-300">
+                                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                                  <span className="font-extrabold text-white text-base flex items-center gap-2">
+                                    <Zap size={18} className="text-[#741eed]" /> Datos de Zelle
+                                  </span>
+                                  <span className="text-[11px] bg-[#741eed]/20 text-[#a855f7] border border-[#741eed]/30 px-2.5 py-1 rounded-full font-bold">
+                                    USD Directo
+                                  </span>
+                                </div>
                                 <p><span className="font-bold text-white">Correo Zelle:</span> {config.paymentProfile.zelleEmail}</p>
                                 <p><span className="font-bold text-white">Titular:</span> {config.paymentProfile.zelleName}</p>
-                                <p className="text-xs text-zinc-500 mt-2">
-                                  Monto a transferir: ${finalCartTotal.toFixed(2)}
+                                <p className="text-xs text-zinc-400 mt-1">
+                                  Monto a transferir: <span className="font-bold text-white">${finalCartTotal.toFixed(2)} USD</span>
                                 </p>
                               </div>
                               
-                              <div className="mt-4 space-y-3">
-                                 {ocrStatus === 'idle' || ocrStatus === 'analyzing' || ocrStatus === 'success' ? (
-                                   <div className="w-full px-3 py-3 border border-white/10 rounded-lg text-sm bg-black/50 text-white/50 flex items-center justify-between">
-                                     <span className={ocrStatus === 'success' ? 'text-emerald-400 font-bold' : ''}>{ocrStatus === 'analyzing' ? ocrMessage : (ocrStatus === 'success' ? ocrMessage : "Sube el comprobante para extraer la referencia")}</span>
-                                     {ocrStatus === 'analyzing' && <Loader2 size={16} className="animate-spin text-[#741eed]" />}
-                                   </div>
-                                 ) : (
-                                   <div className="space-y-1">
-                                     <input type="text" value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Referencia de Zelle manual" className="w-full px-3 py-3 border border-red-500/50 rounded-lg text-sm bg-black/50 focus:outline-none focus:border-red-500 text-white" />
-                                     <p className="text-xs text-red-400 font-bold">{ocrMessage}</p>
-                                   </div>
-                                 )}
+                              <div className="space-y-3 pt-2 border-t border-white/10">
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="text-xs font-semibold text-zinc-300">Referencia de Zelle</label>
+                                    {ocrStatus === 'analyzing' && (
+                                      <span className="text-[11px] text-[#a855f7] flex items-center gap-1 font-bold animate-pulse">
+                                        <Loader2 size={12} className="animate-spin" /> Analizando comprobante...
+                                      </span>
+                                    )}
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    value={paymentReference} 
+                                    onChange={e => setPaymentReference(e.target.value)} 
+                                    placeholder="Código de confirmación o referencia" 
+                                    className="w-full px-3 py-2.5 border border-white/10 rounded-xl text-sm bg-black/50 focus:outline-none focus:border-[#741eed] text-white font-mono placeholder-zinc-500" 
+                                  />
+                                  {ocrMessage && ocrStatus !== 'analyzing' && (
+                                    <p className={`text-[11px] mt-1 ${ocrStatus === 'success' ? 'text-emerald-400' : 'text-zinc-400'}`}>
+                                      {ocrMessage}
+                                    </p>
+                                  )}
+                                </div>
                                 
-                                <div className="relative overflow-hidden mt-3 p-4 border border-dashed border-[#741eed]/50 rounded-lg flex flex-col items-center justify-center gap-2 bg-[#741eed]/10 hover:bg-[#741eed]/20 transition-colors cursor-pointer">
-                                   <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                   {receiptUrl ? (
-                                     <div className="text-center">
-                                       <ShieldCheck size={24} className="mx-auto text-[#741eed] mb-2" />
-                                       <span className="text-xs font-medium text-[#741eed]">Captura Subida Correctamente</span>
-                                     </div>
-                                   ) : receiptFile ? (
-                                     <div className="text-center">
-                                       <Loader2 size={24} className="mx-auto text-[#741eed] mb-2 animate-spin" />
-                                       <span className="text-xs font-medium text-[#741eed]">Subiendo...</span>
-                                     </div>
-                                   ) : (
-                                     <div className="text-center">
-                                       <UploadCloud size={24} className="mx-auto text-[#741eed] mb-2" />
-                                       <span className="text-xs font-medium text-zinc-300">Sube la Captura de Zelle</span>
-                                     </div>
-                                   )}
+                                <div>
+                                  <label className="text-xs font-semibold text-zinc-300 mb-1 block">Captura del Comprobante Zelle</label>
+                                  <div className="relative overflow-hidden p-4 border-2 border-dashed border-[#741eed]/50 rounded-xl flex flex-col items-center justify-center gap-2 bg-[#741eed]/10 hover:bg-[#741eed]/20 transition-colors cursor-pointer group">
+                                     <input type="file" accept="image/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                     {receiptUrl ? (
+                                       <div className="flex flex-col items-center text-center">
+                                         <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#741eed]/50 mb-2 relative shadow-md">
+                                           <img src={receiptUrl} alt="Comprobante" className="w-full h-full object-cover" />
+                                           <div className="absolute inset-0 bg-[#741eed]/20 flex items-center justify-center">
+                                             <ShieldCheck size={20} className="text-[#a855f7]" />
+                                           </div>
+                                         </div>
+                                         <span className="text-xs font-bold text-[#a855f7]">Captura Subida Correctamente</span>
+                                         <span className="text-[10px] text-zinc-400 mt-0.5">Toca para cambiar la imagen</span>
+                                       </div>
+                                     ) : receiptFile ? (
+                                       <div className="text-center py-2">
+                                         <Loader2 size={24} className="mx-auto text-[#741eed] mb-2 animate-spin" />
+                                         <span className="text-xs font-medium text-zinc-300">Subiendo comprobante...</span>
+                                       </div>
+                                     ) : (
+                                       <div className="text-center py-2 group-hover:scale-[1.02] transition-transform">
+                                         <UploadCloud size={28} className="mx-auto text-[#741eed] mb-2" />
+                                         <span className="text-xs font-bold text-white block">Sube la Captura de Zelle</span>
+                                         <span className="text-[10px] text-zinc-400 mt-0.5 block">Formatos: JPG, PNG, WEBP</span>
+                                       </div>
+                                     )}
+                                  </div>
                                 </div>
                               </div>
                            </div>
                         </div>
                      )}
 
-                     {/* Cash Information */}
+                      {/* Cash Information */}
                      {selectedPaymentMethod === 'cash' && config?.paymentProfile?.cashActive && (
                         <div className="pt-4 space-y-3 animate-in slide-in-from-top-2">
                            <div className="p-4 border border-white/10 rounded-xl bg-white/5 text-center">
@@ -3068,7 +3208,20 @@ export default function PublicStore() {
                       </button>
                     ) : (
                       <button 
-                        onClick={() => setCheckoutStep(2)}
+                        onClick={() => {
+                          setCheckoutStep(2);
+                          if (!selectedPaymentMethod) {
+                            if (config?.paymentProfile?.paymentMobile !== false) {
+                              setSelectedPaymentMethod('pago_movil');
+                            } else if (config?.paymentProfile?.zelleActive) {
+                              setSelectedPaymentMethod('zelle');
+                            } else if (config?.paymentProfile?.cashActive) {
+                              setSelectedPaymentMethod('cash');
+                            } else {
+                              setSelectedPaymentMethod('pago_movil');
+                            }
+                          }
+                        }}
                         disabled={!checkoutAddress}
                         className="w-full py-5 text-black rounded-full text-xs font-bold tracking-[0.3em] uppercase flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-2xl relative overflow-hidden disabled:opacity-70 disabled:hover:scale-100"
                         style={{ backgroundColor: !checkoutAddress ? '#52525b' : primaryColor }}

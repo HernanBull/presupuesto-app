@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper, Share2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, LogOut, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper, Share2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
@@ -15,6 +15,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+
+  const handleLogout = () => {
+    if (window.confirm('¿Deseas cerrar sesión de tu tienda?')) {
+      localStorage.removeItem('activeWorkspace');
+      localStorage.removeItem('storeSlug');
+      navigate('/');
+    }
+  };
 
   const fetchNotifications = async () => {
     const slug = localStorage.getItem('storeSlug');
@@ -201,14 +209,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             <MonitorSmartphone size={16} /> Ver mi Vitrina
           </button>
           <button 
-            onClick={() => {
-              localStorage.removeItem('activeWorkspace');
-              localStorage.removeItem('storeSlug');
-              navigate('/');
-            }}
-            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800 transition-colors text-sm font-semibold"
+            onClick={handleLogout}
+            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 rounded-xl transition-colors text-sm font-semibold active:scale-[0.98]"
           >
-            <ArrowLeft size={16} /> Salir de la tienda
+            <LogOut size={16} /> Cerrar Sesión
           </button>
         </div>
       </aside>
@@ -231,8 +235,13 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <button onClick={toggleTheme} className="text-slate-400 hover:text-amber-500 p-2">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/'); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2">
-            <ArrowLeft size={18} />
+          <button 
+            onClick={handleLogout} 
+            title="Cerrar sesión de la tienda"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95"
+          >
+            <LogOut size={14} />
+            <span>Salir</span>
           </button>
           
           {showNotifications && (
@@ -472,13 +481,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               </button>
               <button
                 onClick={() => {
-                  localStorage.removeItem('activeWorkspace');
-                  localStorage.removeItem('storeSlug');
-                  navigate('/');
+                  setShowMoreDrawer(false);
+                  handleLogout();
                 }}
-                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 font-semibold text-sm rounded-xl active:bg-slate-200 transition-colors"
+                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-semibold text-sm rounded-xl border border-red-200/80 dark:border-red-900/40 active:bg-red-100 transition-colors"
               >
-                <ArrowLeft size={16} /> Salir de la tienda
+                <LogOut size={16} /> Cerrar Sesión
               </button>
             </div>
           </div>
