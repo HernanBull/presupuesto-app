@@ -13,6 +13,7 @@ import SupportManager from './pages/SupportManager';
 import PromotionsManager from './pages/PromotionsManager';
 import OffersManager from './pages/OffersManager';
 import StoreNewsManager from './pages/StoreNewsManager';
+import MerchantSocialFeedPage from './pages/MerchantSocialFeedPage';
 import NotificationsManager from './pages/NotificationsManager';
 import StorefrontSettings from './pages/StorefrontSettings';
 import CartSettings from './pages/CartSettings';
@@ -367,7 +368,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="reviews" element={<ReviewsManager />} />
           <Route path="promotions" element={<PromotionsManager />} />
           <Route path="offers" element={<OffersManager />} />
-          <Route path="news" element={<StoreNewsManager />} />
+          <Route path="social-feed" element={<MerchantSocialFeedPage />} />
+          <Route path="news" element={<MerchantSocialFeedPage />} />
           <Route path="notifications" element={<NotificationsManager />} />
           <Route path="storefront" element={<StorefrontSettings />} />
           <Route path="cart-settings" element={<CartSettings />} />
