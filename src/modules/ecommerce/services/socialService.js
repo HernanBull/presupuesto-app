@@ -149,7 +149,7 @@ export const getStoreFollowState = async (workspaceId, customerId) => {
       if (existing) isFollowing = true;
     }
 
-    return { isFollowing, count: count || 0 };
+    return { isFollowing, count: count || 0, followersCount: count || 0 };
   } catch (err) {
     const rawId = String(customerId || '');
     const uuidId = toSocialUuid(customerId);
@@ -157,7 +157,7 @@ export const getStoreFollowState = async (workspaceId, customerId) => {
     const raw = localStorage.getItem(key);
     const followers = raw ? JSON.parse(raw) : [];
     const isFollowing = customerId ? (followers.includes(rawId) || followers.includes(uuidId)) : false;
-    return { isFollowing, count: followers.length };
+    return { isFollowing, count: followers.length, followersCount: followers.length };
   }
 };
 
@@ -189,7 +189,7 @@ export const toggleFollowStore = async (workspaceId, customerId) => {
 
     const finalCount = count || 0;
     notifySocialUpdate('follow', { workspaceId, customerId, isFollowing, count: finalCount });
-    return { isFollowing, count: finalCount };
+    return { isFollowing, count: finalCount, followersCount: finalCount };
   } catch (err) {
     console.warn('Error en toggleFollowStore Supabase, usando respaldo local:', err);
     const key = `${LOCAL_STORAGE_PREFIX}followers_${workspaceId}`;
@@ -206,7 +206,7 @@ export const toggleFollowStore = async (workspaceId, customerId) => {
     }
     localStorage.setItem(key, JSON.stringify(followers));
     notifySocialUpdate('follow', { workspaceId, customerId, isFollowing, count: followers.length });
-    return { isFollowing, count: followers.length };
+    return { isFollowing, count: followers.length, followersCount: followers.length };
   }
 };
 
@@ -475,6 +475,88 @@ export const getCustomerSavedPosts = async (customerId) => {
     return uuidData || [];
   } catch (err) {
     console.warn('Error fetching customer saved posts:', err);
+    return [];
+  }
+};
+
+export const getStoreRealMetrics = async (workspaceId, storeSlug) => {
+  if (!workspaceId) return { followersCount: 0, likesCount: 0 };
+
+  try {
+    // 1. Conteo real de seguidores
+    const { count: followersCount } = await supabase
+      .from('ecommerce_store_followers')
+      .select('*', { count: 'exact', head: true })
+      .eq('workspace_id', workspaceId);
+
+    // 2. Conteo real de me gusta (en la vitrina y sus publicaciones)
+    let likesCount = 0;
+    try {
+      const targetSlug = storeSlug || workspaceId;
+      const { count } = await supabase
+        .from('ecommerce_post_likes')
+        .select('*', { count: 'exact', head: true })
+        .or(`workspace_id.eq.${workspaceId},post_id.eq.${targetSlug}`);
+      likesCount = count || 0;
+    } catch (e) {
+      const { count: cFallback } = await supabase
+        .from('ecommerce_post_likes')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+      likesCount = cFallback || 0;
+    }
+
+    return {
+      followersCount: followersCount || 0,
+      likesCount: likesCount || 0
+    };
+  } catch (err) {
+    console.warn('Error fetching store real metrics:', err);
+    return { followersCount: 0, likesCount: 0 };
+  }
+};
+
+export const getStoreFollowersList = async (workspaceId) => {
+  if (!workspaceId) return [];
+
+  try {
+    const { data: followers, error: fErr } = await supabase
+      .from('ecommerce_store_followers')
+      .select('*')
+      .eq('workspace_id', workspaceId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (fErr || !followers || followers.length === 0) return [];
+
+    const customerIds = followers.map(f => f.customer_id).filter(Boolean);
+    let customers = [];
+    if (customerIds.length > 0) {
+      const { data: custData } = await supabase
+        .from('ecommerce_customers')
+        .select('id, name, email, profile_pic, status');
+      customers = custData || [];
+    }
+
+    const result = followers.map(f => {
+      const found = customers.find(c => 
+        String(c.id) === String(f.customer_id) || 
+        toSocialUuid(c.id) === String(f.customer_id)
+      );
+
+      return {
+        id: f.id,
+        customerId: f.customer_id,
+        name: found?.name || (found?.email ? found.email.split('@')[0] : 'Cliente Axon'),
+        email: found?.email || '',
+        profilePic: found?.profile_pic || null,
+        created_at: f.created_at
+      };
+    });
+
+    return result;
+  } catch (err) {
+    console.warn('Error fetching store followers list:', err);
     return [];
   }
 };

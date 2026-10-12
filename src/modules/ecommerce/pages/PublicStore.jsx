@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import ResponsiveModal from '../components/ResponsiveModal';
-import { getStoreFollowState, toggleFollowStore } from '../services/socialService';
+import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
@@ -68,16 +68,22 @@ export default function PublicStore() {
   const [config, setConfig] = useState(null);
   const [authGateMode, setAuthGateMode] = useState('login');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [followersCount, setFollowersCount] = useState(89);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(0);
 
   useEffect(() => {
     if (workspaceId) {
       getStoreFollowState(workspaceId, currentCustomer?.id).then(res => {
         setIsFollowing(res.isFollowing);
-        if (res.count > 0) setFollowersCount(res.count);
+        if (res.count !== undefined) setFollowersCount(res.count);
+      });
+
+      getStoreRealMetrics(workspaceId, slug).then(metrics => {
+        if (metrics.followersCount !== undefined) setFollowersCount(metrics.followersCount);
+        if (metrics.likesCount !== undefined) setLikesCount(metrics.likesCount);
       });
     }
-  }, [workspaceId, currentCustomer?.id]);
+  }, [workspaceId, currentCustomer?.id, slug]);
 
   const [currentPage, setCurrentPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -212,17 +218,18 @@ export default function PublicStore() {
   const [sortBy, setSortBy] = useState('newest');
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
-  const baseFollowersList = [
-    { id: 'f1', name: 'María González', profilePic: 'https://i.pravatar.cc/150?u=maria' },
-    { id: 'f2', name: 'Carlos Díaz', profilePic: 'https://i.pravatar.cc/150?u=carlos' },
-    { id: 'f3', name: 'Ana Pérez', profilePic: 'https://i.pravatar.cc/150?u=ana' },
-    { id: 'f4', name: 'Luis Martínez', profilePic: 'https://i.pravatar.cc/150?u=luis' },
-    { id: 'f5', name: 'Andrea Gómez', profilePic: 'https://i.pravatar.cc/150?u=andrea' },
-    { id: 'f6', name: 'Jorge Silva', profilePic: 'https://i.pravatar.cc/150?u=jorge' },
-  ];
-  const currentFollowers = isFollowing && currentCustomer ? 
-    [{ id: currentCustomer.id, name: currentCustomer.name + ' (Tú)', profilePic: currentCustomer.profile_pic || 'https://i.pravatar.cc/150?u=' + currentCustomer.email }, ...baseFollowersList] : 
-    baseFollowersList;
+  const [followersList, setFollowersList] = useState([]);
+  const [loadingFollowers, setLoadingFollowers] = useState(false);
+
+  useEffect(() => {
+    if (showFollowersModal && workspaceId) {
+      setLoadingFollowers(true);
+      getStoreFollowersList(workspaceId)
+        .then(list => setFollowersList(list))
+        .catch(err => console.error('Error cargando seguidores:', err))
+        .finally(() => setLoadingFollowers(false));
+    }
+  }, [showFollowersModal, workspaceId]);
 
   const trackEvent = async (eventType, wid) => {
     try {
@@ -1859,7 +1866,7 @@ export default function PublicStore() {
               {/* Estadísticas */}
               <div className="grid grid-cols-3 gap-4 max-w-[300px] mx-auto mt-6 pb-2 w-full text-center">
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-xl">{products.length}</span>
+                  <span className="font-bold text-xl">{products.length + (storeNews?.length || 0)}</span>
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
                 </div>
                 <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowFollowersModal(true)}>
@@ -1867,7 +1874,7 @@ export default function PublicStore() {
                   <span className="text-zinc-400 text-sm">Seguidores</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-xl">233</span>
+                  <span className="font-bold text-xl">{likesCount}</span>
                   <span className="text-zinc-400 text-sm">Me gusta</span>
                 </div>
               </div>
@@ -1888,6 +1895,10 @@ export default function PublicStore() {
                       const res = await toggleFollowStore(workspaceId, currentCustomer.id);
                       setIsFollowing(res.isFollowing);
                       setFollowersCount(res.count);
+                      if (showFollowersModal) {
+                        const updatedList = await getStoreFollowersList(workspaceId);
+                        setFollowersList(updatedList);
+                      }
                     } catch (err) {
                       setIsFollowing(!newFollowing);
                       setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
@@ -3160,18 +3171,64 @@ export default function PublicStore() {
         contentClassName="p-0"
       >
         <div className="p-4 border-b border-white/10 flex justify-between items-center sticky top-0 bg-zinc-950 z-10">
-          <h2 className="text-lg font-bold text-white">Seguidores</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white">Seguidores</h2>
+            <span className="text-xs bg-amber-500/10 text-amber-400 font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
+              {followersCount}
+            </span>
+          </div>
+          <button 
+            onClick={() => setShowFollowersModal(false)}
+            className="text-zinc-400 hover:text-white p-1 rounded-lg"
+          >
+            <X size={18} />
+          </button>
         </div>
-        <div className="max-h-[60vh] overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
-          {currentFollowers.map((follower) => (
-            <div key={follower.id} className="flex items-center gap-3">
-              <img src={follower.profilePic} alt={follower.name} className="w-12 h-12 rounded-full object-cover border border-white/10" />
-              <div className="flex-1">
-                <span className="font-semibold text-sm text-white block">{follower.name}</span>
-                <span className="text-xs text-zinc-400">Seguidor</span>
-              </div>
+        <div className="max-h-[60vh] overflow-y-auto p-4 custom-scrollbar flex flex-col gap-3">
+          {loadingFollowers ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-500">
+              <Loader2 className="animate-spin text-amber-500" size={24} />
+              <span className="text-xs">Cargando seguidores...</span>
             </div>
-          ))}
+          ) : followersList.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+              <div className="w-12 h-12 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-600 mb-3">
+                <User size={24} />
+              </div>
+              <p className="text-sm font-semibold text-zinc-300">Aún no hay seguidores</p>
+              <p className="text-xs text-zinc-500 mt-1 max-w-[220px]">
+                Sé el primer cliente registrado en seguir esta tienda.
+              </p>
+            </div>
+          ) : (
+            followersList.map((follower) => {
+              const isMe = currentCustomer && (String(follower.customerId) === String(currentCustomer.id) || follower.email === currentCustomer.email);
+              const initials = (follower.name || 'C').slice(0, 2).toUpperCase();
+              return (
+                <div key={follower.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors">
+                  {follower.profilePic ? (
+                    <img 
+                      src={follower.profilePic} 
+                      alt={follower.name} 
+                      className="w-10 h-10 rounded-full object-cover border border-white/10" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-xs">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-sm text-white truncate block">
+                      {follower.name} {isMe && <span className="text-amber-400 text-xs font-normal">(Tú)</span>}
+                    </span>
+                    <span className="text-[11px] text-zinc-500 block truncate">
+                      {follower.email ? follower.email : 'Cliente verificado'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </ResponsiveModal>
 
