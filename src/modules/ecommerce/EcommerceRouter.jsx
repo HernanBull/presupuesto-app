@@ -27,6 +27,7 @@ import PublicStore from './pages/PublicStore';
 import MarketplaceDirectory from './pages/MarketplaceDirectory';
 import StoreScannerMap from './pages/StoreScannerMap';
 import PricingPage from './pages/PricingPage';
+import MerchantFeaturesPage from './pages/MerchantFeaturesPage';
 import CustomerProfile from './pages/CustomerProfile';
 import CustomerChatsPage from './pages/CustomerChatsPage';
 import OrderPreparation from './pages/OrderPreparation';
@@ -337,13 +338,14 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
+        <Route index element={<MarketplaceDirectory />} />
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="chats" element={<CustomerChatsPage />} />
-        <Route path=":slug" element={<PublicStore />} />
-        <Route index element={<MarketplaceDirectory />} />
-        <Route path="pricing" element={<PricingPage />} />
+        <Route path="funciones-comercios" element={<MerchantFeaturesPage />} />
+        <Route path="pricing" element={<MerchantFeaturesPage />} />
         <Route path="mapa" element={<StoreScannerMap />} />
         <Route path="legal/:tipo" element={<LegalPage />} />
+        <Route path=":slug" element={<PublicStore />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
       
