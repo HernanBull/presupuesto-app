@@ -24,9 +24,14 @@ export default function PostCommentsDrawer({
   postId,
   postTitle,
   workspaceId,
+  post,
   currentCustomer,
   onRequireAuth
 }) {
+  const effectivePostId = postId || post?.id || post?.postId;
+  const effectiveWorkspaceId = workspaceId || post?.workspaceId || post?.workspace_id;
+  const effectivePostTitle = postTitle || post?.title || post?.postTitle || '';
+
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
@@ -34,15 +39,15 @@ export default function PostCommentsDrawer({
   const commentsEndRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen && postId) {
+    if (isOpen && (effectivePostId || effectiveWorkspaceId)) {
       loadComments();
     }
-  }, [isOpen, postId]);
+  }, [isOpen, effectivePostId, effectiveWorkspaceId]);
 
   const loadComments = async () => {
     setLoading(true);
     try {
-      const data = await getPostComments(postId);
+      const data = await getPostComments(effectivePostId, effectiveWorkspaceId);
       setComments(data || []);
     } catch (err) {
       console.error('Error cargando comentarios:', err);
@@ -60,11 +65,14 @@ export default function PostCommentsDrawer({
       return;
     }
 
+    const targetPostId = effectivePostId || (effectiveWorkspaceId ? `store_${effectiveWorkspaceId}` : null);
+    if (!targetPostId) return;
+
     setIsSubmitting(true);
     try {
       const saved = await addPostComment({
-        postId,
-        workspaceId,
+        postId: targetPostId,
+        workspaceId: effectiveWorkspaceId,
         customerId: currentCustomer.id,
         customerName: currentCustomer.name || currentCustomer.email?.split('@')[0] || 'Cliente',
         customerAvatar: currentCustomer.profile_pic || currentCustomer.profilePic || '',

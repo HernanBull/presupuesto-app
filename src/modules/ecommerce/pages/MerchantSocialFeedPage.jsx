@@ -11,9 +11,14 @@ import {
   getPostComments, 
   getPostSaveState, 
   getStoreFollowState,
-  addPostComment
+  addPostComment,
+  getStoreRealMetrics,
+  getPostSavesCount,
+  getPostLikesList,
+  getStoreLikesList
 } from '../services/socialService';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
+import ResponsiveModal from '../components/ResponsiveModal';
 
 const POST_BADGES = [
   { id: 'oferta', label: '🔥 Oferta Exclusiva', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
@@ -36,7 +41,12 @@ export default function MerchantSocialFeedPage() {
 
   // Stats
   const [followerCount, setFollowerCount] = useState(0);
+  const [storeTotalLikes, setStoreTotalLikes] = useState(0);
+  const [storeTotalComments, setStoreTotalComments] = useState(0);
   const [postInteractions, setPostInteractions] = useState({});
+
+  // Likes Details Modal
+  const [likesModal, setLikesModal] = useState({ isOpen: false, title: '', likes: [], loading: false });
 
   // Active Comments Drawer
   const [activeCommentsPost, setActiveCommentsPost] = useState(null);
@@ -80,9 +90,11 @@ export default function MerchantSocialFeedPage() {
         .limit(20);
       if (prods) setStoreProducts(prods);
 
-      // Conteo de seguidores
-      const followState = await getStoreFollowState(workspaceId);
-      setFollowerCount(followState.followersCount || 0);
+      // Cargar métricas reales de la tienda (seguidores, me gusta y comentarios)
+      const metrics = await getStoreRealMetrics(workspaceId, storeSlug);
+      setFollowerCount(metrics.followersCount || 0);
+      setStoreTotalLikes(metrics.likesCount || 0);
+      setStoreTotalComments(metrics.commentsCount || 0);
     } catch (e) {
       console.error('Error fetching store info:', e);
     }
@@ -111,11 +123,11 @@ export default function MerchantSocialFeedPage() {
       for (const item of loadedNews) {
         const likeState = await getPostLikeState(item.id);
         const comments = await getPostComments(item.id);
-        const saveState = await getPostSaveState(item.id);
+        const savesCount = await getPostSavesCount(item.id);
         interactions[item.id] = {
-          likes: likeState.likesCount || 0,
+          likes: likeState.likesCount || likeState.count || 0,
           commentsCount: comments.length,
-          savedCount: saveState.isSaved ? 1 : 0
+          savedCount: savesCount
         };
       }
       setPostInteractions(interactions);
@@ -132,9 +144,7 @@ export default function MerchantSocialFeedPage() {
 
     const handleSocialUpdate = () => {
       fetchNews();
-      if (workspaceId) {
-        getStoreFollowState(workspaceId).then(st => setFollowerCount(st.followersCount));
-      }
+      fetchStoreInfo();
     };
     window.addEventListener('axon_social_updated', handleSocialUpdate);
     return () => window.removeEventListener('axon_social_updated', handleSocialUpdate);
@@ -293,12 +303,14 @@ export default function MerchantSocialFeedPage() {
 
   // Métricas agregadas
   const totalLikes = useMemo(() => {
-    return Object.values(postInteractions).reduce((acc, curr) => acc + (curr.likes || 0), 0);
-  }, [postInteractions]);
+    const postSum = Object.values(postInteractions).reduce((acc, curr) => acc + (curr.likes || 0), 0);
+    return Math.max(postSum, storeTotalLikes);
+  }, [postInteractions, storeTotalLikes]);
 
   const totalComments = useMemo(() => {
-    return Object.values(postInteractions).reduce((acc, curr) => acc + (curr.commentsCount || 0), 0);
-  }, [postInteractions]);
+    const postSum = Object.values(postInteractions).reduce((acc, curr) => acc + (curr.commentsCount || 0), 0);
+    return Math.max(postSum, storeTotalComments);
+  }, [postInteractions, storeTotalComments]);
 
   const filteredNews = news.filter(n => 
     n.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -364,27 +376,46 @@ export default function MerchantSocialFeedPage() {
         </div>
 
         {/* Me Gusta */}
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/5 p-5 rounded-2xl shadow-xs">
+        <div 
+          onClick={async () => {
+            setLikesModal({ isOpen: true, title: 'Reacciones de Me Gusta (Tienda y Publicaciones)', likes: [], loading: true });
+            const list = await getStoreLikesList(workspaceId);
+            setLikesModal(prev => ({ ...prev, likes: list, loading: false }));
+          }}
+          className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/5 p-5 rounded-2xl shadow-xs cursor-pointer hover:border-red-500/40 hover:shadow-md transition-all group"
+          title="Ver quiénes dieron like a tu tienda y publicaciones"
+        >
           <div className="flex items-center justify-between text-gray-500 dark:text-zinc-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Me Gusta</span>
-            <Heart size={18} className="text-red-500 fill-red-500" />
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-red-500 transition-colors">Me Gusta</span>
+            <Heart size={18} className="text-red-500 fill-red-500 group-hover:scale-110 transition-transform" />
           </div>
           <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
             {totalLikes}
           </p>
-          <span className="text-[11px] text-gray-400 mt-1 block">Reacciones en tus publicaciones</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">Toca para ver quiénes dieron like</span>
         </div>
 
         {/* Comentarios */}
-        <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/5 p-5 rounded-2xl shadow-xs">
+        <div 
+          onClick={() => setActiveCommentsPost({
+            id: 'all',
+            postId: 'all',
+            title: 'Todos los Comentarios',
+            store_name: storeName,
+            store_logo: storeLogo,
+            workspaceId
+          })}
+          className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/5 p-5 rounded-2xl shadow-xs cursor-pointer hover:border-indigo-500/40 hover:shadow-md transition-all group"
+          title="Ver y responder comentarios"
+        >
           <div className="flex items-center justify-between text-gray-500 dark:text-zinc-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Comentarios</span>
-            <MessageSquare size={18} className="text-indigo-500" />
+            <span className="text-xs font-bold uppercase tracking-wider group-hover:text-indigo-500 transition-colors">Comentarios</span>
+            <MessageSquare size={18} className="text-indigo-500 group-hover:scale-110 transition-transform" />
           </div>
           <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
             {totalComments}
           </p>
-          <span className="text-[11px] text-gray-400 mt-1 block">Respuestas e interacciones</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">Toca para ver y responder</span>
         </div>
 
         {/* Publicaciones */}
@@ -497,32 +528,50 @@ export default function MerchantSocialFeedPage() {
                     </p>
                   </div>
 
-                  {/* Métricas Interactivas del Post */}
-                  <div>
-                    <div className="flex items-center justify-between py-3 border-y border-gray-100 dark:border-white/5 text-xs text-gray-600 dark:text-zinc-400 mb-4">
-                      <div className="flex items-center gap-1.5">
-                        <Heart size={15} className={stats.likes > 0 ? "text-red-500 fill-red-500" : "text-gray-400"} />
-                        <span className="font-bold">{stats.likes}</span> likes
-                      </div>
-                      
-                      <button 
-                        onClick={() => setActiveCommentsPost({
-                          id: item.id,
-                          title: item.title,
-                          store_name: storeName,
-                          store_logo: storeLogo
-                        })}
-                        className="flex items-center gap-1.5 hover:text-amber-500 transition-colors"
-                      >
-                        <MessageSquare size={15} className="text-indigo-500" />
-                        <span className="font-bold">{stats.commentsCount}</span> comentarios
-                      </button>
+                    {/* Métricas Interactivas del Post */}
+                    <div>
+                      <div className="flex items-center justify-between py-3 border-y border-gray-100 dark:border-white/5 text-xs text-gray-600 dark:text-zinc-400 mb-4">
+                        <button 
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setLikesModal({ 
+                              isOpen: true, 
+                              title: `Personas a las que les gustó "${item.title}"`, 
+                              likes: [], 
+                              loading: true 
+                            });
+                            const list = await getPostLikesList(item.id);
+                            setLikesModal(prev => ({ ...prev, likes: list, loading: false }));
+                          }}
+                          className="flex items-center gap-1.5 hover:text-red-500 transition-colors cursor-pointer group/like"
+                          title="Ver clientes que le dieron like"
+                        >
+                          <Heart size={15} className={stats.likes > 0 ? "text-red-500 fill-red-500 group-hover/like:scale-110 transition-transform" : "text-gray-400 group-hover/like:text-red-400"} />
+                          <span className="font-bold text-gray-900 dark:text-white group-hover/like:text-red-500">{stats.likes}</span> likes
+                        </button>
+                        
+                        <button 
+                          onClick={() => setActiveCommentsPost({
+                            id: item.id,
+                            postId: item.id,
+                            title: item.title,
+                            store_name: storeName,
+                            store_logo: storeLogo,
+                            workspaceId
+                          })}
+                          className="flex items-center gap-1.5 hover:text-amber-500 transition-colors cursor-pointer"
+                          title="Ver y responder comentarios"
+                        >
+                          <MessageSquare size={15} className="text-indigo-500" />
+                          <span className="font-bold text-gray-900 dark:text-white">{stats.commentsCount}</span> comentarios
+                        </button>
 
-                      <div className="flex items-center gap-1.5">
-                        <Bookmark size={15} className="text-amber-500" />
-                        <span className="font-bold">{stats.savedCount}</span> guardados
+                        <div className="flex items-center gap-1.5" title="Veces guardado por clientes">
+                          <Bookmark size={15} className={stats.savedCount > 0 ? "text-amber-500 fill-amber-500" : "text-gray-400"} />
+                          <span className="font-bold text-gray-900 dark:text-white">{stats.savedCount}</span> guardados
+                        </div>
                       </div>
-                    </div>
 
                     {/* Botones de Acción */}
                     <div className="flex items-center justify-between gap-2">
@@ -859,6 +908,9 @@ export default function MerchantSocialFeedPage() {
       <PostCommentsDrawer
         isOpen={!!activeCommentsPost}
         onClose={() => setActiveCommentsPost(null)}
+        postId={activeCommentsPost?.id !== 'all' ? (activeCommentsPost?.id || activeCommentsPost?.postId) : null}
+        postTitle={activeCommentsPost?.title}
+        workspaceId={workspaceId}
         post={activeCommentsPost}
         currentCustomer={{
           id: workspaceId || 'merchant_author',
@@ -867,6 +919,75 @@ export default function MerchantSocialFeedPage() {
         }}
         onRequireAuth={() => {}}
       />
+
+      {/* Modal de Personas a las que les gustó (Likes) */}
+      <ResponsiveModal
+        isOpen={likesModal.isOpen}
+        onClose={() => setLikesModal(prev => ({ ...prev, isOpen: false }))}
+        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10 p-0 overflow-hidden"
+        contentClassName="p-0"
+      >
+        <div className="p-4 border-b border-gray-100 dark:border-white/10 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-950 z-10">
+          <div className="flex items-center gap-2">
+            <Heart size={18} className="text-red-500 fill-red-500" />
+            <h2 className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[240px]">
+              {likesModal.title || 'Me Gusta'}
+            </h2>
+          </div>
+          <button 
+            onClick={() => setLikesModal(prev => ({ ...prev, isOpen: false }))}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-1 rounded-lg"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="max-h-[60vh] overflow-y-auto p-4 custom-scrollbar flex flex-col gap-3">
+          {likesModal.loading ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400">
+              <Loader2 className="animate-spin text-red-500" size={24} />
+              <span className="text-xs">Cargando reacciones...</span>
+            </div>
+          ) : likesModal.likes.length === 0 ? (
+            <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-3">
+                <Heart size={24} />
+              </div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200">Aún no hay reacciones</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[220px]">
+                Cuando los compradores pulsen Me Gusta, aparecerán listados aquí.
+              </p>
+            </div>
+          ) : (
+            likesModal.likes.map((like) => {
+              const initials = (like.name || 'C').slice(0, 2).toUpperCase();
+              return (
+                <div key={like.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  {like.profilePic ? (
+                    <img 
+                      src={like.profilePic} 
+                      alt={like.name} 
+                      className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-white/10" 
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center font-bold text-xs">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-sm text-gray-900 dark:text-white truncate block">
+                      {like.name}
+                    </span>
+                    <span className="text-[11px] text-gray-400 dark:text-zinc-500 block truncate">
+                      {like.email ? like.email : (like.created_at ? new Date(like.created_at).toLocaleDateString() : 'Cliente verificado')}
+                    </span>
+                  </div>
+                  <Heart size={14} className="text-red-500 fill-red-500 shrink-0" />
+                </div>
+              );
+            })
+          )}
+        </div>
+      </ResponsiveModal>
     </div>
   );
 }

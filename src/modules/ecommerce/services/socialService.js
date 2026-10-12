@@ -215,7 +215,7 @@ export const toggleFollowStore = async (workspaceId, customerId) => {
 // ==========================================
 
 export const getPostLikeState = async (postId, customerId) => {
-  if (!postId) return { isLiked: false, count: 0 };
+  if (!postId) return { isLiked: false, count: 0, likesCount: 0 };
 
   try {
     const { count, error: countErr } = await supabase
@@ -231,7 +231,8 @@ export const getPostLikeState = async (postId, customerId) => {
       if (existing) isLiked = true;
     }
 
-    return { isLiked, count: count || 0 };
+    const finalCount = count || 0;
+    return { isLiked, count: finalCount, likesCount: finalCount };
   } catch (err) {
     const rawId = String(customerId || '');
     const uuidId = toSocialUuid(customerId);
@@ -239,7 +240,7 @@ export const getPostLikeState = async (postId, customerId) => {
     const raw = localStorage.getItem(key);
     const likes = raw ? JSON.parse(raw) : [];
     const isLiked = customerId ? (likes.includes(rawId) || likes.includes(uuidId)) : false;
-    return { isLiked, count: likes.length };
+    return { isLiked, count: likes.length, likesCount: likes.length };
   }
 };
 
@@ -299,21 +300,27 @@ export const toggleLikePost = async (postId, workspaceId, customerId) => {
 // 3. SISTEMA DE COMENTARIOS
 // ==========================================
 
-export const getPostComments = async (postId) => {
-  if (!postId) return [];
+export const getPostComments = async (postId, workspaceId) => {
+  if (!postId && !workspaceId) return [];
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('ecommerce_post_comments')
       .select('*')
-      .eq('post_id', String(postId))
       .order('created_at', { ascending: true });
 
+    if (postId && postId !== 'all') {
+      query = query.eq('post_id', String(postId));
+    } else if (workspaceId) {
+      query = query.eq('workspace_id', String(workspaceId));
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   } catch (err) {
     console.warn('Error al obtener comentarios de Supabase, usando respaldo local:', err);
-    const key = `${LOCAL_STORAGE_PREFIX}comments_${postId}`;
+    const key = `${LOCAL_STORAGE_PREFIX}comments_${postId || workspaceId}`;
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
   }
@@ -480,7 +487,7 @@ export const getCustomerSavedPosts = async (customerId) => {
 };
 
 export const getStoreRealMetrics = async (workspaceId, storeSlug) => {
-  if (!workspaceId) return { followersCount: 0, likesCount: 0 };
+  if (!workspaceId) return { followersCount: 0, likesCount: 0, commentsCount: 0, savesCount: 0 };
 
   try {
     // 1. Conteo real de seguidores
@@ -506,13 +513,39 @@ export const getStoreRealMetrics = async (workspaceId, storeSlug) => {
       likesCount = cFallback || 0;
     }
 
+    // 3. Conteo real de comentarios en el comercio y sus posts
+    let commentsCount = 0;
+    try {
+      const { count } = await supabase
+        .from('ecommerce_post_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+      commentsCount = count || 0;
+    } catch (e) {
+      commentsCount = 0;
+    }
+
+    // 4. Conteo real de guardados
+    let savesCount = 0;
+    try {
+      const { count } = await supabase
+        .from('ecommerce_post_saves')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId);
+      savesCount = count || 0;
+    } catch (e) {
+      savesCount = 0;
+    }
+
     return {
       followersCount: followersCount || 0,
-      likesCount: likesCount || 0
+      likesCount: likesCount || 0,
+      commentsCount: commentsCount || 0,
+      savesCount: savesCount || 0
     };
   } catch (err) {
     console.warn('Error fetching store real metrics:', err);
-    return { followersCount: 0, likesCount: 0 };
+    return { followersCount: 0, likesCount: 0, commentsCount: 0, savesCount: 0 };
   }
 };
 
@@ -557,6 +590,101 @@ export const getStoreFollowersList = async (workspaceId) => {
     return result;
   } catch (err) {
     console.warn('Error fetching store followers list:', err);
+    return [];
+  }
+};
+
+export const getPostSavesCount = async (postId) => {
+  if (!postId) return 0;
+  try {
+    const { count, error } = await supabase
+      .from('ecommerce_post_saves')
+      .select('*', { count: 'exact', head: true })
+      .eq('post_id', String(postId));
+    if (error) throw error;
+    return count || 0;
+  } catch (err) {
+    return 0;
+  }
+};
+
+export const getPostLikesList = async (postId) => {
+  if (!postId) return [];
+  try {
+    const { data: likes, error } = await supabase
+      .from('ecommerce_post_likes')
+      .select('*')
+      .eq('post_id', String(postId))
+      .order('created_at', { ascending: false });
+
+    if (error || !likes || likes.length === 0) return [];
+
+    const customerIds = likes.map(l => l.customer_id).filter(Boolean);
+    let customers = [];
+    if (customerIds.length > 0) {
+      const { data: custData } = await supabase
+        .from('ecommerce_customers')
+        .select('id, name, email, profile_pic');
+      customers = custData || [];
+    }
+
+    return likes.map(l => {
+      const found = customers.find(c => 
+        String(c.id) === String(l.customer_id) || 
+        toSocialUuid(c.id) === String(l.customer_id)
+      );
+      return {
+        id: l.id,
+        customerId: l.customer_id,
+        name: found?.name || (found?.email ? found.email.split('@')[0] : 'Cliente Axon'),
+        email: found?.email || '',
+        profilePic: found?.profile_pic || null,
+        created_at: l.created_at
+      };
+    });
+  } catch (err) {
+    console.warn('Error fetching post likes list:', err);
+    return [];
+  }
+};
+
+export const getStoreLikesList = async (workspaceId) => {
+  if (!workspaceId) return [];
+  try {
+    const { data: likes, error } = await supabase
+      .from('ecommerce_post_likes')
+      .select('*')
+      .eq('workspace_id', String(workspaceId))
+      .order('created_at', { ascending: false });
+
+    if (error || !likes || likes.length === 0) return [];
+
+    const customerIds = likes.map(l => l.customer_id).filter(Boolean);
+    let customers = [];
+    if (customerIds.length > 0) {
+      const { data: custData } = await supabase
+        .from('ecommerce_customers')
+        .select('id, name, email, profile_pic');
+      customers = custData || [];
+    }
+
+    return likes.map(l => {
+      const found = customers.find(c => 
+        String(c.id) === String(l.customer_id) || 
+        toSocialUuid(c.id) === String(l.customer_id)
+      );
+      return {
+        id: l.id,
+        customerId: l.customer_id,
+        postId: l.post_id,
+        name: found?.name || (found?.email ? found.email.split('@')[0] : 'Cliente Axon'),
+        email: found?.email || '',
+        profilePic: found?.profile_pic || null,
+        created_at: l.created_at
+      };
+    });
+  } catch (err) {
+    console.warn('Error fetching store likes list:', err);
     return [];
   }
 };
