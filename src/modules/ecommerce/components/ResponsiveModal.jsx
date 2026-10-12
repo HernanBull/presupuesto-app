@@ -9,7 +9,16 @@ function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export default function ResponsiveModal({ isOpen, onClose, title, children, className, contentClassName, showCloseButton = true }) {
+export default function ResponsiveModal({ 
+  isOpen, 
+  onClose, 
+  title, 
+  children, 
+  className, 
+  contentClassName, 
+  showCloseButton = true,
+  disableAnimation = false 
+}) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -29,6 +38,76 @@ export default function ResponsiveModal({ isOpen, onClose, title, children, clas
       document.body.style.overflow = 'auto';
     };
   }, [isOpen]);
+
+  // Si disableAnimation está activo, renderizar directamente sin Framer Motion ni backdrop-blur
+  if (disableAnimation) {
+    if (!isOpen) return null;
+
+    const staticContent = (
+      <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center font-sans">
+        {/* Backdrop plano sin blur para máximo rendimiento */}
+        <div
+          onClick={onClose}
+          className="absolute inset-0 bg-black/50"
+        />
+
+        {/* Modal Container instantáneo */}
+        <div
+          className={cn(
+            "relative bg-white dark:bg-zinc-950 shadow-2xl flex flex-col overflow-hidden z-10",
+            isMobile
+              ? "w-full max-h-[90dvh] rounded-t-3xl pb-6"
+              : "w-full max-w-2xl max-h-[85dvh] rounded-2xl",
+            className
+          )}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Drag Handle (Mobile only) */}
+          {isMobile && (
+            <div className="w-full flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full" />
+            </div>
+          )}
+
+          {/* Header */}
+          {title && (
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 shrink-0">
+              <h2 className="text-lg font-extrabold text-slate-800 dark:text-white">{title}</h2>
+              {showCloseButton && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-2 -mr-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-50 hover:bg-slate-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-full transition-colors active:scale-95"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {!title && showCloseButton && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute top-4 right-4 z-50 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-white/80 hover:bg-slate-100 dark:bg-black/40 dark:hover:bg-white/10 rounded-full transition-colors active:scale-95"
+            >
+              <X size={20} />
+            </button>
+          )}
+
+          {/* Body */}
+          <div className={cn("p-6 overflow-y-auto custom-scrollbar flex-1", contentClassName)}>
+            {children}
+          </div>
+        </div>
+      </div>
+    );
+
+    if (typeof document !== 'undefined') {
+      return createPortal(staticContent, document.body);
+    }
+    return null;
+  }
 
   // Use createPortal to mount modal at the end of document.body
   const modalContent = (

@@ -3209,39 +3209,39 @@ export default function PublicStore() {
       </ResponsiveModal>
 
       {/* Tools Modal (Calculadora, etc) */}
-      <ResponsiveModal isOpen={isToolsModalOpen} onClose={() => setIsToolsModalOpen(false)} title="Herramientas">
-        <div className="space-y-6">
+      <ResponsiveModal isOpen={isToolsModalOpen} onClose={() => setIsToolsModalOpen(false)} title="Herramientas" disableAnimation={true}>
+        <div className="space-y-5">
           {/* Calculadora Multi-Moneda */}
-          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
+          <div className="bg-slate-50 dark:bg-zinc-900/70 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-xs">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                <Calculator className="text-blue-500" size={20} />
+              <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
+                <Calculator className="text-amber-500" size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-white">Calculadora BCV</h3>
-                <p className="text-xs text-zinc-500">Tasa actual: {bcvRate} Bs.</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Tasa oficial: <span className="font-bold text-slate-700 dark:text-zinc-300">{bcvRate} Bs.</span></p>
               </div>
             </div>
             
             <div className="space-y-3">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-zinc-500 font-bold">$</span>
+                  <span className="text-slate-400 font-bold">$</span>
                 </div>
                 <input
                   type="number"
                   placeholder="Monto en dólares"
                   value={calcUSD}
                   onChange={(e) => setCalcUSD(e.target.value)}
-                  className="w-full bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-blue-500/50"
+                  className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
 
               {calcUSD && !isNaN(calcUSD) && bcvRate !== '...' && (
-                <div className="bg-blue-500/10 rounded-xl p-4 border border-blue-500/20">
+                <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200/80 dark:border-amber-900/40">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">Equivalente:</span>
-                    <span className="text-xl font-black text-blue-700 dark:text-blue-300">
+                    <span className="text-sm text-amber-800 dark:text-amber-300 font-medium">Equivalente:</span>
+                    <span className="text-xl font-black text-amber-900 dark:text-amber-200">
                       Bs. {(parseFloat(calcUSD) * parseFloat(bcvRate)).toFixed(2)}
                     </span>
                   </div>
@@ -3251,35 +3251,44 @@ export default function PublicStore() {
           </div>
 
           {/* Simulador de Compra */}
-          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
+          <div className="bg-slate-50 dark:bg-zinc-900/70 rounded-2xl p-5 border border-slate-200 dark:border-white/10 shadow-xs">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
                 <ShoppingCart className="text-amber-500" size={20} />
               </div>
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-white">Simulador de Pago</h3>
-                <p className="text-xs text-zinc-500">Calcula tu compra con descuentos</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Calcula tu compra con cupones y descuentos</p>
               </div>
             </div>
 
             <div className="space-y-4">
               {/* Product list for simulator (first 5 to not crowd) */}
-              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                 {products.slice(0, 5).map(p => {
                   const qty = simulatedCart[p.id] || 0;
                   return (
-                    <div key={p.id} className="flex items-center justify-between bg-white dark:bg-zinc-800 p-2 rounded-xl border border-black/5 dark:border-white/5">
-                      <div className="flex flex-col max-w-[120px]">
-                        <span className="text-[11px] font-bold truncate">{p.name}</span>
-                        <span className="text-[10px] text-zinc-500">${p.price}</span>
+                    <div key={p.id} className="flex items-center justify-between bg-white dark:bg-zinc-800 p-2.5 rounded-xl border border-slate-200/80 dark:border-white/5">
+                      <div className="flex flex-col max-w-[130px]">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white truncate">{p.name}</span>
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400">${p.price}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => simulateAddToCart(p, -1)} disabled={qty <= 0} className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center disabled:opacity-50 text-zinc-600 dark:text-zinc-300">
-                          <Minus size={12} />
+                        <button 
+                          type="button"
+                          onClick={() => simulateAddToCart(p, -1)} 
+                          disabled={qty <= 0} 
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 flex items-center justify-center disabled:opacity-40 text-slate-700 dark:text-zinc-200 transition-colors"
+                        >
+                          <Minus size={13} />
                         </button>
-                        <span className="text-xs font-bold w-4 text-center">{qty}</span>
-                        <button onClick={() => simulateAddToCart(p, 1)} className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center text-zinc-600 dark:text-zinc-300">
-                          <Plus size={12} />
+                        <span className="text-xs font-black w-5 text-center text-slate-900 dark:text-white">{qty}</span>
+                        <button 
+                          type="button"
+                          onClick={() => simulateAddToCart(p, 1)} 
+                          className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 flex items-center justify-center text-slate-700 dark:text-zinc-200 transition-colors"
+                        >
+                          <Plus size={13} />
                         </button>
                       </div>
                     </div>
@@ -3294,36 +3303,40 @@ export default function PublicStore() {
                   placeholder="Cupón (Ej: DESCUENTO10)"
                   value={simulatedDiscountCode}
                   onChange={(e) => setSimulatedDiscountCode(e.target.value)}
-                  className="flex-1 bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-amber-500/50 uppercase"
+                  className="flex-1 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl py-2.5 px-3 text-xs text-slate-800 dark:text-white focus:outline-none focus:border-amber-500 uppercase placeholder:text-slate-400"
                 />
-                <button onClick={handleApplySimulatedDiscount} className="bg-zinc-800 text-white text-xs px-3 rounded-xl font-bold hover:bg-zinc-700">
+                <button 
+                  type="button"
+                  onClick={handleApplySimulatedDiscount} 
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs px-4 rounded-xl font-bold transition-colors shadow-xs"
+                >
                   Aplicar
                 </button>
               </div>
 
               {/* Totals */}
-              <div className="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200/80 dark:border-amber-900/40">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-xs text-amber-700 dark:text-amber-500 font-medium">Subtotal USD:</span>
-                  <span className="text-sm font-bold text-amber-700 dark:text-amber-500">
+                  <span className="text-xs text-slate-600 dark:text-zinc-400 font-medium">Subtotal USD:</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-white">
                     ${simulatedTotalUsd.toFixed(2)}
                   </span>
                 </div>
                 {simulatedDiscountPct > 0 && (
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs text-green-600 font-medium">Descuento ({simulatedDiscountPct}%):</span>
-                    <span className="text-sm font-bold text-green-600">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Descuento ({simulatedDiscountPct}%):</span>
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                       -${(simulatedTotalUsd * (simulatedDiscountPct/100)).toFixed(2)}
                     </span>
                   </div>
                 )}
-                <div className="h-px bg-amber-500/20 my-2"></div>
+                <div className="h-px bg-amber-200 dark:bg-amber-900/50 my-2.5"></div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-800 dark:text-white font-bold">Total a Pagar:</span>
+                  <span className="text-sm text-slate-900 dark:text-white font-bold">Total Estimado:</span>
                   <div className="text-right">
-                    <div className="text-lg font-black text-slate-800 dark:text-white">${finalSimulatedUsd.toFixed(2)}</div>
+                    <div className="text-lg font-black text-amber-900 dark:text-amber-200">${finalSimulatedUsd.toFixed(2)}</div>
                     {bcvRate !== '...' && (
-                      <div className="text-xs font-medium text-zinc-500">
+                      <div className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
                         ~ Bs. {(finalSimulatedUsd * parseFloat(bcvRate)).toFixed(2)}
                       </div>
                     )}
@@ -3332,29 +3345,11 @@ export default function PublicStore() {
               </div>
             </div>
           </div>
-
-          {/* Métodos de Pago */}
-          <div className="bg-zinc-100 dark:bg-zinc-900 rounded-2xl p-5 border border-black/5 dark:border-white/5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-                <CreditCard className="text-emerald-500" size={20} />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white">Métodos de Pago</h3>
-                <p className="text-xs text-zinc-500">Aceptados por la tienda</p>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Pago Móvil</span>
-              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Efectivo USD</span>
-              <span className="px-3 py-1 bg-white dark:bg-zinc-800 rounded-full text-xs font-medium border border-black/5 dark:border-white/5 shadow-sm">Zelle</span>
-            </div>
-          </div>
           
           <button 
+            type="button"
             onClick={() => { setIsToolsModalOpen(false); navigate('/'); }}
-            className="w-full py-3.5 bg-zinc-900 text-amber-500 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-400 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
             <Map size={18} /> Explorar más tiendas
           </button>
