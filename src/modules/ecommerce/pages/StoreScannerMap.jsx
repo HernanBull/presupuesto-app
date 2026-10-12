@@ -218,16 +218,18 @@ export default function StoreScannerMap() {
           setActiveSearchLocation({ lat: coords[0], lng: coords[1] });
           setIsScanning(false);
           triggerAutoCache(coords[0], coords[1]);
+          fetchStores(coords);
         },
         (error) => {
-          console.error("Error obtaining location", error);
+          console.warn("GPS no disponible o denegado (modo escáner activo):", error.message);
           setUserLocation(defaultLocation);
           setMapCenter({ lat: defaultLocation[0], lng: defaultLocation[1] });
           setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
           setIsScanning(false);
           triggerAutoCache(defaultLocation[0], defaultLocation[1]);
+          fetchStores(defaultLocation);
         },
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, timeout: 6000 }
       );
     } else {
       setUserLocation(defaultLocation);
@@ -235,6 +237,7 @@ export default function StoreScannerMap() {
       setActiveSearchLocation({ lat: defaultLocation[0], lng: defaultLocation[1] });
       setIsScanning(false);
       triggerAutoCache(defaultLocation[0], defaultLocation[1]);
+      fetchStores(defaultLocation);
     }
   }, []);
 
@@ -483,14 +486,20 @@ export default function StoreScannerMap() {
 
       {/* TOP FLOATING HEADER (BUSCADOR REACTIVO SÓLIDO) */}
       <div className="absolute top-0 left-0 right-0 z-40 p-4 safe-area-pt">
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center max-w-4xl mx-auto">
           <button 
-            onClick={() => navigate(-1)} 
-            className="flex-shrink-0 w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-zinc-800 border border-zinc-200 shadow-md"
-            title="Volver"
+            onClick={() => navigate('/')} 
+            className="flex-shrink-0 px-3.5 h-11 bg-white hover:bg-zinc-50 rounded-2xl flex items-center gap-2 text-zinc-800 border border-zinc-200 shadow-md text-xs font-bold transition-all"
+            title="Volver al Directorio de tiendas"
           >
-            <X size={20} />
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Directorio</span>
           </button>
+
+          <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md rounded-2xl border border-zinc-200 text-xs font-bold text-zinc-700 shadow-sm shrink-0">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            Modo Escáner
+          </span>
           
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">

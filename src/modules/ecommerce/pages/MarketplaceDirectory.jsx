@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -53,6 +53,14 @@ export default function MarketplaceDirectory() {
   const [activeCategory, setActiveCategory] = useState('Todas');
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [bannerSlide, setBannerSlide] = useState(0);
+  const categoriesScrollRef = useRef(null);
+
+  const scrollCategories = (direction) => {
+    if (categoriesScrollRef.current) {
+      categoriesScrollRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
+    }
+  };
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1339,7 +1347,7 @@ export default function MarketplaceDirectory() {
           </div>
 
           {/* Desktop Search Bar in Header */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
+          <div className="hidden md:flex flex-1 max-w-xs lg:max-w-sm mx-4 relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search size={16} className="text-zinc-400" />
             </div>
@@ -1351,6 +1359,87 @@ export default function MarketplaceDirectory() {
               className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-zinc-900 text-xs font-medium focus:outline-none focus:border-amber-500 shadow-inner placeholder-zinc-400"
             />
           </div>
+
+          {/* Desktop Navigation Buttons (Equiparadas con la barra móvil) */}
+          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 mr-2">
+            <button
+              onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); navigate('/'); }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeCategory === 'Todas' && !searchTerm 
+                  ? 'bg-amber-500/15 text-amber-600 font-black' 
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              }`}
+              title="Ir a inicio del directorio"
+            >
+              <Home size={16} />
+              <span>Inicio</span>
+            </button>
+
+            <button
+              onClick={() => setIsCategoriesOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                isCategoriesOpen || activeCategory !== 'Todas'
+                  ? 'bg-amber-500/15 text-amber-600 font-black' 
+                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
+              }`}
+              title="Explorar departamentos y categorías"
+            >
+              <Menu size={16} />
+              <span>Categorías</span>
+              {activeCategory !== 'Todas' && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500 text-black font-black">
+                  {activeCategory}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                if (!currentCustomer) {
+                  setAuthMode('login');
+                  setIsAuthModalOpen(true);
+                } else {
+                  navigate('/profile', { state: { tab: 'favoritas' } });
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 hover:text-rose-600 hover:bg-rose-50 transition-all relative"
+              title="Mis Tiendas Favoritas"
+            >
+              <Heart 
+                size={16} 
+                className={currentCustomer?.favorites?.length ? "text-rose-500 fill-rose-500" : "text-zinc-600"} 
+              />
+              <span>Favoritos</span>
+              {Boolean(currentCustomer?.favorites?.length) && (
+                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+                  {currentCustomer.favorites.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => navigate('/mapa')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 hover:text-amber-600 hover:bg-amber-50 transition-all"
+              title="Explorar comercios en el mapa satelital"
+            >
+              <MapPin size={16} className="text-amber-500" />
+              <span>Mapa Radar</span>
+            </button>
+
+            {Object.keys(globalCart).length > 0 && (
+              <button
+                onClick={() => setIsCartOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 hover:bg-amber-400 transition-all shadow-xs"
+                title="Ver mis carritos de compra"
+              >
+                <ShoppingCart size={16} />
+                <span>Carrito</span>
+                <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
+                  {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
+                </span>
+              </button>
+            )}
+          </nav>
 
           <div className="flex items-center gap-3">
             {currentCustomer ? (
@@ -1432,18 +1521,56 @@ export default function MarketplaceDirectory() {
         {/* Categorías Principales (Desktop Only) */}
         <section className="hidden md:block space-y-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-zinc-900 font-bold text-lg md:text-xl">Categorías</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-zinc-900 font-bold text-lg md:text-xl">Departamentos</h3>
+              {activeCategory !== 'Todas' && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-black">
+                  Filtrado: {activeCategory}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {activeCategory !== 'Todas' && (
+                <button
+                  onClick={() => setActiveCategory('Todas')}
+                  className="text-xs font-bold text-zinc-500 hover:text-zinc-900 mr-2"
+                >
+                  Restablecer
+                </button>
+              )}
+              <button 
+                onClick={() => setIsCategoriesOpen(true)}
+                className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline mr-2"
+              >
+                Ver todas ({categories.length})
+              </button>
+              <button 
+                onClick={() => scrollCategories(-1)}
+                className="w-8 h-8 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 flex items-center justify-center text-zinc-600 transition-colors shadow-2xs"
+                title="Desplazar a la izquierda"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button 
+                onClick={() => scrollCategories(1)}
+                className="w-8 h-8 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 flex items-center justify-center text-zinc-600 transition-colors shadow-2xs"
+                title="Desplazar a la derecha"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-4">
-            <div className="flex overflow-x-auto scrollbar-hide gap-4 pb-1">
+            <div ref={categoriesScrollRef} className="flex overflow-x-auto scrollbar-hide gap-3.5 pb-2 scroll-smooth">
               {categories.map((cat) => {
                 const isActive = activeCategory === cat.id;
+                const IconComponent = cat.icon;
                 return (
-                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[80px] shrink-0">
-                    <div className={`w-[80px] h-[80px] rounded-[1.5rem] flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] scale-105' : 'bg-white border-zinc-200 group-hover:bg-zinc-800 shadow-md group-hover:scale-105'}`}>
-                      <cat.icon size={28} strokeWidth={isActive ? 2.5 : 1.5} className={isActive ? 'text-black' : 'text-zinc-500 group-hover:text-amber-500'} />
+                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[84px] shrink-0">
+                    <div className={`w-[84px] h-[84px] rounded-2xl flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.35)] scale-105' : 'bg-white border border-zinc-200/90 group-hover:bg-amber-50/50 group-hover:border-amber-300 shadow-sm group-hover:scale-105'}`}>
+                      <IconComponent size={26} strokeWidth={isActive ? 2.5 : 1.7} className={isActive ? 'text-black' : 'text-zinc-600 group-hover:text-amber-600'} />
                     </div>
-                    <span className={`text-xs text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-500' : 'text-zinc-500'}`}>{cat.name}</span>
+                    <span className={`text-[11px] text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-600' : 'text-zinc-600 group-hover:text-zinc-900'}`}>{cat.name}</span>
                   </div>
                 );
               })}
@@ -1719,43 +1846,71 @@ export default function MarketplaceDirectory() {
         )}
       </AnimatePresence>
 
-      {/* Categories Slide-over (Mobile Only) */}
+      {/* Categories Slide-over / Modal (Responsive: Slide-over on Mobile, Centered Modal on Desktop) */}
       <AnimatePresence>
         {isCategoriesOpen && (
-          <div className="fixed inset-0 z-[100] flex justify-start md:hidden">
+          <div className="fixed inset-0 z-[100] flex justify-start md:items-center md:justify-center p-0 md:p-6">
             <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-black/90" onClick={() => setIsCategoriesOpen(false)}
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+              className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setIsCategoriesOpen(false)}
             />
             <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="bg-zinc-950 border-r border-zinc-200 w-full max-w-[85%] h-full relative z-10 shadow-2xl flex flex-col"
+              initial={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: isMobile ? 1 : 0 }}
+              animate={{ x: 0, scale: 1, opacity: 1 }}
+              exit={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="bg-white border border-zinc-200 w-full max-w-[88%] md:max-w-3xl h-full md:h-auto md:max-h-[85vh] md:rounded-3xl relative z-10 shadow-2xl flex flex-col overflow-hidden"
             >
-              <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
+              <div className="p-5 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/70">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-zinc-200">
-                    <Menu className="text-amber-500" size={20} />
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 text-amber-600">
+                    <Menu size={20} />
                   </div>
-                  <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Categorías</h2>
+                  <div>
+                    <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">Departamentos y Categorías</h2>
+                    <p className="text-xs text-zinc-500 hidden md:block">Selecciona un departamento para filtrar los comercios disponibles</p>
+                  </div>
                 </div>
-                <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-500 hover:text-zinc-900 bg-white/5 rounded-full p-2 transition-all">
-                  <X size={20} />
-                </button>
+                <div className="flex items-center gap-2">
+                  {activeCategory !== 'Todas' && (
+                    <button 
+                      onClick={() => { setActiveCategory('Todas'); setIsCategoriesOpen(false); }}
+                      className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors"
+                    >
+                      Limpiar filtro
+                    </button>
+                  )}
+                  <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full p-2 transition-all">
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-                <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="flex-1 overflow-y-auto p-5 md:p-6 scrollbar-hide">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4">
                   {categories.map((cat) => {
                     const isActive = activeCategory === cat.id;
+                    const IconComponent = cat.icon;
                     return (
-                      <div key={cat.id} onClick={() => { setActiveCategory(cat.id); setIsCategoriesOpen(false); window.scrollTo({top:0, behavior:'smooth'}); }} className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${isActive ? 'bg-amber-500/10 border-amber-500/30' : 'bg-zinc-900 border-zinc-200 hover:bg-zinc-800'}`}>
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-amber-500 text-black' : 'bg-black text-amber-500'}`}>
-                          <cat.icon size={24} strokeWidth={isActive ? 2.5 : 1.5} />
+                      <div 
+                        key={cat.id} 
+                        onClick={() => { 
+                          setActiveCategory(cat.id); 
+                          setIsCategoriesOpen(false); 
+                          window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                        }} 
+                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all cursor-pointer text-center group ${
+                          isActive 
+                            ? 'bg-amber-500/10 border-amber-500 text-amber-600 shadow-sm' 
+                            : 'bg-zinc-50/80 border-zinc-200/80 hover:bg-amber-50/40 hover:border-amber-300 text-zinc-700'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${
+                          isActive ? 'bg-amber-500 text-black shadow-xs' : 'bg-white border border-zinc-200 text-zinc-600 group-hover:text-amber-600 shadow-2xs'
+                        }`}>
+                          <IconComponent size={22} strokeWidth={isActive ? 2.5 : 1.8} />
                         </div>
-                        <span className={`text-xs font-bold text-center ${isActive ? 'text-amber-500' : 'text-zinc-700'}`}>{cat.name}</span>
+                        <span className="text-xs font-bold leading-tight line-clamp-1">{cat.name}</span>
                       </div>
                     );
                   })}
