@@ -40,6 +40,48 @@ export const notifySocialUpdate = (eventType, detail) => {
   window.dispatchEvent(new CustomEvent('axon_social_updated', { detail: { eventType, ...detail } }));
 };
 
+// Comprobadores síncronos desde cache local (para evitar parpadeos y animaciones repetidas en la carga inicial)
+export const isPostLikedLocally = (postId, customerId) => {
+  if (!postId || !customerId) return false;
+  try {
+    const rawId = String(customerId);
+    const uuidId = toSocialUuid(customerId);
+    const raw = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}likes_${postId}`);
+    if (!raw) return false;
+    const likes = JSON.parse(raw);
+    return likes.includes(rawId) || likes.includes(uuidId);
+  } catch (e) {
+    return false;
+  }
+};
+
+export const isStoreFollowedLocally = (workspaceId, customerId) => {
+  if (!workspaceId || !customerId) return false;
+  try {
+    const rawId = String(customerId);
+    const uuidId = toSocialUuid(customerId);
+    const raw = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}followers_${workspaceId}`);
+    if (!raw) return false;
+    const followers = JSON.parse(raw);
+    return followers.includes(rawId) || followers.includes(uuidId);
+  } catch (e) {
+    return false;
+  }
+};
+
+export const isPostSavedLocally = (postId, customerId) => {
+  if (!postId || !customerId) return false;
+  try {
+    const rawId = String(customerId);
+    const raw = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}saves_${rawId}`);
+    if (!raw) return false;
+    const saves = JSON.parse(raw);
+    return saves.includes(String(postId));
+  } catch (e) {
+    return false;
+  }
+};
+
 /**
  * Consulta de coincidencia para customer_id segura para Postgres (evita error 22P02 si la columna es UUID)
  */
@@ -147,6 +189,19 @@ export const getStoreFollowState = async (workspaceId, customerId) => {
     if (customerId) {
       const existing = await findRecordByCustomer('ecommerce_store_followers', 'workspace_id', workspaceId, customerId);
       if (existing) isFollowing = true;
+
+      // Sincronizar cache local para cargas estáticas inmediatas
+      const key = `${LOCAL_STORAGE_PREFIX}followers_${workspaceId}`;
+      const raw = localStorage.getItem(key);
+      let followers = raw ? JSON.parse(raw) : [];
+      const rawId = String(customerId);
+      if (isFollowing && !followers.includes(rawId)) {
+        followers.push(rawId);
+        localStorage.setItem(key, JSON.stringify(followers));
+      } else if (!isFollowing && (followers.includes(rawId) || followers.includes(toSocialUuid(customerId)))) {
+        followers = followers.filter(id => id !== rawId && id !== toSocialUuid(customerId));
+        localStorage.setItem(key, JSON.stringify(followers));
+      }
     }
 
     return { isFollowing, count: count || 0, followersCount: count || 0 };
@@ -229,6 +284,19 @@ export const getPostLikeState = async (postId, customerId) => {
     if (customerId) {
       const existing = await findRecordByCustomer('ecommerce_post_likes', 'post_id', postId, customerId);
       if (existing) isLiked = true;
+
+      // Sincronizar cache local para cargas estáticas inmediatas
+      const key = `${LOCAL_STORAGE_PREFIX}likes_${postId}`;
+      const raw = localStorage.getItem(key);
+      let likes = raw ? JSON.parse(raw) : [];
+      const rawId = String(customerId);
+      if (isLiked && !likes.includes(rawId)) {
+        likes.push(rawId);
+        localStorage.setItem(key, JSON.stringify(likes));
+      } else if (!isLiked && (likes.includes(rawId) || likes.includes(toSocialUuid(customerId)))) {
+        likes = likes.filter(id => id !== rawId && id !== toSocialUuid(customerId));
+        localStorage.setItem(key, JSON.stringify(likes));
+      }
     }
 
     const finalCount = count || 0;
@@ -367,13 +435,27 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
 export const getPostSaveState = async (postId, customerId) => {
   if (!postId || !customerId) return { isSaved: false };
 
+  const rawId = String(customerId);
+  const key = `${LOCAL_STORAGE_PREFIX}saves_${rawId}`;
+
   try {
     const existing = await findRecordByCustomer('ecommerce_post_saves', 'post_id', postId, customerId);
-    return { isSaved: Boolean(existing) };
+    const isSaved = Boolean(existing);
+
+    // Sincronizar cache local para lecturas síncronas instantáneas
+    const raw = localStorage.getItem(key);
+    let saves = raw ? JSON.parse(raw) : [];
+    const strPostId = String(postId);
+    if (isSaved && !saves.includes(strPostId)) {
+      saves.push(strPostId);
+      localStorage.setItem(key, JSON.stringify(saves));
+    } else if (!isSaved && saves.includes(strPostId)) {
+      saves = saves.filter(id => id !== strPostId);
+      localStorage.setItem(key, JSON.stringify(saves));
+    }
+
+    return { isSaved };
   } catch (err) {
-    const rawId = String(customerId);
-    const uuidId = toSocialUuid(customerId);
-    const key = `${LOCAL_STORAGE_PREFIX}saves_${rawId}`;
     const raw = localStorage.getItem(key);
     const saves = raw ? JSON.parse(raw) : [];
     return { isSaved: saves.includes(String(postId)) };
@@ -404,6 +486,18 @@ export const toggleSavePost = async (postId, workspaceId, customerId, storeMeta 
       }, customerId);
       isSaved = true;
     }
+
+    // Actualizar cache local síncrono
+    const key = `${LOCAL_STORAGE_PREFIX}saves_${rawId}`;
+    const raw = localStorage.getItem(key);
+    let saves = raw ? JSON.parse(raw) : [];
+    const strPostId = String(postId);
+    if (isSaved) {
+      if (!saves.includes(strPostId)) saves.push(strPostId);
+    } else {
+      saves = saves.filter(id => id !== strPostId);
+    }
+    localStorage.setItem(key, JSON.stringify(saves));
   } catch (err) {
     console.warn('Error en toggleSavePost Supabase:', err);
     const key = `${LOCAL_STORAGE_PREFIX}saves_${rawId}`;
@@ -421,22 +515,29 @@ export const toggleSavePost = async (postId, workspaceId, customerId, storeMeta 
     localStorage.setItem(key, JSON.stringify(saves));
   }
 
-  // Sincronizar también con customer.favorites en ecommerce_customers para que aparezca en el perfil
+  // Sincronizar también con customer.favorites guardando la PUBLICACIÓN individual (no la tienda completa)
   try {
     const savedCustomerStr = localStorage.getItem('ecommerce_current_customer');
     if (savedCustomerStr) {
       const customerObj = JSON.parse(savedCustomerStr);
       let currentFavs = Array.isArray(customerObj.favorites) ? [...customerObj.favorites] : [];
-      const targetSlug = storeMeta.slug || storeMeta.store_slug || String(postId);
+      const strPostId = String(postId);
 
-      const existsIdx = currentFavs.findIndex(f => (typeof f === 'object' && (f.slug === targetSlug || f.id === String(postId))) || f === targetSlug);
+      // Buscar si ya existe por el ID de la publicación
+      const existsIdx = currentFavs.findIndex(f => (typeof f === 'object' && (String(f.id) === strPostId || String(f.postId) === strPostId)));
       if (isSaved && existsIdx === -1) {
         currentFavs.push({
-          id: String(postId),
-          slug: targetSlug,
-          name: storeMeta.name || storeMeta.store_name || 'Comercio',
-          logo: storeMeta.logo || storeMeta.store_logo || '',
+          id: strPostId,
+          postId: strPostId,
+          type: 'post',
+          title: storeMeta.title || storeMeta.name || 'Publicación Guardada',
+          name: storeMeta.name || storeMeta.store_name || 'Publicación',
+          caption: storeMeta.caption || storeMeta.content || '',
           cover: storeMeta.cover || storeMeta.image_url || '',
+          image_url: storeMeta.cover || storeMeta.image_url || '',
+          store_slug: storeMeta.store_slug || storeMeta.slug || '',
+          store_name: storeMeta.store_name || storeMeta.name || '',
+          workspace_id: workspaceId,
           savedAt: new Date().toISOString()
         });
       } else if (!isSaved && existsIdx >= 0) {

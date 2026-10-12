@@ -1290,6 +1290,20 @@ export default function MarketplaceDirectory() {
     return [...newsCards, ...storeCards].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredStores, storeNews, stores]);
 
+  // Soporte para enlaces compartidos directos (WhatsApp o Copiar Enlace)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetPost = params.get('post') || window.location.hash.replace('#post-', '');
+    if (targetPost && feedPosts.length > 0) {
+      setTimeout(() => {
+        const el = document.getElementById(`post-${targetPost}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 350);
+    }
+  }, [feedPosts.length]);
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">

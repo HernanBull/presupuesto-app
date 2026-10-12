@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, User, CheckCircle, MapPin, MoreHorizontal, Store, Check } from 'lucide-react';
+import { 
+  Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
+  MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X 
+} from 'lucide-react';
 import { 
   getPostLikeState, 
   toggleLikePost, 
@@ -7,8 +10,12 @@ import {
   toggleFollowStore, 
   getPostSaveState, 
   toggleSavePost,
-  getPostComments
+  getPostComments,
+  isPostLikedLocally,
+  isStoreFollowedLocally,
+  isPostSavedLocally
 } from '../services/socialService';
+import ResponsiveModal from './ResponsiveModal';
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
@@ -46,16 +53,23 @@ export default function SocialFeedCard({
   const isVerified = post.is_verified || post.config?.is_verified;
   const createdAt = post.created_at;
 
-  // Estados locales optimistas
-  const [isLiked, setIsLiked] = useState(false);
+  // Estados síncronos iniciales para render estático inmediato (sin parpadeos ni animaciones de recarga)
+  const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, currentCustomer?.id));
   const [likesCount, setLikesCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, currentCustomer?.id));
+  const [isSaved, setIsSaved] = useState(() => {
+    if (!currentCustomer?.id || !postId) return false;
+    const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
+      currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
+    return inCustomerFavs || isPostSavedLocally(postId, currentCustomer.id);
+  });
   const [commentsCount, setCommentsCount] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
-  // Cargar estado inicial
+  // Cargar estado desde el servidor
   useEffect(() => {
     let mounted = true;
 
@@ -66,7 +80,7 @@ export default function SocialFeedCard({
       const likeRes = await getPostLikeState(postId, custId);
       if (mounted) {
         setIsLiked(likeRes.isLiked);
-        setLikesCount(likeRes.count);
+        setLikesCount(likeRes.count || likeRes.likesCount || 0);
       }
 
       // Seguidores
@@ -77,10 +91,10 @@ export default function SocialFeedCard({
         }
       }
 
-      // Guardados
+      // Guardados (estrictamente por ID de la publicación)
       if (custId) {
         const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
-          currentCustomer.favorites.some(f => (f.slug && f.slug === storeSlug) || (f.id && f.id === postId));
+          currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
         const saveRes = await getPostSaveState(postId, custId);
         if (mounted) {
           setIsSaved(inCustomerFavs || saveRes.isSaved);
@@ -127,7 +141,6 @@ export default function SocialFeedCard({
       return;
     }
 
-    // Actualización optimista inmediata
     const newLiked = !isLiked;
     setIsLiked(newLiked);
     setLikesCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
@@ -135,7 +148,6 @@ export default function SocialFeedCard({
     try {
       await toggleLikePost(postId, workspaceId, currentCustomer.id);
     } catch (err) {
-      // Revertir si hay error
       setIsLiked(!newLiked);
       setLikesCount(prev => !newLiked ? prev + 1 : Math.max(0, prev - 1));
     }
@@ -151,7 +163,7 @@ export default function SocialFeedCard({
     setTimeout(() => setShowHeartBurst(false), 800);
   };
 
-  // Manejo de Follow
+  // Manejo de Follow (Solo modifica la relación de seguimiento a la tienda)
   const handleFollow = async (e) => {
     e.stopPropagation();
     if (!currentCustomer) {
@@ -169,7 +181,7 @@ export default function SocialFeedCard({
     }
   };
 
-  // Manejo de Guardado
+  // Manejo de Guardado (Guarda exclusivamente la publicación individual)
   const handleSave = async (e) => {
     e.stopPropagation();
     if (!currentCustomer) {
@@ -182,38 +194,64 @@ export default function SocialFeedCard({
 
     try {
       await toggleSavePost(postId, workspaceId, currentCustomer.id, {
-        slug: storeSlug,
-        store_slug: storeSlug,
-        name: storeName,
-        store_name: storeName,
-        logo: storeLogo,
-        store_logo: storeLogo,
+        id: String(postId),
+        postId: String(postId),
+        title: post.title || post.name || storeName,
+        caption: caption,
         cover: storeCover,
-        image_url: storeCover
+        image_url: storeCover,
+        store_name: storeName,
+        store_slug: storeSlug,
+        workspace_id: workspaceId,
+        type: post.type || 'news'
       });
     } catch (err) {
       setIsSaved(!newSaved);
     }
   };
 
-  // Manejo de Compartir
-  const handleShare = (e) => {
-    e.stopPropagation();
-    const shareUrl = `${window.location.origin}/${storeSlug}`;
+  // Enlace directo único a esta publicación
+  const postShareUrl = `${window.location.origin}/?post=${postId}#post-${postId}`;
+
+  const handleOpenShare = (e) => {
+    e?.stopPropagation();
+    setShowShareModal(true);
+  };
+
+  const handleCopyPostLink = (e) => {
+    e?.stopPropagation();
+    navigator.clipboard.writeText(postShareUrl);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleShareWhatsApp = (e) => {
+    e?.stopPropagation();
+    const cleanCaption = caption ? caption.replace(/\n+/g, ' ').slice(0, 110) : '';
+    const text = `📢 *${storeName}* en Axon Market:\n\n${cleanCaption}${caption.length > 110 ? '...' : ''}\n\n👉 *Ver publicación completa:* ${postShareUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    setShowShareModal(false);
+  };
+
+  const handleNativeShare = (e) => {
+    e?.stopPropagation();
     if (navigator.share) {
       navigator.share({
-        title: storeName,
+        title: `${storeName} - Axon Market`,
         text: caption,
-        url: shareUrl
+        url: postShareUrl
       }).catch(() => {});
+      setShowShareModal(false);
     } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert('¡Enlace de la publicación copiado al portapapeles!');
+      handleCopyPostLink(e);
     }
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-950 flex flex-col pb-4 border-b border-slate-200 dark:border-white/10 last:border-b-0 shadow-xs">
+    <div 
+      id={`post-${postId}`}
+      className="bg-white dark:bg-zinc-950 flex flex-col pb-4 border-b border-slate-200 dark:border-white/10 last:border-b-0 shadow-xs"
+    >
       {/* Post Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-950">
         <div 
@@ -239,23 +277,22 @@ export default function SocialFeedCard({
         </div>
         
         <div className="flex items-center gap-2 relative">
+          {/* Botón Seguir: Muestra icono discreto cuando ya se sigue (sin la palabra Siguiendo) */}
           <button 
             type="button"
             onClick={handleFollow}
-            className={`text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs ${
+            className={`text-xs font-bold rounded-full flex items-center justify-center gap-1 active:scale-95 cursor-pointer shadow-xs ${
               isFollowing 
-                ? 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700' 
-                : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                ? 'bg-zinc-100 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-1.5 px-2.5' 
+                : 'bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5'
             }`}
+            title={isFollowing ? 'Siguiendo este comercio (Toca para dejar de seguir)' : 'Seguir este comercio'}
           >
             {isFollowing ? (
-              <>
-                <Check size={12} strokeWidth={2.5} />
-                <span>Siguiendo</span>
-              </>
+              <Check size={14} strokeWidth={2.8} />
             ) : (
               <>
-                <User size={12} />
+                <UserPlus size={13} />
                 <span>Seguir</span>
               </>
             )}
@@ -278,10 +315,10 @@ export default function SocialFeedCard({
                 Visitar vitrina
               </button>
               <button 
-                onClick={(e) => { setShowMenu(false); handleShare(e); }}
+                onClick={(e) => { setShowMenu(false); handleOpenShare(e); }}
                 className="w-full text-left px-4 py-2 text-xs font-medium text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
               >
-                Copiar enlace
+                Compartir publicación
               </button>
             </div>
           )}
@@ -326,7 +363,7 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={handleLike} 
-            className="hover:scale-110 active:scale-90 transition-transform cursor-pointer"
+            className="active:scale-90 cursor-pointer"
             title="Me gusta"
           >
             <Heart 
@@ -340,7 +377,7 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-            className="hover:scale-110 active:scale-90 transition-transform cursor-pointer"
+            className="active:scale-90 cursor-pointer"
             title="Comentar"
           >
             <MessageCircle size={26} strokeWidth={2} className="text-slate-800 dark:text-white" />
@@ -348,9 +385,9 @@ export default function SocialFeedCard({
           
           <button 
             type="button"
-            onClick={handleShare}
-            className="hover:scale-110 active:scale-90 transition-transform cursor-pointer -mt-0.5"
-            title="Compartir"
+            onClick={handleOpenShare}
+            className="active:scale-90 cursor-pointer -mt-0.5"
+            title="Compartir por WhatsApp o enlace"
           >
             <Send size={24} strokeWidth={2} className="text-slate-800 dark:text-white" />
           </button>
@@ -359,8 +396,8 @@ export default function SocialFeedCard({
         <button 
           type="button"
           onClick={handleSave}
-          className="hover:scale-110 active:scale-90 transition-transform cursor-pointer text-slate-800 dark:text-white"
-          title="Guardar"
+          className="active:scale-90 cursor-pointer text-slate-800 dark:text-white"
+          title="Guardar publicación"
         >
           <Bookmark 
             size={26} 
@@ -404,6 +441,82 @@ export default function SocialFeedCard({
           {formatTimeAgo(createdAt)}
         </span>
       </div>
+
+      {/* Modal / Menú de Compartir Publicación */}
+      <ResponsiveModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10 p-0 overflow-hidden"
+        contentClassName="p-0"
+      >
+        <div className="p-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between sticky top-0 bg-white dark:bg-zinc-950 z-10">
+          <div className="flex items-center gap-2">
+            <Send size={18} className="text-amber-500" />
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Compartir Publicación</h3>
+          </div>
+          <button
+            onClick={() => setShowShareModal(false)}
+            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4">
+          {/* Vista previa de la publicación compartida */}
+          <div className="flex items-center gap-3 p-2.5 rounded-2xl bg-gray-50 dark:bg-zinc-900 border border-gray-100 dark:border-white/5">
+            {storeCover ? (
+              <img src={resolveImageUrl(storeCover)} alt="Post" className="w-14 h-14 rounded-xl object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <Store size={22} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="font-bold text-xs text-gray-900 dark:text-white truncate block">{storeName}</span>
+              <p className="text-[11px] text-gray-500 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-snug">{caption}</p>
+            </div>
+          </div>
+
+          {/* Opciones directas */}
+          <div className="flex flex-col gap-2.5">
+            {/* WhatsApp */}
+            <button
+              onClick={handleShareWhatsApp}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all shadow-sm active:scale-98 cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <Send size={14} className="fill-white" />
+              </div>
+              <span className="flex-1 text-left">Compartir en WhatsApp</span>
+            </button>
+
+            {/* Copiar Enlace Directo */}
+            <button
+              onClick={handleCopyPostLink}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-100 font-semibold text-sm transition-all shadow-xs active:scale-98 cursor-pointer"
+            >
+              <div className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                {copiedLink ? <CheckCheck size={16} className="text-emerald-500" /> : <Copy size={15} />}
+              </div>
+              <span className="flex-1 text-left">
+                {copiedLink ? '¡Enlace copiado al portapapeles!' : 'Copiar enlace directo de la publicación'}
+              </span>
+            </button>
+
+            {/* Opciones del Sistema (Móvil) */}
+            {typeof navigator !== 'undefined' && navigator.share && (
+              <button
+                onClick={handleNativeShare}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl border border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-900 text-xs font-semibold transition-all cursor-pointer"
+              >
+                <Share2 size={15} />
+                <span>Más opciones para compartir</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </ResponsiveModal>
     </div>
   );
 }
