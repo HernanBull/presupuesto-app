@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import ResponsiveModal from '../components/ResponsiveModal';
+import { getStoreFollowState, toggleFollowStore } from '../services/socialService';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
@@ -66,6 +67,17 @@ export default function PublicStore() {
   const [config, setConfig] = useState(null);
   const [authGateMode, setAuthGateMode] = useState('login');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(89);
+
+  useEffect(() => {
+    if (workspaceId) {
+      getStoreFollowState(workspaceId, currentCustomer?.id).then(res => {
+        setIsFollowing(res.isFollowing);
+        if (res.count > 0) setFollowersCount(res.count);
+      });
+    }
+  }, [workspaceId, currentCustomer?.id]);
+
   const [currentPage, setCurrentPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     let pageParam = params.get('page');
@@ -1824,7 +1836,7 @@ export default function PublicStore() {
                   <span className="text-zinc-400 text-sm">Publicaciones</span>
                 </div>
                 <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowFollowersModal(true)}>
-                  <span className="font-bold text-xl">{89 + (isFollowing ? 1 : 0)}</span>
+                  <span className="font-bold text-xl">{followersCount}</span>
                   <span className="text-zinc-400 text-sm">Seguidores</span>
                 </div>
                 <div className="flex flex-col items-center">
@@ -1836,14 +1848,25 @@ export default function PublicStore() {
               {/* Botones de Acción */}
               <div className="flex gap-2 mt-6 w-full">
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (!currentCustomer && !isMerchantOwner) {
                       setShowAuthModal(true);
                       return;
                     }
-                    setIsFollowing(!isFollowing);
+                    if (!currentCustomer || !workspaceId) return;
+                    const newFollowing = !isFollowing;
+                    setIsFollowing(newFollowing);
+                    setFollowersCount(prev => newFollowing ? prev + 1 : Math.max(0, prev - 1));
+                    try {
+                      const res = await toggleFollowStore(workspaceId, currentCustomer.id);
+                      setIsFollowing(res.isFollowing);
+                      setFollowersCount(res.count);
+                    } catch (err) {
+                      setIsFollowing(!newFollowing);
+                      setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
+                    }
                   }}
-                  className={`flex-1 ${isFollowing ? 'bg-amber-600 text-black border-none' : 'bg-amber-500 hover:bg-amber-600 text-black border-none'} py-2 rounded-xl font-bold transition-colors text-sm flex items-center justify-center gap-2 shadow-sm`}
+                  className={`flex-1 ${isFollowing ? 'bg-amber-600 text-black border-none' : 'bg-amber-500 hover:bg-amber-600 text-black border-none'} py-2 rounded-xl font-bold transition-colors text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer`}
                 >
                   {isFollowing ? (
                     <>

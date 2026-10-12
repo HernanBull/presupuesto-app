@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,8 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAnalyticsModal from '../components/CustomerAnalyticsModal';
 import PwaInstallBanner from '../components/PwaInstallBanner';
+import SocialFeedCard from '../components/SocialFeedCard';
+import PostCommentsDrawer from '../components/PostCommentsDrawer';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
@@ -44,6 +46,8 @@ const PasswordRequirements = ({ password = '' }) => {
 
 export default function MarketplaceDirectory() {
   const [stores, setStores] = useState([]);
+  const [storeNews, setStoreNews] = useState([]);
+  const [activeCommentsPost, setActiveCommentsPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todas');
@@ -253,6 +257,20 @@ export default function MarketplaceDirectory() {
       } else if (error) {
         console.error("Error fetching stores:", error);
       }
+
+      try {
+        const { data: newsData } = await supabase
+          .from('ecommerce_store_news')
+          .select('*')
+          .eq('status', 'Publicado')
+          .order('created_at', { ascending: false });
+        if (newsData && newsData.length > 0) {
+          setStoreNews(newsData);
+        }
+      } catch (newsErr) {
+        console.warn("Error fetching store news:", newsErr);
+      }
+
       setLoading(false);
     };
     fetchStores();
@@ -1235,6 +1253,43 @@ export default function MarketplaceDirectory() {
     (store.config?.description && store.config.description.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
+  const feedPosts = useMemo(() => {
+    // 1. Vitrinas de tiendas
+    const storeCards = filteredStores.map(store => ({
+      id: `store_${store.id || store.store_slug}`,
+      workspace_id: store.id,
+      store_slug: store.store_slug,
+      store_name: store.name,
+      store_logo: store.config?.logoUrl || store.config?.storefront?.logoUrl,
+      image_url: store.config?.coverUrl || store.config?.storefront?.heroUrl,
+      content: store.config?.description || '¡Visita nuestra tienda para ver el catálogo completo!',
+      map_address: store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela',
+      is_verified: store.config?.is_verified,
+      created_at: store.created_at || new Date().toISOString(),
+      type: 'store'
+    }));
+
+    // 2. Noticias y publicaciones de los comercios
+    const newsCards = storeNews.map(news => {
+      const parentStore = stores.find(s => s.id === news.workspace_id) || {};
+      return {
+        id: news.id,
+        workspace_id: news.workspace_id,
+        store_slug: parentStore.store_slug || news.workspace_id,
+        store_name: parentStore.name || 'Comercio Axon',
+        store_logo: parentStore.config?.logoUrl || parentStore.config?.storefront?.logoUrl,
+        image_url: news.image_url || parentStore.config?.coverUrl || parentStore.config?.storefront?.heroUrl,
+        content: `${news.title ? `📢 ${news.title}: ` : ''}${news.content}`,
+        map_address: parentStore.map_address || parentStore.config?.address || 'Venezuela',
+        is_verified: parentStore.config?.is_verified,
+        created_at: news.created_at,
+        type: 'news'
+      };
+    });
+
+    return [...newsCards, ...storeCards].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }, [filteredStores, storeNews, stores]);
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">
@@ -1383,81 +1438,15 @@ export default function MarketplaceDirectory() {
           
           {/* Mobile Feed (Instagram Style) */}
           <div className="md:hidden flex flex-col space-y-6 -mx-5">
-            {filteredStores.map((store) => (
-              <div key={store.id} className="bg-zinc-950 flex flex-col pb-4 border-b border-zinc-200 last:border-b-0">
-                {/* Post Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-white">
-                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/${store.store_slug}`)}>
-                    <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-white/10 p-0.5">
-                      {store.config?.logoUrl || store.config?.storefront?.logoUrl ? (
-                        <img src={resolveImageUrl(store.config.logoUrl || store.config.storefront.logoUrl)} className="w-full h-full rounded-full object-cover bg-zinc-900" />
-                      ) : (
-                        <Store size={20} className="text-black" />
-                      )}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-zinc-900 font-bold text-sm tracking-wide leading-tight flex items-center gap-1">
-                        {store.name}
-                        {store.config?.is_verified && <CheckCircle size={12} className="text-blue-500 fill-blue-500/20" />}
-                      </span>
-                      <span className="text-zinc-500 text-[11px] flex items-center gap-1 mt-0.5 line-clamp-1">
-                        <MapPin size={10} className="text-amber-500 shrink-0" /> {store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button className="bg-zinc-100 text-black text-[11px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-white active:scale-95 transition-all">
-                      <User size={12} /> Seguir
-                    </button>
-                    <button className="text-zinc-900 hover:text-zinc-500">
-                      <MoreHorizontal size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Post Image */}
-                <div className="w-full aspect-[4/5] bg-zinc-900 cursor-pointer relative" onClick={() => navigate(`/${store.store_slug}`)}>
-                  {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
-                    <img loading="lazy" src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-zinc-600 bg-zinc-950">
-                      <Store size={64} />
-                      <span className="font-medium text-sm">Visitar Tienda</span>
-                    </div>
-                  )}
-                  {/* Pager dots mock */}
-                  <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-zinc-900 border border-zinc-200 font-medium tracking-widest">1/3</div>
-                </div>
-
-                {/* Post Actions */}
-                <div className="flex items-center justify-between px-4 py-3 bg-white">
-                  <div className="flex items-center gap-4 text-zinc-900">
-                    <button onClick={(e) => toggleFavorite(e, store)} className="hover:text-zinc-600 transition-colors">
-                      <Heart size={26} strokeWidth={isFavorite(store.store_slug) ? 0 : 2} fill={isFavorite(store.store_slug) ? '#ef4444' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''} />
-                    </button>
-                    <button className="hover:text-zinc-600 transition-colors" onClick={() => navigate(`/${store.store_slug}`)}>
-                      <MessageCircle size={26} strokeWidth={2} />
-                    </button>
-                    <button className="hover:text-zinc-600 transition-colors -mt-1">
-                      <Send size={26} strokeWidth={2} />
-                    </button>
-                  </div>
-                  <button className="text-zinc-900 hover:text-zinc-600 transition-colors">
-                    <Bookmark size={26} strokeWidth={2} />
-                  </button>
-                </div>
-
-                {/* Post Content */}
-                <div className="px-4 flex flex-col gap-1.5 bg-white pb-4" onClick={() => navigate(`/${store.store_slug}`)}>
-                  <span className="text-zinc-900 text-sm font-bold">{Math.floor(Math.random() * 500) + 50} Me gusta</span>
-                  <div className="text-zinc-900 text-sm">
-                    <span className="font-bold mr-2">{store.name}</span>
-                    <span className="text-zinc-700 line-clamp-2 inline">{store.config?.description || '¡Descubre nuestros mejores productos! Visita nuestra tienda para ver el catálogo completo. 👀✨'}</span>
-                  </div>
-                  <span className="text-zinc-600 text-xs font-medium mt-1 cursor-pointer">Ver los {Math.floor(Math.random() * 20) + 2} comentarios</span>
-                  <span className="text-zinc-600 text-[10px] uppercase tracking-wider mt-0.5">Hace {Math.floor(Math.random() * 12) + 1} horas</span>
-                </div>
-              </div>
+            {feedPosts.map((post) => (
+              <SocialFeedCard
+                key={post.id}
+                post={post}
+                currentCustomer={currentCustomer}
+                onOpenComments={(target) => setActiveCommentsPost(target)}
+                onRequireAuth={() => setIsAuthModalOpen(true)}
+                onNavigateStore={(slug) => navigate(`/${slug}`)}
+              />
             ))}
           </div>
 
@@ -2896,6 +2885,17 @@ export default function MarketplaceDirectory() {
           </>
         )}
       </AnimatePresence>
+      
+      {/* Comments Drawer (Instagram Style) */}
+      <PostCommentsDrawer
+        isOpen={Boolean(activeCommentsPost)}
+        onClose={() => setActiveCommentsPost(null)}
+        postId={activeCommentsPost?.postId}
+        postTitle={activeCommentsPost?.postTitle}
+        workspaceId={activeCommentsPost?.workspaceId}
+        currentCustomer={currentCustomer}
+        onRequireAuth={() => setIsAuthModalOpen(true)}
+      />
 
     </GoogleOAuthProvider>
   );
