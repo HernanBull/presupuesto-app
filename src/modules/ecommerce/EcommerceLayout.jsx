@@ -125,20 +125,26 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   if (workspaceStatus === 'Pendiente') {
     return (
-      <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 font-sans items-center justify-center p-6 text-center">
-        <div className="max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 p-8 rounded-3xl shadow-2xl">
-          <div className="bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+      <div className="min-h-screen h-[100dvh] flex flex-col bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 font-sans items-center justify-center p-4 sm:p-6 text-center">
+        <div className="max-w-md w-full bg-white border border-slate-200/90 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
             <ShieldAlert size={32} />
           </div>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white mb-4">
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">
             Cuenta en Revisión
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-            Tu tienda ha sido pre-registrada con éxito. Para proteger la seguridad de nuestros clientes, un representante de AxonMarket debe verificar tu negocio y procesar tu suscripción. Nos pondremos en contacto contigo pronto.
+          <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+            Tu tienda ha sido pre-registrada con éxito. Para proteger la seguridad de nuestros clientes, un representante de AxonMarket verificará tu negocio y procesará tu suscripción.
           </p>
+          <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 mb-6 text-left flex items-start gap-3">
+            <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+            <p className="text-xs text-amber-900 leading-relaxed font-medium">
+              Nos pondremos en contacto contigo pronto por correo o teléfono para activar tu vitrina oficial.
+            </p>
+          </div>
           <button 
             onClick={() => { localStorage.removeItem('activeWorkspace'); localStorage.removeItem('storeSlug'); navigate('/'); }}
-            className="w-full bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-white font-bold py-3 rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-slate-900/10 active:scale-98"
           >
             <ArrowLeft size={16} /> Volver al Inicio
           </button>

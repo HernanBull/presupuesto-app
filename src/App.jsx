@@ -24,7 +24,7 @@ import SuperAdminRouter from './modules/superadmin/SuperAdminRouter';
 function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   const [showLogin, setShowLogin] = useState(false);
 
   // Aislar módulos para pruebas sin autenticación
