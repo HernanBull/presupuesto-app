@@ -61,6 +61,7 @@ export default function PublicStore() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [workspaceId, setWorkspaceId] = useState(null);
+  const [currentCustomer, setCurrentCustomer] = useState(null);
   const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [showSocialMenu, setShowSocialMenu] = useState(false);
   const [storeNotFound, setStoreNotFound] = useState(false);
@@ -110,8 +111,6 @@ export default function PublicStore() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentBank, setPaymentBank] = useState('');
   const [selectedPaymentProfileIdx, setSelectedPaymentProfileIdx] = useState('');
-  
-  const [currentCustomer, setCurrentCustomer] = useState(null);
 
   const customerPaymentProfiles = useMemo(() => {
     if (!currentCustomer?.payment_profile) return [];

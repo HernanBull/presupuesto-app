@@ -20,6 +20,7 @@ import DeliveryRouter from './modules/delivery/DeliveryRouter';
 import { startTelegramEngine } from './modules/delivery/utils/telegramService';
 
 import SuperAdminRouter from './modules/superadmin/SuperAdminRouter';
+import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -75,7 +76,7 @@ function App() {
 
   if (isEcommerceRoute) {
     return (
-      <>
+      <ErrorBoundary>
         <AppToaster />
         <BrowserRouter>
           <Routes>
@@ -85,7 +86,7 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
-      </>
+      </ErrorBoundary>
     );
   }
 
