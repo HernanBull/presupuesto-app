@@ -79,9 +79,11 @@ export default function SocialFeedCard({
 
       // Guardados
       if (custId) {
+        const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
+          currentCustomer.favorites.some(f => (f.slug && f.slug === storeSlug) || (f.id && f.id === postId));
         const saveRes = await getPostSaveState(postId, custId);
         if (mounted) {
-          setIsSaved(saveRes.isSaved);
+          setIsSaved(inCustomerFavs || saveRes.isSaved);
         }
       }
 
@@ -179,7 +181,16 @@ export default function SocialFeedCard({
     setIsSaved(newSaved);
 
     try {
-      await toggleSavePost(postId, workspaceId, currentCustomer.id);
+      await toggleSavePost(postId, workspaceId, currentCustomer.id, {
+        slug: storeSlug,
+        store_slug: storeSlug,
+        name: storeName,
+        store_name: storeName,
+        logo: storeLogo,
+        store_logo: storeLogo,
+        cover: storeCover,
+        image_url: storeCover
+      });
     } catch (err) {
       setIsSaved(!newSaved);
     }
@@ -207,7 +218,7 @@ export default function SocialFeedCard({
       <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-950">
         <div 
           className="flex items-center gap-3 cursor-pointer" 
-          onClick={() => onNavigateStore(storeSlug)}
+          onClick={() => onNavigateStore(storeSlug || workspaceId)}
         >
           <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10 p-0.5 shrink-0 shadow-xs">
             {storeLogo ? (
@@ -261,7 +272,7 @@ export default function SocialFeedCard({
           {showMenu && (
             <div className="absolute right-0 top-10 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-slate-200 dark:border-white/10 py-1 min-w-[160px] z-30">
               <button 
-                onClick={() => { setShowMenu(false); onNavigateStore(storeSlug); }}
+                onClick={() => { setShowMenu(false); onNavigateStore(storeSlug || workspaceId); }}
                 className="w-full text-left px-4 py-2 text-xs font-medium text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
               >
                 Visitar vitrina
@@ -369,7 +380,7 @@ export default function SocialFeedCard({
         <div className="text-slate-800 dark:text-zinc-200 text-sm leading-snug">
           <span 
             className="font-bold mr-2 cursor-pointer hover:underline"
-            onClick={() => onNavigateStore(storeSlug)}
+            onClick={() => onNavigateStore(storeSlug || workspaceId)}
           >
             {storeName}
           </span>

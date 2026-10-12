@@ -1593,7 +1593,12 @@ export default function MarketplaceDirectory() {
            </div>
 
            <button onClick={() => {
-              if(!currentCustomer) { setAuthMode('login'); setIsAuthModalOpen(true); }
+              if(!currentCustomer) { 
+                setAuthMode('login'); 
+                setIsAuthModalOpen(true); 
+              } else {
+                navigate('/profile', { state: { tab: 'favoritas' } });
+              }
            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
              <Heart size={22} />
              <span className="text-[10px] font-medium">Favoritos</span>

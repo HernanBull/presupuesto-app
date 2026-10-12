@@ -1193,8 +1193,36 @@ export default function PublicStore() {
       };
 
       try {
-        const { data: storeData, error: storeError } = await supabase.from('workspaces').select('*').eq('store_slug', slug || 'tienda-ejemplo').single();
-        if (storeError || !storeData) {
+        const targetSlug = (slug || 'tienda-ejemplo').trim();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetSlug);
+        
+        let storeData = null;
+        let storeError = null;
+
+        if (isUuid) {
+          const res = await supabase.from('workspaces').select('*').or(`id.eq.${targetSlug},store_slug.ilike.${targetSlug}`).maybeSingle();
+          storeData = res.data;
+          storeError = res.error;
+        } else {
+          const res = await supabase.from('workspaces').select('*').or(`store_slug.ilike.${targetSlug},name.ilike.${targetSlug}`).maybeSingle();
+          storeData = res.data;
+          storeError = res.error;
+        }
+
+        // Resilient fallback: buscar por slug normalizado
+        if (!storeData) {
+          const { data: allWs } = await supabase.from('workspaces').select('*').limit(100);
+          if (allWs) {
+            const cleanTarget = targetSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+            storeData = allWs.find(w => {
+              const wsSlug = (w.store_slug || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const wsName = (w.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              return w.id === targetSlug || wsSlug === cleanTarget || wsName === cleanTarget;
+            }) || null;
+          }
+        }
+
+        if (!storeData) {
           const savedStr = localStorage.getItem('storefrontConfig');
           if (savedStr) {
              const saved = JSON.parse(savedStr);

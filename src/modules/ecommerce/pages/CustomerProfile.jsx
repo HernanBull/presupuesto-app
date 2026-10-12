@@ -20,6 +20,7 @@ L.Icon.Default.mergeOptions({
 });
 
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import { getCustomerSavedPosts } from '../services/socialService';
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
@@ -30,6 +31,9 @@ export default function CustomerProfile() {
     if (location.state?.tab) return location.state.tab;
     return window.innerWidth < 768 ? 'menu' : 'menu'; // Default to menu layout
   });
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [favSubTab, setFavSubTab] = useState('tiendas');
+  const [loadingSavedPosts, setLoadingSavedPosts] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -222,9 +226,8 @@ export default function CustomerProfile() {
     // Usaremos un timer simple que se limpia on unmount.
     startPolling();
 
-    const savedCustomer = localStorage.getItem('ecommerce_current_customer');
-    if (savedCustomer) {
-      const parsed = JSON.parse(savedCustomer);
+    const initializeCustomer = (parsed) => {
+      if (!parsed) return;
       const isGoogleUser = parsed.password === 'GOOGLE_AUTH' || 
                            parsed.password === 'oauth-google' || 
                            parsed.auth_provider === 'google' || 
@@ -249,7 +252,6 @@ export default function CustomerProfile() {
       if (!Array.isArray(pProfile)) pProfile = [];
       parsed.payment_profile = pProfile;
       
-      // Phase 4: Migrate old profilePic to profile_pic if it exists
       if (parsed.profilePic && !parsed.profile_pic) {
         parsed.profile_pic = parsed.profilePic;
         delete parsed.profilePic;
@@ -265,15 +267,41 @@ export default function CustomerProfile() {
         address: parsed.address || '',
         profile_pic: parsed.profile_pic || ''
       });
-      fetchOrders(parsed.email);
+      if (parsed.email) fetchOrders(parsed.email);
 
-      // Check if profile is incomplete and show wizard
+      // Solo sugerir wizard si no viene a ver una pestaña específica y no lo ha cerrado antes
       const isProfileIncomplete = !parsed.docId || !parsed.name || !parsed.phone || !parsed.addresses || parsed.addresses.length === 0 || !parsed.payment_profile || parsed.payment_profile.length === 0 || !parsed.profile_pic;
-      if (isProfileIncomplete) {
+      if (isProfileIncomplete && !location.state?.tab && !sessionStorage.getItem('wizard_dismissed')) {
         setIsWizardOpen(true);
       }
+    };
+
+    const savedCustomer = localStorage.getItem('ecommerce_current_customer') || localStorage.getItem('ecommerce_user');
+    if (savedCustomer) {
+      try {
+        const parsed = typeof savedCustomer === 'string' ? JSON.parse(savedCustomer) : savedCustomer;
+        initializeCustomer(parsed);
+      } catch (err) {
+        console.error('Error al parsear cliente guardado:', err);
+      }
     } else {
-      navigate('/');
+      // Recuperación proactiva con Supabase Auth si se recargó la página
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (user && user.email) {
+          const { data: dbCust } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .ilike('email', user.email)
+            .maybeSingle();
+          if (dbCust) {
+            initializeCustomer(dbCust);
+            return;
+          }
+        }
+        navigate('/');
+      }).catch(() => {
+        navigate('/');
+      });
     }
 
     return () => {
@@ -281,6 +309,55 @@ export default function CustomerProfile() {
       authListener?.subscription?.unsubscribe();
     };
   }, [navigate]);
+
+  // Sincronizar pestaña activa cuando se navega con state
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+  }, [location.state?.tab]);
+
+  // Cargar publicaciones guardadas del cliente para la sección de favoritos
+  useEffect(() => {
+    if (!currentCustomer?.id) return;
+    const fetchSaves = async () => {
+      setLoadingSavedPosts(true);
+      try {
+        const saves = await getCustomerSavedPosts(currentCustomer.id);
+        if (saves && saves.length > 0) {
+          const postIds = saves.map(s => s.post_id).filter(Boolean);
+          const { data: newsData } = await supabase
+            .from('ecommerce_store_news')
+            .select('*')
+            .in('id', postIds);
+
+          const combined = saves.map(s => {
+            const foundNews = newsData?.find(n => String(n.id) === String(s.post_id));
+            return {
+              id: s.id,
+              postId: s.post_id,
+              workspaceId: s.workspace_id,
+              title: foundNews?.title || 'Publicación Guardada',
+              content: foundNews?.content || '',
+              image_url: foundNews?.image_url || foundNews?.image || '',
+              store_name: foundNews?.store_name || 'Comercio',
+              store_slug: foundNews?.store_slug || s.workspace_id,
+              created_at: s.created_at
+            };
+          });
+          setSavedPosts(combined);
+        } else {
+          setSavedPosts([]);
+        }
+      } catch (err) {
+        console.warn('Error fetching saved posts in profile:', err);
+      } finally {
+        setLoadingSavedPosts(false);
+      }
+    };
+
+    fetchSaves();
+  }, [currentCustomer?.id]);
 
   useEffect(() => {
     if (!currentCustomer?.email) return;
@@ -647,9 +724,14 @@ export default function CustomerProfile() {
     }
   };
 
-  const removeFavorite = async (storeSlug) => {
-    const favorites = currentCustomer.favorites || [];
-    const updatedFavorites = favorites.filter(f => f.slug !== storeSlug);
+  const removeFavorite = async (storeIdentifier) => {
+    const favorites = Array.isArray(currentCustomer.favorites) 
+      ? currentCustomer.favorites 
+      : (typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
+    const updatedFavorites = favorites.filter(f => {
+      const match = typeof f === 'string' ? f : (f.slug || f.id || f.postId);
+      return match !== storeIdentifier;
+    });
     await updateCustomerData({ favorites: updatedFavorites });
   };
   
@@ -767,9 +849,22 @@ export default function CustomerProfile() {
     );
   }
 
-  const parsedFavorites = Array.isArray(currentCustomer.favorites) 
+  const parsedFavorites = (Array.isArray(currentCustomer.favorites) 
     ? currentCustomer.favorites 
-    : (typeof currentCustomer.favorites === 'string' ? (() => { try { return JSON.parse(currentCustomer.favorites); } catch(e){ return []; } })() : []);
+    : (typeof currentCustomer.favorites === 'string' ? (() => { try { return JSON.parse(currentCustomer.favorites); } catch(e){ return []; } })() : [])
+  ).map((item, idx) => {
+    if (typeof item === 'string') {
+      return { id: item, slug: item, name: item, logo: null };
+    }
+    return {
+      id: item.id || item.slug || `fav_${idx}`,
+      slug: item.slug || item.store_slug || item.id || '',
+      name: item.name || item.store_name || item.slug || 'Tienda',
+      logo: item.logo || item.store_logo || null,
+      cover: item.cover || item.image_url || null,
+      postId: item.postId || null
+    };
+  }).filter(item => item.slug || item.id);
   
   const parsedWishlist = Array.isArray(currentCustomer.wishlist) 
     ? currentCustomer.wishlist 
@@ -1676,38 +1771,136 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: FAVORITAS */}
+            {/* TABS: FAVORITAS Y GUARDADOS */}
             {activeTab === 'favoritas' && (
               <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-black text-slate-900 mb-2">Tiendas Favoritas</h2>
-                <p className="text-slate-500 text-sm mb-6">Tus negocios preferidos para un acceso rápido.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Favoritos y Guardados</h2>
+                    <p className="text-slate-500 text-sm">Acceso directo a tus tiendas seguidas y publicaciones guardadas.</p>
+                  </div>
+
+                  {/* Selector de Sub-pestañas */}
+                  <div className="flex items-center bg-slate-100 p-1 rounded-2xl w-max">
+                    <button
+                      onClick={() => setFavSubTab('tiendas')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        favSubTab === 'tiendas' 
+                          ? 'bg-white text-slate-900 shadow-xs' 
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      Tiendas ({parsedFavorites.length})
+                    </button>
+                    <button
+                      onClick={() => setFavSubTab('publicaciones')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        favSubTab === 'publicaciones' 
+                          ? 'bg-white text-slate-900 shadow-xs' 
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      Publicaciones ({savedPosts.length})
+                    </button>
+                  </div>
+                </div>
                 
-                {parsedFavorites.length === 0 ? (
-                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
-                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900">Aún no tienes favoritas</h3>
-                    <p className="text-slate-500 text-sm mt-2">Navega por el marketplace y guarda las tiendas que más te gusten.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {parsedFavorites.map(store => (
-                      <div key={store.slug} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" onClick={() => navigate(`/${store.slug}`)}>
-                        <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
-                           <Store size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors">{store.name}</h4>
-                          <span className="text-xs text-slate-500 mt-1 block">Toca para visitar</span>
-                        </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug); }}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+                {favSubTab === 'tiendas' ? (
+                  parsedFavorites.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                      <Heart size={48} className="mx-auto text-slate-300 mb-4" />
+                      <h3 className="text-lg font-bold text-slate-900">Aún no sigues tiendas</h3>
+                      <p className="text-slate-500 text-sm mt-2">Navega por el marketplace o el feed y guarda los comercios que más te gusten.</p>
+                      <button 
+                        onClick={() => navigate('/')} 
+                        className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
+                      >
+                        Explorar Directorio
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {parsedFavorites.map((store, idx) => (
+                        <div 
+                          key={store.slug || store.id || idx} 
+                          className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" 
+                          onClick={() => navigate(`/${store.slug || store.id}`)}
                         >
-                          <Heart size={20} fill="currentColor" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                          {store.logo ? (
+                            <img src={store.logo} alt={store.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs" />
+                          ) : (
+                            <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
+                               <Store size={24} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors truncate">{store.name}</h4>
+                            <span className="text-xs text-slate-500 mt-1 block">Toca para visitar vitrina</span>
+                          </div>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug || store.id); }}
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                            title="Eliminar de favoritos"
+                          >
+                            <Heart size={20} fill="currentColor" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  savedPosts.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
+                      <Bookmark size={48} className="mx-auto text-slate-300 mb-4" />
+                      <h3 className="text-lg font-bold text-slate-900">No tienes publicaciones guardadas</h3>
+                      <p className="text-slate-500 text-sm mt-2">Guarda publicaciones desde el feed con el botón de guardar para verlas cuando desees.</p>
+                      <button 
+                        onClick={() => navigate('/')} 
+                        className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
+                      >
+                        Ver Feed Social
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {savedPosts.map((post) => (
+                        <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
+                          {post.image_url ? (
+                            <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
+                              <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            </div>
+                          ) : (
+                            <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
+                              <Store size={32} />
+                            </div>
+                          )}
+                          <div className="p-5 flex-1 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block mb-1">{post.store_name}</span>
+                              <h4 className="font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{post.title || post.content}</h4>
+                              {post.content && post.title && (
+                                <p className="text-xs text-slate-500 line-clamp-2">{post.content}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                              <button 
+                                onClick={() => navigate(`/${post.store_slug || post.workspaceId}`)}
+                                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all"
+                              >
+                                Visitar Vitrina
+                              </button>
+                              <button 
+                                onClick={() => navigate('/')}
+                                className="text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
+                              >
+                                Ver en Feed
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 )}
               </motion.div>
             )}
@@ -1934,9 +2127,12 @@ export default function CustomerProfile() {
       {/* Profile Wizard Modal */}
       <ProfileWizardModal 
         isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
+        onClose={() => {
+          setIsWizardOpen(false);
+          sessionStorage.setItem('wizard_dismissed', 'true');
+        }}
         customer={currentCustomer}
-        canClose={false}
+        canClose={true}
         onComplete={(updatedCustomer) => {
           const rawPay = updatedCustomer?.payment_profile;
           let safePay = [];
