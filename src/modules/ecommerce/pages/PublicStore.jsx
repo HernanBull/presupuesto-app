@@ -1936,61 +1936,69 @@ export default function PublicStore() {
               </div>
 
               {/* Calificaciones de Clientes */}
-              <div className="mt-8 border-t border-white/5 pt-8">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
                   <Star size={18} className="fill-amber-400 text-amber-400" /> 
                   Calificaciones de los Clientes
                 </h2>
                 {storeReviewsList.length > 0 ? (
                   <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {storeReviewsList.map(review => (
-                      <div key={review.id} className="bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div key={review.id} className="bg-slate-50 dark:bg-zinc-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xs">
                         <div className="flex justify-between items-start mb-2">
-                          <span className="font-bold text-sm text-white">{review.customer_name}</span>
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">{review.customer_name}</span>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-400' : 'fill-zinc-600 text-zinc-600'} />
+                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-300 dark:fill-zinc-600 text-slate-300 dark:text-zinc-600'} />
                             ))}
                           </div>
                         </div>
-                        <p className="text-sm text-zinc-300 whitespace-pre-line">{review.comment}</p>
+                        <p className="text-sm text-slate-600 dark:text-zinc-300 whitespace-pre-line">{review.comment}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-zinc-500 italic">No hay calificaciones disponibles aún.</p>
+                  <p className="text-sm text-slate-500 dark:text-zinc-400 italic">No hay calificaciones disponibles aún.</p>
                 )}
               </div>
 
               {/* Horario */}
-              <div className="mt-8 border-t border-white/5 pt-8">
+              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold">Horario</h2>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Clock size={18} className="text-amber-500 shrink-0" />
+                    <span>Horario</span>
+                  </h2>
                   {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
-                    <span 
+                    <button 
+                      type="button"
                       onClick={() => setShowFullSchedule(!showFullSchedule)}
-                      className="text-sm text-zinc-400 cursor-pointer hover:text-white transition-colors"
+                      className="text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30"
                     >
                       {showFullSchedule ? 'Ocultar' : 'Ver todo'}
-                    </span>
+                    </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    storeSchedule.status === 'closed' ? 'bg-red-500' : 
-                    storeSchedule.status === 'closing' ? 'bg-amber-500' : 
-                    storeSchedule.status === 'unknown' ? 'bg-zinc-500' : 'bg-green-500'
-                  }`}></div>
-                  <span className={`font-semibold ${
-                    storeSchedule.status === 'closed' ? 'text-red-500' : 
-                    storeSchedule.status === 'closing' ? 'text-amber-500' : 
-                    storeSchedule.status === 'unknown' ? 'text-zinc-400' : 'text-green-500'
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                    storeSchedule.status === 'closed'
+                      ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/50'
+                      : storeSchedule.status === 'closing'
+                      ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/50'
+                      : storeSchedule.status === 'unknown'
+                      ? 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700'
+                      : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-900/50'
                   }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      storeSchedule.status === 'closed' ? 'bg-rose-500' : 
+                      storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' : 
+                      storeSchedule.status === 'unknown' ? 'bg-slate-400' : 'bg-emerald-500'
+                    }`}></span>
                     {storeSchedule.status === 'closed' ? 'Cerrado' : 
                      storeSchedule.status === 'closing' ? 'Cierra pronto' : 
                      storeSchedule.status === 'unknown' ? 'No definido' : 'Abierto'}
                   </span>
-                  <span className="text-zinc-400 text-sm">
+                  <span className="text-slate-600 dark:text-zinc-300 text-xs sm:text-sm font-medium">
                     · {storeSchedule.message}
                   </span>
                 </div>
@@ -1998,35 +2006,73 @@ export default function PublicStore() {
                 {/* Vista Detallada de Horario (Oculta por defecto) */}
                 {showFullSchedule && (config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (() => {
                   const sched = config?.scheduleProfile || config?.schedule;
+                  const currentDayIdx = new Date().getDay();
+                  const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+                  const todayName = daysMap[currentDayIdx];
+                  const weekDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
                   return (
-                    <div className="mt-4 flex flex-col gap-2 text-sm text-zinc-400 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
-                      {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(day => (
-                        <div key={day} className="flex justify-between items-center border-b border-white/5 pb-2 last:border-0 last:pb-0">
-                          <span className="capitalize">{day}</span>
-                          <span className="font-bold text-white tracking-wide">
-                            {sched?.workDays?.[day] 
-                              ? `${sched.openTime || '08:00'} - ${sched.closeTime || '18:00'}` 
-                              : <span className="text-red-400">Cerrado</span>}
-                          </span>
-                        </div>
-                      ))}
+                    <div className="mt-4 flex flex-col gap-1.5 text-sm bg-slate-50 dark:bg-zinc-900/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
+                      {weekDays.map(day => {
+                        const isToday = todayName === day;
+                        const isOpen = Boolean(sched?.workDays?.[day]);
+                        return (
+                          <div 
+                            key={day} 
+                            className={`flex justify-between items-center px-3 py-2.5 rounded-xl transition-colors ${
+                              isToday 
+                                ? 'bg-amber-500/10 border border-amber-400/40 dark:border-amber-500/30' 
+                                : 'border-b border-slate-200/60 dark:border-white/5 last:border-0 hover:bg-white/60 dark:hover:bg-zinc-800/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`capitalize text-xs sm:text-sm ${
+                                isToday 
+                                  ? 'font-bold text-amber-800 dark:text-amber-300' 
+                                  : 'font-medium text-slate-700 dark:text-zinc-300'
+                              }`}>
+                                {day}
+                              </span>
+                              {isToday && (
+                                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 leading-none">
+                                  Hoy
+                                </span>
+                              )}
+                            </div>
+                            <span className="tracking-wide">
+                              {isOpen ? (
+                                <span className={`text-xs sm:text-sm font-bold ${
+                                  isToday ? 'text-amber-950 dark:text-amber-200' : 'text-slate-900 dark:text-white'
+                                }`}>
+                                  {sched.openTime || '08:00'} - {sched.closeTime || '18:00'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40">
+                                  Cerrado
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })()}
               </div>
 
               {/* Ubicación */}
-              <div className="mt-8 border-t border-white/5 pt-8">
+              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold">Ubicación</h2>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Ubicación</h2>
                   <button 
+                    type="button"
                     onClick={() => {
                       const lat = config?.location?.lat || config?.expediente?.gps?.lat;
                       const lng = config?.location?.lng || config?.expediente?.gps?.lng;
                       const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
                       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
                     }} 
-                    className="text-sm font-bold text-zinc-400 hover:text-white transition-colors"
+                    className="text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30"
                   >
                     Abrir en Maps
                   </button>
