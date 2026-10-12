@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1335,8 +1335,8 @@ export default function MarketplaceDirectory() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-5 md:px-8 shadow-xs">
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-amber-500 hover:text-amber-600 transition-colors p-1 -ml-1">
-              <Menu size={24} strokeWidth={2} />
+            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-amber-500 hover:text-amber-600 transition-colors p-1 -ml-1" title="Menú de opciones">
+              <MoreVertical size={24} strokeWidth={2.2} />
             </button>
             <div className="flex items-center gap-2 select-none cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
@@ -2964,19 +2964,6 @@ export default function MarketplaceDirectory() {
                   </div>
                 )}
                 
-                <div className="space-y-1">
-                  <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Explorar</h3>
-                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
-                        <Store size={16} />
-                      </div>
-                      Inicio
-                    </div>
-                    <ChevronRight size={16} className="text-zinc-300" />
-                  </button>
-                </div>
-
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Legal y Políticas</h3>
                   

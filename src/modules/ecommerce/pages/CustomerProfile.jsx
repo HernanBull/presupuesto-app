@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -53,6 +53,7 @@ export default function CustomerProfile() {
   const [isResending, setIsResending] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [authProvider, setAuthProvider] = useState('email');
+  const [showUnderConstruction, setShowUnderConstruction] = useState(false);
 
   const handleRefreshAuthStatus = async () => {
     setIsRefreshingAuth(true);
@@ -987,12 +988,21 @@ export default function CustomerProfile() {
         <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
           {/* Group 1 */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'niveles' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('niveles')}>
+            <button 
+              className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'niveles' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} 
+              onClick={() => {
+                setShowUnderConstruction(true);
+                setActiveTab('niveles');
+              }}
+            >
                <div className="flex items-center gap-4">
                   <Award size={20} className={activeTab === 'niveles' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Niveles y logros</span>
                </div>
-               <ChevronRight size={18} className="text-slate-300" />
+               <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">En construcción</span>
+                  <ChevronRight size={18} className="text-slate-300" />
+               </div>
             </button>
           </div>
           
@@ -1268,42 +1278,26 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: NIVELES Y LOGROS */}
+            {/* TABS: NIVELES Y LOGROS - EN CONSTRUCCIÓN */}
             {activeTab === 'niveles' && (
               <motion.div key="niveles" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs relative overflow-hidden">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center border border-amber-200/80 shadow-xs">
-                      <Award size={28} />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-black text-slate-900">Niveles y Logros</h2>
-                      <p className="text-slate-500 text-sm">Tu reputación y beneficios como comprador frecuente en AxonMarket.</p>
-                    </div>
+                <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200/80 shadow-xs text-center relative overflow-hidden">
+                  <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-amber-200/80 shadow-sm">
+                    <Hammer size={36} className="stroke-[2.5]" />
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Nivel Actual</span>
-                      <span className="text-xl font-black text-amber-600">Bronce</span>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Puntos Acumulados</span>
-                      <span className="text-xl font-black text-slate-900">{orders.length * 10} pts</span>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-center">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Pedidos Exitosos</span>
-                      <span className="text-xl font-black text-emerald-600">{orders.filter(o => o.status === 'Completado').length}</span>
-                    </div>
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-black uppercase tracking-wider mb-4">
+                    <span>🚧 Sección en Construcción</span>
                   </div>
-
-                  <div className="p-6 bg-amber-50/70 border border-amber-200/80 rounded-2xl">
-                    <h3 className="font-bold text-amber-900 text-base mb-1">Próximo Nivel: Plata (50 pts)</h3>
-                    <p className="text-amber-800/80 text-sm mb-3">Sigue completando pedidos para desbloquear descuentos especiales en envíos.</p>
-                    <div className="w-full bg-amber-200/60 rounded-full h-2.5 overflow-hidden">
-                      <div className="bg-amber-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, (orders.length * 10 / 50) * 100)}%` }}></div>
-                    </div>
-                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">Niveles y Logros</h2>
+                  <p className="text-slate-600 text-sm sm:text-base max-w-md mx-auto mb-8 leading-relaxed">
+                    Estamos construyendo un sistema de recompensas, niveles y beneficios exclusivos para premiar tu lealtad en AxonMarket. ¡Estará disponible muy pronto!
+                  </p>
+                  <button 
+                    onClick={() => setActiveTab('menu')}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                  >
+                    <ArrowLeft size={16} /> Volver al menú
+                  </button>
                 </div>
               </motion.div>
             )}
@@ -2123,6 +2117,34 @@ export default function CustomerProfile() {
           </motion.div>
         </div>
       )}
+
+      {/* Modal / Dialogo de Aviso: En Construcción */}
+      <AnimatePresence>
+        {showUnderConstruction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl border border-slate-200 relative"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+                <Hammer size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">En Construcción</h3>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+                Estamos construyendo la sección de <strong>Niveles y logros</strong> para recompensar tu fidelidad en AxonMarket. ¡Muy pronto estará disponible!
+              </p>
+              <button
+                onClick={() => setShowUnderConstruction(false)}
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition-all shadow-md text-xs uppercase tracking-wider"
+              >
+                Entendido
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Profile Wizard Modal */}
       <ProfileWizardModal 
