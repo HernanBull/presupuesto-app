@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -2194,81 +2194,151 @@ export default function MarketplaceDirectory() {
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Descripción / Acerca de tu Negocio (Opcional)</label>
                             <textarea 
-                              rows="2"
+                              rows="3"
                               value={merchantForm.description} 
                               onChange={e => setMerchantForm({...merchantForm, description: e.target.value})} 
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none" 
+                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none leading-relaxed min-h-[80px]" 
                               placeholder={`Ej. Especialistas en ${merchantForm.category || 'productos'}, ofrecemos la mejor calidad y atención directa a nuestros clientes.`} 
                             />
                           </div>
 
-                          {/* IDENTIDAD VISUAL: LOGOTIPO Y PORTADA HD */}
-                          <div className="bg-gradient-to-br from-slate-50 to-amber-50/30 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600">
-                                  <Sparkles size={16} />
-                                </div>
-                                <div>
-                                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Identidad Visual de tu Vitrina</h4>
-                                  <p className="text-[11px] text-slate-500">Personaliza el encabezado HD de tu tienda pública</p>
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-semibold text-amber-600 bg-amber-100/70 border border-amber-200 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                                Opcional HD
-                              </span>
+                          {/* IDENTIDAD VISUAL: LOGOTIPO Y PORTADA */}
+                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+                            <div className="border-b border-slate-200/70 pb-3">
+                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Identidad Visual de tu Vitrina</h4>
+                              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sube el logotipo y la foto de portada para personalizar tu tienda pública</p>
                             </div>
 
-                            {/* CONTENEDOR DE VISTA PREVIA COMBINADA (PORTADA + LOGO) */}
-                            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-inner group/header">
-                              {/* PORTADA DROPZONE / PREVIEW */}
-                              <div 
-                                onClick={() => merchantCoverInputRef.current?.click()}
-                                className="relative w-full h-36 sm:h-44 bg-slate-800 cursor-pointer overflow-hidden transition-all duration-300 hover:brightness-105"
-                                title="Haz clic para subir foto de portada"
-                              >
+                            <div className="space-y-3.5">
+                              {/* 1. LOGOTIPO CUADRADO (1:1) */}
+                              <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex items-center justify-between gap-3 transition-colors hover:border-slate-300">
+                                <div className="flex items-center gap-3.5 min-w-0">
+                                  <div 
+                                    onClick={() => merchantLogoInputRef.current?.click()}
+                                    className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden group/logo shrink-0 shadow-inner hover:border-amber-400 transition-all"
+                                    title="Haz clic para subir o cambiar el logotipo"
+                                  >
+                                    {merchantForm.logoPreview ? (
+                                      <>
+                                        <img 
+                                          src={merchantForm.logoPreview} 
+                                          alt="Logotipo" 
+                                          className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                          <Camera size={16} />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center text-slate-400 group-hover/logo:text-amber-500 transition-colors">
+                                        <Camera size={20} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs sm:text-sm font-bold text-slate-900">Logotipo Cuadrado</span>
+                                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                                        1:1
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                      Mínimo 400×400 px, óptimo 512×512 px (PNG, JPG o WebP)
+                                    </p>
+                                    {merchantForm.logoPreview ? (
+                                      <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                                        <CheckCircle size={12} /> Logotipo cargado correctamente
+                                      </p>
+                                    ) : (
+                                      <p className="text-[10px] text-slate-400 mt-1">
+                                        Se mostrará en la cabecera y listados de tu tienda
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => merchantLogoInputRef.current?.click()}
+                                    className="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition-colors shadow-xs"
+                                  >
+                                    {merchantForm.logoPreview ? 'Cambiar' : 'Subir Logo'}
+                                  </button>
+                                  {merchantForm.logoPreview && (
+                                    <button
+                                      type="button"
+                                      onClick={handleRemoveMerchantLogo}
+                                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                                      title="Quitar logotipo"
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  )}
+                                </div>
+
+                                <input 
+                                  ref={merchantLogoInputRef}
+                                  type="file" 
+                                  accept="image/png, image/jpeg, image/webp" 
+                                  className="hidden" 
+                                  onChange={handleMerchantLogoChange}
+                                />
+                              </div>
+
+                              {/* 2. FOTO DE PORTADA PANORÁMICA (16:9) */}
+                              <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs space-y-2.5 transition-colors hover:border-slate-300">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs sm:text-sm font-bold text-slate-900">Foto de Portada</span>
+                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                                      16:9
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-500 font-medium">
+                                    Óptimo 1920 × 600 px (Máx. 10 MB)
+                                  </span>
+                                </div>
+
                                 {merchantForm.coverPreview ? (
-                                  <>
+                                  <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-slate-200 group/cover">
                                     <img 
                                       src={merchantForm.coverPreview} 
-                                      alt="Portada de tienda" 
+                                      alt="Foto de Portada" 
                                       className="w-full h-full object-cover"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent opacity-80 group-hover/header:opacity-90 transition-opacity" />
-                                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
                                       <button
                                         type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          merchantCoverInputRef.current?.click();
-                                        }}
-                                        className="px-2.5 py-1.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-lg text-[10px] font-semibold flex items-center gap-1.5 border border-white/20 transition-all shadow-sm"
+                                        onClick={() => merchantCoverInputRef.current?.click()}
+                                        className="px-3.5 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold shadow hover:bg-slate-100 transition-colors flex items-center gap-1.5"
                                       >
-                                        <Camera size={12} />
-                                        <span>Cambiar Portada</span>
+                                        <Camera size={13} /> Cambiar Portada
                                       </button>
                                       <button
                                         type="button"
                                         onClick={handleRemoveMerchantCover}
-                                        className="p-1.5 bg-rose-600/80 hover:bg-rose-600 text-white rounded-lg text-[10px] transition-all shadow-sm border border-rose-400/30"
-                                        title="Quitar portada"
+                                        className="px-3.5 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold shadow hover:bg-rose-700 transition-colors flex items-center gap-1.5"
                                       >
-                                        <X size={12} />
+                                        <Trash2 size={13} /> Quitar
                                       </button>
                                     </div>
-                                  </>
+                                  </div>
                                 ) : (
-                                  <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-dashed border-slate-700 hover:border-amber-500/60 transition-all">
-                                    <div className="w-10 h-10 rounded-full bg-slate-700/60 flex items-center justify-center text-amber-400 mb-2 border border-slate-600/50 group-hover/header:scale-110 transition-transform">
-                                      <UploadCloud size={20} />
+                                  <div 
+                                    onClick={() => merchantCoverInputRef.current?.click()}
+                                    className="w-full py-5 px-4 border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-xl bg-slate-50/50 hover:bg-amber-50/20 transition-all flex flex-col items-center justify-center cursor-pointer group/drop text-center"
+                                  >
+                                    <div className="w-9 h-9 rounded-full bg-slate-100 group-hover/drop:bg-amber-100 flex items-center justify-center text-slate-400 group-hover/drop:text-amber-600 mb-2 transition-colors">
+                                      <UploadCloud size={18} />
                                     </div>
-                                    <p className="text-xs font-bold text-white mb-0.5">Subir Foto de Portada (HD)</p>
-                                    <p className="text-[10px] text-slate-300 max-w-xs">
-                                      Formato horizontal panorámico · <span className="text-amber-400 font-semibold">1920 × 600 px</span>
+                                    <p className="text-xs font-bold text-slate-700 group-hover/drop:text-amber-600 transition-colors">
+                                      Haz clic para subir la foto de portada
                                     </p>
-                                    <span className="mt-2 text-[9px] uppercase tracking-wider text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
-                                      JPG, WebP o PNG (Máx 10 MB)
-                                    </span>
+                                    <p className="text-[11px] text-slate-400 mt-0.5">
+                                      Formato horizontal panorámico para computadoras y móviles (JPG, PNG o WebP)
+                                    </p>
                                   </div>
                                 )}
 
@@ -2279,82 +2349,6 @@ export default function MarketplaceDirectory() {
                                   className="hidden" 
                                   onChange={handleMerchantCoverChange}
                                 />
-                              </div>
-
-                              {/* LOGO SUPERPUESTO (CIRCULAR CON BORDE HD) */}
-                              <div className="absolute bottom-3 left-4 sm:left-6 z-20 flex items-end gap-3">
-                                <div 
-                                  onClick={() => merchantLogoInputRef.current?.click()}
-                                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 sm:border-3 border-white shadow-xl bg-slate-800 cursor-pointer overflow-hidden flex items-center justify-center group/logo hover:scale-105 transition-all duration-300 ring-2 ring-black/10 flex-shrink-0"
-                                  title="Haz clic para subir logotipo"
-                                >
-                                  {merchantForm.logoPreview ? (
-                                    <>
-                                      <img 
-                                        src={merchantForm.logoPreview} 
-                                        alt="Logo de tienda" 
-                                        className="w-full h-full object-cover bg-white"
-                                      />
-                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 flex items-center justify-center transition-opacity text-white">
-                                        <Camera size={16} />
-                                      </div>
-                                      <button
-                                        type="button"
-                                        onClick={handleRemoveMerchantLogo}
-                                        className="absolute top-0 right-0 p-1 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all shadow-md z-30"
-                                        title="Quitar logo"
-                                      >
-                                        <X size={10} />
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-600/50">
-                                      <Camera size={20} />
-                                      <span className="text-[8px] font-bold text-white mt-0.5">LOGO</span>
-                                    </div>
-                                  )}
-
-                                  <input 
-                                    ref={merchantLogoInputRef}
-                                    type="file" 
-                                    accept="image/png, image/jpeg, image/webp" 
-                                    className="hidden" 
-                                    onChange={handleMerchantLogoChange}
-                                  />
-                                </div>
-
-                                {/* Info badges al lado del logo */}
-                                <div className="pb-1 text-white drop-shadow-md">
-                                  <p className="text-xs sm:text-sm font-black text-white leading-tight flex items-center gap-1.5">
-                                    {merchantForm.businessName || 'Tu Negocio'}
-                                    {merchantForm.logoPreview && <CheckCircle size={12} className="text-emerald-400 inline" />}
-                                  </p>
-                                  <p className="text-[10px] text-slate-200">
-                                    Logo recomendado: <span className="text-amber-300 font-bold">512 × 512 px (1:1 HD)</span>
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Guía informativa de calidad HD */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600">
-                              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                                <div className="w-6 h-6 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 flex-shrink-0 font-bold text-xs">
-                                  1:1
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-slate-900 text-[11px]">Logotipo Cuadrado</p>
-                                  <p className="text-[10px] text-slate-500">Mínimo 400×400 px, óptimo 512×512 px.</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200">
-                                <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 flex-shrink-0 font-bold text-xs">
-                                  16:9
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-slate-900 text-[11px]">Portada Panorámica</p>
-                                  <p className="text-[10px] text-slate-500">Óptimo 1920×600 px para monitores y móviles.</p>
-                                </div>
                               </div>
                             </div>
                           </div>
