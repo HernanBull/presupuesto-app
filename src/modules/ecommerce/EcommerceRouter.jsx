@@ -341,8 +341,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route index element={<MarketplaceDirectory />} />
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="chats" element={<CustomerChatsPage />} />
-        <Route path="funciones-comercios" element={<MerchantFeaturesPage />} />
-        <Route path="pricing" element={<MerchantFeaturesPage />} />
+        <Route path="funciones-comercios" element={<Navigate to="/" replace />} />
+        <Route path="pricing" element={<Navigate to="/" replace />} />
         <Route path="mapa" element={<StoreScannerMap />} />
         <Route path="legal/:tipo" element={<LegalPage />} />
         <Route path=":slug" element={<PublicStore />} />

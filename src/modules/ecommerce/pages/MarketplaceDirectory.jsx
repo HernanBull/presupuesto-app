@@ -1546,7 +1546,6 @@ export default function MarketplaceDirectory() {
               <div className="space-y-3">
                 <button onClick={() => navigate('/')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Marketplace</button>
                 <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('pitch'); }} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
-                <button onClick={() => navigate('/funciones-comercios')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Funciones para Comercios</button>
               </div>
             </div>
 
@@ -2820,18 +2819,6 @@ export default function MarketplaceDirectory() {
                       Inicio
                     </div>
                     <ChevronRight size={16} className="text-zinc-300" />
-                  </button>
-                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/funciones-comercios'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 font-medium transition-all group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
-                        <Sparkles size={16} />
-                      </div>
-                      <div className="flex flex-col items-start">
-                        <span className="font-bold text-sm">Funciones para Comercios</span>
-                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Herramientas y ventajas de venta</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
                   </button>
                 </div>
 
