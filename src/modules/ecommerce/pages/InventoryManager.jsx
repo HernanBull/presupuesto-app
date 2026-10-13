@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, FileUp, UploadCloud, ClipboardCheck } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 const initialInventory = [];
@@ -9,6 +9,7 @@ export default function InventoryManager() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState(initialInventory);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
   
   const [settings, setSettings] = useState({
     waste: true,
@@ -41,7 +42,8 @@ export default function InventoryManager() {
           minStock: p.min_stock || 5,
           maxStock: p.max_stock || '',
           supplier: p.supplier || '',
-          stockVitrina: p.stock_vitrina || 0
+          stockVitrina: p.stock_vitrina || 0,
+          publishStatus: p.publish_status || 'Borrador',
         })));
       }
     } catch(e) { console.error("Error loading inventory:", e) }
@@ -165,10 +167,11 @@ export default function InventoryManager() {
     return 'En Stock';
   };
 
-  const filteredInventory = inventory.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredInventory = inventory.filter(item =>
+    (item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (statusFilter === 'Todos' || item.publishStatus === statusFilter)
   );
 
   // KPIs
@@ -393,6 +396,37 @@ export default function InventoryManager() {
     }
   };
 
+  const togglePublishStatus = async (e, id, currentStatus) => {
+    e.stopPropagation();
+    const newStatus = currentStatus === 'Publicado' ? 'Borrador' : 'Publicado';
+
+    // Optimistic update
+    setInventory(prev =>
+      prev.map(item => item.id === id ? { ...item, publishStatus: newStatus } : item)
+    );
+
+    try {
+      const { error } = await supabase
+        .from('ecommerce_products')
+        .update({ publish_status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success(
+        newStatus === 'Publicado'
+          ? '✅ Producto publicado en vitrina.'
+          : '📦 Producto ocultado de vitrina.'
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al cambiar el estado de publicación.');
+      // Revertir
+      setInventory(prev =>
+        prev.map(item => item.id === id ? { ...item, publishStatus: currentStatus } : item)
+      );
+    }
+  };
+
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24 md:pb-8 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -460,11 +494,22 @@ export default function InventoryManager() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {settings.reorder && (
-            <button onClick={generateShoppingList} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
-              Generar Pedidos
-            </button>
-          )}
+          <div className="flex gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+            >
+              <option value="Todos">Todos</option>
+              <option value="Publicado">Publicados</option>
+              <option value="Borrador">Borradores</option>
+            </select>
+            {settings.reorder && (
+              <button onClick={generateShoppingList} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+                Generar Pedidos
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Vista móvil: tarjetas */}
@@ -526,6 +571,19 @@ export default function InventoryManager() {
                     <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">
                       <Trash2 size={12} /> Borrar
                     </button>
+                    <button
+                      onClick={(e) => togglePublishStatus(e, item.id, item.publishStatus)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                        item.publishStatus === 'Publicado'
+                          ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      }`}
+                    >
+                      {item.publishStatus === 'Publicado'
+                        ? <><Eye size={12} /> En Vitrina</>
+                        : <><EyeOff size={12} /> Oculto</>
+                      }
+                    </button>
                   </div>
                 </div>
               );
@@ -544,6 +602,7 @@ export default function InventoryManager() {
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Precio Venta</th>
                 {settings.expiration && <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Vencimiento</th>}
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Proveedor</th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Vitrina</th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
@@ -595,6 +654,22 @@ export default function InventoryManager() {
                         </td>
                       )}
                       <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">{item.supplier}</td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={(e) => togglePublishStatus(e, item.id, item.publishStatus)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                            item.publishStatus === 'Publicado'
+                              ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/30'
+                              : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                          title={item.publishStatus === 'Publicado' ? 'Ocultar de vitrina' : 'Publicar en vitrina'}
+                        >
+                          {item.publishStatus === 'Publicado'
+                            ? <><Eye size={12} /> Activo</>
+                            : <><EyeOff size={12} /> Oculto</>
+                          }
+                        </button>
+                      </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {settings.transfers && (
