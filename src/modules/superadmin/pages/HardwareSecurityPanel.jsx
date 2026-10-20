@@ -25,7 +25,8 @@ import {
   Info,
   Server,
   Zap,
-  Sliders
+  Sliders,
+  Fingerprint
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 
@@ -56,6 +57,9 @@ export default function HardwareSecurityPanel({ superKey }) {
   const [targetTerminalToRevoke, setTargetTerminalToRevoke] = useState(null);
   const [revokeReason, setRevokeReason] = useState('Sospecha de clonación no autorizada / Violación de licencia');
   const [isSubmittingRevoke, setIsSubmittingRevoke] = useState(false);
+
+  // Modal de Ficha Técnica Detallada de Hardware Físico
+  const [selectedTerminalForSpecs, setSelectedTerminalForSpecs] = useState(null);
 
   // Estados de copiado
   const [copiedId, setCopiedId] = useState(null);
@@ -607,6 +611,15 @@ export default function HardwareSecurityPanel({ superKey }) {
                       {/* Acciones Kill Switch */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedTerminalForSpecs(t)}
+                            className="px-2.5 py-1.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-white/10 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+                            title="Ver Ficha Técnica y Auditoría de Hardware"
+                          >
+                            <Fingerprint size={13} className="text-amber-400" />
+                            <span>Ficha</span>
+                          </button>
+
                           {isRevoked ? (
                             <button
                               onClick={() => handleReactivateTerminal(t)}
@@ -1100,6 +1113,218 @@ export default function HardwareSecurityPanel({ superKey }) {
               >
                 <ShieldBan size={15} />
                 <span>{isSubmittingRevoke ? 'Revocando...' : 'Confirmar Kill Switch'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. MODAL: FICHA TÉCNICA DETALLADA DE HARDWARE FÍSICO (SUPERADMIN) */}
+      {selectedTerminalForSpecs && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border border-amber-500/30 rounded-3xl p-6 max-w-xl w-full shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+                  <Fingerprint size={24} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    Ficha Técnica de Hardware Físico
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        selectedTerminalForSpecs.status === 'REVOKED'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/40'
+                          : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                      }`}
+                    >
+                      {selectedTerminalForSpecs.status === 'REVOKED' ? 'REVOCADA' : 'ACTIVA'}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-zinc-400 font-medium">
+                    Huella criptográfica SHA-256 e identidad física de la máquina (SuperAdmin Cloud)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedTerminalForSpecs(null)}
+                className="w-8 h-8 rounded-full bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-base font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Comercio & Terminal Info */}
+            <div className="grid grid-cols-2 gap-3 bg-zinc-900/60 p-3.5 rounded-2xl border border-white/5">
+              <div>
+                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Comercio / Tienda</span>
+                <span className="text-xs font-bold text-white block mt-0.5">
+                  {workspaceMap[selectedTerminalForSpecs.workspace_id || selectedTerminalForSpecs.store_id]?.name || 'Comercio'}
+                </span>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  Slug: {workspaceMap[selectedTerminalForSpecs.workspace_id || selectedTerminalForSpecs.store_id]?.store_slug || '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Caja / Estación</span>
+                <span className="text-xs font-mono font-bold text-amber-400 block mt-0.5">
+                  {selectedTerminalForSpecs.terminal_code}
+                </span>
+                <span className="text-[10px] text-zinc-400">
+                  Host: {selectedTerminalForSpecs.machine_name || 'PC-Terminal'}
+                </span>
+              </div>
+            </div>
+
+            {/* Huella HWID Principal */}
+            <div className="bg-gradient-to-r from-zinc-900 to-zinc-900/80 p-4 rounded-2xl border border-amber-500/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <Fingerprint size={14} />
+                  Huella Criptográfica de Hardware (HWID)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(selectedTerminalForSpecs.hardware_fingerprint, 'hwid_modal')}
+                  className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  {copiedId === 'hwid_modal' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                  <span>{copiedId === 'hwid_modal' ? 'Copiado' : 'Copiar HWID'}</span>
+                </button>
+              </div>
+              <div className="p-2.5 bg-black/60 rounded-xl border border-white/5 font-mono text-xs font-bold text-emerald-400 break-all select-all">
+                {selectedTerminalForSpecs.hardware_fingerprint}
+              </div>
+            </div>
+
+            {/* Componentes Físicos Reportados */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 block">
+                Componentes de Hardware Inmutables
+              </span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {/* Placa Madre */}
+                <div className="bg-zinc-900/60 p-3 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <Server size={12} className="text-blue-400" />
+                    Placa Madre (Motherboard)
+                  </span>
+                  <div className="font-mono text-xs text-white break-all">
+                    {selectedTerminalForSpecs.motherboard_serial || 'No especificada'}
+                  </div>
+                </div>
+
+                {/* Procesador CPU */}
+                <div className="bg-zinc-900/60 p-3 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <Cpu size={12} className="text-red-400" />
+                    Procesador (CPUID)
+                  </span>
+                  <div className="font-mono text-xs text-white break-all">
+                    {selectedTerminalForSpecs.cpu_id || 'No especificado'}
+                  </div>
+                </div>
+
+                {/* Disco Duro */}
+                <div className="bg-zinc-900/60 p-3 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <HardDrive size={12} className="text-amber-400" />
+                    Disco Duro Principal
+                  </span>
+                  <div className="font-mono text-xs text-white break-all">
+                    {selectedTerminalForSpecs.disk_serial || 'No especificado'}
+                  </div>
+                </div>
+
+                {/* Nombre de Máquina / Host */}
+                <div className="bg-zinc-900/60 p-3 rounded-xl border border-white/5 space-y-1">
+                  <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                    <Monitor size={12} className="text-emerald-400" />
+                    Nombre de Máquina / Host
+                  </span>
+                  <div className="font-mono text-xs text-white break-all">
+                    {selectedTerminalForSpecs.machine_name || 'Terminal-POS'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Presencia en Red y Auditoría */}
+            <div className="bg-zinc-900/40 p-3.5 rounded-2xl border border-white/5 grid grid-cols-2 gap-3 text-[11px]">
+              <div>
+                <span className="text-zinc-500 font-bold block">Última Presencia:</span>
+                <span className="text-zinc-300 font-medium">
+                  {selectedTerminalForSpecs.last_seen_at
+                    ? new Date(selectedTerminalForSpecs.last_seen_at).toLocaleString()
+                    : 'Sin conexión registrada'}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 font-bold block">Última Dirección IP:</span>
+                <span className="text-zinc-300 font-mono">
+                  {selectedTerminalForSpecs.last_ip_address || '127.0.0.1'}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 font-bold block">Fecha Autorización:</span>
+                <span className="text-zinc-300">
+                  {new Date(selectedTerminalForSpecs.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span className="text-zinc-500 font-bold block">Autorizado Por:</span>
+                <span className="text-zinc-300 font-semibold">
+                  {selectedTerminalForSpecs.authorized_by || 'SUPERADMIN'}
+                </span>
+              </div>
+            </div>
+
+            {/* Alerta si está revocada */}
+            {selectedTerminalForSpecs.status === 'REVOKED' && (
+              <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-xs text-red-300 space-y-1">
+                <span className="font-bold flex items-center gap-1 text-red-400">
+                  <ShieldBan size={14} /> Kill Switch Activo
+                </span>
+                <p>
+                  Revocada el: {new Date(selectedTerminalForSpecs.kill_switch_activated_at).toLocaleString()}
+                </p>
+                <p>Motivo: {selectedTerminalForSpecs.kill_switch_reason || 'Sospecha de clonación / violación de licencia'}</p>
+              </div>
+            )}
+
+            {/* Footer Botones */}
+            <div className="flex items-center justify-between pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => {
+                  const ws = workspaceMap[selectedTerminalForSpecs.workspace_id || selectedTerminalForSpecs.store_id];
+                  const fullText = `=== FICHA TÉCNICA DE TERMINAL FÍSICA ===
+Comercio: ${ws?.name || 'Comercio'} (${ws?.store_slug || 'sin-slug'})
+Caja: ${selectedTerminalForSpecs.terminal_code} (${selectedTerminalForSpecs.machine_name || 'Terminal-PC'})
+Estado: ${selectedTerminalForSpecs.status}
+HWID (SHA-256): ${selectedTerminalForSpecs.hardware_fingerprint}
+Placa Madre: ${selectedTerminalForSpecs.motherboard_serial || 'No especificada'}
+CPU ID: ${selectedTerminalForSpecs.cpu_id || 'No especificado'}
+Disco Duro: ${selectedTerminalForSpecs.disk_serial || 'No especificado'}
+Última Presencia: ${selectedTerminalForSpecs.last_seen_at || 'Sin conexión'}
+Última IP: ${selectedTerminalForSpecs.last_ip_address || '127.0.0.1'}
+Autorizado Por: ${selectedTerminalForSpecs.authorized_by || 'SUPERADMIN'} el ${new Date(selectedTerminalForSpecs.created_at).toLocaleString()}`;
+                  handleCopy(fullText, 'full_specs_modal');
+                }}
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {copiedId === 'full_specs_modal' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                <span>{copiedId === 'full_specs_modal' ? 'Ficha Copiada al Portapapeles' : 'Copiar Ficha Completa'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTerminalForSpecs(null)}
+                className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-amber-600/30"
+              >
+                Cerrar
               </button>
             </div>
           </div>
