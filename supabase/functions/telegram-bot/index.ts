@@ -45,6 +45,14 @@ serve(async (req) => {
       return await handleCustomerConfirm(body, supabase);
     }
 
+    if (body.type === 'test_group') {
+      return await handleTestGroup(body, supabase);
+    }
+
+    if (body.type === 'cancel_delivery') {
+      return await handleCancelDelivery(body, supabase);
+    }
+
     // Otherwise, assume it's an Update from Telegram Webhook
     return await handleTelegramUpdate(body, supabase);
   } catch (err: any) {
@@ -54,12 +62,31 @@ serve(async (req) => {
 })
 
 // === Logica para manejar el envío desde la app ===
-async function handleSendDelivery({ commerceId, customerData, customOrderId }, supabase) {
-  const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
-  const chatId = setting ? setting.value : null;
+async function handleSendDelivery({ commerceId, workspaceId, customerData, customOrderId, pickupInfo }: any, supabase: any) {
+  let chatId = null;
+
+  // 1. Si viene workspaceId, buscar si la tienda tiene telegram_group_id configurado
+  if (workspaceId) {
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('telegram_group_id, config').eq('id', workspaceId).single();
+      if (ws?.telegram_group_id) {
+        chatId = ws.telegram_group_id;
+      } else if (ws?.config?.telegram_group_id) {
+        chatId = ws.config.telegram_group_id;
+      }
+    } catch (err) {
+      console.error("Error buscando telegram_group_id del workspace:", err);
+    }
+  }
+
+  // 2. Fallback al Grupo Maestro de Repartidores configurado en la plataforma
+  if (!chatId) {
+    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
+    chatId = setting ? setting.value : null;
+  }
 
   if (!chatId) {
-    return new Response(JSON.stringify({ success: false, error: "No hay un Grupo Maestro configurado." }), { status: 400, headers: corsHeaders });
+    return new Response(JSON.stringify({ success: false, error: "No hay un Grupo de Telegram configurado para esta tienda." }), { status: 400, headers: corsHeaders });
   }
 
   const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -67,25 +94,127 @@ async function handleSendDelivery({ commerceId, customerData, customOrderId }, s
   let deliveryPin = customerData.deliveryPin;
   if (!deliveryPin) {
     deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
-    await supabase.from('ecommerce_orders_v2').update({ delivery_pin: deliveryPin }).eq('id', orderId);
   }
 
-  const gpsLink = customerData.location ? `\n📍 <b>GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
-  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n🏪 <b>Comercio:</b> ${commerceId}\n\n📍 <b>ZONA DE ENTREGA</b>\n<code>${customerData.zone}</code>${gpsLink}\n\n📦 <b>DETALLES DEL PAQUETE</b>\n<b>Tipo:</b> ${customerData.packageType}\n<b>Productos:</b> \n<code>${customerData.productList}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}\n${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}\n\n<i>(El teléfono y dirección exacta se enviarán por privado al aceptar el viaje por seguridad)</i>`;
+  // Datos del punto de recogida (Tienda Física AxonPOS)
+  const storeName = pickupInfo?.name || commerceId || 'Tienda AxonPOS';
+  const storeAddress = pickupInfo?.address || 'Mostrador Principal';
+  const storePhone = pickupInfo?.phone ? `\n📞 <b>Contacto Mostrador:</b> ${pickupInfo.phone}` : '';
+
+  const gpsLink = customerData.location ? `\n📍 <b>GPS Destino:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
+  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\n🏪 <b>PUNTO DE RECOGIDA (TIENDA):</b>\n<b>${storeName}</b>\n<code>${storeAddress}</code>${storePhone}\n\n📍 <b>ZONA DE ENTREGA (CLIENTE):</b>\n<code>${customerData.zone || customerData.address}</code>${gpsLink}\n\n📦 <b>DETALLES DEL PAQUETE:</b>\n<b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}\n<b>Productos:</b>\n<code>${customerData.productList || 'Artículos de la tienda'}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}\n\n<i>(El teléfono y dirección exacta del cliente se enviarán por privado al aceptar el viaje por seguridad)</i>`;
 
   const replyMarkup = {
     inline_keyboard: [
       [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }],
-      [{ text: "🗺️ Ver Mapa de la Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone)}` }]
+      [{ text: "🗺️ Ver Mapa Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone || customerData.address)}` }]
     ]
   };
 
   const telegramRes = await sendMessageToChat(chatId, message, replyMarkup);
   if (!telegramRes.ok) throw new Error("Error al enviar a Telegram");
 
-  await supabase.from('delivery_pending_trips').insert([{ order_id: orderId, customer_data: JSON.stringify(customerData), delivery_pin: deliveryPin }]);
+  // Actualizar tabla ecommerce_orders_v2 con datos de subasta y PIN
+  try {
+    await supabase.from('ecommerce_orders_v2').update({
+      delivery_pin: deliveryPin,
+      pickup_store_name: storeName,
+      pickup_address: storeAddress,
+      delivery_telegram_sent: true,
+      delivery_telegram_status: 'broadcasted'
+    }).eq('id', orderId);
+  } catch (err) {
+    console.error("Error actualizando ecommerce_orders_v2 en send_delivery:", err);
+  }
+
+  // Guardar en delivery_pending_trips
+  await supabase.from('delivery_pending_trips').upsert([{ 
+    order_id: orderId, 
+    workspace_id: workspaceId,
+    customer_data: JSON.stringify({ ...customerData, pickupInfo }), 
+    delivery_pin: deliveryPin 
+  }], { onConflict: 'order_id' });
 
   return new Response(JSON.stringify({ success: true, orderId, deliveryPin }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+}
+
+// === Lógica para probar conectividad con un Grupo de Telegram ===
+async function handleTestGroup({ groupId, storeName, workspaceId }: any, supabase: any) {
+  if (!groupId) {
+    return new Response(JSON.stringify({ success: false, error: 'groupId es requerido' }), { 
+      status: 400, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
+
+  const testMessage = `🤖 <b>¡PRUEBA DE CONEXIÓN CON AXONPOS!</b> 🚀\n\n🏬 <b>Comercio:</b> ${storeName || 'Terminal AxonPOS'}\n📍 <b>Canal de Despacho:</b> Vinculado correctamente\n✅ <b>Estado:</b> El Bot @${TELEGRAM_BOT_USERNAME} tiene permisos activos para subastar pedidos a los repartidores motorizados.\n\n<i>Mensaje de diagnóstico generado a las ${new Date().toLocaleTimeString()}</i>`;
+
+  const result = await sendMessageToChat(groupId, testMessage);
+  
+  if (result.ok) {
+    // Si viene workspaceId, guardar o actualizar telegram_group_id en workspaces
+    if (workspaceId) {
+      try {
+        await supabase.from('workspaces').update({ telegram_group_id: groupId.toString() }).eq('id', workspaceId);
+      } catch (err) {
+        console.error("Error guardando telegram_group_id en workspace:", err);
+      }
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Mensaje de prueba enviado exitosamente al grupo de Telegram', 
+      chatId: groupId,
+      telegramResponse: result.result
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  } else {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: result.description || 'No se pudo enviar el mensaje al grupo. Verifique que el bot sea administrador.',
+      errorCode: result.error_code
+    }), { 
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
+}
+
+// === Lógica para cancelar despacho desde AxonPOS ===
+async function handleCancelDelivery({ orderId, reason, workspaceId }: any, supabase: any) {
+  if (!orderId) {
+    return new Response(JSON.stringify({ success: false, error: 'orderId es requerido' }), { 
+      status: 400, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
+
+  // 1. Eliminar de pendientes
+  await supabase.from('delivery_pending_trips').delete().eq('order_id', orderId);
+
+  // 2. Si estaba asignado a un repartidor activo, avisarle por privado
+  const { data: activeTrip } = await supabase.from('delivery_active_trips').select('driver_id').eq('order_id', orderId).single();
+  if (activeTrip && activeTrip.driver_id) {
+    await sendMessageToChat(
+      activeTrip.driver_id, 
+      `⚠️ <b>ATENCIÓN: PEDIDO CANCELADO</b>\n\nEl pedido <b>#${orderId}</b> ha sido cancelado por la tienda física.\nMotivo: <i>${reason || 'Cancelado desde mostrador AxonPOS'}</i>.\n\nNo te traslades al local. Tu estado vuelve a estar disponible para nuevos viajes.`
+    );
+    await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
+  }
+
+  // 3. Actualizar estado en ecommerce_orders_v2
+  try {
+    await supabase.from('ecommerce_orders_v2').update({
+      delivery_telegram_status: 'cancelled'
+    }).eq('id', orderId);
+  } catch (err) {
+    console.error("Error actualizando status cancelado en ecommerce_orders_v2:", err);
+  }
+
+  return new Response(JSON.stringify({ success: true, message: `Despacho de orden #${orderId} cancelado exitosamente` }), { 
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+  });
 }
 
 // === Lógica para confirmar recepción desde App de Cliente ===
@@ -315,12 +444,41 @@ async function handleTelegramUpdate(update, supabase) {
     }
 
     const customerData = JSON.parse(pendingOrder.customer_data);
+    const pickup = customerData.pickupInfo;
 
     await supabase.from('delivery_pending_trips').delete().eq('order_id', orderId);
-    await supabase.from('delivery_active_trips').insert([{ order_id: orderId, driver_id: chatId, pin: pendingOrder.delivery_pin, customer_name: customerData.name, customer_data: pendingOrder.customer_data, start_time: new Date().toISOString() }]);
+    await supabase.from('delivery_active_trips').insert([{ 
+      order_id: orderId, 
+      workspace_id: pendingOrder.workspace_id,
+      driver_id: chatId, 
+      driver_name: driverData.name || driverName,
+      driver_phone: driverData.telefono || 'Sin teléfono',
+      driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
+      pin: pendingOrder.delivery_pin, 
+      customer_name: customerData.name, 
+      customer_data: pendingOrder.customer_data, 
+      start_time: new Date().toISOString() 
+    }]);
+
+    // Actualizar de inmediato ecommerce_orders_v2 para que AxonPOS lo reciba en vivo por WebSocket
+    try {
+      await supabase.from('ecommerce_orders_v2').update({
+        status: 'Enviado', // Mueve la orden a "En Delivery" en AxonPOS
+        delivery_driver_id: chatId.toString(),
+        delivery_driver_name: driverData.name || driverName,
+        delivery_driver_phone: driverData.telefono || 'Sin teléfono',
+        delivery_driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
+        delivery_driver_code: driverData.driver_code || 'REP',
+        delivery_telegram_status: 'assigned',
+        delivery_pin: pendingOrder.delivery_pin
+      }).eq('id', orderId);
+    } catch (err) {
+      console.error("Error actualizando conductor en ecommerce_orders_v2:", err);
+    }
 
     const gpsLink = customerData.location ? `\n📍 <b>Mapa GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
-    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅\nAquí tienes los datos privados del cliente:\n\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente)</i>`;
+    const pickupText = pickup ? `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup.name || 'Tienda AxonPOS'}</b>\n📍 ${pickup.address || 'Mostrador Principal'}${pickup.phone ? `\n📞 ${pickup.phone}` : ''}` : '';
+    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente al entregar)</i>`;
     const replyMarkup = {
       inline_keyboard: [
         [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }],
@@ -332,11 +490,16 @@ async function handleTelegramUpdate(update, supabase) {
 
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     if (setting && setting.value) {
-      await sendMessageToChat(setting.value, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b>.`);
+      await sendMessageToChat(setting.value, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b> (${driverData.moto || 'Moto'}).`);
     }
   } else if (text.startsWith('/start complete_')) {
     const orderId = text.replace('/start complete_', '');
-    await supabase.from('ecommerce_orders_v2').update({ driver_confirmed: 1 }).eq('id', orderId);
+    await supabase.from('ecommerce_orders_v2').update({ 
+      driver_confirmed: 1,
+      status: 'Entregado',
+      delivery_driver_id: chatId.toString(),
+      delivery_telegram_status: 'delivered'
+    }).eq('id', orderId);
 
     const { data: order } = await supabase.from('ecommerce_orders_v2').select('customer_confirmed').eq('id', orderId).single();
     if (order && order.customer_confirmed === 1) {
@@ -389,7 +552,7 @@ async function handleTelegramUpdate(update, supabase) {
     
     const orderId = match[1];
     const reasonCode = match[2];
-    const reasons = {
+    const reasons: Record<string, string> = {
       'mecanica': 'Falla mecánica',
       'cliente': 'Cliente no responde',
       'accidente': 'Accidente',
@@ -407,6 +570,20 @@ async function handleTelegramUpdate(update, supabase) {
     await sendMessageToChat(chatId, `🚨 <b>VIAJE ABORTADO</b> 🚨\n\nHas cancelado el pedido <b>#${orderId}</b> por el motivo: <b>${reasonText}</b>. Será asignado a otro compañero.`);
     await supabase.from('delivery_active_trips').delete().eq('order_id', orderId);
     await supabase.from('delivery_pending_trips').insert([{ order_id: active.order_id, customer_data: active.customer_data, delivery_pin: active.pin }]);
+
+    // Actualizar ecommerce_orders_v2 para alertar a AxonPOS en tiempo real
+    try {
+      await supabase.from('ecommerce_orders_v2').update({
+        delivery_telegram_status: 'aborted',
+        delivery_abort_reason: reasonText,
+        delivery_driver_id: null,
+        delivery_driver_name: null,
+        delivery_driver_phone: null,
+        delivery_driver_moto: null
+      }).eq('id', orderId);
+    } catch (err) {
+      console.error("Error marcando aborto en ecommerce_orders_v2:", err);
+    }
 
     await logEvent('warning', `Repartidor abortó el pedido #${orderId}`, { orderId, reason: reasonText, driverName }, supabase);
 

@@ -257,19 +257,46 @@ export const startTelegramEngine = (supabase, io) => {
             }
 
             const customerData = JSON.parse(pendingOrder.customer_data);
+            const pickup = customerData.pickupInfo;
 
             // Move to active
             await supabase.from('delivery_pending_trips').delete().eq('order_id', orderId);
-            await supabase.from('delivery_active_trips').insert([{ order_id: orderId, driver_id: chatId, pin: pendingOrder.delivery_pin, customer_name: customerData.name, customer_data: pendingOrder.customer_data, start_time: new Date().toISOString() }]);
+            await supabase.from('delivery_active_trips').insert([{ 
+              order_id: orderId, 
+              workspace_id: pendingOrder.workspace_id,
+              driver_id: chatId, 
+              driver_name: driverData.name || driverName,
+              driver_phone: driverData.telefono || 'Sin teléfono',
+              driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
+              pin: pendingOrder.delivery_pin, 
+              customer_name: customerData.name, 
+              customer_data: pendingOrder.customer_data, 
+              start_time: new Date().toISOString() 
+            }]);
 
+            // Actualizar de inmediato ecommerce_orders_v2 para que AxonPOS lo reciba en vivo por WebSocket
+            try {
+              await supabase.from('ecommerce_orders_v2').update({
+                status: 'Enviado',
+                delivery_driver_id: chatId.toString(),
+                delivery_driver_name: driverData.name || driverName,
+                delivery_driver_phone: driverData.telefono || 'Sin teléfono',
+                delivery_driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
+                delivery_driver_code: driverData.driver_code || 'REP',
+                delivery_telegram_status: 'assigned',
+                delivery_pin: pendingOrder.delivery_pin
+              }).eq('id', orderId);
+            } catch (err) {
+              console.error("Error actualizando conductor en ecommerce_orders_v2:", err);
+            }
 
             const gpsLink = customerData.location ? `\n📍 <b>Mapa GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
-            const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅\nAquí tienes los datos privados del cliente:\n\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente)</i>`;
+            const pickupText = pickup ? `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup.name || 'Tienda AxonPOS'}</b>\n📍 ${pickup.address || 'Mostrador Principal'}${pickup.phone ? `\n📞 ${pickup.phone}` : ''}` : '';
+            const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente)</i>`;
             const replyMarkup = {
               inline_keyboard: [
               [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }],
               [{ text: "🚨 Abortar Viaje (Emergencia)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=cancel_${orderId}` }]]
-
             };
             await sendMessageToChat(chatId, privateMessage, replyMarkup);
 
@@ -277,7 +304,7 @@ export const startTelegramEngine = (supabase, io) => {
             const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             const masterChatId = setting ? setting.value : null;
             if (masterChatId) {
-              await sendMessageToChat(masterChatId, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b>.`);
+              await sendMessageToChat(masterChatId, `🔒 El pedido <b>#${orderId}</b> ha sido tomado por <b>${driverName}</b> (${driverData.moto || 'Moto'}).`);
             }
 
             io.emit('delivery_accepted', { orderId, driver: driverData });
@@ -355,6 +382,20 @@ export const startTelegramEngine = (supabase, io) => {
 
             // Re-add to pending
             await supabase.from('delivery_pending_trips').insert([{ order_id: active.order_id, customer_data: active.customer_data, delivery_pin: active.pin }]);
+
+            // Actualizar ecommerce_orders_v2 para alertar a AxonPOS en tiempo real
+            try {
+              await supabase.from('ecommerce_orders_v2').update({
+                delivery_telegram_status: 'aborted',
+                delivery_abort_reason: reasonText,
+                delivery_driver_id: null,
+                delivery_driver_name: null,
+                delivery_driver_phone: null,
+                delivery_driver_moto: null
+              }).eq('id', orderId);
+            } catch (err) {
+              console.error("Error marcando aborto en ecommerce_orders_v2:", err);
+            }
 
             const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
             if (setting && setting.value) {

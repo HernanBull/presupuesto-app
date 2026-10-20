@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { supabase } from '../../../supabaseClient';
 import DeliveryFleetDashboard from './DeliveryFleetDashboard';
 import BotControlPanel from './BotControlPanel';
+import HardwareSecurityPanel from './HardwareSecurityPanel';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -639,6 +640,14 @@ export default function SuperAdminDashboard({ superKey }) {
             <Store size={18} /> Tiendas
           </button>
           <button 
+            onClick={() => setActiveTab('security')}
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
+              activeTab === 'security' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            }`}
+          >
+            <ShieldCheck size={18} /> Terminales & Anti-Piratería
+          </button>
+          <button 
             onClick={() => setActiveTab('billing')}
             className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === 'billing' ? 'bg-amber-600 text-white shadow-[0_0_20px_rgba(217,119,6,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
@@ -796,6 +805,8 @@ export default function SuperAdminDashboard({ superKey }) {
               </div>
 
             </div>
+          ) : activeTab === 'security' ? (
+            <HardwareSecurityPanel superKey={superKey} />
           ) : activeTab === 'delivery_fleet' ? (
             <DeliveryFleetDashboard />
           ) : activeTab === 'delivery_bot' ? (
@@ -1201,6 +1212,13 @@ export default function SuperAdminDashboard({ superKey }) {
                             >
                               {item.status === 'Suspendido' || item.status === 'Pendiente' ? <Eye size={16} /> : <EyeOff size={16} />}
                             </button>
+                            <button 
+                              onClick={() => setActiveTab('security')}
+                              className="p-2 bg-amber-500/10 text-amber-500 rounded-lg"
+                              title="Terminales y Anti-Piratería"
+                            >
+                              <Key size={16} />
+                            </button>
                           </>
                         )}
                         {activeTab === 'customers' && (
@@ -1307,6 +1325,13 @@ export default function SuperAdminDashboard({ superKey }) {
                                     title={item.status === 'Suspendido' ? "Reactivar Tienda" : item.status === 'Pendiente' ? "Aprobar Tienda (Activar)" : "Suspender Tienda (Ocultar)"}
                                   >
                                     {item.status === 'Suspendido' || item.status === 'Pendiente' ? <Eye size={18} /> : <EyeOff size={18} />}
+                                  </button>
+                                  <button 
+                                    onClick={() => setActiveTab('security')}
+                                    className="p-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-colors border border-amber-500/30 opacity-70 hover:opacity-100"
+                                    title="Control de Terminales Físicas y API Key (HWID)"
+                                  >
+                                    <Key size={18} />
                                   </button>
                                 </>
                               )}
