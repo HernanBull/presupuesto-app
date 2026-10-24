@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 const initialInventory = [];
@@ -9,6 +9,7 @@ export default function InventoryManager() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState(initialInventory);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
   
   const [settings, setSettings] = useState({
@@ -39,6 +40,8 @@ export default function InventoryManager() {
           ...p,
           stock: p.stock || 0,
           cogs: p.cogs || 0,
+          category: p.category || 'General',
+          subcategory: p.subcategory || '',
           minStock: p.min_stock || 5,
           maxStock: p.max_stock || '',
           supplier: p.supplier || '',
@@ -58,6 +61,7 @@ export default function InventoryManager() {
   const [formData, setFormData] = useState({
     id: '',
     name: '',
+    category: 'General',
     stock: '',
     stockVitrina: '0',
     minStock: '',
@@ -109,14 +113,37 @@ export default function InventoryManager() {
         const cols = line.split(separator);
         
         if (cols.length >= 5) {
-          if (isNaN(parseFloat(cols[2])) || isNaN(parseFloat(cols[3]))) continue; 
+          let id = cols[0].trim();
+          let name = cols[1].trim();
+          let category = 'General';
+          let stock = 0;
+          let cogs = 0;
+          let price = 0;
+          let supplier = 'Sistema POS Importado';
+
+          if (isNaN(parseFloat(cols[2])) && cols.length >= 6) {
+            category = cols[2].trim() || 'General';
+            stock = Number(cols[3].trim()) || 0;
+            cogs = Number(cols[5]?.trim() || cols[4]?.trim() || 0);
+            price = Number(cols[6]?.trim() || cols[5]?.trim() || 0);
+            supplier = cols[7] ? cols[7].trim() : 'Sistema POS Importado';
+          } else {
+            if (isNaN(parseFloat(cols[2])) || isNaN(parseFloat(cols[3]))) continue;
+            stock = Number(cols[2].trim());
+            cogs = Number(cols[3].trim());
+            price = Number(cols[4].trim());
+            supplier = cols[5] ? cols[5].trim() : 'Sistema POS Importado';
+            category = cols[6] ? cols[6].trim() : 'General';
+          }
+
           newProducts.push({
-            id: cols[0].trim(),
-            name: cols[1].trim(),
-            stock: Number(cols[2].trim()),
-            cogs: Number(cols[3].trim()),
-            price: Number(cols[4].trim()),
-            supplier: cols[5] ? cols[5].trim() : 'Sistema POS Importado',
+            id,
+            name,
+            category,
+            stock,
+            cogs,
+            price,
+            supplier,
             min_stock: 5,
             workspace_id: workspaceId,
             created_at: new Date().toISOString(),
@@ -167,12 +194,23 @@ export default function InventoryManager() {
     return 'En Stock';
   };
 
-  const filteredInventory = inventory.filter(item =>
-    (item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     item.supplier?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (statusFilter === 'Todos' || item.publishStatus === statusFilter)
-  );
+  const availableCategories = useMemo(() => {
+    const cats = new Set(inventory.map(i => i.category || 'General').filter(Boolean));
+    return ['Todas', ...Array.from(cats).sort()];
+  }, [inventory]);
+
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = statusFilter === 'Todos' || item.publishStatus === statusFilter;
+    const matchesCategory = categoryFilter === 'Todas' || (item.category || 'General') === categoryFilter;
+
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   // KPIs
   const totalValue = inventory.reduce((acc, item) => acc + ((item.stock + (item.stockVitrina || 0)) * item.cogs), 0);
@@ -190,9 +228,9 @@ export default function InventoryManager() {
   const criticalItemsCount = inventory.filter(i => i.stock <= (i.minStock || 5)).length;
 
   const handleExportCSV = () => {
-    const headers = ["SKU", "Nombre", "Stock", "Stock Minimo", "Costo", "Precio", "Proveedor"];
+    const headers = ["SKU", "Nombre", "Categoría", "Stock", "Stock Minimo", "Costo", "Precio", "Proveedor"];
     const rows = inventory.map(i => [
-      i.id, i.name, i.stock, i.minStock || 5, i.cogs, i.price, i.supplier
+      i.id, i.name, i.category || 'General', i.stock, i.minStock || 5, i.cogs, i.price, i.supplier
     ]);
     const csvContent = "data:text/csv;charset=utf-8," 
       + headers.join(",") + "\n" 
@@ -223,12 +261,16 @@ export default function InventoryManager() {
   const openEditor = (item = null) => {
     if (item) {
       setEditingId(item.id);
-      setFormData({ ...item });
+      setFormData({ 
+        ...item,
+        category: item.category || 'General'
+      });
     } else {
       setEditingId(null);
       setFormData({
         id: `SKU-00${inventory.length + 1}`,
         name: '',
+        category: 'General',
         stock: '',
         stockVitrina: '0',
         minStock: '',
@@ -290,6 +332,7 @@ export default function InventoryManager() {
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
       const payload = {
           name: newItem.name,
+          category: newItem.category ? newItem.category.trim() : 'General',
           stock: newItem.stock,
           cogs: newItem.cogs,
           price: newItem.price,
@@ -494,18 +537,29 @@ export default function InventoryManager() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex-1 sm:flex-initial"
+            >
+              <option value="Todas">Todas las Categorías</option>
+              {availableCategories.filter(c => c !== 'Todas').map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             >
-              <option value="Todos">Todos</option>
+              <option value="Todos">Todos los Estados</option>
               <option value="Publicado">Publicados</option>
               <option value="Borrador">Borradores</option>
             </select>
             {settings.reorder && (
-              <button onClick={generateShoppingList} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+              <button onClick={generateShoppingList} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0 whitespace-nowrap">
                 Generar Pedidos
               </button>
             )}
@@ -530,7 +584,12 @@ export default function InventoryManager() {
                 <div key={item.id} className="p-4 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0">
+                          {item.category || 'General'}
+                        </span>
+                      </div>
                       <p className="text-[10px] font-mono text-slate-500 mt-0.5">{item.id}</p>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 ${statusColors[status] || ''}`}>{status}</span>
@@ -597,6 +656,7 @@ export default function InventoryManager() {
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Producto (SKU)</th>
+                <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categoría</th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stock</th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Costo (COGS)</th>
                 <th className="py-3 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Precio Venta</th>
@@ -609,7 +669,7 @@ export default function InventoryManager() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-slate-500">
+                  <td colSpan="9" className="py-8 text-center text-slate-500">
                     No se encontraron registros en el inventario.
                   </td>
                 </tr>
@@ -622,6 +682,12 @@ export default function InventoryManager() {
                       <td className="py-3 px-4">
                         <p className="text-sm font-bold text-slate-800 dark:text-white">{item.name}</p>
                         <p className="text-[10px] font-mono text-slate-500">{item.id}</p>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+                          <Tag size={12} className="text-amber-500 shrink-0" />
+                          {item.category || 'General'}
+                        </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col gap-1">
@@ -750,6 +816,27 @@ export default function InventoryManager() {
                      onChange={handleInputChange}
                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
                    />
+                 </div>
+
+                 <div className="space-y-2">
+                   <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                     <span>Categoría</span>
+                     <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Elige o escribe una nueva</span>
+                   </label>
+                   <input 
+                     type="text" 
+                     name="category"
+                     list="inventory-categories-datalist"
+                     placeholder="Ej: Alimentos, Bebidas, Limpieza, Farmacia..."
+                     value={formData.category || ''}
+                     onChange={handleInputChange}
+                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white" 
+                   />
+                   <datalist id="inventory-categories-datalist">
+                     {availableCategories.filter(c => c !== 'Todas').map(cat => (
+                       <option key={cat} value={cat} />
+                     ))}
+                   </datalist>
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
