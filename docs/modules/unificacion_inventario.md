@@ -194,7 +194,7 @@ export function mapSupabaseToProduct(raw: any, existingProduct?: Product): Produ
 
 ## 📋 6. PLAN DE ACCIÓN PASO A PASO (GUÍA DE IMPLEMENTACIÓN)
 
-### Paso 1: Extender la interfaz `Product` en AxonPOS
+### Paso 1: Extender la interfaz `Product` en AxonPOS (✅ COMPLETADO)
 En [`f:/AxonPos/src/types/index.ts`](file:///f:/AxonPos/src/types/index.ts):
 - Añadir campos de paridad:
   ```typescript
@@ -205,13 +205,16 @@ En [`f:/AxonPos/src/types/index.ts`](file:///f:/AxonPos/src/types/index.ts):
     maxStock?: number;           // Stock máximo (alerta sobre-stock)
     expirationDate?: string;     // Fecha de vencimiento YYYY-MM-DD
     supplier?: string;           // Proveedor principal
+    isCombo?: boolean;           // Indicador de kit promocional retail
+    comboItems?: Array<{ id: string; qty: number }>;
   }
   ```
-- En [`f:/AxonPos/src/db/database.ts`](file:///f:/AxonPos/src/db/database.ts): Incrementar versión de esquema Dexie si es necesario indexar `stockVitrina` o `expirationDate`.
+- En [`f:/AxonPos/src/db/database.ts`](file:///f:/AxonPos/src/db/database.ts): Se aplicó la `version(11)` indexando `supplier`, `expirationDate` y `syncedEcommerce`.
+- En [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/src/services/ecommerceRealtimeService.ts): Implementadas funciones canónicas de transformación `mapProductToCloud` y `mapCloudToProduct`.
 
-### Paso 2: Escucha en Tiempo Real de Inventario en AxonPOS
-En [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/src/services/ecommerceRealtimeService.ts):
-- En el método `startListening()`, suscribirse a eventos de la tabla `ecommerce_products`:
+### Paso 2: Escucha en Tiempo Real de Inventario en AxonPOS (✅ COMPLETADO)
+En [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/src/services/ecommerceRealtimeService.ts) y [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx):
+- En el método `startListening()`, suscripción activa al canal WebSocket de Supabase en la tabla `ecommerce_products`:
   ```typescript
   .on(
     'postgres_changes',
@@ -227,10 +230,14 @@ En [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/sr
     }
   )
   ```
-- Implementar `handleCloudInventoryChange(payload)`:
-  - Si es `UPDATE`: buscar producto en Dexie por `id` y actualizar existencias (`currentStock`, `stockVitrina`, `priceUsd`, `costUsd`, `syncedEcommerce`).
-  - Si es `INSERT`: crear producto localmente en Dexie.
-  - Si es `DELETE`: marcar como inactivo o eliminar en Dexie.
+- `handleCloudInventoryChange(payload)` implementado y enriquecido con:
+  - **Resolución dinámica de categorías y subcategorías:** Si un producto llega desde la web con una categoría no registrada, se crea automáticamente en Dexie `db.categories`.
+  - **Cálculo de existencias:** Suma canónica `currentStock = stockWarehouse + stockVitrina`.
+  - **Filtro contra bucles infinitos:** Omite escrituras redundantes si los datos ya son idénticos.
+  - **Trazabilidad en Kardex:** Genera registro en `db.inventoryLogs` con motivo `"Sincronizado desde AxonMarket"`.
+  - **Notificaciones:** Emite chime sonoro `soundService.playSuccessChime()` y desktop push si está habilitado.
+- En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx): Suscripción a `subscribeInventory` con un Toast flotante animado de alta estética que alerta al cajero en vivo.
+- En [`f:/AxonPos/src/components/TopHeader.tsx`](file:///f:/AxonPos/src/components/TopHeader.tsx): Indicador verde en vivo `🟢` de canal WebSocket de inventario activo.
 
 ### Paso 3: Disparadores Automáticos al Modificar en AxonPOS
 En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx):
