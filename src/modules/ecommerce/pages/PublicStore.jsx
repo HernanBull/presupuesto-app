@@ -2295,7 +2295,7 @@ export default function PublicStore() {
                             <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
                             <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
                       
-                      <div className="mt-auto flex items-center gap-2">
+                      <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
                          {isUserAllowedToSeePrices ? (
                             <div className="flex items-center gap-2">
                               <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
@@ -2308,6 +2308,19 @@ export default function PublicStore() {
                             >
                               <Lock size={12} /> Precio
                             </button>
+                          )}
+                          {(p.stock_vitrina || 0) > 0 ? (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                              (p.stock_vitrina || 0) <= 5 
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            }`}>
+                              {(p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20">
+                              Agotado
+                            </span>
                           )}
                       </div>
                     </div>
@@ -2510,7 +2523,22 @@ export default function PublicStore() {
                           {/* Info */}
                           <div className="p-3 flex flex-col flex-1">
                             <h3 className="font-semibold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1 min-h-[40px]">{p.name}</h3>
-                            <p className="text-xs text-zinc-500 font-medium mb-3">{p.step_size || 1} {p.unit || 'unidad'}</p>
+                            <div className="flex items-center justify-between gap-1 mb-2.5">
+                              <p className="text-xs text-zinc-500 font-medium">{p.step_size || 1} {p.unit || 'unidad'}</p>
+                              {(p.stock_vitrina || 0) > 0 ? (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                  (p.stock_vitrina || 0) <= 5 
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                }`}>
+                                  {(p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200">
+                                  Agotado
+                                </span>
+                              )}
+                            </div>
                             
                             <div className="mt-auto flex items-end justify-between gap-1">
                               <div>
