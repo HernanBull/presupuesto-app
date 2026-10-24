@@ -297,27 +297,30 @@ En [`f:/AxonPos/src/components/InventoryManager.tsx`](file:///f:/AxonPos/src/com
 
 ---
 
-## 🧪 7. PROTOCOLO DE VALIDACIÓN Y PRUEBAS
+## 🧪 7. PROTOCOLO DE VALIDACIÓN Y PRUEBAS (✅ CERTIFICADO EN FASE 5)
 
 ```
-┌────┬──────────────────────────────────────┬────────────────────────────────────────────────────────┐
-│ #  │ Escenario de Prueba                  │ Resultado Esperado                                     │
-├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 1  │ Modificar stock en AxonPOS (Caja)    │ En menos de 1 segundo, AxonMarket muestra el nuevo     │
-│    │                                      │ stock en su panel y en el catálogo web público.        │
-├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 2  │ Registrar entrada en AxonMarket      │ AxonPOS recibe el evento WebSocket e incrementa el     │
-│    │ (`InventoryManager.jsx`)             │ stock en Dexie sin recargar la pantalla.               │
-├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 3  │ Venta en mostrador físico POS        │ El stock en la nube se descuenta instantáneamente; la   │
-│    │                                      │ tienda virtual actualiza su vitrina en tiempo real.    │
-├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 4  │ Compra online en AxonMarket          │ Al despacharse o aceptarse en POS, el stock local se   │
-│    │                                      │ descuenta y se genera registro en el Kardex.          │
-├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┤
-│ 5  │ Venta en POS sin conexión a internet │ Se registra en `syncOutbox`. Al recuperar conexión,   │
-│    │                                      │ se vacía la cola y sincroniza con Supabase.            │
-└────┴──────────────────────────────────────┴────────────────────────────────────────────────────────┘
+┌────┬──────────────────────────────────────┬────────────────────────────────────────────────────────┬──────────┐
+│ #  │ Escenario de Prueba                  │ Resultado Esperado                                     │ Estado   │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 1  │ Modificar stock en AxonPOS (Caja)    │ En menos de 1 segundo, AxonMarket muestra el nuevo     │ SUPERADO │
+│    │                                      │ stock en su panel y en el catálogo web público.        │          │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 2  │ Registrar entrada en AxonMarket      │ AxonPOS recibe el evento WebSocket e incrementa el     │ SUPERADO │
+│    │ (`InventoryManager.jsx`)             │ stock en Dexie sin recargar la pantalla.               │          │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 3  │ Venta en mostrador físico POS        │ El stock en la nube se descuenta instantáneamente; la   │ SUPERADO │
+│    │                                      │ tienda virtual actualiza su vitrina en tiempo real.    │          │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 4  │ Compra online en AxonMarket          │ Al despacharse o aceptarse en POS, el stock local se   │ SUPERADO │
+│    │                                      │ descuenta y se genera registro en el Kardex.          │          │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 5  │ Venta en POS sin conexión a internet │ Se registra en `syncOutbox`. Al recuperar conexión,   │ SUPERADO │
+│    │                                      │ se vacía la cola y sincroniza con Supabase.            │          │
+├────┼──────────────────────────────────────┼────────────────────────────────────────────────────────┼──────────┤
+│ 6  │ Compilación y Bundling Producción    │ Ambas plataformas (`AxonPOS` y `Presupuesto`) pasan    │ SUPERADO │
+│    │                                      │ `npm run build` con código 0 y cero advertencias.      │          │
+└────┴──────────────────────────────────────┴────────────────────────────────────────────────────────┴──────────┘
 ```
 
 ---
