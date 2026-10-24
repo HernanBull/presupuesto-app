@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar } from 'lucide-react';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar, ExternalLink } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 import ResponsiveModal from '../components/ResponsiveModal';
@@ -355,41 +355,46 @@ export default function OrdersManager() {
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 pb-24 md:pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            Gestión de Pedidos <span className="bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 text-xs px-2 py-0.5 rounded-full font-black uppercase">Kanban Flow</span>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
+            Gestión de Pedidos
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Arrastra y suelta las tarjetas para actualizar el estado del envío.</p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="text"
-              placeholder="Buscar pedido o cliente..."
-              className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-shadow dark:text-white shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input 
-              type="date"
-              value={filterDate}
-              max={new Date().toISOString().split('T')[0]}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer shadow-sm"
-              title="Filtrar por fecha"
-            />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={17} />
+              <input 
+                type="text"
+                placeholder="Buscar pedido o cliente..."
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-shadow dark:text-white shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="relative shrink-0">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+              <input 
+                type="date"
+                value={filterDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setFilterDate(e.target.value)}
+                className="pl-9 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 cursor-pointer shadow-sm"
+                title="Filtrar por fecha"
+              />
+            </div>
           </div>
           
           <button  
+            type="button"
             onClick={() => setShowQrModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-sm hover:shadow-md hover:shadow-amber-500/20 active:scale-95 transition-all shrink-0 whitespace-nowrap w-full sm:w-auto"
+            title="Abrir App de Picking (QR y enlace)"
           >
-            <QrCode size={16} /> App de Picking
+            <QrCode size={16} className="shrink-0" />
+            <span>App de Picking</span>
           </button>
         </div>
       </div>
@@ -741,19 +746,21 @@ export default function OrdersManager() {
           <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Vincular Dispositivo</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono para preparar los pedidos.</p>
           
-          <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-8 relative group">
-            {/* Genera la URL dinámicamente. */}
+          <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-4 relative">
             <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
-              window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + ':' + window.location.port + '/picking'
+              encodeURIComponent(window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + (window.location.port ? ':' + window.location.port : '') + '/picking')
             }`} alt="QR Code" className="w-48 h-48 object-contain" />
-            <a 
-              href="/picking" 
-              target="_blank" 
-              className="absolute inset-0 bg-black/60 text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl backdrop-blur-sm"
-            >
-              Abrir URL Directa
-            </a>
           </div>
+
+          <a 
+            href="/picking" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-amber-500/20 active:scale-95 transition-all mb-6"
+          >
+            <span>Abrir App de Picking</span>
+            <ExternalLink size={14} />
+          </a>
           
           <div className="w-full p-4 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-medium text-left border border-amber-200 dark:border-amber-500/20">
             <AlertCircle size={14} className="inline mr-1 -mt-0.5" />
