@@ -239,35 +239,31 @@ En [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/sr
 - En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx): Suscripción a `subscribeInventory` con un Toast flotante animado de alta estética que alerta al cajero en vivo.
 - En [`f:/AxonPos/src/components/TopHeader.tsx`](file:///f:/AxonPos/src/components/TopHeader.tsx): Indicador verde en vivo `🟢` de canal WebSocket de inventario activo.
 
-### Paso 3: Disparadores Automáticos al Modificar en AxonPOS
-En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx):
-- Modificar `onSaveProduct`:
-  ```typescript
-  onSaveProduct={async (p) => {
-    await db.products.put(p);
-    // Sincronizar en background con AxonMarket si la terminal está vinculada
-    if (settings.storeId) {
-      const cat = categories.find(c => c.id === p.categoryId)?.name || 'General';
-      const subCat = categories.find(c => c.id === p.subcategoryId)?.name;
-      ecommerceRealtimeService.publishProductToAxonMarket(settings.storeId, p, cat, subCat);
-    }
-  }}
-  ```
-- Modificar `onUpdateStock`:
-  ```typescript
-  onUpdateStock={async (productId, newStock, reason) => {
-    const prod = await db.products.get(productId);
-    if (prod) {
-      await db.products.update(productId, { currentStock: newStock });
-      await db.inventoryLogs.put({ ... });
-      
-      // Sincronizar stock con AxonMarket inmediatamente
-      if (settings.storeId) {
-        ecommerceRealtimeService.syncStockToAxonMarket(settings.storeId, productId, prod.name, newStock);
-      }
-    }
-  }}
-  ```
+### Paso 3: Disparadores Automáticos al Modificar en AxonPOS (✅ COMPLETADO)
+En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx) y [`f:/AxonPos/src/services/ecommerceRealtimeService.ts`](file:///f:/AxonPos/src/services/ecommerceRealtimeService.ts):
+- **Actualización de Existencias (`onUpdateStock`)**:
+  - Al ajustar inventario en cualquier módulo de AxonPOS, se actualiza `currentStock` y `stockWarehouse` en Dexie local, se asienta en Kardex y se emite inmediatamente:
+    ```typescript
+    ecommerceRealtimeService.syncStockToAxonMarket(
+      settings.storeId,
+      productId,
+      prod.name,
+      newStock,
+      newWarehouse,
+      currentVitrina
+    );
+    ```
+- **Publicación de Productos (`onSaveProduct`)**:
+  - Al crear o modificar un producto en `InventoryManager`, `HardwareWorkspace` o `AutoPartsWorkspace`, se guarda localmente en Dexie y se dispara la publicación en segundo plano a Supabase:
+    ```typescript
+    ecommerceRealtimeService.publishProductToAxonMarket(settings.storeId, p, categoryName, subcategoryName);
+    ```
+- **Reasignación Masiva de Categorías (`onBatchReassignCategory`)**:
+  - Al mover artículos entre categorías o subcategorías, se actualiza Dexie y se sincroniza automáticamente con AxonMarket.
+- **Descuento en Ventas Físicas de Caja Mostrador (`handleProcessPayment`)**:
+  - Al cobrar una venta en el POS, el stock se descuenta de `stockVitrina` y `stockWarehouse` en Dexie y se ejecuta `ecommerceRealtimeService.syncCloudInventoryDeduction(settings.storeId, itemsToDeduct)` para reflejar el descuento en AxonMarket en tiempo real sin sobre-conteo.
+- **Aceptación y Despacho de Pedidos Online (`onAcceptOrder` y Kanban)**:
+  - Al pasar pedidos de `PENDING` a estados operativos, se descuenta de forma segura el stock local y se valida contra la nube.
 
 ### Paso 4: Homologar las Funciones de Inventario en la UI de AxonPOS
 En [`f:/AxonPos/src/components/InventoryManager.tsx`](file:///f:/AxonPos/src/components/InventoryManager.tsx):
