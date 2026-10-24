@@ -265,30 +265,35 @@ En [`f:/AxonPos/src/App.tsx`](file:///f:/AxonPos/src/App.tsx) y [`f:/AxonPos/src
 - **Aceptación y Despacho de Pedidos Online (`onAcceptOrder` y Kanban)**:
   - Al pasar pedidos de `PENDING` a estados operativos, se descuenta de forma segura el stock local y se valida contra la nube.
 
-### Paso 4: Homologar las Funciones de Inventario en la UI de AxonPOS
+### Paso 4: Homologar las Funciones de Inventario en la UI de AxonPOS (✅ COMPLETADO)
 En [`f:/AxonPos/src/components/InventoryManager.tsx`](file:///f:/AxonPos/src/components/InventoryManager.tsx):
-- Incorporar tabs/indicadores de **Stock Depósito vs Stock Vitrina**.
-- Añadir botones de acción rápida para:
-  - **Transferir a Vitrina** (mover unidades de depósito al mostrador).
-  - **Registrar Merma** (descontar por merma justificando causa).
-  - **Auditoría Rápida** (ajuste por conteo físico ciego).
-- KPI Cards en la cabecera:
-  - Capital Invertido (`Total COGS`).
-  - Ingreso Proyectado (`Total Precio`).
-  - Ganancia Potencial (`Ingreso - Capital`).
+- **4 Tarjetas KPI Ejecutivas en Cabecera**:
+  - `Capital Invertido (COGS)`: Suma de costo x stock en tiempo real con contador de productos.
+  - `Venta Proyectada (PVP)`: Ingreso estimado en USD y contravalor en Bs. tasa BCV.
+  - `Ganancia Potencial`: Margen bruto proyectado y porcentaje de rentabilidad general.
+  - `Ubicación & Alertas`: Desglose total de unidades en Vitrina vs Bodega con contadores de bajo stock y productos por vencer.
+- **Columna de Existencia Dual en Tabla**:
+  - Indicador numérico principal con tags de desglose: `🏪 Vitrina: X` y `📦 Bodega: Y`.
+  - Badges de alerta de estado: `Sobre-Stock` (si supera `maxStock`), `Bajo Stock`, `Agotado`, y fecha de expiración.
+- **Toggle Interactivo E-commerce en Fila**:
+  - Botón de 1 clic para publicar u ocultar el producto en la vitrina web (`<Eye size={12} /> En Vitrina Web` / `<EyeOff size={12} /> Oculto`) con sincronización inmediata con Supabase.
+- **3 Modales Operativos Homologados con AxonMarket**:
+  - **Modal de Transferencia Interna (`isTransferModalOpen`)**: Mueve existencias entre `Bodega ➔ Vitrina` o `Vitrina ➔ Bodega`, asienta el movimiento en Kardex Dexie y envía auto-push a Supabase.
+  - **Modal de Merma / Descarte (`isWasteModalOpen`)**: Registra salidas por vencimiento, daño o uso interno, especificando si la baja es de Vitrina o Bodega con trazabilidad en Kardex y nube.
+  - **Modal de Auditoría Física (`isAuditModalOpen`)**: Conteo ciego físico con cálculo de discrepancia en vivo (+/-) y ajuste automático.
+- **Formulario de Creación / Edición de Producto**:
+  - Inputs duales para `Stock en Bodega` y `Stock en Vitrina` con cálculo automático en vivo de `Total en Sistema`.
+  - Campos avanzados de inventario: `Stock Mínimo`, `Stock Máximo` (sobre-stock), `Proveedor Principal`, y `Fecha de Vencimiento`.
 
-### Paso 5: Sincronización al Registrar Ventas en Caja
-- Cuando el cajero procesa una venta en `CheckoutModal.tsx`:
-  - Descuenta existencias en Dexie `db.products`.
+### Paso 5: Sincronización al Registrar Ventas en Caja (✅ COMPLETADO)
+- Implementado en `src/App.tsx` (`handleProcessPayment`):
+  - Prioriza el descuento de existencias de `stockVitrina` primero y luego de `stockWarehouse` para mantener coherencia en piso de venta.
   - Dispara `ecommerceRealtimeService.syncCloudInventoryDeduction(settings.storeId, saleItems)`.
-  - Esto actualiza `ecommerce_products` en Supabase en el mismo segundo de cobro.
+  - Actualiza `ecommerce_products` en Supabase en el mismo segundo de cobro.
 
-### Paso 6: Sincronización al Aceptar Pedidos en Tienda Web
-- Cuando entra una orden desde `PublicStore.jsx` (AxonMarket):
-  - El Realtime despierta a AxonPOS con el pedido.
-  - Al hacer clic en *"Aceptar y Preparar"* o al completarse el picking:
-    - Se descuenta el stock en Dexie local con motivo `"VENTA_ONLINE_ORD-XXXX"`.
-    - Se asegura que en la nube quede marcado `stock_deducted: 1`.
+### Paso 6: Sincronización al Aceptar Pedidos en Tienda Web (✅ COMPLETADO)
+- Implementado en `src/App.tsx` (`onAcceptOrder` y Kanban):
+  - Al procesar órdenes de la web, se descuenta de forma segura el stock local sin duplicar deducciones y se sincroniza con Kardex local.
 
 ---
 
