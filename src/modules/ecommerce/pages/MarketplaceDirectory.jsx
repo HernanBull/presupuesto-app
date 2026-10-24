@@ -72,6 +72,7 @@ export default function MarketplaceDirectory() {
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
   const [recoveryCode, setRecoveryCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [authConfirmPassword, setAuthConfirmPassword] = useState('');
@@ -1953,7 +1954,24 @@ export default function MarketplaceDirectory() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
-                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="••••••••" />
+                        <div className="relative">
+                          <input 
+                            type={showNewPassword ? "text" : "password"} 
+                            required 
+                            value={newPassword} 
+                            onChange={e => setNewPassword(e.target.value)} 
+                            className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" 
+                            placeholder="••••••••" 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowNewPassword(!showNewPassword)} 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors p-1"
+                            title={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                          >
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
@@ -2209,7 +2227,24 @@ export default function MarketplaceDirectory() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
-                        <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
+                        <div className="relative">
+                          <input 
+                            type={showNewPassword ? "text" : "password"} 
+                            required 
+                            value={newPassword} 
+                            onChange={e => setNewPassword(e.target.value)} 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+                            placeholder="••••••••" 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowNewPassword(!showNewPassword)} 
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors p-1"
+                            title={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                          >
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}

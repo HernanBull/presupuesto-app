@@ -32,7 +32,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
@@ -1257,7 +1257,7 @@ export default function PublicStore() {
              const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', 'default_workspace');
              if (!pError && pData) {
                const published = pData
-                 .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
+                 .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo' || p.publish_status === 'published')
                  .sort((a, b) => {
                     const aStock = a.stock_vitrina || 0;
                     const bStock = b.stock_vitrina || 0;
@@ -1357,7 +1357,7 @@ export default function PublicStore() {
         const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', storeData.id);
         if (!pError && pData) {
           const published = pData
-             .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo')
+             .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo' || p.publish_status === 'published')
              .sort((a, b) => {
                 const aStock = a.stock_vitrina || 0;
                 const bStock = b.stock_vitrina || 0;
