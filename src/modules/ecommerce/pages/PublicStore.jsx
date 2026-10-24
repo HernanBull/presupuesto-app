@@ -131,6 +131,63 @@ export default function PublicStore() {
   const [ocrStatus, setOcrStatus] = useState('idle');
   const [ocrMessage, setOcrMessage] = useState('');
 
+  // Geolocalización real del usuario y cálculo de distancia sin datos ficticios
+  const [userDistance, setUserDistance] = useState(null);
+  const [isLocatingUser, setIsLocatingUser] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      setIsLocatingUser(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setIsLocatingUser(false);
+          const uLat = pos.coords.latitude;
+          const uLng = pos.coords.longitude;
+          
+          const sLat = Number(config?.location?.lat || config?.expediente?.gps?.lat || config?.gps?.lat);
+          const sLng = Number(config?.location?.lng || config?.expediente?.gps?.lng || config?.gps?.lng);
+
+          if (!isNaN(sLat) && !isNaN(sLng) && sLat !== 0 && sLng !== 0) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (sLat - uLat) * (Math.PI / 180);
+            const dLon = (sLng - uLng) * (Math.PI / 180);
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(uLat * (Math.PI / 180)) *
+                Math.cos(sLat * (Math.PI / 180)) *
+                Math.sin(dLon / 2) *
+                Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const dist = R * c;
+
+            if (dist < 1) {
+              setUserDistance(`A ${Math.round(dist * 1000)} m de ti`);
+            } else {
+              setUserDistance(`A ${dist.toFixed(1)} Km de ti`);
+            }
+          } else {
+            const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
+            if (storeCity) {
+              setUserDistance(`📍 ${storeCity}`);
+            } else {
+              setUserDistance(null);
+            }
+          }
+        },
+        () => {
+          setIsLocatingUser(false);
+          const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
+          if (storeCity) {
+            setUserDistance(`📍 ${storeCity}`);
+          } else {
+            setUserDistance(null);
+          }
+        },
+        { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
+      );
+    }
+  }, [config]);
+
   useEffect(() => {
     if (checkoutStep === 2 && !selectedPaymentMethod) {
       if (config?.paymentProfile?.paymentMobile !== false) {
@@ -1614,27 +1671,27 @@ export default function PublicStore() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className={`min-h-screen w-full flex flex-col bg-black text-slate-50 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}>
+    <div className={`min-h-screen w-full flex flex-col bg-slate-50 text-slate-900 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}>
       
       {isMerchantOwner && (
-        <div className="w-full bg-amber-500 text-black text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 z-[100] relative shadow-[0_0_30px_rgba(245,158,11,0.3)]">
+        <div className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 z-[100] relative shadow-md">
           <div className="flex items-center gap-2">
             <Zap size={14} className="animate-pulse" />
             <span>Modo Administrador Activo - Estás viendo tu tienda</span>
           </div>
           <button 
             onClick={() => navigate('/dashboard')} 
-            className="bg-black/90 text-amber-500 px-4 py-1.5 rounded-full hover:bg-black transition-colors flex items-center gap-2 shadow-sm"
+            className="bg-black/80 hover:bg-black text-white px-4 py-1.5 rounded-full transition-colors flex items-center gap-2 shadow-sm font-bold text-[11px]"
           >
              <LayoutTemplate size={12} /> Volver al Panel
           </button>
         </div>
       )}
 
-      {/* Background ambient light */}
+      {/* Background ambient light - Luminous warm amber/orange */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] blur-[150px] rounded-full translate-x-1/3 -translate-y-1/2 opacity-[0.15]" style={{ backgroundColor: primaryColor }}></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3 bg-zinc-800/40"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] blur-[140px] rounded-full translate-x-1/3 -translate-y-1/2 opacity-[0.07] bg-orange-400"></div>
+        <div className="absolute bottom-0 left-0 w-[450px] h-[450px] blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3 opacity-[0.04] bg-amber-300"></div>
       </div>
 
       {/* Alerta de Stock Premium */}
@@ -1792,65 +1849,72 @@ export default function PublicStore() {
       {/* Pages */}
       <div className="flex-1 flex flex-col relative z-10">
         
-        {/* INICIO */}
+        {/* INICIO - Formato Luminous White & Axon Orange */}
         {currentPage === 'home' && (
-          <div className="flex-1 flex flex-col w-full pb-24 text-white relative">
+          <div className="flex-1 flex flex-col w-full pb-28 text-slate-900 bg-slate-50/50 relative">
             
-            {/* Cabecera Flotante (Life Burger Style) */}
-            <div className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-4 bg-gradient-to-b from-black/80 to-transparent pointer-events-auto">
-              <button onClick={() => navigate('/')} className="p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-pure-white">
-                <ChevronLeft size={24} color="white" />
+            {/* Cabecera Superior Luminous White */}
+            <div className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+              <button onClick={() => navigate('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-slate-700 hover:text-slate-900">
+                <ChevronLeft size={22} />
               </button>
               <div className="flex flex-col items-center">
-                <span className="font-bold text-lg text-pure-white">{config?.business_name || 'Mi Tienda'}</span>
-                <span className="text-xs text-pure-white opacity-80">A 13.98 Km de ti</span>
+                <span className="font-bold text-base text-slate-900 leading-tight">{config?.business_name || 'Mi Tienda'}</span>
+                {userDistance ? (
+                  <span className="text-xs font-bold text-orange-600 flex items-center gap-1 mt-0.5">{userDistance}</span>
+                ) : isLocatingUser ? (
+                  <span className="text-xs text-slate-400 mt-0.5">Calculando distancia real...</span>
+                ) : config?.address || config?.location?.address || config?.expediente?.address ? (
+                  <span className="text-xs text-slate-500 font-medium mt-0.5">📍 {config?.address || config?.location?.address || config?.expediente?.address}</span>
+                ) : null}
               </div>
               <div className="w-10 flex items-center justify-end">
                 {currentCustomer ? (
                   <button onClick={() => navigate('/profile')} className="transition-transform hover:scale-105" title="Mi Perfil">
                     {currentCustomer.profile_pic ? (
-                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-8 h-8 rounded-full object-cover border-2 border-white/50 shadow-sm" />
+                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-8 h-8 rounded-full object-cover border-2 border-orange-400 shadow-sm" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-white/50 shadow-sm">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-sm">
                         {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
                   </button>
                 ) : !isMerchantOwner && (
-                  <button onClick={() => setShowAuthModal(true)} className="p-2 text-white/80 hover:text-white transition-colors" title="Ingresar">
+                  <button onClick={() => setShowAuthModal(true)} className="p-2 text-slate-600 hover:text-orange-600 transition-colors" title="Ingresar">
                     <User size={20} />
                   </button>
                 )}
               </div>
-
             </div>
 
-            {/* Hero Background (Absolute) */}
-            <div className="absolute top-0 left-0 w-full h-[420px] md:h-[500px] z-0 bg-zinc-800">
+            {/* Hero Background - Blanco Luminoso y Naranja Radiante (Sin metálicos oscuros) */}
+            <div className="relative w-full h-[180px] md:h-[240px] z-0 overflow-hidden bg-gradient-to-b from-orange-100/70 via-amber-50/40 to-slate-50 border-b border-orange-100/50">
               {heroUrl ? (
-                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-80" />
+                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-85" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-t from-white to-zinc-800"></div>
+                <div className="w-full h-full bg-gradient-to-br from-orange-100/60 via-amber-50/30 to-slate-50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[radial-gradient(#ea580c_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.08]" />
+                </div>
               )}
             </div>
 
-            {/* Profile Content Container (Relative on top of Hero) */}
-            <div className="relative z-10 pt-[180px] md:pt-[220px] px-4 md:px-8 max-w-[1400px] mx-auto w-full flex flex-col">
+            {/* Profile Content Container */}
+            <div className="relative z-10 -mt-16 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col">
               
-              {/* Avatar */}
-              <div className="flex justify-center w-full mb-4">
+              {/* Avatar con anillo luminoso */}
+              <div className="flex justify-center w-full mb-3">
                 <div className="relative">
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-[#F8F9FA] overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white ring-4 ring-orange-500/15">
                     {logoUrl ? (
                       <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Store size={40} className="text-zinc-500" />
+                      <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
+                        <Store size={44} />
                       </div>
                     )}
                   </div>
                   {config?.is_verified && (
-                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-black flex items-center justify-center shadow-lg">
+                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
                       <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                     </div>
                   )}
@@ -1860,14 +1924,14 @@ export default function PublicStore() {
               {/* Title & Slug */}
               <div className="flex flex-col items-center text-center">
                 <div className="flex items-center gap-2 justify-center">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-pure-white">
+                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
                     {config?.business_name || 'Mi Tienda'}
                   </h1>
                 </div>
-                <p className="text-pure-white opacity-80 font-medium text-base mt-1">@{slug}</p>
+                <p className="text-orange-600 font-bold text-sm mt-0.5">@{slug}</p>
                 
                 {/* Rating & Delivery */}
-                <div className="flex items-center justify-center gap-3 mt-3 mb-4 text-sm font-medium">
+                <div className="flex items-center justify-center gap-2.5 mt-2.5 mb-3 text-sm font-medium flex-wrap">
                   <button 
                     onClick={() => {
                       if (!currentCustomer) {
@@ -1876,45 +1940,42 @@ export default function PublicStore() {
                       }
                       setShowReviewModal(true);
                     }} 
-                    className="flex items-center gap-1.5 bg-white text-black hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-sm"
+                    className="flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-orange-300 text-slate-800 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs hover:bg-orange-50/50"
                   >
-                    <Star size={14} className="fill-black" />
+                    <Star size={14} className="fill-amber-400 text-amber-500" />
                     <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
                   </button>
                   {config?.has_enminutos_alliance && (
-                    <>
-                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                      <button className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#222] border border-white/10 px-3 py-1.5 rounded-full transition-colors cursor-pointer shadow-lg">
-                        <div className="flex items-center font-black tracking-tighter">
-                          <span className="text-red-600 text-sm">E</span>
-                          <span className="text-red-600 text-sm">M</span>
-                          <Zap size={14} className="fill-yellow-400 text-yellow-400 ml-0.5" />
-                        </div>
-                        <span className="text-pure-white text-xs font-semibold tracking-wide">en minutos</span>
-                      </button>
-                    </>
+                    <button className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs">
+                      <div className="flex items-center font-black tracking-tighter">
+                        <span className="text-red-500 text-sm">E</span>
+                        <span className="text-red-500 text-sm">M</span>
+                        <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                      </div>
+                      <span className="text-white text-xs font-bold tracking-wide">en minutos</span>
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-4 max-w-[300px] mx-auto mt-6 pb-2 w-full text-center">
+              <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto mt-2 pb-1 w-full text-center bg-white border border-slate-200/80 rounded-2xl py-2.5 px-3 shadow-xs">
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-xl">{products.length + (storeNews?.length || 0)}</span>
-                  <span className="text-zinc-400 text-sm">Publicaciones</span>
+                  <span className="font-black text-lg text-slate-900">{products.length + (storeNews?.length || 0)}</span>
+                  <span className="text-slate-500 text-[11px] font-semibold">Publicaciones</span>
                 </div>
-                <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowFollowersModal(true)}>
-                  <span className="font-bold text-xl">{followersCount}</span>
-                  <span className="text-zinc-400 text-sm">Seguidores</span>
+                <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity border-x border-slate-100 px-2" onClick={() => setShowFollowersModal(true)}>
+                  <span className="font-black text-lg text-slate-900">{followersCount}</span>
+                  <span className="text-slate-500 text-[11px] font-semibold">Seguidores</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="font-bold text-xl">{likesCount}</span>
-                  <span className="text-zinc-400 text-sm">Me gusta</span>
+                  <span className="font-black text-lg text-slate-900">{likesCount}</span>
+                  <span className="text-slate-500 text-[11px] font-semibold">Me gusta</span>
                 </div>
               </div>
 
               {/* Botones de Acción */}
-              <div className="flex gap-2 mt-6 w-full">
+              <div className="flex gap-2.5 mt-4 w-full max-w-[440px] mx-auto">
                 <button 
                   onClick={async () => {
                     if (!currentCustomer && !isMerchantOwner) {
@@ -1938,29 +1999,48 @@ export default function PublicStore() {
                       setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
                     }
                   }}
-                  className={`flex-1 ${isFollowing ? 'bg-amber-600 text-black border-none' : 'bg-amber-500 hover:bg-amber-600 text-black border-none'} py-2 rounded-xl font-bold transition-colors text-sm flex items-center justify-center gap-2 shadow-sm cursor-pointer`}
+                  className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm shadow-orange-500/25'} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer`}
                 >
                   {isFollowing ? (
                     <>
-                      <CheckCircle2 size={18} className="text-black" />
-                      Siguiendo
+                      <CheckCircle2 size={18} className="text-emerald-600" />
+                      <span>Siguiendo</span>
                     </>
                   ) : (
                     <>
                       <UserPlus size={18} />
-                      Seguir
+                      <span>Seguir</span>
                     </>
                   )}
                 </button>
-                <button className="flex-1 bg-amber-500 hover:bg-amber-600 text-black py-2 rounded-xl font-bold transition-colors text-sm shadow-sm border-none">
+                <button 
+                  onClick={() => {
+                    if (config?.socialLinks?.whatsapp) {
+                      window.open(`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`, '_blank');
+                    } else if (config?.phone || config?.expediente?.phone) {
+                      window.location.href = `tel:${config?.phone || config?.expediente?.phone}`;
+                    } else {
+                      alert('El comercio no tiene teléfono o WhatsApp registrado.');
+                    }
+                  }}
+                  className="flex-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-800 hover:text-orange-600 py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
                   Contactar
                 </button>
-                <button className="p-2 bg-amber-500 hover:bg-amber-600 text-black rounded-xl transition-colors flex items-center justify-center shadow-sm border-none" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Enlace copiado!'); }}>
-                  <Link size={20} />
+                <button 
+                  className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer" 
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }}
+                  title="Copiar enlace"
+                >
+                  <Link size={18} />
                 </button>
                 <div className="relative">
-                  <button onClick={() => setShowSocialMenu(!showSocialMenu)} className="p-2 bg-amber-500 hover:bg-amber-600 text-black rounded-xl transition-colors flex items-center justify-center relative z-50 shadow-sm border-none">
-                    <Camera size={20} />
+                  <button 
+                    onClick={() => setShowSocialMenu(!showSocialMenu)} 
+                    className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                    title="Redes sociales"
+                  >
+                    <Camera size={18} />
                   </button>
                   <AnimatePresence>
                     {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
@@ -1968,29 +2048,29 @@ export default function PublicStore() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-2 min-w-[180px] z-[100]"
+                        className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 min-w-[190px] z-[100]"
                       >
                         {config.socialLinks.instagram && (
-                          <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
                             <span className="text-sm font-bold">Instagram</span>
                           </a>
                         )}
                         {config.socialLinks.tiktok && (
-                          <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                            <Music2 size={18} className="text-white" />
+                          <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                            <Music2 size={18} className="text-slate-900" />
                             <span className="text-sm font-bold">TikTok</span>
                           </a>
                         )}
                         {config.socialLinks.facebook && (
-                          <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
+                          <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
                             <span className="text-sm font-bold">Facebook</span>
                           </a>
                         )}
                         {config.socialLinks.whatsapp && (
-                          <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-zinc-300 hover:text-white">
-                            <MessageCircle size={18} className="text-green-500" />
+                          <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                            <MessageCircle size={18} className="text-emerald-500" />
                             <span className="text-sm font-bold">WhatsApp</span>
                           </a>
                         )}
@@ -2001,9 +2081,9 @@ export default function PublicStore() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-12 right-0 bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl py-3 px-4 min-w-[200px] z-[100]"
+                        className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-3 px-4 min-w-[200px] z-[100]"
                       >
-                        <p className="text-xs text-zinc-400 text-center">Este comercio aún no ha agregado redes sociales.</p>
+                        <p className="text-xs text-slate-500 text-center">Este comercio aún no ha registrado redes sociales.</p>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -2015,60 +2095,61 @@ export default function PublicStore() {
               </div>
 
               {/* Acerca de */}
-              <div className="mt-8">
-                <h2 className="text-lg font-bold mb-3">Acerca de</h2>
-                <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">
+              <div className="mt-6 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
+                  <Building2 size={18} className="text-orange-600" />
+                  <span>Acerca de</span>
+                </h2>
+                <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                   {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
-                  <div className="flex flex-col gap-1.5 mt-3 text-zinc-400">
-                    {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                      <div className="flex items-center gap-2">
-                        <MapPin size={14} className="text-red-500" />
-                        <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
-                      </div>
-                    )}
-                  </div>
+                  {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
+                      <MapPin size={14} className="text-red-500 shrink-0" />
+                      <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Calificaciones de Clientes */}
-              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Star size={18} className="fill-amber-400 text-amber-400" /> 
-                  Calificaciones de los Clientes
+              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                <h2 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
+                  <Star size={18} className="fill-amber-400 text-amber-500" /> 
+                  <span>Calificaciones de los Clientes</span>
                 </h2>
                 {storeReviewsList.length > 0 ? (
                   <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {storeReviewsList.map(review => (
-                      <div key={review.id} className="bg-slate-50 dark:bg-zinc-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-xs">
-                        <div className="flex justify-between items-start mb-2">
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">{review.customer_name}</span>
+                      <div key={review.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 shadow-xs">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="font-bold text-sm text-slate-900">{review.customer_name}</span>
                           <div className="flex gap-0.5">
                             {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-400' : 'fill-slate-300 dark:fill-zinc-600 text-slate-300 dark:text-zinc-600'} />
+                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-500' : 'fill-slate-200 text-slate-300'} />
                             ))}
                           </div>
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-zinc-300 whitespace-pre-line">{review.comment}</p>
+                        <p className="text-sm text-slate-600 whitespace-pre-line">{review.comment}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-slate-500 dark:text-zinc-400 italic">No hay calificaciones disponibles aún.</p>
+                  <p className="text-sm text-slate-400 italic">No hay calificaciones disponibles aún.</p>
                 )}
               </div>
 
               {/* Horario */}
-              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
+              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Clock size={18} className="text-amber-500 shrink-0" />
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Clock size={18} className="text-orange-600 shrink-0" />
                     <span>Horario</span>
                   </h2>
                   {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
                     <button 
                       type="button"
                       onClick={() => setShowFullSchedule(!showFullSchedule)}
-                      className="text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                      className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
                     >
                       {showFullSchedule ? 'Ocultar' : 'Ver todo'}
                     </button>
@@ -2077,12 +2158,12 @@ export default function PublicStore() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
                     storeSchedule.status === 'closed'
-                      ? 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/50'
+                      ? 'bg-rose-50 text-rose-600 border border-rose-200'
                       : storeSchedule.status === 'closing'
-                      ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/50'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
                       : storeSchedule.status === 'unknown'
-                      ? 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700'
-                      : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-900/50'
+                      ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   }`}>
                     <span className={`w-2 h-2 rounded-full ${
                       storeSchedule.status === 'closed' ? 'bg-rose-500' : 
@@ -2093,12 +2174,12 @@ export default function PublicStore() {
                      storeSchedule.status === 'closing' ? 'Cierra pronto' : 
                      storeSchedule.status === 'unknown' ? 'No definido' : 'Abierto'}
                   </span>
-                  <span className="text-slate-600 dark:text-zinc-300 text-xs sm:text-sm font-medium">
+                  <span className="text-slate-600 text-xs sm:text-sm font-medium">
                     · {storeSchedule.message}
                   </span>
                 </div>
 
-                {/* Vista Detallada de Horario (Oculta por defecto) */}
+                {/* Vista Detallada de Horario */}
                 {showFullSchedule && (config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (() => {
                   const sched = config?.scheduleProfile || config?.schedule;
                   const currentDayIdx = new Date().getDay();
@@ -2107,29 +2188,29 @@ export default function PublicStore() {
                   const weekDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
                   return (
-                    <div className="mt-4 flex flex-col gap-1.5 text-sm bg-slate-50 dark:bg-zinc-900/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs">
+                    <div className="mt-4 flex flex-col gap-1.5 text-sm bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
                       {weekDays.map(day => {
                         const isToday = todayName === day;
                         const isOpen = Boolean(sched?.workDays?.[day]);
                         return (
                           <div 
                             key={day} 
-                            className={`flex justify-between items-center px-3 py-2.5 rounded-xl transition-colors ${
+                            className={`flex justify-between items-center px-3 py-2 rounded-xl transition-colors ${
                               isToday 
-                                ? 'bg-amber-500/10 border border-amber-400/40 dark:border-amber-500/30' 
-                                : 'border-b border-slate-200/60 dark:border-white/5 last:border-0 hover:bg-white/60 dark:hover:bg-zinc-800/40'
+                                ? 'bg-orange-50 border border-orange-200' 
+                                : 'border-b border-slate-200/50 last:border-0 hover:bg-white'
                             }`}
                           >
                             <div className="flex items-center gap-2">
                               <span className={`capitalize text-xs sm:text-sm ${
                                 isToday 
-                                  ? 'font-bold text-amber-800 dark:text-amber-300' 
-                                  : 'font-medium text-slate-700 dark:text-zinc-300'
+                                  ? 'font-bold text-orange-900' 
+                                  : 'font-medium text-slate-700'
                               }`}>
                                 {day}
                               </span>
                               {isToday && (
-                                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 leading-none">
+                                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-orange-500 text-white leading-none">
                                   Hoy
                                 </span>
                               )}
@@ -2137,12 +2218,12 @@ export default function PublicStore() {
                             <span className="tracking-wide">
                               {isOpen ? (
                                 <span className={`text-xs sm:text-sm font-bold ${
-                                  isToday ? 'text-amber-950 dark:text-amber-200' : 'text-slate-900 dark:text-white'
+                                  isToday ? 'text-orange-950' : 'text-slate-900'
                                 }`}>
                                   {sched.openTime || '08:00'} - {sched.closeTime || '18:00'}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-900/40">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200">
                                   Cerrado
                                 </span>
                               )}
@@ -2156,9 +2237,12 @@ export default function PublicStore() {
               </div>
 
               {/* Ubicación */}
-              <div className="mt-8 border-t border-slate-200 dark:border-white/10 pt-8">
+              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                 <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-lg font-bold text-slate-900 dark:text-white">Ubicación</h2>
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <MapPin size={18} className="text-orange-600 shrink-0" />
+                    <span>Ubicación</span>
+                  </h2>
                   <button 
                     type="button"
                     onClick={() => {
@@ -2167,16 +2251,16 @@ export default function PublicStore() {
                       const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
                       window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
                     }} 
-                    className="text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
                   >
                     Abrir en Maps
                   </button>
                 </div>
                 {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                  <p className="text-sm text-zinc-300 mb-4">{config?.address || config?.location?.address || config?.expediente?.address}</p>
+                  <p className="text-sm text-slate-600 mb-3">{config?.address || config?.location?.address || config?.expediente?.address}</p>
                 )}
                 
-                <div className="w-full h-40 rounded-3xl relative overflow-hidden bg-zinc-900 shadow-inner border border-white/5 z-0 group">
+                <div className="w-full h-44 rounded-2xl relative overflow-hidden bg-slate-100 shadow-inner border border-slate-200 z-0 group">
                   {(config?.location?.lat || config?.expediente?.gps?.lat) && (config?.location?.lng || config?.expediente?.gps?.lng) ? (
                     <MapContainer 
                       center={[
@@ -2206,15 +2290,14 @@ export default function PublicStore() {
                         const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
                         window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
                       }}
-                      className="w-full h-full cursor-pointer relative bg-zinc-100 flex items-center justify-center overflow-hidden group"
+                      className="w-full h-full cursor-pointer relative bg-slate-100 flex items-center justify-center overflow-hidden group"
                     >
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-200 to-zinc-100 opacity-50"></div>
                       <div className="relative flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
                         <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
                           {config?.logoUrl ? (
                             <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
+                            <div className="w-full h-full bg-orange-500 flex items-center justify-center">
                               <Store size={16} className="text-white" />
                             </div>
                           )}
@@ -2232,34 +2315,37 @@ export default function PublicStore() {
                         const lat = config?.location?.lat || config?.expediente?.gps?.lat;
                         const lng = config?.location?.lng || config?.expediente?.gps?.lng;
                         window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-                      }}
-                    ></div>
+                      }} 
+                    />
                   )}
                 </div>
               </div>
 
-              {/* Boletín de Noticias */}
-              <div className="mt-8 border-t border-white/5 pt-8 pb-32">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-bold">Novedades y Noticias</h2>
+              {/* Boletín de Novedades y Noticias */}
+              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs mb-8">
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <Zap size={18} className="text-orange-600" />
+                    <span>Novedades y Noticias</span>
+                  </h2>
                 </div>
                 
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4">
                   {storeNews.length > 0 ? storeNews.map((news) => (
-                    <div key={news.id} className="bg-zinc-900/50 rounded-2xl border border-white/5 overflow-hidden">
+                    <div key={news.id} className="bg-slate-50 rounded-xl border border-slate-200/70 overflow-hidden">
                       {news.image_url && (
-                        <img src={news.image_url} alt={news.title} className="w-full h-48 sm:h-64 object-cover" />
+                        <img src={news.image_url} alt={news.title} className="w-full h-44 sm:h-56 object-cover" />
                       )}
-                      <div className="p-4 sm:p-5">
-                        <span className="text-xs font-medium text-amber-500 mb-2 block">
+                      <div className="p-4">
+                        <span className="text-xs font-bold text-orange-600 mb-1 block">
                           {new Date(news.created_at).toLocaleDateString()}
                         </span>
-                        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 leading-tight">{news.title}</h3>
-                        <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{news.content}</p>
+                        <h3 className="text-base font-black text-slate-900 mb-1 leading-tight">{news.title}</h3>
+                        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{news.content}</p>
                       </div>
                     </div>
                   )) : (
-                    <div className="text-center py-10 text-zinc-500 font-light border border-dashed border-white/10 rounded-2xl">
+                    <div className="text-center py-8 text-slate-400 font-medium border border-dashed border-slate-200 rounded-xl text-sm">
                       No hay novedades recientes en la tienda
                     </div>
                   )}
@@ -2267,9 +2353,6 @@ export default function PublicStore() {
               </div>
 
             </div>
-
-
-
           </div>
         )}
 
@@ -3639,62 +3722,62 @@ export default function PublicStore() {
           </button>
         </div>
       </ResponsiveModal>
-      {/* Mobile Bottom Navigation Bar - Floating Glassmorphic Design */}
+      {/* Mobile Bottom Navigation Bar - Floating Luminous White & Orange */}
       <nav 
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/70 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
       >
         <div className="flex justify-between items-center h-16 px-2">
           <button
             onClick={() => setCurrentPage('home')}
             className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'home' ? { color: primaryColor } : { color: '#a1a1aa' }}
+            style={currentPage === 'home' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
           >
             <Store size={22} fill={currentPage === 'home' ? "currentColor" : "none"} />
-            <span className="text-[10px] font-bold">{texts?.nav1 || 'Inicio'}</span>
+            <span className={`text-[10px] ${currentPage === 'home' ? 'font-black' : 'font-semibold'}`}>{texts?.nav1 || 'Inicio'}</span>
           </button>
           
           <button
             onClick={() => setCurrentPage('products')}
             className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'products' ? { color: primaryColor } : { color: '#a1a1aa' }}
+            style={currentPage === 'products' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
           >
             <Package size={22} fill={currentPage === 'products' ? "currentColor" : "none"} />
-            <span className="text-[10px] font-medium">{texts?.nav2 || 'Catálogo'}</span>
+            <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-semibold'}`}>{texts?.nav2 || 'Catálogo'}</span>
           </button>
 
           {/* Standard Button for Cart */}
           <button
             onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
             className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors relative"
-            style={isCartOpen ? { color: primaryColor } : { color: '#a1a1aa' }}
+            style={isCartOpen ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
           >
             <div className="relative">
               <ShoppingCart size={22} fill={isCartOpen ? "currentColor" : "none"} />
               {totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full shadow-sm" style={{ backgroundColor: primaryColor }}>
+                <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-white text-[9px] font-black flex items-center justify-center rounded-full shadow-sm bg-orange-600">
                   {totalCartItems}
                 </span>
               )}
             </div>
-            <span className="text-[10px] font-medium">Carrito</span>
+            <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-semibold'}`}>Carrito</span>
           </button>
 
           <button
             onClick={() => setCurrentPage('offers')}
             className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'offers' ? { color: primaryColor } : { color: '#a1a1aa' }}
+            style={currentPage === 'offers' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
           >
             <Tag size={22} fill={currentPage === 'offers' ? "currentColor" : "none"} />
-            <span className="text-[10px] font-medium">{texts?.nav3 || 'Ofertas'}</span>
+            <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-semibold'}`}>{texts?.nav3 || 'Ofertas'}</span>
           </button>
 
           <button
             onClick={() => setIsToolsModalOpen(true)}
             className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={isToolsModalOpen ? { color: primaryColor } : { color: '#a1a1aa' }}
+            style={isToolsModalOpen ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
           >
             <Calculator size={22} fill={isToolsModalOpen ? "currentColor" : "none"} />
-            <span className="text-[10px] font-medium">Útiles</span>
+            <span className={`text-[10px] ${isToolsModalOpen ? 'font-black' : 'font-semibold'}`}>Útiles</span>
           </button>
         </div>
       </nav>
