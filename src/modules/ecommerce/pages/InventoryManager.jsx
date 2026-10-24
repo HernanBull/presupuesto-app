@@ -474,7 +474,7 @@ export default function InventoryManager() {
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24 md:pb-8 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Logística e Inventario</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Inventario</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Controla existencias, órdenes de compra y márgenes de ganancia.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
