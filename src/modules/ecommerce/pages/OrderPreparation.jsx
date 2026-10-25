@@ -299,19 +299,26 @@ export default function OrderPreparation() {
     return (
       <div
         style={{
-          minHeight: '100dvh',
-          width: '100%',
-          overflowY: 'auto',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100dvh',
+          maxHeight: '100dvh',
+          overflowY: 'scroll',
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y',
           backgroundColor: '#F8FAFC',
           display: 'flex',
           flexDirection: 'column',
+          zIndex: 9999,
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           boxSizing: 'border-box'
         }}
       >
-        {/* Barra Superior Fija con Botón Volver y Progreso */}
+        {/* Barra Superior Fija con Botón Volver, Número de Orden y Progreso */}
         <header
           style={{
             position: 'sticky',
@@ -354,11 +361,12 @@ export default function OrderPreparation() {
                 fontWeight: 900,
                 color: '#0F172A',
                 backgroundColor: '#F1F5F9',
-                padding: '3px 10px',
-                borderRadius: '8px'
+                padding: '4px 12px',
+                borderRadius: '8px',
+                border: '1px solid #E2E8F0'
               }}
             >
-              #{selectedOrder.id}
+              Orden #{selectedOrder.id}
             </span>
           </div>
 
@@ -394,61 +402,21 @@ export default function OrderPreparation() {
         {/* Contenido Principal con Scroll Fluido y Padding Inferior Holgado (160px) */}
         <main style={{ flex: 1, padding: '16px 16px 160px 16px', display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           
-          {/* Tarjeta Operativa de Empaque (Privacidad del Cliente Protegida) */}
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              padding: '14px 16px',
-              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-              <div>
-                <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B', display: 'block' }}>
-                  Comanda de Preparación
-                </span>
-                <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#0F172A', margin: '2px 0 0 0' }}>
-                  Orden #{selectedOrder.id}
-                </h3>
-              </div>
-
-              <span
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '9999px',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  backgroundColor: deliveryType === 'DELIVERY' ? '#EFF6FF' : '#FEF3C7',
-                  color: deliveryType === 'DELIVERY' ? '#1D4ED8' : '#B45309',
-                  border: `1.5px solid ${deliveryType === 'DELIVERY' ? '#BFDBFE' : '#FDE68A'}`,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                {deliveryType === 'DELIVERY' ? '🛵 Despacho Delivery' : '🏪 Retiro en Tienda'}
-              </span>
+          {selectedOrder.notes && (
+            <div
+              style={{
+                padding: '10px 14px',
+                backgroundColor: '#FFFBEB',
+                border: '1px solid #FDE68A',
+                borderRadius: '12px',
+                fontSize: '12px',
+                color: '#B45309',
+                lineHeight: 1.4
+              }}
+            >
+              <strong>Instrucciones de empaque:</strong> {selectedOrder.notes}
             </div>
-
-            {selectedOrder.notes && (
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '10px 12px',
-                  backgroundColor: '#FFFBEB',
-                  border: '1px solid #FDE68A',
-                  borderRadius: '10px',
-                  fontSize: '12px',
-                  color: '#B45309',
-                  lineHeight: 1.4
-                }}
-              >
-                <strong>Instrucciones de empaque:</strong> {selectedOrder.notes}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Checklist Táctil de Productos (Soporta 10, 20 o más productos con scroll suave) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -730,15 +698,14 @@ export default function OrderPreparation() {
     <div
       style={{
         minHeight: '100dvh',
-        height: '100%',
+        width: '100%',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        overscrollBehaviorY: 'contain',
+        touchAction: 'pan-y',
         backgroundColor: '#F8FAFC',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        userSelect: 'none',
         boxSizing: 'border-box'
       }}
     >
