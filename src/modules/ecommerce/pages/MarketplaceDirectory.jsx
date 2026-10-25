@@ -1371,272 +1371,194 @@ export default function MarketplaceDirectory() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden">
+      <div className="min-h-screen bg-zinc-100 md:bg-zinc-950/5 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden flex flex-col items-center">
       {/* PWA Install Banner */}
       <PwaInstallBanner />
       
-      {/* Background ambient light */}
+      {/* Background ambient light for Desktop view */}
       <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-amber-500/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-indigo-500/5 blur-[120px] rounded-full -translate-x-1/4 translate-y-1/3"></div>
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-amber-500/10 blur-[140px] rounded-full"></div>
+        <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[140px] rounded-full"></div>
       </div>
 
-      {/* App Header - Light Theme */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-5 md:px-8 shadow-xs">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-amber-500 hover:text-amber-600 transition-colors p-1 -ml-1" title="Menú de opciones">
-              <MoreVertical size={24} strokeWidth={2.2} />
-            </button>
-            <div className="flex items-center gap-2 select-none cursor-pointer" onClick={() => navigate('/')}>
-              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                <ShoppingBag size={16} className="stroke-[2.5]"/>
+      {/* Centered Mobile-First App Shell */}
+      <div className="w-full max-w-md md:max-w-[480px] min-h-screen bg-white md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
+
+        {/* App Header */}
+        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 shadow-xs">
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)} 
+                className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
+                title="Menú de opciones"
+              >
+                <MoreVertical size={22} strokeWidth={2.2} />
+              </button>
+              <div 
+                className="flex items-center gap-2 select-none cursor-pointer" 
+                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/'); }}
+              >
+                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                  <ShoppingBag size={16} className="stroke-[2.5]"/>
+                </div>
+                <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
               </div>
-              <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {Object.keys(globalCart).length > 0 && (
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
+                  title="Ver mis carritos de compra"
+                >
+                  <ShoppingCart size={20} />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
+                    {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
+                  </span>
+                </button>
+              )}
+
+              {currentCustomer ? (
+                /* Usuario logueado: Mostramos su foto de perfil */
+                <button 
+                  onClick={() => navigate('/profile')} 
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                  title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
+                >
+                  {currentCustomer.profile_pic ? (
+                    <img 
+                      src={resolveImageUrl(currentCustomer.profile_pic)} 
+                      alt="Perfil" 
+                      className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+              ) : currentMerchant ? (
+                /* Comercio logueado */
+                <button 
+                  onClick={() => navigate('/dashboard')} 
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
+                >
+                  <Store size={14} /> Panel
+                </button>
+              ) : (
+                /* Visitante no logueado */
+                <>
+                  <button 
+                    onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
+                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                    title="Abrir mi Tienda"
+                  >
+                    <Store size={20} strokeWidth={2} />
+                  </button>
+                  
+                  <button 
+                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                    title="Iniciar Sesión"
+                  >
+                    <User size={20} strokeWidth={2} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
+        </header>
 
-          {/* Desktop Search Bar in Header */}
-          <div className="hidden md:flex flex-1 max-w-xs lg:max-w-sm mx-4 relative">
+        {/* App Search Bar */}
+        <div className="px-4 py-3 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
+          <div className="relative w-full group">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={16} className="text-zinc-400" />
+              <Search size={18} className="text-zinc-400" />
             </div>
             <input
+              id="mobile-search-input"
               type="text"
               placeholder="¿Qué quieres pedir hoy?"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl py-2 pl-10 pr-4 text-zinc-900 text-xs font-medium focus:outline-none focus:border-amber-500 shadow-inner placeholder-zinc-400"
+              className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
             />
           </div>
+        </div>
 
-          {/* Desktop Navigation Buttons (Equiparadas con la barra móvil) */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 mr-2">
-            <button
-              onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); navigate('/'); }}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeCategory === 'Todas' && !searchTerm 
-                  ? 'bg-amber-500/15 text-amber-600 font-black' 
-                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
-              }`}
-              title="Ir a inicio del directorio"
-            >
-              <Home size={16} />
-              <span>Inicio</span>
-            </button>
-
-            <button
-              onClick={() => setIsCategoriesOpen(true)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                isCategoriesOpen || activeCategory !== 'Todas'
-                  ? 'bg-amber-500/15 text-amber-600 font-black' 
-                  : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100'
-              }`}
-              title="Explorar departamentos y categorías"
-            >
-              <Menu size={16} />
-              <span>Categorías</span>
+        {/* Departamentos / Stories Carousel */}
+        <div className="px-3 py-3 border-b border-zinc-100 bg-white">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={14} className="text-amber-500" />
+              <span className="text-xs font-bold text-zinc-700">Departamentos</span>
               {activeCategory !== 'Todas' && (
-                <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500 text-black font-black">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-black">
                   {activeCategory}
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={() => {
-                if (!currentCustomer) {
-                  setAuthMode('login');
-                  setIsAuthModalOpen(true);
-                } else {
-                  navigate('/profile', { state: { tab: 'favoritas' } });
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 hover:text-rose-600 hover:bg-rose-50 transition-all relative"
-              title="Mis Tiendas Favoritas"
-            >
-              <Heart 
-                size={16} 
-                className={currentCustomer?.favorites?.length ? "text-rose-500 fill-rose-500" : "text-zinc-600"} 
-              />
-              <span>Favoritos</span>
-              {Boolean(currentCustomer?.favorites?.length) && (
-                <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
-                  {currentCustomer.favorites.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => navigate('/mapa')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 hover:text-amber-600 hover:bg-amber-50 transition-all"
-              title="Explorar comercios en el mapa satelital"
-            >
-              <MapPin size={16} className="text-amber-500" />
-              <span>Mapa Radar</span>
-            </button>
-
-            {Object.keys(globalCart).length > 0 && (
+            </div>
+            {activeCategory !== 'Todas' ? (
               <button
-                onClick={() => setIsCartOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-500 text-zinc-950 hover:bg-amber-400 transition-all shadow-xs"
-                title="Ver mis carritos de compra"
+                onClick={() => setActiveCategory('Todas')}
+                className="text-[11px] font-bold text-amber-600 hover:underline"
               >
-                <ShoppingCart size={16} />
-                <span>Carrito</span>
-                <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
-                  {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
-                </span>
-              </button>
-            )}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {currentCustomer ? (
-              /* Usuario logueado: Mostramos ÚNICAMENTE su foto de perfil */
-              <button 
-                onClick={() => navigate('/profile')} 
-                className="flex items-center gap-2.5 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
-                title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
-              >
-                {currentCustomer.profile_pic ? (
-                  <img 
-                    src={resolveImageUrl(currentCustomer.profile_pic)} 
-                    alt="Perfil" 
-                    className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
-                    {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className="hidden sm:inline-block text-xs font-bold text-slate-700 max-w-[120px] truncate">
-                  {currentCustomer.name || currentCustomer.email?.split('@')[0]}
-                </span>
-              </button>
-            ) : currentMerchant ? (
-              /* Comercio logueado */
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
-              >
-                <Store size={14} /> Panel
+                Restablecer
               </button>
             ) : (
-              /* Visitante no logueado: Mostramos opciones para crear tienda e iniciar sesión */
-              <>
-                <button 
-                  onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
-                  className="text-amber-500 hover:text-amber-600 transition-colors p-1 flex items-center gap-1.5"
-                  title="Abrir mi Tienda"
-                >
-                  <Store size={22} strokeWidth={2} />
-                  <span className="hidden sm:inline-block text-xs font-bold text-slate-700">Abrir Tienda</span>
-                </button>
-                
-                <button 
-                  onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                  className="text-amber-500 hover:text-amber-600 transition-colors p-1 flex items-center gap-1.5"
-                  title="Iniciar Sesión"
-                >
-                  <User size={22} strokeWidth={2} />
-                  <span className="hidden sm:inline-block text-xs font-bold text-slate-700">Iniciar Sesión</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* App Search Bar (Mobile Only) */}
-      <div className="px-5 py-4 relative z-40 bg-white md:hidden border-b border-zinc-100 shadow-sm">
-        <div className="relative w-full group">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={18} className="text-zinc-500" />
-          </div>
-          <input
-            id="mobile-search-input"
-            type="text"
-            placeholder="¿Qué quieres pedir hoy?"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl py-3.5 pl-12 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
-          />
-        </div>
-      </div>
-
-      {/* Main Content App-Style */}
-      <div className="max-w-[1400px] mx-auto px-5 md:px-6 pb-28 md:pb-12 pt-6 md:pt-12 relative z-10 space-y-8">
-        
-        {/* Categorías Principales (Desktop Only) */}
-        <section className="hidden md:block space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-zinc-900 font-bold text-lg md:text-xl">Departamentos</h3>
-              {activeCategory !== 'Todas' && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-black">
-                  Filtrado: {activeCategory}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {activeCategory !== 'Todas' && (
-                <button
-                  onClick={() => setActiveCategory('Todas')}
-                  className="text-xs font-bold text-zinc-500 hover:text-zinc-900 mr-2"
-                >
-                  Restablecer
-                </button>
-              )}
               <button 
                 onClick={() => setIsCategoriesOpen(true)}
-                className="text-xs font-bold text-amber-600 hover:text-amber-700 hover:underline mr-2"
+                className="text-[11px] font-bold text-zinc-400 hover:text-amber-600"
               >
                 Ver todas ({categories.length})
               </button>
-              <button 
-                onClick={() => scrollCategories(-1)}
-                className="w-8 h-8 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 flex items-center justify-center text-zinc-600 transition-colors shadow-2xs"
-                title="Desplazar a la izquierda"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button 
-                onClick={() => scrollCategories(1)}
-                className="w-8 h-8 rounded-full border border-zinc-200 bg-white hover:bg-zinc-100 flex items-center justify-center text-zinc-600 transition-colors shadow-2xs"
-                title="Desplazar a la derecha"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div ref={categoriesScrollRef} className="flex overflow-x-auto scrollbar-hide gap-3.5 pb-2 scroll-smooth">
-              {categories.map((cat) => {
-                const isActive = activeCategory === cat.id;
-                const IconComponent = cat.icon;
-                return (
-                  <div key={cat.id} onClick={() => setActiveCategory(cat.id)} className="flex flex-col items-center gap-2 cursor-pointer group snap-start w-[84px] shrink-0">
-                    <div className={`w-[84px] h-[84px] rounded-2xl flex items-center justify-center transition-all duration-300 ${isActive ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.35)] scale-105' : 'bg-white border border-zinc-200/90 group-hover:bg-amber-50/50 group-hover:border-amber-300 shadow-sm group-hover:scale-105'}`}>
-                      <IconComponent size={26} strokeWidth={isActive ? 2.5 : 1.7} className={isActive ? 'text-black' : 'text-zinc-600 group-hover:text-amber-600'} />
-                    </div>
-                    <span className={`text-[11px] text-center font-bold leading-tight line-clamp-1 w-full px-1 ${isActive ? 'text-amber-600' : 'text-zinc-600 group-hover:text-zinc-900'}`}>{cat.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Todas las tiendas Grid / Feed */}
-        <div className="pt-2 md:pt-8 md:border-t md:border-zinc-200 mt-2 md:mt-0 pb-10">
-          <div className="hidden md:flex items-center justify-between mb-6">
-            <h3 className="text-zinc-900 font-bold text-xl">Directorio Completo</h3>
+            )}
           </div>
           
-          {/* Mobile Feed (Instagram Style) */}
-          <div className="md:hidden flex flex-col space-y-6 -mx-5">
-            {feedPosts.map((post) => (
+          <div ref={categoriesScrollRef} className="flex overflow-x-auto scrollbar-hide gap-3 py-1 px-1 scroll-smooth">
+            {categories.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              const IconComponent = cat.icon;
+              return (
+                <div 
+                  key={cat.id} 
+                  onClick={() => setActiveCategory(cat.id)} 
+                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0"
+                >
+                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? 'bg-gradient-to-tr from-amber-500 to-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)] scale-105' : 'bg-zinc-200/70 hover:bg-amber-300'}`}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-white text-amber-600' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
+                      <IconComponent size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                    </div>
+                  </div>
+                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600' : 'text-zinc-500'}`}>
+                    {cat.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Feed Principal de Publicaciones (Estilo Instagram) */}
+        <div className="flex flex-col space-y-4 px-2 py-4 pb-28 flex-1">
+          {feedPosts.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
+              <ShoppingBag size={36} className="text-zinc-300 mx-auto mb-2" />
+              <p className="text-sm font-bold text-zinc-600">No hay publicaciones disponibles</p>
+              <p className="text-xs text-zinc-400 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
+              {activeCategory !== 'Todas' && (
+                <button 
+                  onClick={() => setActiveCategory('Todas')} 
+                  className="mt-4 px-4 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-xs"
+                >
+                  Ver todos los comercios
+                </button>
+              )}
+            </div>
+          ) : (
+            feedPosts.map((post) => (
               <SocialFeedCard
                 key={post.id}
                 post={post}
@@ -1645,129 +1567,34 @@ export default function MarketplaceDirectory() {
                 onRequireAuth={() => setIsAuthModalOpen(true)}
                 onNavigateStore={(slug) => navigate(`/${slug}`)}
               />
-            ))}
-          </div>
+            ))
+          )}
 
-          {/* Desktop Grid (Hidden on Mobile) */}
-          <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {/* Same filtered stores rendered as grid for desktop */}
-            {filteredStores.map((store) => (
-              <div key={store.id} onClick={() => navigate(`/${store.store_slug}`)} className="bg-white rounded-[1.5rem] overflow-hidden border border-zinc-200 hover:border-amber-500/30 transition-all cursor-pointer group shadow-lg">
-                  {/* Reuse horizontal card design for grid */}
-                  <div className="h-40 w-full relative bg-zinc-100 overflow-hidden">
-                    {store.config?.coverUrl || store.config?.storefront?.heroUrl ? (
-                      <img loading="lazy" src={resolveImageUrl(store.config.coverUrl || store.config.storefront.heroUrl)} className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-zinc-200 to-zinc-100 flex items-center justify-center">
-                        <Store size={40} className="text-zinc-700" />
-                      </div>
-                    )}
-                    {currentCustomer && (
-                      <div className="absolute top-3 right-3">
-                        <button onClick={(e) => toggleFavorite(e, store)} className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-zinc-900 border border-white/10 hover:bg-black/70">
-                          <Heart size={14} fill={isFavorite(store.store_slug) ? 'currentColor' : 'none'} className={isFavorite(store.store_slug) ? 'text-red-500' : ''}/>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-5 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="text-zinc-900 font-bold text-lg line-clamp-1 group-hover:text-amber-500 transition-colors flex items-center gap-1.5">
-                        {store.name}
-                        {store.config?.is_verified && (
-                          <div title="Comercio Verificado" className="inline-flex">
-                            <ShieldCheck size={16} className="text-blue-500 fill-blue-500/20" />
-                          </div>
-                        )}
-                      </h4>
-                    </div>
-                    <p className="text-zinc-500 text-sm line-clamp-2">{store.config?.description || 'Tienda en Axon Market'}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-1">
-                      <MapPin size={12} className="text-amber-500 shrink-0" />
-                      <span className="line-clamp-1">{store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela'}</span>
-                    </div>
-                    <div className="flex items-center justify-end pt-3 mt-2 border-t border-zinc-100">
-                      <span className="text-xs text-zinc-600 font-bold uppercase flex items-center gap-1 group-hover:text-amber-500 transition-colors">Visitar <ArrowRight size={12}/></span>
-                    </div>
-                  </div>
+          {/* Footer App Compacto */}
+          <div className="py-6 px-4 text-center border-t border-zinc-100 bg-zinc-50/50 mt-4 mb-16 rounded-2xl">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
+                <ShoppingBag size={14} className="stroke-[2.5]" />
               </div>
-            ))}
+              <span className="font-bold text-xs tracking-widest text-zinc-800">AXON<span className="text-amber-600">MARKET</span></span>
+            </div>
+            <p className="text-[11px] text-zinc-400">Tu marketplace local en Venezuela</p>
+            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-500">
+              <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-600">Términos</button>
+              <span>•</span>
+              <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-600">Privacidad</button>
+              <span>•</span>
+              <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-600">Aviso Legal</button>
+            </div>
+            <p className="text-[10px] text-zinc-400 mt-2">© {new Date().getFullYear()} AxonMarket</p>
           </div>
         </div>
 
       </div>
-      
-      {/* Footer (Desktop Only) */}
-      <footer className="hidden md:block bg-white border-t border-zinc-200 mt-20 relative z-10">
-        <div className="max-w-[1400px] mx-auto px-8 py-14">
-          <div className="grid grid-cols-4 gap-10 mb-10">
-            {/* Brand */}
-            <div className="col-span-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-black shadow-lg shadow-amber-900/30">
-                  <ShoppingBag size={18} className="stroke-[2.5]"/>
-                </div>
-                <span className="font-bold text-lg tracking-[0.25em] text-zinc-900">AXON<span className="text-amber-500 font-light">MARKET</span></span>
-              </div>
-              <p className="text-zinc-600 text-xs leading-relaxed">
-                Tu marketplace local. Conectamos compradores con comerciantes independientes en Venezuela.
-              </p>
-              <p className="text-zinc-700 text-[10px] mt-4 uppercase tracking-widest">
-                República Bolivariana de Venezuela
-              </p>
-            </div>
 
-            {/* Plataforma */}
-            <div>
-              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Plataforma</p>
-              <div className="space-y-3">
-                <button onClick={() => navigate('/')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Marketplace</button>
-                <button onClick={() => { setIsMerchantModalOpen(true); setMerchantAuthMode('pitch'); }} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Abrir mi Tienda</button>
-              </div>
-            </div>
-
-            {/* Soporte */}
-            <div>
-              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Soporte</p>
-              <div className="space-y-3">
-                <button onClick={() => setIsMerchantModalOpen(true)} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Acceso Comerciantes</button>
-                <button onClick={() => setIsAuthModalOpen(true)} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Acceso Compradores</button>
-              </div>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-4">Legal</p>
-              <div className="space-y-3">
-                <button onClick={() => navigate('/legal/terminos')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Términos de Uso</button>
-                <button onClick={() => navigate('/legal/privacidad')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Privacidad</button>
-                <button onClick={() => navigate('/legal/cookies')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Cookies</button>
-                <button onClick={() => navigate('/legal/comerciantes')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Términos Comerciantes</button>
-                <button onClick={() => navigate('/legal/aviso')} className="block text-xs text-zinc-500 hover:text-amber-500 transition-colors">Aviso Legal</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Divider + Copyright */}
-          <div className="border-t border-zinc-100 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-zinc-600 text-[11px]">
-              © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124 · Venezuela
-
-            </p>
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/legal/terminos')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Términos</button>
-              <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/legal/privacidad')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Privacidad</button>
-              <span className="text-zinc-800">·</span>
-              <button onClick={() => navigate('/legal/aviso')} className="text-[10px] text-zinc-600 hover:text-zinc-500 transition-colors">Aviso Legal</button>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* Bottom Navigation Bar (Mobile Only) - Floating Glassmorphic Design */}
+      {/* Bottom Navigation Bar - Floating Glassmorphic Design */}
       <div 
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/70 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/80 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
       >
         <div className="flex justify-between items-center h-16 px-2">
            <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
@@ -3065,14 +2892,14 @@ export default function MarketplaceDirectory() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] md:hidden"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200]"
             />
             <motion.div 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-              className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] md:hidden flex flex-col overflow-y-auto"
+              className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] flex flex-col overflow-y-auto"
             >
               <div className="p-5 flex items-center justify-between border-b border-zinc-200 bg-white">
                 <div className="flex items-center gap-2 select-none">
