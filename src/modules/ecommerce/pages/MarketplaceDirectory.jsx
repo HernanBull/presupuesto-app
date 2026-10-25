@@ -1604,7 +1604,7 @@ export default function MarketplaceDirectory() {
            
            <button onClick={() => {
               setIsCategoriesOpen(true);
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-zinc-800 transition-colors relative">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white transition-colors relative">
              <Menu size={22} />
              <span className="text-[10px] font-medium">Categorías</span>
            </button>
@@ -1623,14 +1623,14 @@ export default function MarketplaceDirectory() {
               } else {
                 navigate('/profile', { state: { tab: 'favoritas' } });
               }
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-500 hover:text-amber-500 transition-colors">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors">
              <Heart size={22} />
              <span className="text-[10px] font-medium">Favoritos</span>
            </button>
 
            <button onClick={() => {
               navigate('/mapa');
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-500 hover:text-amber-500">
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500">
              <MapPin size={22} />
              <span className="text-[10px] font-medium">Mapa</span>
            </button>
