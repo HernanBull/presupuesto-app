@@ -133,8 +133,8 @@ export default function MerchantLandingPage() {
         </div>
       </header>
 
-      {/* 2. HERO SECTION CON FORMULARIO 0% COMISIÓN (DOORDASH 1:1) */}
-      <section id="registro" className="relative bg-[#FFF0ED] pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden border-b border-orange-100">
+      {/* 2. HERO SECTION CON FORMULARIO 0% COMISIÓN (ESTILO DOORDASH EN COLOR DE MARCA NARANJA) */}
+      <section id="registro" className="relative bg-[#FFF7ED] pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden border-b border-orange-200/80">
         
         {/* Curva Fotográfica Hero Derecha (DoorDash 1:1) */}
         <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-[46%] xl:w-[48%] overflow-hidden rounded-l-[200px] xl:rounded-l-[280px] shadow-2xl">
@@ -148,14 +148,14 @@ export default function MerchantLandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-xl">
             
-            {/* Titular Dos Tonos DoorDash 1:1 */}
+            {/* Titular Dos Tonos (Naranja de la Marca + Negro) */}
             <h1 className="text-3xl sm:text-5xl lg:text-[52px] font-black tracking-tight leading-[1.08] uppercase mb-8">
-              <span className="text-[#FF3008] block">LLEGA A MILES DE</span>
+              <span className="text-orange-500 block">LLEGA A MILES DE</span>
               <span className="text-zinc-950 block">CLIENTES EN TU CIUDAD</span>
             </h1>
 
             {/* Formulario DoorDash Card 1:1 */}
-            <div className="bg-white rounded-[28px] p-6 sm:p-8 shadow-xl border border-orange-100/60">
+            <div className="bg-white rounded-[28px] p-6 sm:p-8 shadow-xl border border-orange-200/60">
               <h2 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight uppercase mb-6 leading-snug">
                 PRUEBA AXONMARKET CON 0% DE COMISIÓN HASTA POR 30 DÍAS
               </h2>
@@ -171,7 +171,7 @@ export default function MerchantLandingPage() {
                     value={formData.storeName}
                     onChange={handleInputChange}
                     placeholder="Nombre del comercio o tienda"
-                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-orange-500 rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
                   />
                 </div>
 
@@ -185,7 +185,7 @@ export default function MerchantLandingPage() {
                     value={formData.storeAddress}
                     onChange={handleInputChange}
                     placeholder="Dirección del local comercial"
-                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium transition-all outline-none"
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-orange-500 rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium transition-all outline-none"
                   />
                 </div>
 
@@ -199,7 +199,7 @@ export default function MerchantLandingPage() {
                       value={formData.email}
                       onChange={handleInputChange}
                       placeholder="Correo electrónico"
-                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-orange-500 rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
                     />
                   </div>
 
@@ -211,7 +211,7 @@ export default function MerchantLandingPage() {
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="Teléfono / WhatsApp"
-                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-orange-500 rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export default function MerchantLandingPage() {
                     name="businessType"
                     value={formData.businessType}
                     onChange={handleInputChange}
-                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none cursor-pointer appearance-none pr-10"
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 border border-transparent focus:border-orange-500 rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none cursor-pointer appearance-none pr-10"
                   >
                     <option value="Restaurante / Comida rápida">Restaurante / Comida rápida</option>
                     <option value="Bodegón / Víveres">Bodegón / Víveres</option>
@@ -242,11 +242,11 @@ export default function MerchantLandingPage() {
                   Al hacer clic en &quot;Empezar con 0% de comisión&quot;, aceptas recibir comunicaciones electrónicas y asistencia de activación de AxonMarket.
                 </p>
 
-                {/* Botón Píldora DoorDash 1:1 */}
+                {/* Botón Píldora Naranja de la Marca */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#FF3008] hover:bg-[#e02b07] active:scale-98 text-white font-black text-base py-4 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center cursor-pointer mt-2"
+                  className="w-full bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-black text-base py-4 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center cursor-pointer mt-2"
                   style={{ color: '#ffffff' }}
                 >
                   {isSubmitting ? (
