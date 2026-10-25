@@ -81,7 +81,7 @@ export default function WelcomeLanding() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-zinc-900 font-sans selection:bg-amber-500 selection:text-zinc-950 flex flex-col">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white text-zinc-900 font-sans selection:bg-amber-500 selection:text-zinc-950 flex flex-col">
       
       {/* 1. SMART APP BANNER SUPERIOR (Estilo DoorDash) */}
       <AnimatePresence>
@@ -154,11 +154,11 @@ export default function WelcomeLanding() {
           </div>
 
           {/* Selector de Ciudad & Botones de Acción */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             
             <button 
               onClick={handleUseCurrentLocation}
-              className="hidden md:flex items-center gap-1.5 text-xs font-semibold text-zinc-600 hover:text-amber-600 bg-zinc-100/80 hover:bg-zinc-100 px-3 py-1.5 rounded-full transition-colors"
+              className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-zinc-600 hover:text-amber-600 bg-zinc-100/80 hover:bg-zinc-100 px-3 py-1.5 rounded-full transition-colors"
             >
               <MapPin size={14} className="text-amber-500" />
               <span>{isLocating ? 'Ubicando...' : 'Aragua / Venezuela'}</span>
@@ -167,203 +167,147 @@ export default function WelcomeLanding() {
             {currentCustomer ? (
               <button 
                 onClick={() => navigate('/explorar')}
-                className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold px-3 py-2 rounded-full transition-colors"
+                className="flex items-center gap-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full transition-colors"
+                title={`Conectado como ${currentCustomer.name}`}
               >
-                <User size={14} className="text-amber-600" />
-                <span className="max-w-[100px] truncate">{currentCustomer.name}</span>
-                <span className="text-[10px] bg-amber-500 text-zinc-950 font-black px-1.5 py-0.5 rounded-full">Feed</span>
+                <div className="w-5 h-5 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-black text-[10px]">
+                  {currentCustomer.name?.[0]?.toUpperCase() || <User size={12} />}
+                </div>
+                <span className="hidden sm:inline-block max-w-[80px] md:max-w-[120px] truncate text-xs">{currentCustomer.name}</span>
+                <span className="text-[9px] bg-zinc-900 text-amber-400 font-black px-1.5 py-0.5 rounded-full">Feed</span>
               </button>
             ) : (
               <button 
                 onClick={() => navigate('/explorar', { state: { openAuthModal: true } })}
-                className="text-xs font-bold text-zinc-700 hover:text-zinc-950 px-3 py-2 rounded-full hover:bg-zinc-100 transition-colors"
+                className="text-xs font-bold text-zinc-700 hover:text-zinc-950 px-2.5 sm:px-3 py-1.5 rounded-full hover:bg-zinc-100 transition-colors whitespace-nowrap"
               >
-                Iniciar Sesión
+                Entrar
               </button>
             )}
 
             <button 
               onClick={() => navigate('/explorar')}
-              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-xs sm:text-sm px-4 sm:px-5 py-2 rounded-full shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+              className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-xs sm:text-sm px-3.5 sm:px-5 py-1.5 sm:py-2 rounded-full shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center gap-1 shrink-0"
             >
-              <span>Abrir App</span>
-              <ArrowRight size={15} />
+              <span className="whitespace-nowrap">Abrir App</span>
+              <ArrowRight size={14} />
             </button>
           </div>
 
         </div>
       </header>
 
-      {/* 3. HERO SECTION (Ingeniería Inversa de DoorDash: Impacto Visual Vibrante) */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-600 via-amber-600 to-amber-500 text-white py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
+      {/* 3. HERO SECTION (La imagen como fondo completo expandido, eliminando el color naranja) */}
+      <section className="relative overflow-hidden text-white py-14 sm:py-20 lg:py-28 px-4 sm:px-6 flex items-center justify-center min-h-[520px] sm:min-h-[580px] lg:min-h-[640px] bg-zinc-950">
         
-        {/* Patrón de luz ambiental y siluetas sutiles */}
-        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-white via-transparent to-black"></div>
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-amber-300/30 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-red-600/30 rounded-full blur-3xl pointer-events-none"></div>
+        {/* Imagen de fondo completa expandida en todo el contenedor */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-[1.02]"
+          style={{ backgroundImage: `url('/landing-hero.jpg')` }}
+        />
+        
+        {/* Capa de contraste y gradiente para legibilidad prémium */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/85 backdrop-blur-[0.5px]" />
 
-        <div className="max-w-6xl mx-auto relative z-10">
+        <div className="max-w-4xl mx-auto relative z-10 text-center flex flex-col items-center w-full">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            
-            {/* Columna Izquierda: Texto, Llamado a la Acción y Buscador */}
-            <div className="lg:col-span-7 flex flex-col items-center lg:items-start text-center lg:text-left">
-              
-              {/* Badge Oficial */}
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="inline-flex items-center gap-2 bg-black/25 backdrop-blur-md border border-white/20 text-white px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5 shadow-sm"
-              >
-                <ShoppingBag size={14} className="text-amber-300 stroke-[2.5]" />
-                <span>AxonMarket Delivery & Comercios</span>
-              </motion.div>
+          {/* Badge Oficial */}
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md border border-white/20 text-white px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5 shadow-lg"
+          >
+            <ShoppingBag size={14} className="text-amber-400 stroke-[2.5]" />
+            <span>AxonMarket Delivery & Comercios</span>
+          </motion.div>
 
-              {/* Gran Titular Principal (DoorDash Style) */}
-              <motion.h1 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-black tracking-tight text-white uppercase leading-[1.08] drop-shadow-sm mb-3"
-              >
-                $0 Costo de Envío en tu Primer Pedido
-              </motion.h1>
+          {/* Gran Titular Principal (DoorDash Style) */}
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white uppercase max-w-3xl leading-[1.08] drop-shadow-md mb-3"
+          >
+            $0 Costo de Envío en tu Primer Pedido
+          </motion.h1>
 
-              <motion.p 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="text-xs sm:text-sm font-semibold text-amber-100/90 tracking-wide uppercase mb-6 max-w-xl"
-              >
-                Tus tiendas, restaurantes y bodegones favoritos en tu ciudad
-              </motion.p>
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="text-xs sm:text-sm md:text-base font-semibold text-amber-200/90 tracking-wide uppercase mb-8 max-w-xl drop-shadow-sm"
+          >
+            Tus tiendas, restaurantes y bodegones favoritos en tu ciudad
+          </motion.p>
 
-              {/* Imagen en móvil (se muestra justo antes de los botones para máxima tracción visual) */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="block lg:hidden w-full max-w-sm mb-6 rounded-3xl overflow-hidden shadow-2xl border-2 border-white/25 relative group"
-              >
-                <img 
-                  src="/landing-hero.jpg" 
-                  alt="AxonMarket Delivery y Comida Venezolana" 
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-amber-300 border border-white/20">
-                  🇻🇪 Sabor Local
-                </div>
-              </motion.div>
+          {/* Botón Principal "Abrir App" Prominente */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="w-full max-w-md mb-6"
+          >
+            <button 
+              onClick={() => navigate('/explorar')}
+              className="w-full py-4 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base sm:text-lg rounded-2xl shadow-2xl shadow-amber-500/30 active:scale-[0.99] transition-all flex items-center justify-center gap-3 border border-white/20"
+            >
+              <ShoppingBag size={22} className="stroke-[2.5]" />
+              <span>Abrir App y Explorar</span>
+              <ArrowRight size={20} />
+            </button>
+          </motion.div>
 
-              {/* Botón Principal "Abrir App" Prominente */}
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="w-full max-w-md mb-6"
-              >
-                <button 
-                  onClick={() => navigate('/explorar')}
-                  className="w-full py-4 px-8 bg-zinc-950 hover:bg-black text-amber-400 hover:text-amber-300 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-black/20 hover:shadow-black/30 active:scale-[0.99] transition-all flex items-center justify-center gap-3 border border-white/10"
-                >
-                  <ShoppingBag size={22} className="stroke-[2.5]" />
-                  <span>Abrir App y Explorar</span>
-                  <ArrowRight size={20} />
-                </button>
-              </motion.div>
-
-              {/* Buscador de Dirección / Comercios Cápsula (Estilo DoorDash) */}
-              <motion.form 
-                onSubmit={handleSearchSubmit}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="w-full max-w-xl bg-white rounded-2xl sm:rounded-full p-2 shadow-2xl flex flex-col sm:flex-row items-center gap-2 border border-white/30"
-              >
-                <div className="flex items-center gap-2.5 px-3 py-2 w-full text-zinc-700">
-                  <Search size={20} className="text-zinc-400 shrink-0" />
-                  <input 
-                    type="text" 
-                    value={addressInput}
-                    onChange={(e) => setAddressInput(e.target.value)}
-                    placeholder="Ingresa tu dirección o busca un comercio..."
-                    className="w-full text-sm font-medium bg-transparent text-zinc-900 placeholder-zinc-400 focus:outline-none"
-                  />
-                </div>
-
-                <button 
-                  type="submit"
-                  className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-sm px-6 py-3 rounded-xl sm:rounded-full shadow-md transition-all shrink-0 active:scale-95"
-                >
-                  Buscar
-                </button>
-              </motion.form>
-
-              {/* Enlace "Usar ubicación actual" */}
-              <motion.button 
-                type="button"
-                onClick={handleUseCurrentLocation}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white hover:text-amber-200 underline underline-offset-4 transition-colors"
-              >
-                <MapPin size={15} />
-                <span>{isLocating ? 'Detectando coordenadas...' : 'Usar mi ubicación actual ↗'}</span>
-              </motion.button>
-
+          {/* Buscador de Dirección / Comercios Cápsula (Estilo DoorDash) */}
+          <motion.form 
+            onSubmit={handleSearchSubmit}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="w-full max-w-xl bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-full p-2 shadow-2xl flex flex-col sm:flex-row items-center gap-2 border border-white/40"
+          >
+            <div className="flex items-center gap-2.5 px-3 py-2 w-full text-zinc-700">
+              <Search size={20} className="text-zinc-400 shrink-0" />
+              <input 
+                type="text" 
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                placeholder="Ingresa tu dirección o busca un comercio..."
+                className="w-full text-sm font-medium bg-transparent text-zinc-900 placeholder-zinc-400 focus:outline-none"
+              />
             </div>
 
-            {/* Columna Derecha: Tarjeta Imagen Principal (Desktop Showcase) */}
-            <div className="hidden lg:flex lg:col-span-5 justify-center">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.5 }}
-                className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 bg-zinc-900 group"
-              >
-                <img 
-                  src="/landing-hero.jpg" 
-                  alt="AxonMarket Delivery y Mercado" 
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-700"
-                />
+            <button 
+              type="submit"
+              className="w-full sm:w-auto bg-zinc-950 hover:bg-black text-amber-400 hover:text-amber-300 font-black text-sm px-6 py-3 rounded-xl sm:rounded-full shadow-md transition-all shrink-0 active:scale-95"
+            >
+              Buscar
+            </button>
+          </motion.form>
 
-                {/* Floating Glassmorphic Badges */}
-                <div className="absolute top-4 right-4 bg-zinc-950/75 backdrop-blur-md px-3.5 py-1.5 rounded-full text-xs font-bold text-amber-300 border border-white/20 shadow-lg flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                  <span>100% Sabor Local 🇻🇪</span>
-                </div>
-
-                <div className="absolute bottom-4 left-4 right-4 bg-zinc-950/80 backdrop-blur-md p-3 rounded-2xl text-xs text-white border border-white/15 shadow-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-amber-500 text-zinc-950 flex items-center justify-center font-black">
-                      <ShoppingBag size={14} className="stroke-[2.5]" />
-                    </div>
-                    <div>
-                      <p className="font-black text-xs text-white">Pabellón, Hallacas y Víveres</p>
-                      <p className="text-[10px] text-zinc-400">Entrega rápida en tu zona</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md">
-                    $0 Envío
-                  </span>
-                </div>
-              </motion.div>
-            </div>
-
-          </div>
+          {/* Enlace "Usar ubicación actual" */}
+          <motion.button 
+            type="button"
+            onClick={handleUseCurrentLocation}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white hover:text-amber-300 underline underline-offset-4 transition-colors drop-shadow-sm"
+          >
+            <MapPin size={15} />
+            <span>{isLocating ? 'Detectando coordenadas...' : 'Usar mi ubicación actual ↗'}</span>
+          </motion.button>
 
         </div>
 
         {/* Micro-callout inferior del Hero */}
-        <div className="mt-12 pt-6 border-t border-white/15 max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-amber-100/90 gap-2">
+        <div className="mt-12 pt-6 border-t border-white/15 max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between text-xs text-amber-100/90 gap-2 relative z-10 w-full">
           <div className="flex items-center gap-2 font-medium">
-            <span className="text-amber-300">🏷️</span>
+            <span className="text-amber-400">🏷️</span>
             <span>Disfruta de delivery rápido y pagos en Bolívares y Divisas</span>
           </div>
           <button 
             onClick={() => navigate('/explorar')}
-            className="font-bold text-white hover:text-amber-200 underline"
+            className="font-bold text-white hover:text-amber-300 underline"
           >
             Ver todos los comercios ➔
           </button>
@@ -421,7 +365,7 @@ export default function WelcomeLanding() {
                   Abre tu Tienda en AxonMarket
                 </h3>
                 <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-6">
-                  Atrae nuevos clientes y multiplica tus ventas con 0% comisiones abusivas. Publica tu catálogo digital y recibe pedidos directo a WhatsApp.
+                  Atrae nuevos clientes y multiplica tus ventas. Publica tu catálogo digital en línea y haz crecer tu negocio en tu comunidad.
                 </p>
               </div>
 
@@ -551,7 +495,7 @@ export default function WelcomeLanding() {
                 La plataforma de comercio y delivery local más rápida, moderna y transparente de Venezuela.
               </p>
               <div className="text-[11px] text-amber-400 font-bold">
-                ✓ 0% comisiones abusivas • Pedidos por WhatsApp
+                ✓ Comercios locales verificados • Entregas rápidas y seguras
               </div>
             </div>
 
