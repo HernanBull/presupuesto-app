@@ -290,7 +290,134 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* 5. EXPLORACIÓN RÁPIDA: CATEGORÍAS POPULARES */}
+      {/* 5. SECCIONES DESTACADAS EDITORIALES (Estilo DoorDash 1:1) */}
+      <section className="py-16 sm:py-24 bg-[#FCF9F6] border-b border-zinc-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20 sm:space-y-28">
+
+          {/* BLOQUE 1: Gastronomía Local */}
+          <div className="flex flex-col md:flex-row items-center gap-10 lg:gap-16">
+            {/* Banner Gráfico Gastronómico Provisional */}
+            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-lg bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/25 border border-orange-200/60 flex items-center justify-center group">
+              <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+              <div className="relative z-10 flex flex-col items-center text-center p-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Flame size={48} className="stroke-[2.2]" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest text-orange-700 bg-orange-100/90 px-3 py-1 rounded-full mb-2">
+                  Gastronomía Local
+                </span>
+                <p className="text-xs sm:text-sm font-semibold text-zinc-600 max-w-xs">
+                  Pizzas, sushi, hamburguesas, comida china y sabores caseros
+                </p>
+              </div>
+            </div>
+
+            {/* Contenido Editorial */}
+            <div className="w-full md:w-1/2 text-left">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
+                Todo lo que se te antoja, entregado a domicilio.
+              </h2>
+              <h3 className="text-base sm:text-xl font-bold text-zinc-800 mb-3">
+                Tus restaurantes locales favoritos
+              </h3>
+              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
+                Pide a domicilio una porción de pizza crujiente o una hamburguesa gourmet, o disfruta de los platos de comida casera y restaurantes que tanto has querido probar en tu ciudad.
+              </p>
+              <button 
+                onClick={() => navigate('/explorar', { state: { category: 'Comida' } })}
+                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                style={{ color: '#ffffff' }}
+              >
+                <span>Buscar restaurantes</span>
+              </button>
+            </div>
+          </div>
+
+          {/* BLOQUE 2: AxonPass (Invertido en Desktop) */}
+          <div className="flex flex-col md:flex-row-reverse items-center gap-10 lg:gap-16">
+            {/* Banner Gráfico AxonPass Provisional */}
+            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950 border border-amber-500/30 flex items-center justify-center p-6 group">
+              <div className="absolute inset-0 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:20px_20px] opacity-15" />
+              {/* Tarjeta VIP Simulada */}
+              <div className="relative z-10 w-full max-w-sm rounded-2xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 p-6 border border-amber-400/40 shadow-2xl backdrop-blur-md group-hover:scale-105 transition-transform">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <img src="/axonmarket-logo-icon.png" alt="" className="w-7 h-7 rounded-lg" />
+                    <span className="font-black text-lg tracking-wider text-white">AXON<span className="text-amber-400">PASS</span></span>
+                  </div>
+                  <span className="text-[10px] uppercase font-black tracking-widest bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded-full">
+                    VIP Member
+                  </span>
+                </div>
+                <div className="space-y-1 mb-6">
+                  <div className="text-xs uppercase font-medium text-zinc-400 tracking-wider">Beneficios Exclusivos</div>
+                  <div className="text-xl sm:text-2xl font-black text-amber-300 tracking-tight">Entregas Preferenciales & Ahorro</div>
+                </div>
+                <div className="flex items-center justify-between text-xs text-zinc-400 pt-3 border-t border-white/10">
+                  <span>Prueba gratuita 30 días</span>
+                  <Sparkles size={16} className="text-amber-400" />
+                </div>
+              </div>
+            </div>
+
+            {/* Contenido Editorial */}
+            <div className="w-full md:w-1/2 text-left">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
+                AxonPass es entrega a domicilio por menos dinero.
+              </h2>
+              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
+                Los miembros obtienen entregas con tarifa preferencial en pedidos de AxonPass, descuentos especiales en pedidos para recoger en tienda y promociones VIP. Además, pruébalo gratis durante 30 días.
+              </p>
+              <button 
+                onClick={() => navigate('/explorar', { state: { openAxonPass: true } })}
+                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                style={{ color: '#ffffff' }}
+              >
+                <span>Obtener AxonPass</span>
+              </button>
+            </div>
+          </div>
+
+          {/* BLOQUE 3: Tiendas de Conveniencia & Bodegones */}
+          <div className="flex flex-col md:flex-row items-center gap-10 lg:gap-16">
+            {/* Banner Gráfico Tiendas / Bodegones Provisional */}
+            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-lg bg-gradient-to-br from-emerald-500/15 via-teal-500/20 to-amber-500/20 border border-teal-200/60 flex items-center justify-center group">
+              <div className="absolute inset-0 bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
+              <div className="relative z-10 flex flex-col items-center text-center p-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center text-teal-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Store size={48} className="stroke-[2.2]" />
+                </div>
+                <span className="text-xs font-black uppercase tracking-widest text-teal-800 bg-teal-100/90 px-3 py-1 rounded-full mb-2">
+                  Bodegones & Farmacias
+                </span>
+                <p className="text-xs sm:text-sm font-semibold text-zinc-600 max-w-xs">
+                  Snacks, víveres, artículos del hogar y farmacia a domicilio
+                </p>
+              </div>
+            </div>
+
+            {/* Contenido Editorial */}
+            <div className="w-full md:w-1/2 text-left">
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
+                Tiendas de conveniencia a la puerta de su casa
+              </h2>
+              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
+                Abastece tu despensa con snacks, artículos básicos para el hogar, dulces, bebidas o medicamentos esenciales; todo entregado de forma rápida y directa en tu domicilio.
+              </p>
+              <button 
+                onClick={() => navigate('/explorar', { state: { category: 'Víveres' } })}
+                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                style={{ color: '#ffffff' }}
+              >
+                <span>Comprar ahora</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 6. EXPLORACIÓN RÁPIDA: CATEGORÍAS POPULARES */}
       <section className="py-14 sm:py-20 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
