@@ -121,22 +121,8 @@ export default function WelcomeLanding() {
           background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
       >
-        {/* Barra Superior Minimalista (Izquierda: Tasa BCV cómoda / Derecha: Iniciar Sesión) */}
-        <div className="max-w-6xl mx-auto w-full flex items-center justify-between relative z-20">
-          {/* Tasa Oficial BCV - Barra Superior */}
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs text-white shadow-lg">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-zinc-300 font-medium hidden sm:inline">Tasa Oficial BCV:</span>
-            <span className="text-zinc-300 font-medium sm:hidden">BCV:</span>
-            <span className="font-black text-amber-300 tracking-wide">
-              Bs. {Number(bcvRate || 887.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className="text-[10px] text-zinc-400 font-normal">/ $</span>
-          </div>
-
+        {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
+        <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
           <div>
             {currentCustomer ? (
               <button 
@@ -285,16 +271,9 @@ export default function WelcomeLanding() {
                   <span>Empieza a ganar</span>
                   <ArrowRight size={16} />
                 </button>
-                <div className="pt-3 border-t border-zinc-100 flex items-center gap-2">
-                  <div className="inline-flex items-center gap-1.5 bg-zinc-950 px-2.5 py-1 rounded-full shadow-xs">
-                    <div className="flex items-center font-black tracking-tighter text-[10px]">
-                      <span className="text-red-500 font-black">E</span>
-                      <span className="text-red-500 font-black">M</span>
-                      <Zap size={10} className="fill-yellow-400 text-yellow-400 ml-0.5" />
-                    </div>
-                    <span className="text-[10px] font-black text-white tracking-wide">en minutos</span>
-                  </div>
-                  <span className="text-[11px] text-zinc-500 font-medium">Red oficial con MD Minutos</span>
+                <div className="pt-3 border-t border-zinc-100 flex items-center gap-2.5">
+                  <img src="/enminutos-logo.png" alt="En Minutos" className="w-6 h-6 rounded-full shadow-xs object-cover" />
+                  <span className="text-[11px] text-zinc-600 font-semibold">Red oficial con En Minutos</span>
                 </div>
               </div>
             </div>
@@ -354,7 +333,7 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* SECCIÓN COMERCIAL: ALIANZA LOGÍSTICA OFICIAL CON MD MINUTOS ("EN MINUTOS") */}
+      {/* SECCIÓN COMERCIAL: ALIANZA LOGÍSTICA OFICIAL CON EN MINUTOS */}
       <section className="py-16 sm:py-24 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white relative overflow-hidden border-b border-zinc-800">
         {/* Efectos de Iluminación y Patrón Tecnológico */}
         <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
@@ -372,11 +351,11 @@ export default function WelcomeLanding() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1]">
-                Entregas ultrarrápidas garantizadas con <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400">MD Minutos</span>
+                Entregas ultrarrápidas garantizadas con <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400">En Minutos</span>
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 leading-relaxed font-normal max-w-xl">
-                En AxonMarket sellamos una alianza estratégica con <strong className="text-white font-bold">MD Minutos</strong>, la red de despacho urbano más veloz y confiable. Despreocúpate por la logística: los pedidos de tus restaurantes, bodegones y tiendas favoritas llegan directo a tu puerta en minutos, con trazabilidad GPS en vivo y transportistas verificados.
+                En AxonMarket sellamos una alianza estratégica con <strong className="text-white font-bold">En Minutos</strong>, la red de delivery y logística urbana más ágil. Tu tiempo es oro: los pedidos de tus restaurantes, bodegones y tiendas favoritas llegan directo a tu puerta en minutos, con rutas coordinadas por GPS y transportistas verificados.
               </p>
 
               {/* 3 Métricas Comerciales */}
@@ -386,20 +365,20 @@ export default function WelcomeLanding() {
                   <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Tiempos récord de despacho</div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
-                  <div className="text-xl sm:text-2xl font-black text-white">100% GPS</div>
-                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Rastreo activo en vivo</div>
+                  <div className="text-sm sm:text-base font-black text-white leading-tight">Maracay • Turmero</div>
+                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-1">Cagua y cobertura regional</div>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
                   <div className="text-xl sm:text-2xl font-black text-emerald-400">Garantía</div>
-                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Entrega segura y protegida</div>
+                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Entrega cuidada y protegida</div>
                 </div>
               </div>
 
-              {/* Botones de Acción Comercial */}
-              <div className="pt-2 flex flex-wrap items-center gap-3.5">
+              {/* Botones de Acción Comercial & Enlace a Instagram Oficial */}
+              <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-3.5">
                 <button
                   onClick={() => navigate('/explorar')}
-                  className="px-7 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-xl active:scale-95 transition-all inline-flex items-center gap-2"
+                  className="px-6 sm:px-7 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-xl active:scale-95 transition-all inline-flex items-center gap-2"
                   style={{ color: '#ffffff' }}
                 >
                   <span>Pedir con Delivery</span>
@@ -407,35 +386,54 @@ export default function WelcomeLanding() {
                 </button>
                 <button
                   onClick={() => navigate('/comerciantes')}
-                  className="px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
+                  className="px-5 sm:px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
                   style={{ color: '#ffffff' }}
                 >
                   <span>Activar en mi Comercio</span>
                 </button>
+                <a
+                  href="https://www.instagram.com/enminutos.ve"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3.5 rounded-full bg-gradient-to-r from-pink-600/20 to-purple-600/20 hover:from-pink-600/30 hover:to-purple-600/30 text-white border border-pink-500/30 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
+                  style={{ color: '#ffffff' }}
+                >
+                  <span>@enminutos.ve</span>
+                  <ExternalLink size={14} className="text-pink-300" />
+                </a>
               </div>
             </div>
 
-            {/* Columna Derecha: Tarjeta Comercial Visual con el Logotipo Oficial grabado */}
+            {/* Columna Derecha: Tarjeta Comercial Visual con el Logotipo Oficial Real */}
             <div className="lg:col-span-5 flex justify-center">
               <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 rounded-3xl border border-orange-500/30 shadow-2xl relative">
                 
-                {/* Cabecera de la Tarjeta con Logo Insignia Oficial grabado */}
+                {/* Cabecera de la Tarjeta con Logo Insignia Oficial Real de En Minutos */}
                 <div className="flex items-center justify-between pb-6 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    {/* Logo Insignia Oficial: EM con rayo en minutos grabado en AxonMarket */}
-                    <div className="inline-flex items-center gap-2.5 bg-black px-4 py-2.5 rounded-2xl border border-white/20 shadow-xl">
-                      <div className="flex items-center font-black tracking-tighter text-sm">
-                        <span className="text-red-500 text-base font-black">E</span>
-                        <span className="text-red-500 text-base font-black">M</span>
-                        <Zap size={16} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                  <div className="flex items-center gap-3.5">
+                    {/* Logotipo Oficial Real cargado desde /enminutos-logo.png */}
+                    <img 
+                      src="/enminutos-logo.png" 
+                      alt="Logo Oficial En Minutos" 
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-2xl object-cover ring-2 ring-red-500/40 shrink-0" 
+                    />
+                    <div className="flex flex-col text-left leading-tight">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base sm:text-lg font-black text-white tracking-wide">Delivery En Minutos</span>
+                        <span className="text-yellow-400 font-black">⚡</span>
                       </div>
-                      <div className="flex flex-col text-left leading-tight">
-                        <span className="text-xs font-black text-white tracking-wider uppercase">en minutos</span>
-                        <span className="text-[9px] font-bold text-amber-400 tracking-widest">MD LOGISTICS</span>
-                      </div>
+                      <a 
+                        href="https://www.instagram.com/enminutos.ve" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-xs text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        <span>@enminutos.ve</span>
+                        <ExternalLink size={11} />
+                      </a>
                     </div>
                   </div>
-                  <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                  <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full shrink-0">
                     Aliado Oficial
                   </span>
                 </div>
@@ -448,7 +446,7 @@ export default function WelcomeLanding() {
                     </div>
                     <div className="text-left">
                       <h4 className="text-sm font-bold text-white">Flota Urbana de Motorizados</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">Riders equipados y listos para recoger de inmediato en el comercio y llevar a tu casa.</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">Riders equipados y listos para recoger de inmediato en el comercio y llevar a tu destino.</p>
                     </div>
                   </div>
 
@@ -458,7 +456,7 @@ export default function WelcomeLanding() {
                     </div>
                     <div className="text-left">
                       <h4 className="text-sm font-bold text-white">Despachos Express sin Demora</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">Algoritmo inteligente de asignación para minimizar los tiempos muertos y esperas.</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">Algoritmo inteligente para optimizar rutas de entrega en tu localidad.</p>
                     </div>
                   </div>
 
@@ -468,7 +466,7 @@ export default function WelcomeLanding() {
                     </div>
                     <div className="text-left">
                       <h4 className="text-sm font-bold text-white">Sello de Calidad y Confianza</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">Las tiendas verificadas con la insignia "En Minutos" garantizan máxima puntualidad.</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">"Tu tiempo es oro, nosotros lo cuidamos". Aliados oficiales del comercio regional.</p>
                     </div>
                   </div>
                 </div>
@@ -479,7 +477,7 @@ export default function WelcomeLanding() {
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                     Red Activa en tu Ciudad
                   </span>
-                  <span className="text-[11px] text-amber-400 font-black">AxonMarket 🤝 MD Minutos</span>
+                  <span className="text-[11px] text-amber-400 font-black">AxonMarket 🤝 En Minutos</span>
                 </div>
 
               </div>
