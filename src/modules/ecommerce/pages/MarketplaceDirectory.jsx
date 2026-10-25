@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2 } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -51,6 +51,7 @@ export default function MarketplaceDirectory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('Todas');
+  const [discoveryFilter, setDiscoveryFilter] = useState('all');
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [bannerSlide, setBannerSlide] = useState(0);
   const categoriesScrollRef = useRef(null);
@@ -1352,8 +1353,35 @@ export default function MarketplaceDirectory() {
       };
     });
 
-    return [...newsCards, ...storeCards].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  }, [filteredStores, storeNews, stores]);
+    let combined = [...newsCards, ...storeCards];
+
+    // Filtros de descubrimiento dinámicos
+    if (discoveryFilter === 'ofertas') {
+      combined = combined.filter(p => 
+        (p.content && /oferta|descuento|rebaja|remate|%/i.test(p.content)) ||
+        p.type === 'news'
+      );
+    } else if (discoveryFilter === 'promociones') {
+      combined = combined.filter(p => 
+        (p.content && /promo|promoción|combo|2x1|gratis/i.test(p.content)) ||
+        p.type === 'news'
+      );
+    } else if (discoveryFilter === 'verificadas') {
+      combined = combined.filter(p => p.is_verified);
+    } else if (discoveryFilter === 'eventos') {
+      combined = combined.filter(p => p.type === 'news');
+    } else if (discoveryFilter === 'top_likes') {
+      // Priorizar posts de tiendas con favoritos y verified
+      combined = [...combined].sort((a, b) => (b.is_verified ? 1 : 0) - (a.is_verified ? 1 : 0) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      return combined;
+    } else if (discoveryFilter === 'tendencias') {
+      // Tendencias: noticias y publicaciones más recientes
+      combined = [...combined].sort((a, b) => (a.type === 'news' ? -1 : 1));
+      return combined;
+    }
+
+    return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  }, [filteredStores, storeNews, stores, discoveryFilter]);
 
   // Soporte para enlaces compartidos directos (WhatsApp o Copiar Enlace)
   useEffect(() => {
@@ -1521,6 +1549,55 @@ export default function MarketplaceDirectory() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
             />
+          </div>
+        </div>
+
+        {/* Barra de Stories: Ofertas, Promociones, Eventos, Tendencias y Más Likes */}
+        <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={14} className="text-amber-500" />
+              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-700">Explorar Destacados</span>
+            </div>
+            {discoveryFilter !== 'all' && (
+              <button
+                onClick={() => setDiscoveryFilter('all')}
+                className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline"
+              >
+                Ver todo
+              </button>
+            )}
+          </div>
+          
+          <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { id: 'all', name: 'Todo', icon: Sparkles, color: 'from-amber-500 to-amber-300' },
+              { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
+              { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
+              { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
+              { id: 'tendencias', name: 'Tendencias', icon: TrendingUp, color: 'from-blue-500 to-cyan-400' },
+              { id: 'verificadas', name: 'Top Tiendas', icon: ShieldCheck, color: 'from-emerald-500 to-teal-400' },
+              { id: 'eventos', name: 'Eventos', icon: Zap, color: 'from-yellow-400 to-amber-500' }
+            ].map((story) => {
+              const isActive = discoveryFilter === story.id;
+              const IconComp = story.icon;
+              return (
+                <div 
+                  key={story.id} 
+                  onClick={() => setDiscoveryFilter(story.id)} 
+                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+                >
+                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? `bg-gradient-to-tr ${story.color} shadow-[0_0_15px_rgba(245,158,11,0.45)] scale-105` : 'bg-zinc-200/80 hover:bg-amber-300'}`}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-zinc-950 text-white' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
+                      <IconComp size={20} strokeWidth={isActive ? 2.5 : 1.9} className={isActive ? 'text-amber-400' : ''} />
+                    </div>
+                  </div>
+                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600 font-black' : 'text-zinc-500'}`}>
+                    {story.name}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
