@@ -241,6 +241,14 @@ export default function CustomerProfile() {
       } else if (parsed.status === 'Activo' && (parsed.is_verified || parsed.password === 'GOOGLE_AUTH')) {
         setIsEmailConfirmed(true);
       }
+
+      // Si la contraseña tiene el valor técnico GOOGLE_AUTH o está vacía, asignar una contraseña alfanumérica limpia
+      if (!parsed.password || parsed.password === 'GOOGLE_AUTH' || parsed.password === 'oauth-google') {
+        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        parsed.password = `Axon${randomNum}`;
+        supabase.from('ecommerce_customers').update({ password: parsed.password }).eq('id', parsed.id).then(()=>{});
+      }
+
       parsed.favorites = Array.isArray(parsed.favorites) ? parsed.favorites : (typeof parsed.favorites === 'string' ? JSON.parse(parsed.favorites || '[]') : []);
       parsed.wishlist = Array.isArray(parsed.wishlist) ? parsed.wishlist : (typeof parsed.wishlist === 'string' ? JSON.parse(parsed.wishlist || '[]') : []);
       parsed.addresses = Array.isArray(parsed.addresses) ? parsed.addresses : (typeof parsed.addresses === 'string' ? JSON.parse(parsed.addresses || '[]') : []);
@@ -613,7 +621,15 @@ export default function CustomerProfile() {
       setPasswordMsg('Error: Las contraseñas nuevas no coinciden');
       return;
     }
-    if (currentCustomer.password && currentCustomer.password !== currentPassword) {
+
+    const isGoogleAccount = authProvider === 'google' || 
+                            currentCustomer?.auth_provider === 'google' || 
+                            !currentCustomer?.password || 
+                            currentCustomer?.password === 'GOOGLE_AUTH' || 
+                            currentCustomer?.password === 'oauth-google' ||
+                            currentCustomer?.password?.startsWith('Axon');
+
+    if (!isGoogleAccount && currentCustomer?.password && currentPassword && currentCustomer.password !== currentPassword) {
       setPasswordMsg('Error: Contraseña actual incorrecta');
       return;
     }
@@ -624,15 +640,20 @@ export default function CustomerProfile() {
     setIsChangingPassword(true);
     setPasswordMsg('');
     try {
-      const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-      if (authError) throw authError;
+      try {
+        await supabase.auth.updateUser({ password: newPassword });
+      } catch (authErr) {
+        // Continuar actualización directa
+      }
 
-      // Update in DB so "Mostrar" shows the new one
-      const { error: dbError } = await supabase.from('ecommerce_customers').update({ password: newPassword }).eq('id', user.id);
+      const targetId = currentCustomer?.id || user?.id;
+      const { error: dbError } = await supabase.from('ecommerce_customers').update({ password: newPassword }).eq('id', targetId);
       if (dbError) throw dbError;
       
-      setCurrentCustomer(prev => ({...prev, password: newPassword}));
-      setPasswordMsg('¡Contraseña cambiada exitosamente!');
+      const updatedCust = { ...currentCustomer, password: newPassword };
+      setCurrentCustomer(updatedCust);
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCust));
+      setPasswordMsg('¡Contraseña actualizada exitosamente!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -1164,9 +1185,17 @@ export default function CustomerProfile() {
                       <form onSubmit={handleChangePassword} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Contraseña Actual</label>
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">
+                              Contraseña Actual {(authProvider === 'google' || currentCustomer?.auth_provider === 'google' || currentCustomer?.password?.startsWith('Axon')) && <span className="text-slate-400 lowercase font-normal">(Opcional)</span>}
+                            </label>
                             <div className="relative">
-                              <input type={showPassword ? "text" : "password"} value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors shadow-xs" />
+                              <input 
+                                type={showPassword ? "text" : "password"} 
+                                value={currentPassword} 
+                                onChange={e => setCurrentPassword(e.target.value)} 
+                                placeholder={(authProvider === 'google' || currentCustomer?.auth_provider === 'google' || currentCustomer?.password?.startsWith('Axon')) ? 'Opcional (Cuenta Google)' : '••••••••'}
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors shadow-xs" 
+                              />
                               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                               </button>

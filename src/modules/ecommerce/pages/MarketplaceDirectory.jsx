@@ -612,10 +612,12 @@ export default function MarketplaceDirectory() {
         // Auto-creación de cuenta sin bloqueos ni errores
         isNewUser = true;
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
+        const randomPassNum = Math.floor(1000 + Math.random() * 9000);
+        const generatedPassword = `Axon${randomPassNum}`;
         const newUser = {
           id,
           email: cleanEmail,
-          password: 'GOOGLE_AUTH',
+          password: generatedPassword,
           name: name || cleanEmail.split('@')[0],
           profile_pic: picture || '',
           phone: '',

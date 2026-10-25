@@ -872,10 +872,12 @@ export default function PublicStore() {
       if (!user) {
         isNewUser = true;
         const id = 'CUS-' + Math.floor(Math.random() * 1000000);
+        const randomPassNum = Math.floor(1000 + Math.random() * 9000);
+        const generatedPassword = `Axon${randomPassNum}`;
         const payload = {
           id,
           email: cleanEmail,
-          password: 'oauth-google',
+          password: generatedPassword,
           name: name || cleanEmail.split('@')[0],
           profile_pic: picture || '',
           phone: '',
