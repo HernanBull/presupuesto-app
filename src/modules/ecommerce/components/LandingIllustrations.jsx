@@ -1,108 +1,18 @@
 import React from 'react';
 
 /**
- * Ilustración 1: Repartidor AxonMarket (Dasher style)
- * - Hombre en scooter/moto naranja
- * - Casco y mochila térmica con el logo de la cajita AxonMarket
+ * Ilustración 1: Repartidor AxonMarket (Generada con la identidad de marca)
+ * - Hombre en scooter naranja con casco y mochila delivery exhibiendo la cajita AxonMarket
  * - Fondo orgánico suave
  */
-export function DeliveryRiderIllustration({ className = "w-32 h-28" }) {
+export function DeliveryRiderIllustration({ className = "w-36 h-32" }) {
   return (
     <div className={`relative flex items-center justify-center select-none ${className}`}>
-      <svg
-        viewBox="0 0 160 140"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full drop-shadow-sm"
-      >
-        {/* Fondo orgánico suave tipo nube / blob DoorDash */}
-        <path
-          d="M38 42C22 55 12 78 22 102C32 126 62 135 92 132C122 129 148 112 152 86C156 60 138 32 114 22C90 12 54 29 38 42Z"
-          fill="#E6F4F8"
-        />
-
-        {/* --- MOTO / SCOOTER --- */}
-        {/* Rueda trasera */}
-        <circle cx="48" cy="108" r="16" fill="#1E293B" />
-        <circle cx="48" cy="108" r="9" fill="#94A3B8" />
-        <circle cx="48" cy="108" r="4" fill="#E2E8F0" />
-
-        {/* Rueda delantera */}
-        <circle cx="122" cy="108" r="16" fill="#1E293B" />
-        <circle cx="122" cy="108" r="9" fill="#94A3B8" />
-        <circle cx="122" cy="108" r="4" fill="#E2E8F0" />
-
-        {/* Chasis y Guardabarros Trasero */}
-        <path d="M42 98C42 92 48 88 56 88L70 88L74 98L44 98" fill="#EA580C" />
-        {/* Plataforma baja */}
-        <path d="M60 102L96 102L98 94L64 94Z" fill="#334155" />
-
-        {/* Carrocería frontal de la moto (naranja Axon) */}
-        <path
-          d="M90 94L104 68C106 64 110 62 115 63L118 64C122 66 125 70 124 75L118 102L106 102Z"
-          fill="#F97316"
-        />
-        {/* Faro delantero */}
-        <path d="M120 72L127 74L125 80L118 78Z" fill="#FEF08A" />
-        {/* Manillar / Volante */}
-        <path d="M106 63L102 52L96 52" stroke="#1E293B" strokeWidth="3" strokeLinecap="round" />
-        <circle cx="95" cy="52" r="2.5" fill="#0F172A" />
-
-        {/* --- REPARTIDOR (Hombre) --- */}
-        {/* Piernas / Pantalón oscuro */}
-        <path
-          d="M68 84L82 86L86 100L78 100L74 90L66 88Z"
-          fill="#1E293B"
-        />
-        {/* Zapato */}
-        <path d="M84 98L92 98C94 98 96 100 95 102L84 102Z" fill="#0F172A" />
-
-        {/* Cuerpo / Chaqueta */}
-        <path
-          d="M62 58L76 56C82 56 86 60 86 66L84 84L68 84L62 70Z"
-          fill="#0284C7"
-        />
-        {/* Brazo extendido hacia el manillar */}
-        <path
-          d="M74 62L96 56L98 62L78 70Z"
-          fill="#0369A1"
-        />
-        {/* Mano con guante */}
-        <circle cx="97" cy="55" r="3" fill="#1E293B" />
-
-        {/* Cabeza y Cuello */}
-        <path d="M76 48L78 54L83 54L81 48Z" fill="#FDBA74" />
-        {/* Rostro masculino de perfil */}
-        <circle cx="82" cy="44" r="8" fill="#FDBA74" />
-        {/* Cabello corto castaño */}
-        <path d="M78 40C78 36 84 36 86 40L88 42L82 43Z" fill="#451A03" />
-
-        {/* Casco aerodinámico con visera */}
-        <path
-          d="M74 42C74 34 80 30 89 31C96 32 99 37 99 43C99 45 97 47 94 47L80 47C76 47 74 45 74 42Z"
-          fill="#EA580C"
-        />
-        {/* Visera del casco */}
-        <path d="M91 38L98 40L96 44L90 43Z" fill="#0F172A" />
-
-        {/* --- MOCHILA TÉRMICA DELIVERY (Con la cajita AxonMarket) --- */}
-        <rect x="43" y="50" width="24" height="28" rx="5" fill="#EA580C" stroke="#C2410C" strokeWidth="1.5" />
-        {/* Franja reflectante de la mochila */}
-        <rect x="43" y="73" width="24" height="3" fill="#FDE047" />
-
-        {/* Logo oficial de la Cajita AxonMarket en la mochila */}
-        <image
-          href="/axonmarket-logo-icon.png"
-          x="46"
-          y="53"
-          width="18"
-          height="18"
-          preserveAspectRatio="xMidYMid meet"
-        />
-
-        {/* Línea de velocidad sutil */}
-        <path d="M24 108L30 108M18 112L26 112" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
-      </svg>
+      <img
+        src="/axonmarket-rider.png"
+        alt="Repartidor AxonMarket"
+        className="w-full h-full object-contain select-none drop-shadow-xs"
+      />
     </div>
   );
 }
