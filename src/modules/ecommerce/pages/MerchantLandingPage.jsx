@@ -88,25 +88,21 @@ export default function MerchantLandingPage() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
-          {/* Logo Oficial + Badge 'para Comercios' */}
+          {/* Logo Oficial + Comerciantes (Estilo DoorDash [Icon] for Merchants) */}
           <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 group text-left"
+              className="flex items-center gap-2.5 group text-left"
             >
               <img 
                 src="/axonmarket-logo-icon.png" 
-                alt="AxonMarket" 
+                alt="Axon" 
                 className="w-9 h-9 rounded-xl shadow-xs group-hover:scale-105 transition-transform" 
               />
-              <div className="flex items-baseline">
-                <span className="font-black text-xl tracking-tighter text-zinc-950">AXON</span>
-                <span className="font-black text-xl tracking-tighter text-amber-500">MARKET</span>
-              </div>
+              <span className="font-black text-xl tracking-tight text-zinc-950 group-hover:text-orange-600 transition-colors">
+                Comerciantes
+              </span>
             </button>
-            <span className="text-[11px] font-black uppercase tracking-wider bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full border border-orange-200">
-              para Comercios
-            </span>
           </div>
 
           {/* Menú de Enlaces Desktop */}
@@ -314,9 +310,9 @@ export default function MerchantLandingPage() {
                 
                 {/* Imagen de fondo / atmósfera de restaurante y comercio */}
                 <img 
-                  src="/landing-hero.jpg" 
+                  src="/axon-merchant-orders.jpg" 
                   alt="Comercio AxonMarket" 
-                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700" 
+                  className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700" 
                 />
                 
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
@@ -626,8 +622,107 @@ export default function MerchantLandingPage() {
         </div>
       </section>
 
+      {/* 4.1 SECCIÓN DESTACADA: AXON POS Y SINCRONIZACIÓN FÍSICA-DIGITAL */}
+      <section className="py-16 sm:py-24 bg-white border-b border-zinc-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+            
+            {/* Imagen Fotográfica del Sistema POS */}
+            <div className="lg:col-span-6 relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-zinc-200 group">
+                <img 
+                  src="/axon-pos-system.jpg" 
+                  alt="Sistema Axon POS en mostrador" 
+                  className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700 aspect-[16/10]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                
+                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-white">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-xs sm:text-sm font-black tracking-wide">Caja &amp; Inventario en Línea</span>
+                  </div>
+                  <span className="text-[11px] font-bold bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                    Sincronización en 1 clic
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Explicación Detallada y Explícita */}
+            <div className="lg:col-span-6 space-y-6">
+              <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border border-amber-200">
+                <Laptop size={14} className="text-amber-600" />
+                <span>Punto de Venta Omnicanal</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1]">
+                Un solo sistema para cobrar en caja y vender por internet
+              </h2>
+
+              <p className="text-sm sm:text-base text-zinc-600 font-normal leading-relaxed">
+                Diseñado específicamente para las necesidades del comercio en Venezuela. Axon POS combina facturación rápida en mostrador con el control centralizado de tu vitrina digital en AxonMarket.
+              </p>
+
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <RefreshCw size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-zinc-950">Inventario 100% Unificado</h4>
+                    <p className="text-xs sm:text-sm text-zinc-600 mt-0.5 leading-relaxed">
+                      Si tienes 10 unidades en tu estante y vendes 1 en el mostrador físico, Axon POS descuenta el inventario inmediatamente en tu vitrina web. Nunca más venderás un producto agotado.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <DollarSign size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-zinc-950">Cobro Multimoneda Adaptado</h4>
+                    <p className="text-xs sm:text-sm text-zinc-600 mt-0.5 leading-relaxed">
+                      Registra pagos combinados al instante: bolívares en efectivo, Pago Móvil, Zelle o divisas con cálculo de vuelto automático según la tasa oficial del día.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-black text-zinc-950">Modo Híbrido Ininterrumpido</h4>
+                    <p className="text-xs sm:text-sm text-zinc-600 mt-0.5 leading-relaxed">
+                      Tu local no se detiene si hay intermitencias eléctricas o de internet. El sistema sigue cobrando localmente y se resincroniza automáticamente en cuanto regresa la conexión.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <a 
+                  href="#registro"
+                  className="inline-flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white font-black text-sm px-6 py-3.5 rounded-full shadow-md transition-all active:scale-95"
+                  style={{ color: '#ffffff' }}
+                >
+                  <span>Solicitar demostración de Axon POS</span>
+                  <ArrowRight size={16} />
+                </a>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       {/* 5. CÓMO FUNCIONA: 3 PASOS (DOORDASH 1:1) */}
-      <section id="como-funciona" className="py-16 sm:py-24 bg-white border-b border-zinc-200">
+      <section id="como-funciona" className="py-16 sm:py-24 bg-[#FCF9F6] border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-16">
@@ -850,9 +945,9 @@ export default function MerchantLandingPage() {
       {/* 9. FOOTER DEDICADO PARA COMERCIOS */}
       <footer className="bg-zinc-900 text-zinc-400 py-12 border-t border-zinc-800 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img src="/axonmarket-logo-icon.png" alt="Axon" className="w-7 h-7 rounded-lg" />
-            <span className="font-black text-white text-sm tracking-tight">AXONMARKET PARA COMERCIOS</span>
+            <span className="font-black text-white text-sm tracking-tight">COMERCIANTES</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-zinc-400 font-medium">
             <button onClick={() => navigate('/legal/terminos')} className="hover:text-white transition-colors">Términos de Servicio</button>
