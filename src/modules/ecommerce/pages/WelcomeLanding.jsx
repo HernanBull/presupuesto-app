@@ -209,13 +209,13 @@ export default function WelcomeLanding() {
         {/* Capa de contraste y gradiente para legibilidad prémium */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/85 backdrop-blur-[0.5px]" />
 
-        <div className="max-w-4xl mx-auto relative z-10 text-center flex flex-col items-center w-full">
+        <div className="w-full max-w-2xl mx-auto relative z-10 text-center flex flex-col items-center bg-zinc-950/75 backdrop-blur-md p-6 sm:p-10 rounded-3xl border border-white/20 shadow-2xl">
           
           {/* Badge Oficial */}
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md border border-white/20 text-white px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5 shadow-lg"
+            className="inline-flex items-center gap-2 bg-amber-500/10 backdrop-blur-md border border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-5 shadow-sm"
           >
             <ShoppingBag size={14} className="text-amber-400 stroke-[2.5]" />
             <span>AxonMarket Delivery & Comercios</span>
@@ -226,7 +226,8 @@ export default function WelcomeLanding() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white uppercase max-w-3xl leading-[1.08] drop-shadow-md mb-3"
+            style={{ color: '#ffffff' }}
+            className="text-3xl sm:text-5xl font-black tracking-tight !text-white uppercase max-w-xl leading-[1.08] drop-shadow-lg mb-3"
           >
             $0 Costo de Envío en tu Primer Pedido
           </motion.h1>
@@ -235,7 +236,8 @@ export default function WelcomeLanding() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="text-xs sm:text-sm md:text-base font-semibold text-amber-200/90 tracking-wide uppercase mb-8 max-w-xl drop-shadow-sm"
+            style={{ color: '#fde68a' }}
+            className="text-xs sm:text-sm font-semibold !text-amber-200 tracking-wide uppercase mb-8 max-w-lg drop-shadow-sm"
           >
             Tus tiendas, restaurantes y bodegones favoritos en tu ciudad
           </motion.p>
@@ -249,7 +251,7 @@ export default function WelcomeLanding() {
           >
             <button 
               onClick={() => navigate('/explorar')}
-              className="w-full py-4 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base sm:text-lg rounded-2xl shadow-2xl shadow-amber-500/30 active:scale-[0.99] transition-all flex items-center justify-center gap-3 border border-white/20"
+              className="w-full py-4 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-black text-base sm:text-lg rounded-2xl shadow-xl shadow-amber-500/30 active:scale-[0.99] transition-all flex items-center justify-center gap-3 border border-white/20"
             >
               <ShoppingBag size={22} className="stroke-[2.5]" />
               <span>Abrir App y Explorar</span>
@@ -263,7 +265,7 @@ export default function WelcomeLanding() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="w-full max-w-xl bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-full p-2 shadow-2xl flex flex-col sm:flex-row items-center gap-2 border border-white/40"
+            className="w-full max-w-lg bg-white rounded-2xl sm:rounded-full p-2 shadow-2xl flex flex-col sm:flex-row items-center gap-2 border border-white/40"
           >
             <div className="flex items-center gap-2.5 px-3 py-2 w-full text-zinc-700">
               <Search size={20} className="text-zinc-400 shrink-0" />
@@ -291,7 +293,8 @@ export default function WelcomeLanding() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-white hover:text-amber-300 underline underline-offset-4 transition-colors drop-shadow-sm"
+            style={{ color: '#ffffff' }}
+            className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold !text-white hover:!text-amber-300 underline underline-offset-4 transition-colors drop-shadow-sm"
           >
             <MapPin size={15} />
             <span>{isLocating ? 'Detectando coordenadas...' : 'Usar mi ubicación actual ↗'}</span>
