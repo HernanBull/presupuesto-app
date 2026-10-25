@@ -1887,79 +1887,92 @@ export default function PublicStore() {
               </div>
             </div>
 
-            {/* Hero Background - Blanco Luminoso y Naranja Radiante (Sin metálicos oscuros) */}
-            <div className="relative w-full h-[180px] md:h-[240px] z-0 overflow-hidden bg-gradient-to-b from-orange-100/70 via-amber-50/40 to-slate-50 border-b border-orange-100/50">
+            {/* Hero Cover Header - La foto de portada abarca hasta la sección de Calificar */}
+            <div className="relative w-full z-0 overflow-hidden pb-4 border-b border-slate-200/60 shadow-xs">
+              {/* Imagen de Portada de Fondo */}
               {heroUrl ? (
-                <img src={resolveImageUrl(heroUrl)} alt="Cover" className="w-full h-full object-cover opacity-85" />
+                <div className="absolute inset-0 z-0">
+                  <img 
+                    src={resolveImageUrl(heroUrl)} 
+                    alt="Cover" 
+                    className="w-full h-full object-cover object-center" 
+                  />
+                  {/* Overlay sutil para garantizar contraste y máxima legibilidad sin opacar la foto del fondo */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black/45" />
+                </div>
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-orange-100/60 via-amber-50/30 to-slate-50 flex items-center justify-center">
+                <div className="absolute inset-0 z-0 bg-gradient-to-b from-orange-100/70 via-amber-50/40 to-slate-50">
                   <div className="absolute inset-0 bg-[radial-gradient(#ea580c_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.08]" />
                 </div>
               )}
-            </div>
 
-            {/* Profile Content Container */}
-            <div className="relative z-10 -mt-16 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col">
-              
-              {/* Avatar con anillo luminoso */}
-              <div className="flex justify-center w-full mb-3">
-                <div className="relative">
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white ring-4 ring-orange-500/15">
-                    {logoUrl ? (
-                      <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
-                        <Store size={44} />
+              {/* Contenido sobre la Portada (Avatar, Nombre, Handle y Calificar) */}
+              <div className="relative z-10 pt-6 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col items-center">
+                
+                {/* Avatar con anillo luminoso */}
+                <div className="flex justify-center w-full mb-3">
+                  <div className="relative">
+                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white ring-4 ring-orange-500/20">
+                      {logoUrl ? (
+                        <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
+                          <Store size={44} />
+                        </div>
+                      )}
+                    </div>
+                    {config?.is_verified && (
+                      <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
+                        <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                       </div>
                     )}
                   </div>
-                  {config?.is_verified && (
-                    <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
-                      <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              {/* Title & Slug */}
-              <div className="flex flex-col items-center text-center">
-                <div className="flex items-center gap-2 justify-center">
-                  <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
-                    {config?.business_name || 'Mi Tienda'}
-                  </h1>
-                </div>
-                <p className="text-orange-600 font-bold text-sm mt-0.5">@{slug}</p>
-                
-                {/* Rating & Delivery */}
-                <div className="flex items-center justify-center gap-2.5 mt-2.5 mb-3 text-sm font-medium flex-wrap">
-                  <button 
-                    onClick={() => {
-                      if (!currentCustomer) {
-                        setShowAuthModal(true);
-                        return;
-                      }
-                      setShowReviewModal(true);
-                    }} 
-                    className="flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-orange-300 text-slate-800 px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs hover:bg-orange-50/50"
-                  >
-                    <Star size={14} className="fill-amber-400 text-amber-500" />
-                    <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
-                  </button>
-                  {config?.has_enminutos_alliance && (
-                    <button className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-xs">
-                      <div className="flex items-center font-black tracking-tighter">
-                        <span className="text-red-500 text-sm">E</span>
-                        <span className="text-red-500 text-sm">M</span>
-                        <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
-                      </div>
-                      <span className="text-white text-xs font-bold tracking-wide">en minutos</span>
+                {/* Title & Slug */}
+                <div className="flex flex-col items-center text-center">
+                  <div className="flex items-center gap-2 justify-center">
+                    <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${heroUrl ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-900'}`}>
+                      {config?.business_name || 'Mi Tienda'}
+                    </h1>
+                  </div>
+                  <p className={`font-extrabold text-sm mt-0.5 ${heroUrl ? 'text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-orange-600'}`}>@{slug}</p>
+                  
+                  {/* Rating & Delivery */}
+                  <div className="flex items-center justify-center gap-2.5 mt-2.5 text-sm font-medium flex-wrap">
+                    <button 
+                      onClick={() => {
+                        if (!currentCustomer) {
+                          setShowAuthModal(true);
+                          return;
+                        }
+                        setShowReviewModal(true);
+                      }} 
+                      className={`flex items-center gap-1.5 ${heroUrl ? 'bg-white/95 backdrop-blur-md text-slate-900 border-white/60 shadow-md hover:bg-white hover:scale-105' : 'bg-white border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-xs hover:bg-orange-50/50'} border px-3.5 py-1.5 rounded-full transition-all cursor-pointer`}
+                    >
+                      <Star size={14} className="fill-amber-400 text-amber-500" />
+                      <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
                     </button>
-                  )}
+                    {config?.has_enminutos_alliance && (
+                      <button className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-black text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-md border border-white/20">
+                        <div className="flex items-center font-black tracking-tighter">
+                          <span className="text-red-500 text-sm">E</span>
+                          <span className="text-red-500 text-sm">M</span>
+                          <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                        </div>
+                        <span className="text-white text-xs font-bold tracking-wide">en minutos</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Profile Content Container (Debajo de la Portada: Estadísticas, Acciones, etc.) */}
+            <div className="relative z-10 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col pt-3">
 
               {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto mt-2 pb-1 w-full text-center bg-white border border-slate-200/80 rounded-2xl py-2.5 px-3 shadow-xs">
+              <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto pb-1 w-full text-center bg-white border border-slate-200/80 rounded-2xl py-2.5 px-3 shadow-xs">
                 <div className="flex flex-col items-center">
                   <span className="font-black text-lg text-slate-900">{products.length + (storeNews?.length || 0)}</span>
                   <span className="text-slate-500 text-[11px] font-semibold">Publicaciones</span>
