@@ -34,6 +34,7 @@ import CustomerChatsPage from './pages/CustomerChatsPage';
 import OrderPreparation from './pages/OrderPreparation';
 import LegalPage from './pages/LegalPage';
 import AuthCallback from './pages/AuthCallback';
+import MerchantLandingPage from './pages/MerchantLandingPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -346,8 +347,11 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route path="directorio" element={<MarketplaceDirectory />} />
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="chats" element={<CustomerChatsPage />} />
-        <Route path="funciones-comercios" element={<Navigate to="/" replace />} />
-        <Route path="pricing" element={<Navigate to="/" replace />} />
+        <Route path="comerciantes" element={<MerchantLandingPage />} />
+        <Route path="merchants" element={<MerchantLandingPage />} />
+        <Route path="negocios" element={<MerchantLandingPage />} />
+        <Route path="funciones-comercios" element={<Navigate to="/comerciantes" replace />} />
+        <Route path="pricing" element={<Navigate to="/comerciantes" replace />} />
         <Route path="mapa" element={<StoreScannerMap />} />
         <Route path="legal/:tipo" element={<LegalPage />} />
         <Route path=":slug" element={<PublicStore />} />

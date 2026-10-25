@@ -251,10 +251,10 @@ export default function WelcomeLanding() {
 
               <div>
                 <button 
-                  onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
+                  onClick={() => navigate('/comerciantes')}
                   className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
                 >
-                  <span>Regístrate en AxonMarket</span>
+                  <span>Conoce más y empieza</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -536,7 +536,7 @@ export default function WelcomeLanding() {
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <button onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/comerciantes')} className="hover:text-amber-400 transition-colors">
                     Registrar mi Comercio
                   </button>
                 </li>
