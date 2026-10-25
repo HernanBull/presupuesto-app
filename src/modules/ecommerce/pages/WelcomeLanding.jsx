@@ -85,38 +85,27 @@ export default function WelcomeLanding() {
       
       {/* 1. HERO SECTION (1:1 con la estética limpia y organizada de DoorDash) */}
       <section 
-        className="relative overflow-hidden text-white flex flex-col justify-between min-h-[560px] sm:min-h-[620px] px-4 sm:px-6 pt-5 pb-10"
+        className="relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] px-4 sm:px-6 pt-5 pb-12"
         style={{
-          background: 'linear-gradient(135deg, #eb1700 0%, #ea2815 50%, #d41400 100%)',
+          backgroundColor: '#eb1700',
+          backgroundImage: 'linear-gradient(180deg, #eb1700 0%, #e01500 100%)',
         }}
       >
-        {/* Decoración gastronómica en los bordes inferiores (exactamente como DoorDash) */}
-        <div className="absolute -bottom-10 -left-10 w-44 sm:w-60 h-44 sm:h-60 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 hidden sm:block">
+        {/* Decoración gastronómica en los bordes inferiores (exactamente como DoorDash: visibles en esquinas) */}
+        <div className="absolute -bottom-6 -left-12 sm:-bottom-10 sm:-left-10 w-36 sm:w-64 h-36 sm:h-64 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 block">
           <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: 'bottom left' }} />
         </div>
-        <div className="absolute -bottom-10 -right-10 w-48 sm:w-68 h-48 sm:h-68 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 hidden sm:block">
+        <div className="absolute -bottom-6 -right-12 sm:-bottom-10 sm:-right-10 w-40 sm:w-72 h-40 sm:h-72 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 block">
           <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: 'bottom right' }} />
         </div>
 
-        {/* Barra Superior Minimalista (Logo AxonMarket a la izquierda + Botón Iniciar Sesión a la derecha) */}
-        <div className="max-w-6xl mx-auto w-full flex items-center justify-between relative z-20">
-          <div 
-            onClick={() => navigate('/')} 
-            className="flex items-center gap-2 cursor-pointer select-none group"
-          >
-            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
-              <ShoppingBag size={20} className="stroke-[2.5]" />
-            </div>
-            <span className="text-xl font-black tracking-widest text-white">
-              AXON<span className="text-amber-300">MARKET</span>
-            </span>
-          </div>
-
+        {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
+        <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
           <div>
             {currentCustomer ? (
               <button 
                 onClick={() => navigate('/explorar')}
-                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
               >
                 <span>{currentCustomer.name}</span>
                 <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black">Feed</span>
@@ -124,7 +113,7 @@ export default function WelcomeLanding() {
             ) : (
               <button 
                 onClick={() => navigate('/explorar', { state: { openAuthModal: true } })}
-                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 sm:px-6 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 sm:px-6 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
               >
                 Iniciar sesión
               </button>
@@ -133,12 +122,12 @@ export default function WelcomeLanding() {
         </div>
 
         {/* Contenido Central (Exacto a DoorDash: Logo, Titular, 1 Botón, 1 Buscador, 1 Enlace) */}
-        <div className="max-w-xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-8 relative z-20">
+        <div className="max-w-xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-6 relative z-20">
           
           {/* Logo Central Blanco DoorDash Style */}
-          <div className="flex items-center justify-center gap-2.5 mb-3 select-none">
-            <ShoppingBag size={26} className="text-white stroke-[2.5]" />
-            <span className="text-2xl sm:text-3xl font-black tracking-[0.2em] text-white">
+          <div className="flex items-center justify-center gap-2 mb-3 select-none">
+            <ShoppingBag size={28} className="text-white stroke-[2.5]" style={{ color: '#ffffff' }} />
+            <span style={{ color: '#ffffff' }} className="text-2xl sm:text-3xl font-black tracking-wider text-white">
               AXONMARKET
             </span>
           </div>
@@ -146,20 +135,20 @@ export default function WelcomeLanding() {
           {/* Gran Titular */}
           <h1 
             style={{ color: '#ffffff' }}
-            className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-tight leading-[1.05] mb-2 drop-shadow-sm !text-white"
+            className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-tight leading-[1.08] mb-2 drop-shadow-sm"
           >
             ENVÍO GRATIS EN EL PRIMER PEDIDO
           </h1>
           
-          <p className="text-xs sm:text-sm text-white/90 font-medium mb-8">
+          <p style={{ color: '#ffffff' }} className="text-xs sm:text-sm font-semibold text-white/95 mb-7">
             Se aplican otras tarifas
           </p>
 
           {/* Único Botón Principal: Abrir aplicación */}
           <button 
             onClick={() => navigate('/explorar')}
-            className="w-full max-w-xs py-3.5 px-8 text-white font-black text-base rounded-full shadow-xl active:scale-95 transition-all text-center mb-6"
-            style={{ backgroundColor: '#c51e06' }}
+            className="w-full max-w-xs py-3.5 px-8 font-bold text-base rounded-full shadow-lg active:scale-95 transition-all text-center mb-6"
+            style={{ backgroundColor: '#c51e06', color: '#ffffff' }}
           >
             Abrir aplicación
           </button>
@@ -174,11 +163,11 @@ export default function WelcomeLanding() {
               value={addressInput}
               onChange={(e) => setAddressInput(e.target.value)}
               placeholder="Introduzca la dirección de entrega"
-              className="w-full bg-[#fa3e2c]/85 text-white placeholder-white/80 border border-white/40 focus:border-white focus:bg-white focus:text-zinc-950 focus:placeholder-zinc-400 rounded-full py-3.5 pl-6 pr-12 text-sm font-medium transition-all outline-none shadow-inner"
+              className="w-full bg-[#fa402e] text-white placeholder-white/85 border border-white/30 focus:border-white focus:bg-white focus:text-zinc-950 focus:placeholder-zinc-400 rounded-full py-3.5 pl-6 pr-12 text-sm font-medium transition-all outline-none shadow-sm"
             />
             <button 
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 hover:bg-white text-white hover:text-red-600 flex items-center justify-center transition-all"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/20 hover:bg-white text-white hover:text-[#eb1700] flex items-center justify-center transition-all"
             >
               <Search size={16} />
             </button>
@@ -189,7 +178,7 @@ export default function WelcomeLanding() {
             type="button"
             onClick={handleUseCurrentLocation}
             style={{ color: '#ffffff' }}
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold !text-white hover:underline transition-all"
+            className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold !text-white underline underline-offset-4 hover:text-white/90 transition-all"
           >
             <span>{isLocating ? 'Detectando ubicación...' : 'Usar ubicación actual'}</span>
             <span className="text-sm">↗</span>

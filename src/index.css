@@ -54,7 +54,7 @@
     /* Diseño Claro Premium (Fondo crema, texto gris carbón) */
     background-color: var(--bg-secondary) !important;
     background-image: none !important;
-    color: var(--text-main) !important;
+    color: var(--text-main);
     min-height: 100vh;
     touch-action: manipulation;
     overscroll-behavior-y: none;
@@ -65,7 +65,7 @@
   .dark body {
     background-color: var(--bg-secondary) !important;
     background-image: none !important; /* Quitar el radial-gradient negro */
-    color: var(--text-main) !important;
+    color: var(--text-main);
   }
   
   .dark .bg-black, .dark .bg-slate-900, .dark .bg-slate-950, .bg-black,
