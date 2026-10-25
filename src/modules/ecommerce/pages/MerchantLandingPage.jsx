@@ -134,240 +134,142 @@ export default function MerchantLandingPage() {
       </header>
 
       {/* 2. HERO SECTION CON FORMULARIO 0% COMISIÓN (DOORDASH 1:1) */}
-      <section id="registro" className="relative pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden border-b border-zinc-200/80">
+      <section id="registro" className="relative bg-[#FFF0ED] pt-10 sm:pt-16 pb-16 sm:pb-24 overflow-hidden border-b border-orange-100">
         
-        {/* Fondo decorativo sutil */}
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-orange-100/40 via-amber-50/20 to-transparent pointer-events-none" />
+        {/* Curva Fotográfica Hero Derecha (DoorDash 1:1) */}
+        <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-[46%] xl:w-[48%] overflow-hidden rounded-l-[200px] xl:rounded-l-[280px] shadow-2xl">
+          <img 
+            src="/axon-doordash-merchants.jpg" 
+            alt="Comerciantes AxonMarket" 
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          <div className="max-w-xl">
             
-            {/* Columna Izquierda: Titular y Formulario de Captura 1:1 DoorDash */}
-            <div className="lg:col-span-7 xl:col-span-6 space-y-8">
-              
-              <div>
-                <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-800 text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4 border border-orange-200">
-                  <Flame size={14} className="text-orange-600" />
-                  <span>Plataforma Omnicanal para Negocios</span>
+            {/* Titular Dos Tonos DoorDash 1:1 */}
+            <h1 className="text-3xl sm:text-5xl lg:text-[52px] font-black tracking-tight leading-[1.08] uppercase mb-8">
+              <span className="text-[#FF3008] block">LLEGA A MILES DE</span>
+              <span className="text-zinc-950 block">CLIENTES EN TU CIUDAD</span>
+            </h1>
+
+            {/* Formulario DoorDash Card 1:1 */}
+            <div className="bg-white rounded-[28px] p-6 sm:p-8 shadow-xl border border-orange-100/60">
+              <h2 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight uppercase mb-6 leading-snug">
+                PRUEBA AXONMARKET CON 0% DE COMISIÓN HASTA POR 30 DÍAS
+              </h2>
+
+              <form onSubmit={handleFormSubmit} className="space-y-3.5">
+                
+                {/* Nombre del comercio */}
+                <div>
+                  <input 
+                    type="text"
+                    name="storeName"
+                    required
+                    value={formData.storeName}
+                    onChange={handleInputChange}
+                    placeholder="Nombre del comercio o tienda"
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                  />
                 </div>
-                <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black text-zinc-950 tracking-tight leading-[1.05] uppercase">
-                  LLEGA A MILES DE CLIENTES EN TU CIUDAD
-                </h1>
-                <p className="mt-4 text-base sm:text-lg text-zinc-600 font-normal leading-relaxed max-w-xl">
-                  Multiplica tus ventas con vitrina en línea, pedidos directos por delivery y sincronización automática en tiempo real con tu punto de venta <strong>Axon POS</strong>.
-                </p>
-              </div>
 
-              {/* Formulario DoorDash Card */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/90 shadow-xl relative">
-                <div className="mb-6">
-                  <h2 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight uppercase">
-                    PRUEBA AXONMARKET CON 0% DE COMISIÓN HASTA POR 30 DÍAS
-                  </h2>
-                  <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1">
-                    Sin contratos forzosos. Sin comisiones ocultas. Comienza hoy mismo.
-                  </p>
+                {/* Dirección del local */}
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                  <input 
+                    type="text"
+                    name="storeAddress"
+                    required
+                    value={formData.storeAddress}
+                    onChange={handleInputChange}
+                    placeholder="Dirección del local comercial"
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 pl-11 pr-4 text-sm font-medium transition-all outline-none"
+                  />
                 </div>
 
-                <form onSubmit={handleFormSubmit} className="space-y-4">
-                  
-                  {/* Nombre del comercio */}
+                {/* Grid 2 Columnas: Correo y Teléfono */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                      Nombre del negocio o tienda
-                    </label>
-                    <div className="relative">
-                      <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                      <input 
-                        type="text"
-                        name="storeName"
-                        required
-                        value={formData.storeName}
-                        onChange={handleInputChange}
-                        placeholder="Ej. Pizzería Bella Vista, Bodegón Central"
-                        className="w-full bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white text-zinc-950 placeholder-zinc-400 border border-zinc-200 focus:border-orange-500 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Dirección del local */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                      Dirección del local comercial
-                    </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                      <input 
-                        type="text"
-                        name="storeAddress"
-                        required
-                        value={formData.storeAddress}
-                        onChange={handleInputChange}
-                        placeholder="Ciudad, sector o centro comercial"
-                        className="w-full bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white text-zinc-950 placeholder-zinc-400 border border-zinc-200 focus:border-orange-500 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Grid 2 Columnas: Correo y Teléfono WhatsApp */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                        Correo electrónico
-                      </label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                        <input 
-                          type="email"
-                          name="email"
-                          required
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="tu@correo.com"
-                          className="w-full bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white text-zinc-950 placeholder-zinc-400 border border-zinc-200 focus:border-orange-500 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium transition-all outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                        Teléfono / WhatsApp
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
-                        <input 
-                          type="tel"
-                          name="phone"
-                          required
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          placeholder="0412-1234567"
-                          className="w-full bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white text-zinc-950 placeholder-zinc-400 border border-zinc-200 focus:border-orange-500 rounded-2xl py-3 pl-11 pr-4 text-sm font-medium transition-all outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tipo de Comercio */}
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                      Tipo de negocio
-                    </label>
-                    <select
-                      name="businessType"
-                      value={formData.businessType}
+                    <input 
+                      type="email"
+                      name="email"
+                      required
+                      value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white text-zinc-950 border border-zinc-200 focus:border-orange-500 rounded-2xl py-3 px-4 text-sm font-medium transition-all outline-none cursor-pointer"
-                    >
-                      <option value="Restaurante / Comida rápida">Restaurante / Comida rápida</option>
-                      <option value="Bodegón / Víveres">Bodegón / Víveres</option>
-                      <option value="Supermercado / Abasto">Supermercado / Abasto</option>
-                      <option value="Farmacia / Salud">Farmacia / Salud</option>
-                      <option value="Panadería / Repostería">Panadería / Repostería</option>
-                      <option value="Ropa / Calzado / Moda">Ropa / Calzado / Moda</option>
-                      <option value="Tecnología / Accesorios">Tecnología / Accesorios</option>
-                      <option value="Licores / Bebidas">Licores / Bebidas</option>
-                      <option value="Otro tipo de comercio">Otro tipo de comercio</option>
-                    </select>
+                      placeholder="Correo electrónico"
+                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                    />
                   </div>
 
-                  {/* Texto Legal */}
-                  <p className="text-[11px] text-zinc-500 leading-snug pt-1">
-                    Al hacer clic en &quot;Empezar con 0% de comisión&quot;, aceptas recibir asistencia de activación de cuenta y acceder a los 30 días de prueba sin comisiones de AxonMarket.
-                  </p>
+                  <div>
+                    <input 
+                      type="tel"
+                      name="phone"
+                      required
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      placeholder="Teléfono / WhatsApp"
+                      className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 placeholder-zinc-500 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none"
+                    />
+                  </div>
+                </div>
 
-                  {/* Botón Píldora Naranja DoorDash 1:1 */}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-black text-base py-4 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    style={{ color: '#ffffff' }}
+                {/* Tipo de Comercio con Chevron */}
+                <div className="relative">
+                  <select
+                    name="businessType"
+                    value={formData.businessType}
+                    onChange={handleInputChange}
+                    className="w-full bg-[#f4f4f5] hover:bg-[#eaeaea] focus:bg-white text-zinc-950 border border-transparent focus:border-[#FF3008] rounded-xl py-3.5 px-4 text-sm font-medium transition-all outline-none cursor-pointer appearance-none pr-10"
                   >
-                    {isSubmitting ? (
-                      <span className="inline-flex items-center gap-2">
-                        <RefreshCw className="animate-spin" size={18} />
-                        Iniciando tu prueba...
-                      </span>
-                    ) : (
-                      <>
-                        <span>Empezar con 0% de comisión</span>
-                        <ArrowRight size={18} />
-                      </>
-                    )}
-                  </button>
+                    <option value="Restaurante / Comida rápida">Restaurante / Comida rápida</option>
+                    <option value="Bodegón / Víveres">Bodegón / Víveres</option>
+                    <option value="Supermercado / Abasto">Supermercado / Abasto</option>
+                    <option value="Farmacia / Salud">Farmacia / Salud</option>
+                    <option value="Panadería / Repostería">Panadería / Repostería</option>
+                    <option value="Ropa / Calzado / Moda">Ropa / Calzado / Moda</option>
+                    <option value="Tecnología / Accesorios">Tecnología / Accesorios</option>
+                    <option value="Licores / Bebidas">Licores / Bebidas</option>
+                    <option value="Otro tipo de negocio">Otro tipo de negocio</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" size={18} />
+                </div>
 
-                </form>
+                {/* Texto Legal */}
+                <p className="text-[11px] text-zinc-500 leading-snug pt-1">
+                  Al hacer clic en &quot;Empezar con 0% de comisión&quot;, aceptas recibir comunicaciones electrónicas y asistencia de activación de AxonMarket.
+                </p>
 
-              </div>
+                {/* Botón Píldora DoorDash 1:1 */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#FF3008] hover:bg-[#e02b07] active:scale-98 text-white font-black text-base py-4 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center cursor-pointer mt-2"
+                  style={{ color: '#ffffff' }}
+                >
+                  {isSubmitting ? (
+                    <span className="inline-flex items-center gap-2">
+                      <RefreshCw className="animate-spin" size={18} />
+                      Iniciando tu prueba...
+                    </span>
+                  ) : (
+                    <span>Empezar con 0% de comisión</span>
+                  )}
+                </button>
+
+              </form>
 
             </div>
 
-            {/* Columna Derecha: Composición Visual Editorial DoorDash */}
-            <div className="lg:col-span-5 xl:col-span-6 relative flex justify-center">
-              
-              {/* Contenedor con borde curvo estilizado */}
-              <div className="relative w-full max-w-lg lg:max-w-none rounded-3xl overflow-hidden shadow-2xl border border-zinc-200 bg-zinc-950 aspect-[4/3] sm:aspect-[4/3] lg:aspect-[5/4] flex items-center justify-center group">
-                
-                {/* Imagen de fondo / atmósfera de restaurante y comercio */}
-                <img 
-                  src="/axon-merchant-orders.jpg" 
-                  alt="Comercio AxonMarket" 
-                  className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700" 
-                />
-                
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent" />
-
-                {/* Badge flotante 1: Orden digital en camino */}
-                <motion.div 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="absolute top-6 left-6 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/50 max-w-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
-                      <ShoppingBag size={20} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black text-zinc-950">Nuevo pedido en línea</div>
-                      <div className="text-[11px] font-bold text-orange-600">Orden #1084 • $28.50</div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Badge flotante 2: Sincronización POS */}
-                <motion.div 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="absolute bottom-6 right-6 bg-zinc-900/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-amber-500/30 text-white max-w-xs"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                      <RefreshCw size={20} className="animate-spin-slow" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-black text-amber-300">Axon POS Sincronizado</div>
-                      <div className="text-[11px] text-zinc-400">Stock físico & online al día</div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Centro: Logo AxonMarket Emblema */}
-                <div className="relative z-10 text-center p-8">
-                  <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 mx-auto flex items-center justify-center mb-4 shadow-2xl">
-                    <img src="/axonmarket-logo-icon.png" alt="Axon" className="w-12 h-12 rounded-xl" />
-                  </div>
-                  <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                    Tu Negocio Conectado
-                  </h3>
-                  <p className="text-xs sm:text-sm text-zinc-300 mt-2 max-w-xs mx-auto">
-                    La única plataforma que integra mostrador físico, caja e-commerce y delivery en un solo ecosistema.
-                  </p>
-                </div>
-
-              </div>
-
+            {/* Foto visible en móvil debajo del formulario */}
+            <div className="lg:hidden mt-8 rounded-3xl overflow-hidden shadow-xl aspect-[4/3]">
+              <img 
+                src="/axon-doordash-merchants.jpg" 
+                alt="Comerciantes AxonMarket" 
+                className="w-full h-full object-cover object-center"
+              />
             </div>
 
           </div>
