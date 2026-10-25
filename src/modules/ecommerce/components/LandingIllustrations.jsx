@@ -86,8 +86,6 @@ export function MerchantStoreIllustration({ className = "w-32 h-28" }) {
           preserveAspectRatio="xMidYMid meet"
         />
 
-        {/* Suelo / Acera */}
-        <line x1="26" y1="116" x2="134" y2="116" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
     </div>
   );

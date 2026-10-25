@@ -213,8 +213,8 @@ export default function WelcomeLanding() {
             {/* CARD 1: Conviértete en Repartidor (Become a Dasher) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
-                  <DeliveryRiderIllustration className="w-36 h-32" />
+                <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <DeliveryRiderIllustration className="w-28 h-28" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
                   Conviértete en Repartidor
@@ -238,8 +238,8 @@ export default function WelcomeLanding() {
             {/* CARD 2: Abre tu Tienda en AxonMarket (Become a Merchant) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
-                  <MerchantStoreIllustration className="w-36 h-32" />
+                <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <MerchantStoreIllustration className="w-28 h-28" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
                   Conviértete en comerciante
@@ -263,8 +263,8 @@ export default function WelcomeLanding() {
             {/* CARD 3: Vive la mejor experiencia AxonMarket (Get the best app experience) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
-                  <MobileAppIllustration className="w-36 h-32" />
+                <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <MobileAppIllustration className="w-28 h-28" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
                   Obtén la mejor experiencia de AxonMarket
