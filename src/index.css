@@ -94,8 +94,8 @@
     background-color: var(--bg-primary) !important;
   }
 
-  /* Forzamos el texto blanco a gris carbón */
-  .dark .text-white, .dark .text-slate-50, .text-white, .text-slate-50 {
+  /* Forzamos textos claros secundarios a gris carbón en paneles claros */
+  .dark .text-slate-50, .text-slate-50 {
     color: var(--text-main) !important;
   }
   
@@ -104,12 +104,22 @@
     color: #FFFFFF !important;
   }
 
+  /* Titular Hero AxonMarket Blanco Puro con Sombra de Alto Contraste */
+  .hero-white-title {
+    color: #FFFFFF !important;
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.95), 0 6px 28px rgba(0, 0, 0, 0.85) !important;
+  }
+
+  /* Clases de Marca AxonMarket */
+  .axon-logo-black {
+    color: #000000 !important;
+  }
+  .axon-logo-gold {
+    color: #f59e0b !important;
+  }
+
   /* Clases específicas para el Hero estilo DoorDash de AxonMarket */
-  .axon-hero-pure-white,
-  .axon-hero-pure-white h1,
-  .axon-hero-pure-white p,
-  .axon-hero-pure-white span:not(.text-dark),
-  .axon-hero-pure-white svg:not(.svg-dark) {
+  .axon-hero-pure-white h1 {
     color: #FFFFFF !important;
   }
   .axon-hero-pure-white input {

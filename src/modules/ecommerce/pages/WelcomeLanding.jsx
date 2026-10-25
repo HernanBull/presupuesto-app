@@ -87,7 +87,7 @@ export default function WelcomeLanding() {
       <section 
         className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] px-4 sm:px-6 pt-6 pb-12"
         style={{
-          background: 'linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.72)), url(/landing-hero.jpg) center center / cover no-repeat',
+          background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
       >
         {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
@@ -115,26 +115,28 @@ export default function WelcomeLanding() {
         {/* Contenido Central (Limpio y Organizado: Logo, Titular Comercial, 1 Botón, 1 Buscador, 1 Enlace) */}
         <div className="max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-6 relative z-20">
           
-          {/* Logo Central Blanco */}
-          <div className="flex items-center justify-center gap-2.5 mb-3 select-none">
-            <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
-              <ShoppingBag size={24} className="text-white stroke-[2.5]" style={{ color: '#ffffff' }} />
+          {/* Logo Central de Marca (Caja dorada con transparente, AXON en negro, MARKET en dorado) */}
+          <div className="inline-flex items-center gap-2.5 mb-5 px-4 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl border border-amber-400/40 select-none">
+            {/* Caja / Icono en dorado con transparencia */}
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 backdrop-blur-sm border border-amber-500/40 flex items-center justify-center text-amber-500 shadow-xs">
+              <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
-            <span style={{ color: '#ffffff' }} className="text-2xl sm:text-3xl font-black tracking-wider text-white">
-              AXONMARKET
+            {/* Tipografía de Marca: AXON en negro y MARKET en dorado/naranja */}
+            <span className="text-xl sm:text-2xl font-black tracking-wider flex items-center">
+              <span className="axon-logo-black">AXON</span>
+              <span className="axon-logo-gold">MARKET</span>
             </span>
           </div>
 
-          {/* Gran Titular Comercial */}
+          {/* Gran Titular Comercial en Blanco Puro de Alto Contraste */}
           <h1 
-            style={{ color: '#ffffff' }}
-            className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-tight leading-[1.08] mb-3 drop-shadow-lg"
+            className="hero-white-title text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight leading-[1.08] mb-3"
           >
             TODO LO QUE TE GUSTA, DIRECTO A TU PUERTA
           </h1>
           
           {/* Subtítulo Comercial Atractivo */}
-          <p style={{ color: '#ffffff' }} className="text-sm sm:text-base font-medium text-white/95 mb-8 max-w-lg drop-shadow">
+          <p className="hero-white-title text-sm sm:text-base font-semibold mb-8 max-w-lg">
             Tus tiendas, restaurantes y bodegones favoritos en un solo lugar
           </p>
 
