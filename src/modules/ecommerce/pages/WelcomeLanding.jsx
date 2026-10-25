@@ -325,7 +325,7 @@ export default function WelcomeLanding() {
               </p>
               <button 
                 onClick={() => navigate('/explorar', { state: { category: 'Comida' } })}
-                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
                 style={{ color: '#ffffff' }}
               >
                 <span>Buscar restaurantes</span>
@@ -336,26 +336,20 @@ export default function WelcomeLanding() {
           {/* BLOQUE 2: AxonPass (Invertido en Desktop) */}
           <div className="flex flex-col md:flex-row-reverse items-center gap-10 lg:gap-16">
             {/* Banner Gráfico AxonPass Provisional */}
-            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950 border border-amber-500/30 flex items-center justify-center p-6 group">
+            <div className="w-full md:w-1/2 min-h-[250px] sm:min-h-[280px] md:h-96 rounded-3xl overflow-hidden relative shadow-xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950 border border-amber-500/30 flex items-center justify-center p-6 group">
               <div className="absolute inset-0 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:20px_20px] opacity-15" />
-              {/* Tarjeta VIP Simulada */}
-              <div className="relative z-10 w-full max-w-sm rounded-2xl bg-gradient-to-br from-zinc-900/90 to-zinc-950/90 p-6 border border-amber-400/40 shadow-2xl backdrop-blur-md group-hover:scale-105 transition-transform">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-2">
-                    <img src="/axonmarket-logo-icon.png" alt="" className="w-7 h-7 rounded-lg" />
-                    <span className="font-black text-lg tracking-wider text-white">AXON<span className="text-amber-400">PASS</span></span>
-                  </div>
-                  <span className="text-[10px] uppercase font-black tracking-widest bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2.5 py-1 rounded-full">
-                    VIP Member
-                  </span>
+              {/* Tarjeta AxonPass Compacta y Proporcionada */}
+              <div className="relative z-10 w-full max-w-[300px] sm:max-w-xs rounded-2xl bg-gradient-to-br from-zinc-900/95 to-zinc-950/95 p-5 sm:p-6 border border-amber-400/40 shadow-2xl backdrop-blur-md group-hover:scale-105 transition-transform duration-300">
+                <div className="flex items-center gap-2 mb-6">
+                  <img src="/axonmarket-logo-icon.png" alt="" className="w-7 h-7 rounded-lg shadow-sm" />
+                  <span className="font-black text-lg tracking-wider text-white">AXON<span className="text-amber-400">PASS</span></span>
                 </div>
                 <div className="space-y-1 mb-6">
-                  <div className="text-xs uppercase font-medium text-zinc-400 tracking-wider">Beneficios Exclusivos</div>
-                  <div className="text-xl sm:text-2xl font-black text-amber-300 tracking-tight">Entregas Preferenciales & Ahorro</div>
+                  <div className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">Beneficios Exclusivos</div>
+                  <div className="text-lg sm:text-xl font-black text-amber-300 tracking-tight leading-snug">Entregas Preferenciales & Ahorro</div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-zinc-400 pt-3 border-t border-white/10">
+                <div className="text-xs text-zinc-400 pt-3 border-t border-white/10 font-medium">
                   <span>Prueba gratuita 30 días</span>
-                  <Sparkles size={16} className="text-amber-400" />
                 </div>
               </div>
             </div>
@@ -366,11 +360,11 @@ export default function WelcomeLanding() {
                 AxonPass es entrega a domicilio por menos dinero.
               </h2>
               <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
-                Los miembros obtienen entregas con tarifa preferencial en pedidos de AxonPass, descuentos especiales en pedidos para recoger en tienda y promociones VIP. Además, pruébalo gratis durante 30 días.
+                Los miembros obtienen entregas con tarifa preferencial en pedidos de AxonPass, descuentos especiales en pedidos para recoger en tienda y promociones especiales. Además, pruébalo gratis durante 30 días.
               </p>
               <button 
                 onClick={() => navigate('/explorar', { state: { openAxonPass: true } })}
-                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
                 style={{ color: '#ffffff' }}
               >
                 <span>Obtener AxonPass</span>
@@ -406,7 +400,7 @@ export default function WelcomeLanding() {
               </p>
               <button 
                 onClick={() => navigate('/explorar', { state: { category: 'Víveres' } })}
-                className="bg-[#eb1700] hover:bg-[#d41400] text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
                 style={{ color: '#ffffff' }}
               >
                 <span>Comprar ahora</span>
