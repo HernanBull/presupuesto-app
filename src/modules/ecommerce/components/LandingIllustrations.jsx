@@ -216,29 +216,15 @@ export function MobileAppIllustration({ className = "w-32 h-28" }) {
         {/* Cámara frontal / Altavoz */}
         <circle cx="80" cy="29" r="1.5" fill="#334155" />
 
-        {/* Logo Oficial de la Cajita AxonMarket en el centro de la pantalla (1:1 DoorDash) */}
+        {/* Logo Oficial de la Cajita AxonMarket centrado en la pantalla (1:1 DoorDash) */}
         <image
           href="/axonmarket-logo-icon.png"
-          x="65"
-          y="46"
-          width="30"
-          height="30"
+          x="64"
+          y="52"
+          width="32"
+          height="32"
           preserveAspectRatio="xMidYMid meet"
         />
-
-        {/* Tipografía de la marca bajo el icono */}
-        <text
-          x="80"
-          y="85"
-          textAnchor="middle"
-          fill="#0F172A"
-          fontSize="5"
-          fontWeight="900"
-          letterSpacing="0.8"
-          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-        >
-          AXON<tspan fill="#F59E0B">MARKET</tspan>
-        </text>
 
         {/* Barra de inicio inferior (Home indicator) */}
         <rect x="72" y="104" width="16" height="2" rx="1" fill="#CBD5E1" />
