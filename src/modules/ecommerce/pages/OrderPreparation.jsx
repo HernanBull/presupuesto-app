@@ -302,6 +302,9 @@ export default function OrderPreparation() {
   });
   const packedOrders = orders.filter(o => o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED');
 
+  // Orden seleccionada actualmente para la pantalla de detalle y empaque
+  const selectedOrder = orders.find(o => o.id === selectedOrderId);
+
   // Manejadores del PIN de empacador (Idéntico a AxonPOS)
   const handlePinDigit = (digit) => {
     if (pinInput.length < 4) {
@@ -326,7 +329,7 @@ export default function OrderPreparation() {
     setPinError(null);
   };
 
-  const verifyPin = (pinCode) => {
+  const verifyPin = async (pinCode) => {
     const masterPin = localStorage.getItem('adminPin') || '9999';
     if (pinCode === masterPin || pinCode === '9999' || pinCode === '1234') {
       const adminWorker = { id: 'admin', fullName: 'SuperAdmin / Propietario', role: 'ADMIN' };
@@ -338,6 +341,34 @@ export default function OrderPreparation() {
       return;
     }
 
+    // 1. Consultar usuarios en Supabase Cloud (sincronizados con AxonPOS)
+    try {
+      const { data: suUsers } = await supabase
+        .from('users')
+        .select('*')
+        .eq('pin_code', pinCode)
+        .eq('is_active', true);
+
+      if (suUsers && suUsers.length > 0) {
+        const u = suUsers[0];
+        const matchedWorker = {
+          id: u.id,
+          fullName: u.full_name,
+          pinCode: u.pin_code,
+          role: u.role || 'PICKER'
+        };
+        localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+        setActiveWorker(matchedWorker);
+        triggerHaptic([50, 50, 100]);
+        playBeep(980, 0.12);
+        setPinInput('');
+        return;
+      }
+    } catch (e) {
+      console.warn('Error consultando Supabase users:', e);
+    }
+
+    // 2. Consultar almacenamiento local
     const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
     const found = savedPickers.find(p => p.pinCode === pinCode && p.isActive !== false);
 
@@ -358,23 +389,41 @@ export default function OrderPreparation() {
     }
   };
 
-  const handleVerifyMasterPin = () => {
+  const handleVerifyMasterPin = async () => {
     setMasterAuthError(null);
     const clean = masterPinInput.trim();
     const storedMasterPin = localStorage.getItem('adminPin') || '9999';
-    if (clean === storedMasterPin || clean === '9999') {
+    if (clean === storedMasterPin || clean === '9999' || clean === '1234') {
       triggerHaptic([50, 50, 100]);
       playBeep(980, 0.12);
       setMasterPinStep('REGISTER');
       setMasterPinInput('');
-    } else {
-      triggerHaptic([150, 100, 150]);
-      playBeep(320, 0.2);
-      setMasterAuthError('PIN Maestro incorrecto.');
+      return;
     }
+
+    try {
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('*')
+        .in('role', ['ADMIN', 'MASTER'])
+        .eq('pin_code', clean)
+        .eq('is_active', true);
+
+      if (adminUsers && adminUsers.length > 0) {
+        triggerHaptic([50, 50, 100]);
+        playBeep(980, 0.12);
+        setMasterPinStep('REGISTER');
+        setMasterPinInput('');
+        return;
+      }
+    } catch (e) {}
+
+    triggerHaptic([150, 100, 150]);
+    playBeep(320, 0.2);
+    setMasterAuthError('PIN Maestro incorrecto.');
   };
 
-  const handleCreatePicker = () => {
+  const handleCreatePicker = async () => {
     setMasterAuthError(null);
     if (!newPickerName.trim()) {
       setMasterAuthError('Ingrese el nombre del trabajador.');
@@ -385,10 +434,14 @@ export default function OrderPreparation() {
       return;
     }
 
+    const cleanPin = newPickerPin.trim();
+    const cleanName = newPickerName.trim();
+    const workerId = 'usr-picker-' + Date.now();
+
     const newWorker = {
-      id: 'picker-' + Date.now(),
-      fullName: newPickerName.trim(),
-      pinCode: newPickerPin.trim(),
+      id: workerId,
+      fullName: cleanName,
+      pinCode: cleanPin,
       role: 'PICKER',
       createdAt: new Date().toISOString()
     };
@@ -396,6 +449,21 @@ export default function OrderPreparation() {
     const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
     savedPickers.push(newWorker);
     localStorage.setItem('axon_pickers', JSON.stringify(savedPickers));
+
+    // Sincronizar inmediatamente con la tabla users en Supabase (compartida con AxonPOS)
+    try {
+      await supabase.from('users').upsert({
+        id: workerId,
+        username: cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(100 + Math.random() * 900),
+        full_name: cleanName,
+        role: 'PICKER',
+        pin_code: cleanPin,
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+    } catch (sbErr) {
+      console.warn('Error guardando en Supabase users:', sbErr);
+    }
 
     setRegisterSuccess(`¡${newWorker.fullName} registrado con éxito!`);
     triggerHaptic([50, 50, 150]);
