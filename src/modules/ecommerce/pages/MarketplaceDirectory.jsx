@@ -430,7 +430,50 @@ export default function MarketplaceDirectory() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const authData = await loginUser(authForm.email, authForm.password);
+      const rawIdentifier = (authForm.email || '').trim();
+      let targetEmail = rawIdentifier;
+      let matchedCustomer = null;
+
+      // Si el usuario ingresó cédula o RIF en lugar de correo (ej. 36430689 o V-36430689)
+      if (!rawIdentifier.includes('@')) {
+        const cleanDocInput = rawIdentifier.replace(/[^0-9]/g, '');
+        const { data: byDoc } = await supabase
+          .from('ecommerce_customers')
+          .select('*')
+          .or(`doc_id.eq.${cleanDocInput},doc_id.ilike.%${cleanDocInput}%`)
+          .maybeSingle();
+
+        if (byDoc) {
+          matchedCustomer = byDoc;
+          if (byDoc.email) {
+            targetEmail = byDoc.email;
+          }
+        } else {
+          alert('No encontramos ninguna cuenta registrada con esa cédula.');
+          return;
+        }
+      }
+
+      let authData = null;
+      try {
+        authData = await loginUser(targetEmail, authForm.password);
+      } catch (authErr) {
+        // Fallback: si el cliente tiene contraseña directa en ecommerce_customers
+        if (!matchedCustomer) {
+          const { data: byEmail } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .ilike('email', targetEmail)
+            .maybeSingle();
+          matchedCustomer = byEmail;
+        }
+
+        if (matchedCustomer && matchedCustomer.password === authForm.password) {
+          authData = { user: { id: matchedCustomer.id, email: matchedCustomer.email || targetEmail } };
+        } else {
+          throw authErr;
+        }
+      }
       
       let { data: customerData } = await supabase
         .from('ecommerce_customers')
@@ -439,14 +482,18 @@ export default function MarketplaceDirectory() {
         .maybeSingle();
 
       if (!customerData) {
-        const { data: byEmail } = await supabase
-          .from('ecommerce_customers')
-          .select('*')
-          .ilike('email', authForm.email.trim())
-          .maybeSingle();
-        if (byEmail) {
-          customerData = byEmail;
-          await supabase.from('ecommerce_customers').update({ id: authData.user.id }).eq('email', authForm.email.trim());
+        if (matchedCustomer) {
+          customerData = matchedCustomer;
+        } else {
+          const { data: byEmail } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .ilike('email', targetEmail)
+            .maybeSingle();
+          if (byEmail) {
+            customerData = byEmail;
+            await supabase.from('ecommerce_customers').update({ id: authData.user.id }).eq('email', targetEmail);
+          }
         }
       }
 
@@ -1925,48 +1972,84 @@ export default function MarketplaceDirectory() {
       {isAuthModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsAuthModalOpen(false)} />
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-white/10 animate-in zoom-in-95 duration-150">
-              <div className="p-8 pb-6 border-b border-zinc-200 flex items-center justify-between">
+          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-slate-200 animate-in zoom-in-95 duration-150">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 to-amber-600"></div>
+
+              <div className="p-8 pb-6 flex items-center justify-between border-b border-slate-100">
                 <div>
-                  <h2 className="text-2xl font-light text-zinc-900 flex items-center gap-3 tracking-tight">
-                    <div className="w-10 h-10 bg-amber-500/10 rounded-full flex items-center justify-center">
-                      <User size={20} className="text-amber-500" />
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-200/60 shadow-sm text-amber-500">
+                      <User size={24} />
                     </div>
-                    {authMode === 'login' ? 'Iniciar Sesión' : authMode === 'register' ? 'Crear Cuenta' : 'Recuperar Contraseña'}
-                  </h2>
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                      {authMode === 'login' ? 'Acceso Comprador' : authMode === 'register' ? 'Crear Cuenta' : 'Recuperar Acceso'}
+                    </h2>
+                  </div>
+                  <p className="text-slate-500 font-normal text-sm mt-1">
+                    {authMode === 'login' ? 'Inicia sesión con tu correo o cédula para comprar y gestionar tus pedidos.' : authMode === 'register' ? 'Únete a AxonMarket para comprar con Pago Móvil directo y delivery.' : 'Ingresa tu correo o cédula para restablecer tu contraseña.'}
+                  </p>
                 </div>
-                <button onClick={() => setIsAuthModalOpen(false)} className="text-zinc-500 hover:text-amber-500 bg-white/5 hover:bg-zinc-100 rounded-full p-2 transition-colors">
+                <button onClick={() => setIsAuthModalOpen(false)} className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full p-2 transition-colors self-start">
                   <X size={20} />
                 </button>
               </div>
 
+              {authMode !== 'recover' && authMode !== 'reset' && (
+                <div className="px-8 pt-4 pb-2">
+                  <div className="flex bg-slate-100 rounded-full p-1 border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('login')}
+                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
+                        authMode === 'login'
+                          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Iniciar Sesión
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('register')}
+                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
+                        authMode === 'register'
+                          ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      Crear Cuenta
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {authMode === 'recover' || authMode === 'reset' ? (
-                <form onSubmit={(e) => authMode === 'recover' ? handleRecoverPassword(e, 'customer') : handleResetPassword(e, 'customer')} className="p-8 space-y-5">
+                <form onSubmit={(e) => authMode === 'recover' ? handleRecoverPassword(e, 'customer') : handleResetPassword(e, 'customer')} className="p-8 pt-4 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} disabled={authMode === 'reset'} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="tu@correo.com" />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} disabled={authMode === 'reset'} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="tu@correo.com" />
                   </div>
                   {authMode === 'reset' && (
                     <>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Código de Recuperación <span className="lowercase text-zinc-600 font-normal">(Opcional si usaste un enlace mágico)</span></label>
-                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-medium placeholder-zinc-400 font-mono tracking-wider" placeholder="Ej. 10669615" />
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Código de Recuperación <span className="lowercase text-slate-400 font-normal">(Opcional si usaste un enlace mágico)</span></label>
+                        <input type="text" value={recoveryCode} onChange={e => setRecoveryCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm font-mono tracking-wider" placeholder="Ej. 10669615" />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
                         <div className="relative">
                           <input 
                             type={showNewPassword ? "text" : "password"} 
                             required 
                             value={newPassword} 
                             onChange={e => setNewPassword(e.target.value)} 
-                            className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
                             placeholder="••••••••" 
                           />
                           <button 
                             type="button" 
                             onClick={() => setShowNewPassword(!showNewPassword)} 
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-500 transition-colors p-1"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors p-1"
                             title={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
                           >
                             {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -1975,26 +2058,42 @@ export default function MarketplaceDirectory() {
                       </div>
                     </>
                   )}
-                  <button type="submit" className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-8 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-                    {authMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'}
+                  <button type="submit" className="w-full bg-amber-500 text-slate-950 rounded-full py-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 flex items-center justify-center gap-2">
+                    {authMode === 'recover' ? 'Enviar Código' : 'Restablecer Contraseña'} <ArrowRight size={16} />
                   </button>
-                  <p className="text-center text-sm font-light text-zinc-600 mt-6">
-                    <button type="button" onClick={() => setAuthMode('login')} className="text-zinc-900 font-bold hover:text-amber-500 transition-colors focus:outline-none">
+                  <p className="text-center text-sm font-light text-slate-500 mt-4">
+                    <button type="button" onClick={() => setAuthMode('login')} className="text-slate-900 font-bold hover:text-amber-500 transition-colors focus:outline-none">
                       Volver al inicio de sesión
                     </button>
                   </p>
                 </form>
               ) : (
-                <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className="p-8 space-y-5">
+                <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className="p-8 pt-4 space-y-5">
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                    <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="tu@correo.com" />
+                    <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
+                      {authMode === 'login' ? 'Correo Electrónico o Cédula / RIF' : 'Correo Electrónico'}
+                    </label>
+                    <input 
+                      type={authMode === 'login' ? 'text' : 'email'} 
+                      required 
+                      value={authForm.email} 
+                      onChange={e => setAuthForm({...authForm, email: e.target.value})} 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+                      placeholder={authMode === 'login' ? 'tu@correo.com o V-12345678' : 'tu@correo.com'} 
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Contraseña</label>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña</label>
                     <div className="relative">
-                      <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-white border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400" placeholder="••••••••" />
-                      <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-amber-500 transition-colors">
+                      <input 
+                        type={showAuthPassword ? "text" : "password"} 
+                        required 
+                        value={authForm.password} 
+                        onChange={e => setAuthForm({...authForm, password: e.target.value})} 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+                        placeholder="••••••••" 
+                      />
+                      <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                         {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
@@ -2004,10 +2103,17 @@ export default function MarketplaceDirectory() {
                     <>
                       <PasswordRequirements password={authForm.password} />
                       <div className="mt-4">
-                        <label className="block text-[10px] font-bold text-zinc-600 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
                         <div className="relative">
-                          <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-white border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500/50' : 'border-zinc-200'} rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none focus:border-amber-500/50 transition-colors font-light placeholder-zinc-400`} placeholder="••••••••" />
-                          <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-amber-500 transition-colors">
+                          <input 
+                            type={showAuthConfirmPassword ? "text" : "password"} 
+                            required 
+                            value={authConfirmPassword} 
+                            onChange={e => setAuthConfirmPassword(e.target.value)} 
+                            className={`w-full bg-slate-50 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-500' : 'border-slate-200'} rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm`} 
+                            placeholder="••••••••" 
+                          />
+                          <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                             {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
@@ -2020,14 +2126,14 @@ export default function MarketplaceDirectory() {
 
                   {authMode === 'login' && (
                     <div className="flex justify-end">
-                      <button type="button" onClick={() => setAuthMode('recover')} className="text-xs text-amber-500 hover:text-amber-400 transition-colors">
+                      <button type="button" onClick={() => setAuthMode('recover')} className="text-[10px] text-amber-600 hover:text-amber-700 font-bold uppercase tracking-wider transition-colors">
                         ¿Olvidaste tu contraseña?
                       </button>
                     </div>
                   )}
 
                   {authMode === 'register' && (
-                    <div className="flex items-start gap-3 bg-white/3 border border-zinc-200 rounded-2xl p-4">
+                    <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
                       <input
                         type="checkbox"
                         id="buyer-terms-checkbox"
@@ -2035,41 +2141,41 @@ export default function MarketplaceDirectory() {
                         onChange={e => setTermsAccepted(e.target.checked)}
                         className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
                       />
-                      <label htmlFor="buyer-terms-checkbox" className="text-xs text-zinc-500 leading-relaxed cursor-pointer">
+                      <label htmlFor="buyer-terms-checkbox" className="text-xs text-slate-500 leading-relaxed cursor-pointer">
                         He leído y acepto los{' '}
-                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-500 hover:underline font-bold">Términos de Uso</button>
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-600 hover:underline font-bold">Términos de Uso</button>
                         {' '}y la{' '}
-                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/privacidad'); }} className="text-amber-500 hover:underline font-bold">Política de Privacidad</button>
+                        <button type="button" onClick={() => { setIsAuthModalOpen(false); navigate('/legal/privacidad'); }} className="text-amber-600 hover:underline font-bold">Política de Privacidad</button>
                         {' '}de AxonMarket.
                       </label>
                     </div>
                   )}
 
-                  <button type="submit" disabled={authMode === 'register' && !termsAccepted} className="w-full bg-amber-500 text-black rounded-full py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-amber-400 transition-colors mt-4 shadow-[0_0_30px_rgba(245,158,11,0.2)] disabled:opacity-40 disabled:cursor-not-allowed">
-                    {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'}
+                  <button 
+                    type="submit" 
+                    disabled={authMode === 'register' && !termsAccepted} 
+                    className="w-full bg-amber-500 text-slate-950 rounded-full py-4 mt-2 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {authMode === 'login' ? 'Acceder al Ecosistema' : 'Registrarme'} <ArrowRight size={16} />
                   </button>
-
-                  <p className="text-center text-sm font-light text-zinc-600 mt-6">
-                    {authMode === 'login' ? '¿Aún no tienes cuenta?' : '¿Ya eres miembro?'}
-                    <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-zinc-900 font-bold ml-2 hover:text-amber-500 transition-colors focus:outline-none">
-                      {authMode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-                    </button>
-                  </p>
                 </form>
               )}
 
-              <div className="px-8 pb-8">
-                <div className="flex items-center justify-between text-zinc-600 text-xs font-bold uppercase tracking-widest mb-6">
-                  <span className="w-1/4 border-b border-zinc-200"></span>
-                  <span>o continuar con</span>
-                  <span className="w-1/4 border-b border-zinc-200"></span>
+              <div className="px-8 pb-8 pt-0">
+                <div className="relative py-2 mb-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                    <span className="bg-white px-3 text-slate-400 font-bold">o continúa con</span>
+                  </div>
                 </div>
                 
                 <div className="flex justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={() => alert('Fallo al conectar con Google')}
-                    theme="filled_black"
+                    theme="outline"
                     shape="pill"
                     text="continue_with"
                   />

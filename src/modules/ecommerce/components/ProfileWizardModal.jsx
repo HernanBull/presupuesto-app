@@ -234,23 +234,17 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
         return;
       }
 
-      if (formData.name && formData.name !== activeCustomer?.name) {
-         const { data } = await supabase.from('ecommerce_customers').select('id').ilike('name', formData.name.trim()).neq('id', targetId).maybeSingle();
-         if (data) {
-             alert('Ese nombre ya está registrado por otra persona. Usa uno distinto.');
-             setIsSubmitting(false);
-             return;
-         }
-      }
-      
       const currentDoc = activeCustomer?.doc_id || activeCustomer?.docId;
+      let existingCustomer = null;
       if (formData.docId && formData.docId !== currentDoc) {
-         const { data } = await supabase.from('ecommerce_customers').select('id').eq('doc_id', formData.docId.trim()).neq('id', targetId).maybeSingle();
-         if (data) {
-             alert('Esa cédula/documento ya está registrada en otra cuenta.');
-             setIsSubmitting(false);
-             return;
-         }
+         const cleanInputDoc = formData.docId.trim();
+         const { data } = await supabase
+           .from('ecommerce_customers')
+           .select('*')
+           .or(`doc_id.eq.${cleanInputDoc},doc_id.ilike.%${cleanInputDoc}%`)
+           .neq('id', targetId)
+           .maybeSingle();
+         existingCustomer = data;
       }
 
       try {
@@ -320,30 +314,59 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           profile_pic: pictureUrl
         };
 
-        let { error } = await supabase
-          .from('ecommerce_customers')
-          .update(updatePayload)
-          .eq('id', targetId);
-          
-        if (error) {
-          // Fallback if columns don't exist yet
-          const fallbackPayload = {
-            name: formData.name,
-            phone: formData.phone,
-            doc_id: formData.docId,
-            address: finalAddressText
+        if (existingCustomer) {
+          // Fusionar con el registro existente vinculado a esta cédula
+          const finalId = existingCustomer.id;
+          const mergedPayload = {
+            ...updatePayload,
+            email: activeCustomer?.email || existingCustomer.email,
+            is_verified: true,
+            auth_provider: activeCustomer?.auth_provider || existingCustomer.auth_provider || 'google'
           };
-          const retry = await supabase.from('ecommerce_customers').update(fallbackPayload).eq('id', targetId);
-          if (retry.error) throw retry.error;
+          
+          await supabase.from('ecommerce_customers').update(mergedPayload).eq('id', finalId);
+
+          // Eliminar el registro temporal autogenerado por OAuth si es distinto
+          if (targetId && targetId !== finalId) {
+            await supabase.from('ecommerce_customers').delete().eq('id', targetId);
+          }
+
+          const updatedCustomer = { 
+            ...existingCustomer, 
+            ...mergedPayload, 
+            id: finalId,
+            docId: formData.docId,
+            payment_profile: [paymentProfile] 
+          };
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
+          onComplete(updatedCustomer);
+        } else {
+          let { error } = await supabase
+            .from('ecommerce_customers')
+            .update(updatePayload)
+            .eq('id', targetId);
+            
+          if (error) {
+            // Fallback if columns don't exist yet
+            const fallbackPayload = {
+              name: formData.name,
+              phone: formData.phone,
+              doc_id: formData.docId,
+              address: finalAddressText
+            };
+            const retry = await supabase.from('ecommerce_customers').update(fallbackPayload).eq('id', targetId);
+            if (retry.error) throw retry.error;
+          }
+          
+          const updatedCustomer = { 
+            ...activeCustomer, 
+            ...updatePayload, 
+            docId: formData.docId,
+            payment_profile: [paymentProfile] 
+          };
+          localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
+          onComplete(updatedCustomer);
         }
-        
-        const updatedCustomer = { 
-          ...activeCustomer, 
-          ...updatePayload, 
-          docId: formData.docId,
-          payment_profile: [paymentProfile] 
-        };
-        onComplete(updatedCustomer);
       } catch (err) {
         console.error(err);
         alert('Error guardando los datos. Por favor reintente. (Verifica si agregaste las columnas en Supabase)');

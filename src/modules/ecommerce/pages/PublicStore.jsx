@@ -713,23 +713,50 @@ export default function PublicStore() {
     e.preventDefault();
     setAuthLoading(true);
     try {
+      const rawIdentifier = (authForm.email || '').trim();
+      let targetEmail = rawIdentifier;
       let user = null;
-      // 1. Probar primero con Supabase Auth (para cuentas registradas vía Marketplace o Auth unificado)
-      try {
-        const { data: authData } = await supabase.auth.signInWithPassword({
-          email: authForm.email,
-          password: authForm.password
-        });
-        if (authData?.user) {
-          const { data: cData } = await supabase
-            .from('ecommerce_customers')
-            .select('*')
-            .or(`id.eq.${authData.user.id},email.ilike.${authForm.email.trim()}`)
-            .maybeSingle();
-          if (cData) user = cData;
+
+      // Si el cliente ingresó cédula o RIF en lugar de correo
+      if (!rawIdentifier.includes('@')) {
+        const cleanDoc = rawIdentifier.replace(/[^0-9]/g, '');
+        const { data: byDoc } = await supabase
+          .from('ecommerce_customers')
+          .select('*')
+          .or(`doc_id.eq.${cleanDoc},doc_id.ilike.%${cleanDoc}%`)
+          .maybeSingle();
+
+        if (byDoc) {
+          if (byDoc.email) {
+            targetEmail = byDoc.email;
+          } else if (byDoc.password === authForm.password) {
+            user = byDoc;
+          }
+        } else {
+          alert('No encontramos ninguna cuenta registrada con esa cédula.');
+          setAuthLoading(false);
+          return false;
         }
-      } catch (authErr) {
-        // Continuar con verificación directa si falla
+      }
+
+      // 1. Probar primero con Supabase Auth si aún no se resolvió
+      if (!user) {
+        try {
+          const { data: authData } = await supabase.auth.signInWithPassword({
+            email: targetEmail,
+            password: authForm.password
+          });
+          if (authData?.user) {
+            const { data: cData } = await supabase
+              .from('ecommerce_customers')
+              .select('*')
+              .or(`id.eq.${authData.user.id},email.ilike.${targetEmail}`)
+              .maybeSingle();
+            if (cData) user = cData;
+          }
+        } catch (authErr) {
+          // Continuar con verificación directa si falla
+        }
       }
 
       // 2. Verificación directa en base de datos
@@ -737,7 +764,7 @@ export default function PublicStore() {
         const { data: legacyUser } = await supabase
           .from('ecommerce_customers')
           .select('*')
-          .ilike('email', authForm.email.trim())
+          .ilike('email', targetEmail)
           .eq('password', authForm.password)
           .maybeSingle();
           
@@ -1544,14 +1571,30 @@ export default function PublicStore() {
             </div>
           )}
           <div>
-            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-            <input type="email" required value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="tu@correo.com" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
+            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
+              {authGateMode === 'login' ? 'Correo Electrónico o Cédula / RIF' : 'Correo Electrónico'}
+            </label>
+            <input 
+              type={authGateMode === 'login' ? 'text' : 'email'} 
+              required 
+              value={authForm.email} 
+              onChange={e => setAuthForm({...authForm, email: e.target.value})} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+              placeholder={authGateMode === 'login' ? 'tu@correo.com o V-12345678' : 'tu@correo.com'} 
+            />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Contraseña</label>
+            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña</label>
             <div className="relative">
-              <input type={showAuthPassword ? "text" : "password"} required value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
-              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
+              <input 
+                type={showAuthPassword ? "text" : "password"} 
+                required 
+                value={authForm.password} 
+                onChange={e => setAuthForm({...authForm, password: e.target.value})} 
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+                placeholder="••••••••" 
+              />
+              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                 {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
