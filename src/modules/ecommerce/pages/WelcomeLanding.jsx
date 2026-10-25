@@ -7,6 +7,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
+import { 
+  DeliveryRiderIllustration, 
+  MerchantStoreIllustration, 
+  MobileAppIllustration 
+} from '../components/LandingIllustrations';
 
 export default function WelcomeLanding() {
   const navigate = useNavigate();
@@ -206,23 +211,23 @@ export default function WelcomeLanding() {
             {/* CARD 1: Conviértete en Repartidor (Become a Dasher) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Bike size={32} className="stroke-[2.2]" />
+                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <DeliveryRiderIllustration className="w-36 h-32" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
                   Conviértete en Repartidor
                 </h3>
                 <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-6">
-                  Como repartidor independiente de AxonMarket, genera ingresos en tu propio horario. Regístrate en minutos con tu moto, bicicleta o vehículo.
+                  Como repartidor independiente de AxonMarket, gana dinero y trabaja según tu propio horario. Regístrate en minutos con tu moto o vehículo.
                 </p>
               </div>
 
               <div>
                 <button 
                   onClick={() => navigate('/delivery')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-amber-600 hover:text-amber-700 group-hover:translate-x-1 transition-all"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
                 >
-                  <span>Empezar a ganar</span>
+                  <span>Empieza a ganar</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -231,23 +236,23 @@ export default function WelcomeLanding() {
             {/* CARD 2: Abre tu Tienda en AxonMarket (Become a Merchant) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Store size={32} className="stroke-[2.2]" />
+                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <MerchantStoreIllustration className="w-36 h-32" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
-                  Abre tu Tienda en AxonMarket
+                  Conviértete en comerciante
                 </h3>
                 <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-6">
-                  Atrae nuevos clientes y multiplica tus ventas. Publica tu catálogo digital en línea y haz crecer tu negocio en tu comunidad.
+                  Atrae nuevos clientes y multiplica tus ventas en línea. Publica tu catálogo digital y haz crecer tu negocio en tu comunidad.
                 </p>
               </div>
 
               <div>
                 <button 
                   onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
-                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1 transition-all"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
                 >
-                  <span>Registrar mi comercio</span>
+                  <span>Regístrate en AxonMarket</span>
                   <ArrowRight size={16} />
                 </button>
               </div>
@@ -256,21 +261,21 @@ export default function WelcomeLanding() {
             {/* CARD 3: Vive la mejor experiencia AxonMarket (Get the best app experience) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
-                <div className="w-16 h-16 rounded-2xl bg-zinc-900 text-amber-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-sm">
-                  <Smartphone size={32} className="stroke-[2.2]" />
+                <div className="mb-4 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
+                  <MobileAppIllustration className="w-36 h-32" />
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
-                  La mejor experiencia en tu móvil
+                  Obtén la mejor experiencia de AxonMarket
                 </h3>
                 <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-6">
-                  Descubre lo mejor que tu comunidad tiene para ofrecer: historias en vivo, ofertas del día, mapa de tiendas y pedidos directos en una sola app.
+                  Descubre lo mejor que tu ciudad tiene para ofrecer: historias de comercios, ofertas exclusivas y pedidos directos en tu móvil.
                 </p>
               </div>
 
               <div>
                 <button 
                   onClick={() => navigate('/explorar')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-zinc-950 hover:text-amber-600 group-hover:translate-x-1 transition-all"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
                 >
                   <span>Abrir la App</span>
                   <ArrowRight size={16} />
