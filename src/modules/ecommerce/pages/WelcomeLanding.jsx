@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ShoppingBag, Search, MapPin, Bike, Store, Smartphone, ArrowRight, 
   ShieldCheck, Clock, Truck, ChevronRight, Star, X, ExternalLink, 
-  Compass, LogIn, User, Sparkles, CheckCircle2, Heart, Flame, Gift
+  Compass, LogIn, User, Sparkles, CheckCircle2, Heart, Flame, Gift, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
@@ -19,6 +19,32 @@ export default function WelcomeLanding() {
   const [isLocating, setIsLocating] = useState(false);
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [currentCustomer, setCurrentCustomer] = useState(null);
+
+  // Tasa Oficial BCV en vivo (con caché local inmediata para evitar parpadeo)
+  const [bcvRate, setBcvRate] = useState(() => {
+    return localStorage.getItem('axon_bcv_rate') || '887.30';
+  });
+
+  useEffect(() => {
+    const fetchBcvRate = async () => {
+      try {
+        const res = await fetch('https://axonmarket-api.onrender.com/api/bcv');
+        const data = await res.json();
+        if (res.ok && data?.rate) {
+          const formatted = Number(data.rate).toFixed(2);
+          setBcvRate(formatted);
+          localStorage.setItem('axon_bcv_rate', formatted);
+        } else if (data?.fallbackRate) {
+          const formatted = Number(data.fallbackRate).toFixed(2);
+          setBcvRate(formatted);
+          localStorage.setItem('axon_bcv_rate', formatted);
+        }
+      } catch (err) {
+        console.error('Error fetching BCV rate in WelcomeLanding:', err);
+      }
+    };
+    fetchBcvRate();
+  }, []);
 
   // Comprobar si el cliente ya está autenticado
   useEffect(() => {
@@ -95,8 +121,22 @@ export default function WelcomeLanding() {
           background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
       >
-        {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
-        <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
+        {/* Barra Superior Minimalista (Izquierda: Tasa BCV cómoda / Derecha: Iniciar Sesión) */}
+        <div className="max-w-6xl mx-auto w-full flex items-center justify-between relative z-20">
+          {/* Tasa Oficial BCV - Barra Superior */}
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs text-white shadow-lg">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-zinc-300 font-medium hidden sm:inline">Tasa Oficial BCV:</span>
+            <span className="text-zinc-300 font-medium sm:hidden">BCV:</span>
+            <span className="font-black text-amber-300 tracking-wide">
+              Bs. {Number(bcvRate || 887.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-zinc-400 font-normal">/ $</span>
+          </div>
+
           <div>
             {currentCustomer ? (
               <button 
@@ -117,7 +157,7 @@ export default function WelcomeLanding() {
           </div>
         </div>
 
-        {/* Contenido Central (Limpio y Organizado: Logo, Titular Comercial, 1 Botón, 1 Buscador, 1 Enlace) */}
+        {/* Contenido Central (Limpio y Organizado: Logo, Titular Comercial, 1 Botón, 1 Buscador, 1 Enlace, Tasa BCV) */}
         <div className="max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-6 relative z-20">
           
           {/* Logo Central de Marca Elegante y Translúcido (Combina con el Fondo) */}
@@ -188,6 +228,19 @@ export default function WelcomeLanding() {
             <span className="text-sm">↗</span>
           </button>
 
+          {/* Tasa Oficial BCV en el Hero (Ubicación cómoda, ergonómica y confiable) */}
+          <div className="mt-5 inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-zinc-300 font-medium">Tasa Oficial BCV:</span>
+            <span className="font-black text-amber-300 tracking-wide text-xs sm:text-sm">
+              Bs. {Number(bcvRate || 887.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className="text-[10px] text-zinc-400 font-normal">/ USD</span>
+          </div>
+
         </div>
 
         {/* Espaciador invisible para balance vertical */}
@@ -227,11 +280,22 @@ export default function WelcomeLanding() {
               <div>
                 <button 
                   onClick={() => navigate('/delivery')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all mb-4"
                 >
                   <span>Empieza a ganar</span>
                   <ArrowRight size={16} />
                 </button>
+                <div className="pt-3 border-t border-zinc-100 flex items-center gap-2">
+                  <div className="inline-flex items-center gap-1.5 bg-zinc-950 px-2.5 py-1 rounded-full shadow-xs">
+                    <div className="flex items-center font-black tracking-tighter text-[10px]">
+                      <span className="text-red-500 font-black">E</span>
+                      <span className="text-red-500 font-black">M</span>
+                      <Zap size={10} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                    </div>
+                    <span className="text-[10px] font-black text-white tracking-wide">en minutos</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-500 font-medium">Red oficial con MD Minutos</span>
+                </div>
               </div>
             </div>
 
@@ -287,6 +351,141 @@ export default function WelcomeLanding() {
 
           </div>
 
+        </div>
+      </section>
+
+      {/* SECCIÓN COMERCIAL: ALIANZA LOGÍSTICA OFICIAL CON MD MINUTOS ("EN MINUTOS") */}
+      <section className="py-16 sm:py-24 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white relative overflow-hidden border-b border-zinc-800">
+        {/* Efectos de Iluminación y Patrón Tecnológico */}
+        <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+            
+            {/* Columna Izquierda: Mensaje Comercial de la Alianza */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-black tracking-wider uppercase">
+                <Zap size={14} className="fill-orange-400 text-orange-400" />
+                <span>Alianza Logística Estratégica</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1]">
+                Entregas ultrarrápidas garantizadas con <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400">MD Minutos</span>
+              </h2>
+
+              <p className="text-sm sm:text-base text-zinc-300 leading-relaxed font-normal max-w-xl">
+                En AxonMarket sellamos una alianza estratégica con <strong className="text-white font-bold">MD Minutos</strong>, la red de despacho urbano más veloz y confiable. Despreocúpate por la logística: los pedidos de tus restaurantes, bodegones y tiendas favoritas llegan directo a tu puerta en minutos, con trazabilidad GPS en vivo y transportistas verificados.
+              </p>
+
+              {/* 3 Métricas Comerciales */}
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-1">
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
+                  <div className="text-xl sm:text-2xl font-black text-amber-400">En Minutos</div>
+                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Tiempos récord de despacho</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
+                  <div className="text-xl sm:text-2xl font-black text-white">100% GPS</div>
+                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Rastreo activo en vivo</div>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
+                  <div className="text-xl sm:text-2xl font-black text-emerald-400">Garantía</div>
+                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Entrega segura y protegida</div>
+                </div>
+              </div>
+
+              {/* Botones de Acción Comercial */}
+              <div className="pt-2 flex flex-wrap items-center gap-3.5">
+                <button
+                  onClick={() => navigate('/explorar')}
+                  className="px-7 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-xl active:scale-95 transition-all inline-flex items-center gap-2"
+                  style={{ color: '#ffffff' }}
+                >
+                  <span>Pedir con Delivery</span>
+                  <ArrowRight size={16} />
+                </button>
+                <button
+                  onClick={() => navigate('/comerciantes')}
+                  className="px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
+                  style={{ color: '#ffffff' }}
+                >
+                  <span>Activar en mi Comercio</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Columna Derecha: Tarjeta Comercial Visual con el Logotipo Oficial grabado */}
+            <div className="lg:col-span-5 flex justify-center">
+              <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 rounded-3xl border border-orange-500/30 shadow-2xl relative">
+                
+                {/* Cabecera de la Tarjeta con Logo Insignia Oficial grabado */}
+                <div className="flex items-center justify-between pb-6 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    {/* Logo Insignia Oficial: EM con rayo en minutos grabado en AxonMarket */}
+                    <div className="inline-flex items-center gap-2.5 bg-black px-4 py-2.5 rounded-2xl border border-white/20 shadow-xl">
+                      <div className="flex items-center font-black tracking-tighter text-sm">
+                        <span className="text-red-500 text-base font-black">E</span>
+                        <span className="text-red-500 text-base font-black">M</span>
+                        <Zap size={16} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                      </div>
+                      <div className="flex flex-col text-left leading-tight">
+                        <span className="text-xs font-black text-white tracking-wider uppercase">en minutos</span>
+                        <span className="text-[9px] font-bold text-amber-400 tracking-widest">MD LOGISTICS</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                    Aliado Oficial
+                  </span>
+                </div>
+
+                {/* 3 Puntos Clave de la Alianza */}
+                <div className="py-6 space-y-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
+                      <Truck size={18} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-sm font-bold text-white">Flota Urbana de Motorizados</h4>
+                      <p className="text-xs text-zinc-400 leading-relaxed">Riders equipados y listos para recoger de inmediato en el comercio y llevar a tu casa.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                      <Clock size={18} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-sm font-bold text-white">Despachos Express sin Demora</h4>
+                      <p className="text-xs text-zinc-400 leading-relaxed">Algoritmo inteligente de asignación para minimizar los tiempos muertos y esperas.</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-sm font-bold text-white">Sello de Calidad y Confianza</h4>
+                      <p className="text-xs text-zinc-400 leading-relaxed">Las tiendas verificadas con la insignia "En Minutos" garantizan máxima puntualidad.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer de Tarjeta con Sello Conectado */}
+                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Red Activa en tu Ciudad
+                  </span>
+                  <span className="text-[11px] text-amber-400 font-black">AxonMarket 🤝 MD Minutos</span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 
