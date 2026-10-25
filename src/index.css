@@ -103,6 +103,25 @@
   .text-pure-white {
     color: #FFFFFF !important;
   }
+
+  /* Clases específicas para el Hero estilo DoorDash de AxonMarket */
+  .axon-hero-pure-white,
+  .axon-hero-pure-white h1,
+  .axon-hero-pure-white p,
+  .axon-hero-pure-white span:not(.text-dark),
+  .axon-hero-pure-white svg:not(.svg-dark) {
+    color: #FFFFFF !important;
+  }
+  .axon-hero-pure-white input {
+    color: #FFFFFF !important;
+  }
+  .axon-hero-pure-white input::placeholder {
+    color: rgba(255, 255, 255, 0.85) !important;
+  }
+  .axon-hero-pure-white .btn-login,
+  .axon-hero-pure-white .btn-login * {
+    color: #1A1A1A !important;
+  }
   
   /* Textos grises intermedios los oscurecemos un poco */
   .text-zinc-300, .text-zinc-400 {

@@ -85,18 +85,18 @@ export default function WelcomeLanding() {
       
       {/* 1. HERO SECTION (1:1 con la estética limpia y organizada de DoorDash) */}
       <section 
-        className="relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] px-4 sm:px-6 pt-5 pb-12"
+        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] px-4 sm:px-6 pt-5 pb-12"
         style={{
           backgroundColor: '#eb1700',
           backgroundImage: 'linear-gradient(180deg, #eb1700 0%, #e01500 100%)',
         }}
       >
         {/* Decoración gastronómica en los bordes inferiores (exactamente como DoorDash: visibles en esquinas) */}
-        <div className="absolute -bottom-6 -left-12 sm:-bottom-10 sm:-left-10 w-36 sm:w-64 h-36 sm:h-64 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 block">
-          <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: 'bottom left' }} />
+        <div className="absolute -bottom-6 -left-12 sm:-bottom-10 sm:-left-10 w-36 sm:w-64 h-36 sm:h-64 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/20 block">
+          <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: '20% 25%' }} />
         </div>
-        <div className="absolute -bottom-6 -right-12 sm:-bottom-10 sm:-right-10 w-40 sm:w-72 h-40 sm:h-72 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/10 block">
-          <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: 'bottom right' }} />
+        <div className="absolute -bottom-6 -right-12 sm:-bottom-10 sm:-right-10 w-40 sm:w-72 h-40 sm:h-72 rounded-full overflow-hidden shadow-2xl pointer-events-none opacity-90 border-4 border-white/20 block">
+          <img src="/landing-hero.jpg" alt="" className="w-full h-full object-cover scale-150" style={{ objectPosition: '85% 25%' }} />
         </div>
 
         {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
@@ -105,17 +105,17 @@ export default function WelcomeLanding() {
             {currentCustomer ? (
               <button 
                 onClick={() => navigate('/explorar')}
-                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                className="btn-login bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
               >
-                <span>{currentCustomer.name}</span>
+                <span className="text-dark">{currentCustomer.name}</span>
                 <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded-full font-black">Feed</span>
               </button>
             ) : (
               <button 
                 onClick={() => navigate('/explorar', { state: { openAuthModal: true } })}
-                className="bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 sm:px-6 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+                className="btn-login bg-white hover:bg-zinc-100 text-zinc-950 px-5 py-2 sm:px-6 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
               >
-                Iniciar sesión
+                <span className="text-dark">Iniciar sesión</span>
               </button>
             )}
           </div>
