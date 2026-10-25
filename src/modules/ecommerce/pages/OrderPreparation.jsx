@@ -300,15 +300,14 @@ export default function OrderPreparation() {
       <div
         style={{
           minHeight: '100dvh',
-          height: '100%',
+          width: '100%',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehaviorY: 'contain',
+          touchAction: 'pan-y',
           backgroundColor: '#F8FAFC',
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          userSelect: 'none',
           boxSizing: 'border-box'
         }}
       >
@@ -392,10 +391,10 @@ export default function OrderPreparation() {
           </div>
         </header>
 
-        {/* Contenido Principal con Scroll Fluido y Padding Inferior Holgado (140px) */}
-        <main style={{ flex: 1, padding: '16px 16px 140px 16px', display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        {/* Contenido Principal con Scroll Fluido y Padding Inferior Holgado (160px) */}
+        <main style={{ flex: 1, padding: '16px 16px 160px 16px', display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           
-          {/* Tarjeta de Cliente y Entrega */}
+          {/* Tarjeta Operativa de Empaque (Privacidad del Cliente Protegida) */}
           <div
             style={{
               backgroundColor: '#FFFFFF',
@@ -405,66 +404,38 @@ export default function OrderPreparation() {
               boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                  {selectedOrder.customer || 'Cliente'}
+                <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B', display: 'block' }}>
+                  Comanda de Preparación
+                </span>
+                <h3 style={{ fontSize: '16px', fontWeight: 900, color: '#0F172A', margin: '2px 0 0 0' }}>
+                  Orden #{selectedOrder.id}
                 </h3>
-                {selectedOrder.paymentDetails?.phone && (
-                  <a
-                    href={`tel:${selectedOrder.paymentDetails.phone}`}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      fontSize: '12px',
-                      color: '#0284C7',
-                      textDecoration: 'none',
-                      marginTop: '3px',
-                      fontWeight: 700
-                    }}
-                  >
-                    <Phone size={12} />
-                    <span>{selectedOrder.paymentDetails.phone}</span>
-                  </a>
-                )}
               </div>
 
               <span
                 style={{
-                  padding: '4px 10px',
+                  padding: '6px 14px',
                   borderRadius: '9999px',
-                  fontSize: '11px',
+                  fontSize: '12px',
                   fontWeight: 800,
                   backgroundColor: deliveryType === 'DELIVERY' ? '#EFF6FF' : '#FEF3C7',
                   color: deliveryType === 'DELIVERY' ? '#1D4ED8' : '#B45309',
-                  border: `1px solid ${deliveryType === 'DELIVERY' ? '#BFDBFE' : '#FDE68A'}`
+                  border: `1.5px solid ${deliveryType === 'DELIVERY' ? '#BFDBFE' : '#FDE68A'}`,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {deliveryType === 'DELIVERY' ? '🛵 Delivery' : '🏪 Retiro'}
+                {deliveryType === 'DELIVERY' ? '🛵 Despacho Delivery' : '🏪 Retiro en Tienda'}
               </span>
             </div>
-
-            {selectedOrder.address && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '6px',
-                  fontSize: '12px',
-                  color: '#475569',
-                  marginTop: '8px'
-                }}
-              >
-                <MapPin size={14} color="#94A3B8" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <span>{selectedOrder.address}</span>
-              </div>
-            )}
 
             {selectedOrder.notes && (
               <div
                 style={{
-                  marginTop: '10px',
+                  marginTop: '12px',
                   padding: '10px 12px',
                   backgroundColor: '#FFFBEB',
                   border: '1px solid #FDE68A',
@@ -474,7 +445,7 @@ export default function OrderPreparation() {
                   lineHeight: 1.4
                 }}
               >
-                <strong>Nota del cliente:</strong> {selectedOrder.notes}
+                <strong>Instrucciones de empaque:</strong> {selectedOrder.notes}
               </div>
             )}
           </div>
@@ -502,6 +473,8 @@ export default function OrderPreparation() {
                     alignItems: 'center',
                     gap: '12px',
                     cursor: 'pointer',
+                    touchAction: 'pan-y',
+                    WebkitTapHighlightColor: 'transparent',
                     transition: 'all 0.15s ease',
                     boxShadow: isChecked
                       ? '0 4px 12px rgba(16, 185, 129, 0.1)'
