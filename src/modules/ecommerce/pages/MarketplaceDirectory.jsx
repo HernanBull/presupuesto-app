@@ -1432,7 +1432,7 @@ export default function MarketplaceDirectory() {
         <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
-            <Sparkles size={18} />
+            <ShoppingBag size={18} className="stroke-[2.5]" />
           </div>
           <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
             AXON<span className="text-amber-600">MARKET</span>
@@ -1555,9 +1555,9 @@ export default function MarketplaceDirectory() {
         {/* Barra de Stories: Ofertas, Promociones, Eventos, Tendencias y Más Likes */}
         <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
           <div className="flex items-center justify-between px-1 mb-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles size={14} className="text-amber-500" />
-              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-700">Explorar Destacados</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Explorar Destacados</span>
             </div>
             {discoveryFilter !== 'all' && (
               <button
@@ -1571,7 +1571,7 @@ export default function MarketplaceDirectory() {
           
           <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {[
-              { id: 'all', name: 'Todo', icon: Sparkles, color: 'from-amber-500 to-amber-300' },
+              { id: 'all', name: 'Todo', icon: ShoppingBag, color: 'from-amber-500 to-amber-300' },
               { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
               { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
               { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
