@@ -111,6 +111,9 @@
   }
 
   /* Clases de Marca AxonMarket */
+  .axon-logo-white {
+    color: #FFFFFF !important;
+  }
   .axon-logo-black {
     color: #000000 !important;
   }

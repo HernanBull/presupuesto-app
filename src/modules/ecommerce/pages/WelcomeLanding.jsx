@@ -115,16 +115,16 @@ export default function WelcomeLanding() {
         {/* Contenido Central (Limpio y Organizado: Logo, Titular Comercial, 1 Botón, 1 Buscador, 1 Enlace) */}
         <div className="max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-6 relative z-20">
           
-          {/* Logo Central de Marca (Caja dorada con transparente, AXON en negro, MARKET en dorado) */}
-          <div className="inline-flex items-center gap-2.5 mb-5 px-4 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl border border-amber-400/40 select-none">
+          {/* Logo Central de Marca Elegante y Translúcido (Combina con el Fondo) */}
+          <div className="inline-flex items-center gap-3 mb-5 px-5 py-2.5 rounded-full bg-black/30 backdrop-blur-md shadow-2xl border border-white/20 select-none">
             {/* Caja / Icono en dorado con transparencia */}
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 backdrop-blur-sm border border-amber-500/40 flex items-center justify-center text-amber-500 shadow-xs">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/25 backdrop-blur-sm border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-sm">
               <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
-            {/* Tipografía de Marca: AXON en negro y MARKET en dorado/naranja */}
-            <span className="text-xl sm:text-2xl font-black tracking-wider flex items-center">
-              <span className="axon-logo-black">AXON</span>
-              <span className="axon-logo-gold">MARKET</span>
+            {/* Tipografía de Marca: AXON en blanco y MARKET en dorado/naranja */}
+            <span className="text-xl sm:text-2xl font-black tracking-wider flex items-center drop-shadow-md">
+              <span className="axon-logo-white">AXON</span>
+              <span className="axon-logo-gold ml-0.5">MARKET</span>
             </span>
           </div>
 
