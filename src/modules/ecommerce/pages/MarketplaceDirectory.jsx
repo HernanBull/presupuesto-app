@@ -1381,11 +1381,47 @@ export default function MarketplaceDirectory() {
         <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[140px] rounded-full"></div>
       </div>
 
-      {/* Centered Mobile-First App Shell */}
-      <div className="w-full max-w-md md:max-w-[480px] min-h-screen bg-white md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
+      {/* Lateral Izquierdo: Branding Decorativo Profesional AxonMarket */}
+      <div className="hidden lg:flex fixed left-6 xl:left-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+            <ShoppingBag size={18} className="stroke-[2.5]" />
+          </div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+            AXON<span className="text-amber-600">MARKET</span>
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+            MARKETPLACE LOCAL
+          </span>
+        </div>
+        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+      </div>
+
+      {/* Lateral Derecho: Branding Decorativo Profesional AxonMarket */}
+      <div className="hidden lg:flex fixed right-6 xl:right-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+            <Sparkles size={18} />
+          </div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+            AXON<span className="text-amber-600">MARKET</span>
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+            VENEZUELA
+          </span>
+        </div>
+        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+      </div>
+
+      {/* Centered Mobile-First App Shell (Wider for Desktop) */}
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] min-h-screen bg-white md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
 
         {/* App Header */}
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 shadow-xs">
+        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
           <div className="w-full flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button 
@@ -1472,7 +1508,7 @@ export default function MarketplaceDirectory() {
         </header>
 
         {/* App Search Bar */}
-        <div className="px-4 py-3 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
+        <div className="px-4 md:px-6 py-3 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
           <div className="relative w-full group">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
               <Search size={18} className="text-zinc-400" />
@@ -1488,61 +1524,26 @@ export default function MarketplaceDirectory() {
           </div>
         </div>
 
-        {/* Departamentos / Stories Carousel */}
-        <div className="px-3 py-3 border-b border-zinc-100 bg-white">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles size={14} className="text-amber-500" />
-              <span className="text-xs font-bold text-zinc-700">Departamentos</span>
-              {activeCategory !== 'Todas' && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-black">
-                  {activeCategory}
-                </span>
-              )}
+        {/* Indicador de Categoría Activa (si el usuario filtró desde el menú de categorías) */}
+        {activeCategory !== 'Todas' && (
+          <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="text-xs font-bold text-zinc-800">
+                Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
+              </span>
             </div>
-            {activeCategory !== 'Todas' ? (
-              <button
-                onClick={() => setActiveCategory('Todas')}
-                className="text-[11px] font-bold text-amber-600 hover:underline"
-              >
-                Restablecer
-              </button>
-            ) : (
-              <button 
-                onClick={() => setIsCategoriesOpen(true)}
-                className="text-[11px] font-bold text-zinc-400 hover:text-amber-600"
-              >
-                Ver todas ({categories.length})
-              </button>
-            )}
+            <button
+              onClick={() => setActiveCategory('Todas')}
+              className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
+            >
+              Mostrar todas
+            </button>
           </div>
-          
-          <div ref={categoriesScrollRef} className="flex overflow-x-auto scrollbar-hide gap-3 py-1 px-1 scroll-smooth">
-            {categories.map((cat) => {
-              const isActive = activeCategory === cat.id;
-              const IconComponent = cat.icon;
-              return (
-                <div 
-                  key={cat.id} 
-                  onClick={() => setActiveCategory(cat.id)} 
-                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0"
-                >
-                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? 'bg-gradient-to-tr from-amber-500 to-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.4)] scale-105' : 'bg-zinc-200/70 hover:bg-amber-300'}`}>
-                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-white text-amber-600' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
-                      <IconComponent size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    </div>
-                  </div>
-                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600' : 'text-zinc-500'}`}>
-                    {cat.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* Feed Principal de Publicaciones (Estilo Instagram) */}
-        <div className="flex flex-col space-y-4 px-2 py-4 pb-28 flex-1">
+        <div className="flex flex-col space-y-5 px-3 md:px-6 py-4 pb-28 flex-1">
           {feedPosts.length === 0 ? (
             <div className="text-center py-16 px-4 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
               <ShoppingBag size={36} className="text-zinc-300 mx-auto mb-2" />
@@ -1594,7 +1595,7 @@ export default function MarketplaceDirectory() {
 
       {/* Bottom Navigation Bar - Floating Glassmorphic Design */}
       <div 
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-zinc-950/80 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/85 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)]"
       >
         <div className="flex justify-between items-center h-16 px-2">
            <button className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors">
