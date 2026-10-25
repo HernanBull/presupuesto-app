@@ -29,7 +29,9 @@ import {
   User,
   KeyRound,
   LogOut,
-  UserPlus
+  UserPlus,
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
@@ -88,6 +90,8 @@ export default function OrderPreparation() {
   const [newPickerName, setNewPickerName] = useState('');
   const [newPickerPin, setNewPickerPin] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState(null);
+  const [staffList, setStaffList] = useState([]);
+  const [isStaffLoading, setIsStaffLoading] = useState(false);
 
   // Habilitar scroll fluido en body y html en móvil
   useEffect(() => {
@@ -389,6 +393,51 @@ export default function OrderPreparation() {
     }
   };
 
+  const fetchStaffList = async () => {
+    setIsStaffLoading(true);
+    try {
+      const { data: suUsers } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      const saved = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+      const map = new Map();
+      (suUsers || []).forEach(u => map.set(u.id, {
+        id: u.id,
+        fullName: u.full_name,
+        pinCode: u.pin_code,
+        role: u.role || 'PICKER',
+        createdAt: u.created_at
+      }));
+      saved.forEach(u => {
+        if (!map.has(u.id)) {
+          map.set(u.id, u);
+        }
+      });
+      // Filtrar administradores para mostrar solo trabajadores autorizados
+      setStaffList(Array.from(map.values()).filter(u => u.id !== 'admin' && u.id !== 'usr-admin-master'));
+    } catch (e) {
+      console.warn('Error fetching staff list:', e);
+    } finally {
+      setIsStaffLoading(false);
+    }
+  };
+
+  const handleDeletePicker = async (workerId) => {
+    if (!window.confirm('¿Está seguro de revocar y eliminar este acceso de trabajador?')) return;
+    triggerHaptic(40);
+    try {
+      await supabase.from('users').delete().eq('id', workerId);
+    } catch (e) {
+      console.warn('Error revocando usuario en Supabase:', e);
+    }
+    const saved = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+    const filtered = saved.filter(p => p.id !== workerId);
+    localStorage.setItem('axon_pickers', JSON.stringify(filtered));
+    fetchStaffList();
+  };
+
   const handleVerifyMasterPin = async () => {
     setMasterAuthError(null);
     const clean = masterPinInput.trim();
@@ -398,6 +447,7 @@ export default function OrderPreparation() {
       playBeep(980, 0.12);
       setMasterPinStep('REGISTER');
       setMasterPinInput('');
+      fetchStaffList();
       return;
     }
 
@@ -414,6 +464,7 @@ export default function OrderPreparation() {
         playBeep(980, 0.12);
         setMasterPinStep('REGISTER');
         setMasterPinInput('');
+        fetchStaffList();
         return;
       }
     } catch (e) {}
@@ -465,19 +516,16 @@ export default function OrderPreparation() {
       console.warn('Error guardando en Supabase users:', sbErr);
     }
 
-    setRegisterSuccess(`¡${newWorker.fullName} registrado con éxito!`);
+    setRegisterSuccess(`¡${newWorker.fullName} registrado con éxito! PIN: ${cleanPin}`);
     triggerHaptic([50, 50, 150]);
     playBeep(1100, 0.15);
+    setNewPickerName('');
+    setNewPickerPin('');
+    fetchStaffList();
 
     setTimeout(() => {
-      setIsRegisterModalOpen(false);
-      setMasterPinStep('AUTH');
-      setNewPickerName('');
-      setNewPickerPin('');
       setRegisterSuccess(null);
-      localStorage.setItem('axon_active_picker', JSON.stringify(newWorker));
-      setActiveWorker(newWorker);
-    }, 1000);
+    }, 2500);
   };
 
   const handleWorkerLogout = () => {
@@ -485,6 +533,293 @@ export default function OrderPreparation() {
     localStorage.removeItem('axon_active_picker');
     setActiveWorker(null);
     setSelectedOrderId(null);
+  };
+
+  // MODAL EXCLUSIVO DE SUPERADMIN PARA GESTIÓN DE PERSONAL Y PINS
+  const renderSuperAdminModal = () => {
+    if (!isRegisterModalOpen) return null;
+
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          zIndex: 100000
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '440px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '12px', backgroundColor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C', border: '1px solid #FED7AA' }}>
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>
+                  {masterPinStep === 'AUTH' ? 'Autorización SuperAdmin' : 'Gestión de Personal & PINs'}
+                </h3>
+                <div style={{ fontSize: '11px', color: '#64748B' }}>
+                  {masterPinStep === 'AUTH' ? 'Control exclusivo del Propietario' : 'Crear o revocar cuentas de trabajadores'}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRegisterModalOpen(false)}
+              style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '20px', cursor: 'pointer', padding: '4px' }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {masterAuthError && (
+            <div style={{ fontSize: '12px', color: '#DC2626', backgroundColor: '#FEF2F2', padding: '8px 12px', borderRadius: '10px', border: '1px solid #FECACA', fontWeight: 700 }}>
+              ⚠️ {masterAuthError}
+            </div>
+          )}
+
+          {registerSuccess && (
+            <div style={{ fontSize: '12px', color: '#059669', backgroundColor: '#ECFDF5', padding: '10px 12px', borderRadius: '10px', border: '1px solid #A7F3D0', fontWeight: 800, textAlign: 'center' }}>
+              ✅ {registerSuccess}
+            </div>
+          )}
+
+          {masterPinStep === 'AUTH' ? (
+            <div>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>
+                PIN Maestro / SuperAdmin:
+              </label>
+              <input
+                type="password"
+                maxLength={6}
+                placeholder="••••"
+                value={masterPinInput}
+                onChange={(e) => setMasterPinInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyMasterPin(); }}
+                autoFocus
+                style={{
+                  width: '100%',
+                  height: '46px',
+                  borderRadius: '12px',
+                  border: '2px solid #E2E8F0',
+                  textAlign: 'center',
+                  fontSize: '24px',
+                  fontWeight: 900,
+                  letterSpacing: '0.2em',
+                  outline: 'none',
+                  color: '#0F172A',
+                  boxSizing: 'border-box'
+                }}
+              />
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', textAlign: 'center' }}>
+                PIN por defecto: <strong>9999</strong> o PIN de tienda
+              </div>
+
+              <button
+                type="button"
+                onClick={handleVerifyMasterPin}
+                style={{
+                  marginTop: '16px',
+                  width: '100%',
+                  height: '44px',
+                  borderRadius: '12px',
+                  backgroundColor: '#EA580C',
+                  color: '#FFFFFF',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Ingresar al Panel SuperAdmin
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Formulario de Alta de Trabajador */}
+              <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                <div style={{ fontSize: '12px', fontWeight: 900, color: '#0F172A', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <UserPlus size={15} color="#EA580C" />
+                  <span>Registrar Nuevo Trabajador / Empacador</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      Nombre del Trabajador:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Carlos Gómez"
+                      value={newPickerName}
+                      onChange={(e) => setNewPickerName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: '40px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #CBD5E1',
+                        padding: '0 12px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      PIN Asignado (4 dígitos):
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={newPickerPin}
+                      onChange={(e) => setNewPickerPin(e.target.value.replace(/\D/g, ''))}
+                      style={{
+                        width: '100%',
+                        height: '40px',
+                        borderRadius: '10px',
+                        border: '1.5px solid #CBD5E1',
+                        textAlign: 'center',
+                        fontSize: '20px',
+                        fontWeight: 900,
+                        letterSpacing: '0.2em',
+                        color: '#0F172A',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCreatePicker}
+                    style={{
+                      marginTop: '4px',
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '10px',
+                      backgroundColor: '#10B981',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <Check size={16} />
+                    <span>Guardar Trabajador Autorizado</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista de Trabajadores Autorizados y Revocación */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 900, color: '#334155', textTransform: 'uppercase' }}>
+                    Trabajadores Activos ({staffList.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={fetchStaffList}
+                    style={{ background: 'none', border: 'none', color: '#EA580C', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Actualizar
+                  </button>
+                </div>
+
+                {isStaffLoading ? (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#94A3B8', fontSize: '12px' }}>
+                    Cargando trabajadores...
+                  </div>
+                ) : staffList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#94A3B8', fontSize: '12px', border: '1px dashed #E2E8F0', borderRadius: '12px' }}>
+                    No hay trabajadores registrados.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                    {staffList.map((worker) => (
+                      <div
+                        key={worker.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: '12px',
+                          border: '1px solid #E2E8F0'
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                            {worker.fullName}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                            <span style={{ backgroundColor: '#F1F5F9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                              PIN: {worker.pinCode}
+                            </span>
+                            <span>{worker.role || 'PICKER'}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePicker(worker.id)}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            border: '1px solid #FEE2E2',
+                            backgroundColor: '#FEF2F2',
+                            color: '#DC2626',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Revocar acceso"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // PANTALLA DE ACCESO POR PIN (SI NO HAY TURNO INICIADO)
@@ -543,7 +878,7 @@ export default function OrderPreparation() {
             Estación de Picking
           </h2>
           <p style={{ fontSize: '13px', color: '#94A3B8', margin: '0 0 24px', lineHeight: 1.4 }}>
-            Ingresa tu PIN de 4 dígitos para iniciar tu turno
+            Ingresa tu PIN de 4 dígitos asignado por el Administrador
           </p>
 
           <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
@@ -620,202 +955,22 @@ export default function OrderPreparation() {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#EA580C',
+                color: '#94A3B8',
                 fontSize: '12px',
-                fontWeight: 800,
+                fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px'
               }}
             >
-              <UserPlus size={15} />
-              <span>+ Registrar Nuevo Empacador</span>
+              <Lock size={13} color="#EA580C" />
+              <span>Acceso SuperAdmin (Gestión de PINs)</span>
             </button>
           </div>
         </div>
 
-        {isRegisterModalOpen && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(4px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '20px',
-              zIndex: 100000
-            }}
-          >
-            <div
-              style={{
-                width: '100%',
-                maxWidth: '360px',
-                backgroundColor: '#FFFFFF',
-                borderRadius: '20px',
-                padding: '24px',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-                border: '1px solid #E2E8F0'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}>
-                    <ShieldCheck size={18} />
-                  </div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>
-                    {masterPinStep === 'AUTH' ? 'Autorización Admin' : 'Crear Empacador'}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsRegisterModalOpen(false)}
-                  style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '18px', cursor: 'pointer' }}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {masterAuthError && (
-                <div style={{ fontSize: '12px', color: '#DC2626', backgroundColor: '#FEF2F2', padding: '8px 12px', borderRadius: '10px', border: '1px solid #FECACA', fontWeight: 700, marginBottom: '12px' }}>
-                  ⚠️ {masterAuthError}
-                </div>
-              )}
-
-              {registerSuccess && (
-                <div style={{ fontSize: '12px', color: '#059669', backgroundColor: '#ECFDF5', padding: '10px 12px', borderRadius: '10px', border: '1px solid #A7F3D0', fontWeight: 800, textAlign: 'center', marginBottom: '12px' }}>
-                  ✅ {registerSuccess}
-                </div>
-              )}
-
-              {masterPinStep === 'AUTH' ? (
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>
-                    PIN Maestro / SuperAdmin:
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    placeholder="••••"
-                    value={masterPinInput}
-                    onChange={(e) => setMasterPinInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyMasterPin(); }}
-                    autoFocus
-                    style={{
-                      width: '100%',
-                      height: '46px',
-                      borderRadius: '12px',
-                      border: '2px solid #E2E8F0',
-                      textAlign: 'center',
-                      fontSize: '24px',
-                      fontWeight: 900,
-                      letterSpacing: '0.2em',
-                      outline: 'none',
-                      color: '#0F172A',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', textAlign: 'center' }}>
-                    PIN por defecto: <strong>9999</strong> o PIN de tienda
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleVerifyMasterPin}
-                    style={{
-                      marginTop: '16px',
-                      width: '100%',
-                      height: '44px',
-                      borderRadius: '12px',
-                      backgroundColor: '#EA580C',
-                      color: '#FFFFFF',
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Verificar PIN Maestro
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      Nombre del Trabajador:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej. Carlos Gómez"
-                      value={newPickerName}
-                      onChange={(e) => setNewPickerName(e.target.value)}
-                      style={{
-                        width: '100%',
-                        height: '42px',
-                        borderRadius: '12px',
-                        border: '1.5px solid #E2E8F0',
-                        padding: '0 12px',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        color: '#0F172A',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      PIN Personal (4 dígitos):
-                    </label>
-                    <input
-                      type="password"
-                      maxLength={4}
-                      placeholder="••••"
-                      value={newPickerPin}
-                      onChange={(e) => setNewPickerPin(e.target.value.replace(/\D/g, ''))}
-                      style={{
-                        width: '100%',
-                        height: '42px',
-                        borderRadius: '12px',
-                        border: '1.5px solid #E2E8F0',
-                        textAlign: 'center',
-                        fontSize: '20px',
-                        fontWeight: 900,
-                        letterSpacing: '0.2em',
-                        color: '#0F172A',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleCreatePicker}
-                    style={{
-                      marginTop: '8px',
-                      width: '100%',
-                      height: '44px',
-                      borderRadius: '12px',
-                      backgroundColor: '#10B981',
-                      color: '#FFFFFF',
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      border: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Registrar y Entrar
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {renderSuperAdminModal()}
       </div>
     );
   }
@@ -1297,18 +1452,48 @@ export default function OrderPreparation() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: '#F1F5F9',
-                border: '1px solid #E2E8F0',
+                backgroundColor: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '#FEF3C7' : '#F1F5F9',
+                border: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '1px solid #FDE68A' : '1px solid #E2E8F0',
                 padding: '4px 10px',
                 borderRadius: '10px',
                 fontSize: '11px',
                 fontWeight: 800,
-                color: '#1E293B'
+                color: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '#B45309' : '#1E293B'
               }}
             >
-              <User size={13} className="text-amber-600" />
+              <User size={13} className={(activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? 'text-amber-700' : 'text-amber-600'} />
               <span>{activeWorker.fullName}</span>
             </div>
+          )}
+
+          {activeWorker && (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(30);
+                setIsRegisterModalOpen(true);
+                setMasterPinStep('REGISTER');
+                fetchStaffList();
+              }}
+              style={{
+                height: '36px',
+                padding: '0 10px',
+                borderRadius: '10px',
+                border: '1px solid #FED7AA',
+                backgroundColor: '#FFF7ED',
+                color: '#EA580C',
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+              title="Gestión de Personal y PINs"
+            >
+              <ShieldCheck size={14} />
+              <span>Personal & PINs</span>
+            </button>
           )}
 
           <button
@@ -1592,6 +1777,8 @@ export default function OrderPreparation() {
           })
         )}
       </main>
+
+      {renderSuperAdminModal()}
     </div>
   );
 }
