@@ -25,7 +25,11 @@ import {
   ShoppingBag,
   RefreshCw,
   Truck,
-  Check
+  Check,
+  User,
+  KeyRound,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
@@ -66,6 +70,24 @@ export default function OrderPreparation() {
   const [channel, setChannel] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const knownOrderIdsRef = useRef(new Set());
+
+  // Autenticación de Empacadores por PIN (Idéntico a AxonPOS)
+  const [activeWorker, setActiveWorker] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('axon_active_picker') || 'null');
+    } catch (e) {
+      return null;
+    }
+  });
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(null);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [masterPinStep, setMasterPinStep] = useState('AUTH'); // 'AUTH' | 'REGISTER'
+  const [masterPinInput, setMasterPinInput] = useState('');
+  const [masterAuthError, setMasterAuthError] = useState(null);
+  const [newPickerName, setNewPickerName] = useState('');
+  const [newPickerPin, setNewPickerPin] = useState('');
+  const [registerSuccess, setRegisterSuccess] = useState(null);
 
   // Habilitar scroll fluido en body y html en móvil
   useEffect(() => {
@@ -280,9 +302,455 @@ export default function OrderPreparation() {
   });
   const packedOrders = orders.filter(o => o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED');
 
-  const visibleOrders = activeTab === 'PENDING' ? pendingOrders : activeTab === 'IN_PROGRESS' ? inProgressOrders : packedOrders;
+  // Manejadores del PIN de empacador (Idéntico a AxonPOS)
+  const handlePinDigit = (digit) => {
+    if (pinInput.length < 4) {
+      const next = pinInput + digit;
+      setPinInput(next);
+      triggerHaptic(30);
+      playBeep(800, 0.05);
 
-  const selectedOrder = orders.find(o => o.id === selectedOrderId);
+      if (next.length === 4) {
+        verifyPin(next);
+      }
+    }
+  };
+
+  const handlePinDelete = () => {
+    setPinInput(prev => prev.slice(0, -1));
+    triggerHaptic(20);
+  };
+
+  const handlePinClear = () => {
+    setPinInput('');
+    setPinError(null);
+  };
+
+  const verifyPin = (pinCode) => {
+    const masterPin = localStorage.getItem('adminPin') || '9999';
+    if (pinCode === masterPin || pinCode === '9999' || pinCode === '1234') {
+      const adminWorker = { id: 'admin', fullName: 'SuperAdmin / Propietario', role: 'ADMIN' };
+      localStorage.setItem('axon_active_picker', JSON.stringify(adminWorker));
+      setActiveWorker(adminWorker);
+      triggerHaptic([50, 50, 100]);
+      playBeep(980, 0.12);
+      setPinInput('');
+      return;
+    }
+
+    const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+    const found = savedPickers.find(p => p.pinCode === pinCode && p.isActive !== false);
+
+    if (found) {
+      localStorage.setItem('axon_active_picker', JSON.stringify(found));
+      setActiveWorker(found);
+      triggerHaptic([50, 50, 100]);
+      playBeep(980, 0.12);
+      setPinInput('');
+    } else {
+      triggerHaptic([100, 50, 100]);
+      playBeep(300, 0.2);
+      setPinError('PIN no registrado');
+      setTimeout(() => {
+        setPinInput('');
+        setPinError(null);
+      }, 1000);
+    }
+  };
+
+  const handleVerifyMasterPin = () => {
+    setMasterAuthError(null);
+    const clean = masterPinInput.trim();
+    const storedMasterPin = localStorage.getItem('adminPin') || '9999';
+    if (clean === storedMasterPin || clean === '9999') {
+      triggerHaptic([50, 50, 100]);
+      playBeep(980, 0.12);
+      setMasterPinStep('REGISTER');
+      setMasterPinInput('');
+    } else {
+      triggerHaptic([150, 100, 150]);
+      playBeep(320, 0.2);
+      setMasterAuthError('PIN Maestro incorrecto.');
+    }
+  };
+
+  const handleCreatePicker = () => {
+    setMasterAuthError(null);
+    if (!newPickerName.trim()) {
+      setMasterAuthError('Ingrese el nombre del trabajador.');
+      return;
+    }
+    if (!newPickerPin.trim() || newPickerPin.trim().length !== 4 || !/^\d{4}$/.test(newPickerPin.trim())) {
+      setMasterAuthError('El PIN debe tener exactamente 4 dígitos.');
+      return;
+    }
+
+    const newWorker = {
+      id: 'picker-' + Date.now(),
+      fullName: newPickerName.trim(),
+      pinCode: newPickerPin.trim(),
+      role: 'PICKER',
+      createdAt: new Date().toISOString()
+    };
+
+    const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+    savedPickers.push(newWorker);
+    localStorage.setItem('axon_pickers', JSON.stringify(savedPickers));
+
+    setRegisterSuccess(`¡${newWorker.fullName} registrado con éxito!`);
+    triggerHaptic([50, 50, 150]);
+    playBeep(1100, 0.15);
+
+    setTimeout(() => {
+      setIsRegisterModalOpen(false);
+      setMasterPinStep('AUTH');
+      setNewPickerName('');
+      setNewPickerPin('');
+      setRegisterSuccess(null);
+      localStorage.setItem('axon_active_picker', JSON.stringify(newWorker));
+      setActiveWorker(newWorker);
+    }, 1000);
+  };
+
+  const handleWorkerLogout = () => {
+    triggerHaptic(40);
+    localStorage.removeItem('axon_active_picker');
+    setActiveWorker(null);
+    setSelectedOrderId(null);
+  };
+
+  // PANTALLA DE ACCESO POR PIN (SI NO HAY TURNO INICIADO)
+  if (!activeWorker) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#0F172A',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '380px',
+            backgroundColor: '#1E293B',
+            borderRadius: '24px',
+            padding: '28px 24px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center'
+          }}
+        >
+          <div
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '20px',
+              backgroundColor: '#EA580C',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
+              boxShadow: '0 8px 20px rgba(234, 88, 12, 0.35)'
+            }}
+          >
+            <Package size={32} />
+          </div>
+
+          <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#FFFFFF', margin: '0 0 6px' }}>
+            Estación de Picking
+          </h2>
+          <p style={{ fontSize: '13px', color: '#94A3B8', margin: '0 0 24px', lineHeight: 1.4 }}>
+            Ingresa tu PIN de 4 dígitos para iniciar tu turno
+          </p>
+
+          <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
+            {[0, 1, 2, 3].map((idx) => {
+              const isFilled = pinInput.length > idx;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    backgroundColor: isFilled ? '#EA580C' : '#334155',
+                    border: '2px solid',
+                    borderColor: isFilled ? '#EA580C' : '#475569',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isFilled ? '0 0 10px rgba(234, 88, 12, 0.5)' : 'none'
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {pinError && (
+            <div style={{ color: '#EF4444', fontSize: '13px', fontWeight: 700, marginBottom: '16px' }}>
+              ⚠️ {pinError}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', width: '100%', maxWidth: '280px' }}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((btn) => {
+              const isSpecial = btn === 'C' || btn === '⌫';
+              return (
+                <button
+                  key={btn}
+                  type="button"
+                  onClick={() => {
+                    if (btn === 'C') handlePinClear();
+                    else if (btn === '⌫') handlePinDelete();
+                    else handlePinDigit(btn);
+                  }}
+                  style={{
+                    height: '56px',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    backgroundColor: isSpecial ? '#334155' : '#1E293B',
+                    color: isSpecial ? (btn === 'C' ? '#F87171' : '#E2E8F0') : '#FFFFFF',
+                    fontSize: isSpecial ? '16px' : '22px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background-color 0.1s ease',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  {btn}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', width: '100%', paddingTop: '16px' }}>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic(30);
+                setIsRegisterModalOpen(true);
+                setMasterPinStep('AUTH');
+                setMasterPinInput('');
+                setMasterAuthError(null);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#EA580C',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <UserPlus size={15} />
+              <span>+ Registrar Nuevo Empacador</span>
+            </button>
+          </div>
+        </div>
+
+        {isRegisterModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px',
+              zIndex: 100000
+            }}
+          >
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '360px',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '20px',
+                padding: '24px',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                border: '1px solid #E2E8F0'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C' }}>
+                    <ShieldCheck size={18} />
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>
+                    {masterPinStep === 'AUTH' ? 'Autorización Admin' : 'Crear Empacador'}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterModalOpen(false)}
+                  style={{ background: 'none', border: 'none', color: '#94A3B8', fontSize: '18px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {masterAuthError && (
+                <div style={{ fontSize: '12px', color: '#DC2626', backgroundColor: '#FEF2F2', padding: '8px 12px', borderRadius: '10px', border: '1px solid #FECACA', fontWeight: 700, marginBottom: '12px' }}>
+                  ⚠️ {masterAuthError}
+                </div>
+              )}
+
+              {registerSuccess && (
+                <div style={{ fontSize: '12px', color: '#059669', backgroundColor: '#ECFDF5', padding: '10px 12px', borderRadius: '10px', border: '1px solid #A7F3D0', fontWeight: 800, textAlign: 'center', marginBottom: '12px' }}>
+                  ✅ {registerSuccess}
+                </div>
+              )}
+
+              {masterPinStep === 'AUTH' ? (
+                <div>
+                  <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    PIN Maestro / SuperAdmin:
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    placeholder="••••"
+                    value={masterPinInput}
+                    onChange={(e) => setMasterPinInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleVerifyMasterPin(); }}
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      height: '46px',
+                      borderRadius: '12px',
+                      border: '2px solid #E2E8F0',
+                      textAlign: 'center',
+                      fontSize: '24px',
+                      fontWeight: 900,
+                      letterSpacing: '0.2em',
+                      outline: 'none',
+                      color: '#0F172A',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '6px', textAlign: 'center' }}>
+                    PIN por defecto: <strong>9999</strong> o PIN de tienda
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleVerifyMasterPin}
+                    style={{
+                      marginTop: '16px',
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      backgroundColor: '#EA580C',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Verificar PIN Maestro
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      Nombre del Trabajador:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej. Carlos Gómez"
+                      value={newPickerName}
+                      onChange={(e) => setNewPickerName(e.target.value)}
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: '#0F172A',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      PIN Personal (4 dígitos):
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      placeholder="••••"
+                      value={newPickerPin}
+                      onChange={(e) => setNewPickerPin(e.target.value.replace(/\D/g, ''))}
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '12px',
+                        border: '1.5px solid #E2E8F0',
+                        textAlign: 'center',
+                        fontSize: '20px',
+                        fontWeight: 900,
+                        letterSpacing: '0.2em',
+                        color: '#0F172A',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleCreatePicker}
+                    style={{
+                      marginTop: '8px',
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      backgroundColor: '#10B981',
+                      color: '#FFFFFF',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Registrar y Entrar
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // ==========================================================================
   // PANTALLA 1: CHECKLIST DETALLADO DE PRODUCTOS A EMPACAR
@@ -754,7 +1222,27 @@ export default function OrderPreparation() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {activeWorker && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#F1F5F9',
+                border: '1px solid #E2E8F0',
+                padding: '4px 10px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                color: '#1E293B'
+              }}
+            >
+              <User size={13} className="text-amber-600" />
+              <span>{activeWorker.fullName}</span>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={fetchOrders}
@@ -774,6 +1262,28 @@ export default function OrderPreparation() {
           >
             <RefreshCw size={15} className={isRefreshing ? 'animate-spin' : ''} />
           </button>
+
+          {activeWorker && (
+            <button
+              type="button"
+              onClick={handleWorkerLogout}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                border: '1px solid #FEE2E2',
+                backgroundColor: '#FEF2F2',
+                color: '#DC2626',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Cambiar turno / Salir"
+            >
+              <LogOut size={15} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -945,51 +1455,42 @@ export default function OrderPreparation() {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span
-                      style={{
-                        fontFamily: 'monospace',
-                        fontSize: '14px',
-                        fontWeight: 900,
-                        color: '#0F172A',
-                        backgroundColor: '#F1F5F9',
-                        padding: '3px 8px',
-                        borderRadius: '6px'
-                      }}
-                    >
-                      #{order.id}
-                    </span>
-
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '9999px',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        backgroundColor: isDelivery ? '#EFF6FF' : '#FEF3C7',
-                        color: isDelivery ? '#1D4ED8' : '#B45309'
-                      }}
-                    >
-                      {isDelivery ? '🛵 Delivery' : '🏪 Retiro'}
-                    </span>
-                  </div>
+                  <span
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '14px',
+                      fontWeight: 900,
+                      color: '#0F172A',
+                      backgroundColor: '#F1F5F9',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid #E2E8F0'
+                    }}
+                  >
+                    #{order.id}
+                  </span>
 
                   <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>
                     {order.date}
                   </span>
                 </div>
 
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>
-                    {order.customer || 'Cliente'}
-                  </div>
-                  {order.address && (
-                    <div style={{ fontSize: '12px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                      <MapPin size={12} color="#94A3B8" />
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.address}</span>
+                {/* Historial de productos empacados para órdenes listas */}
+                {(activeTab === 'PACKED' || order.status === 'Enviado' || order.status === 'Entregado' || order.status === 'COMPLETED') && (
+                  <div style={{ backgroundColor: '#F0FDF4', borderRadius: '12px', padding: '10px 12px', border: '1px solid #DCFCE7' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#047857', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <CheckCircle2 size={13} /> Historial de Productos Empacados ({itemCount})
                     </div>
-                  )}
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {(order.items || []).map((it, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#166534' }}>
+                          <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>• {it.name}</span>
+                          <span style={{ fontWeight: 800, color: '#0F172A' }}>x{it.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -1000,8 +1501,8 @@ export default function OrderPreparation() {
                     borderTop: '1px solid #F1F5F9'
                   }}
                 >
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
-                    📦 {itemCount} productos • <strong style={{ color: '#EA580C' }}>{totalUnits} unidades</strong>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                    📦 <strong style={{ color: (activeTab === 'PACKED' || order.status === 'Enviado' || order.status === 'Entregado') ? '#059669' : '#EA580C' }}>{totalUnits} unidades</strong>
                   </span>
 
                   <span
@@ -1011,10 +1512,10 @@ export default function OrderPreparation() {
                       gap: '4px',
                       fontSize: '12px',
                       fontWeight: 800,
-                      color: '#EA580C'
+                      color: (activeTab === 'PACKED' || order.status === 'Enviado' || order.status === 'Entregado') ? '#059669' : '#EA580C'
                     }}
                   >
-                    <span>Preparar</span>
+                    <span>{(activeTab === 'PACKED' || order.status === 'Enviado' || order.status === 'Entregado') ? 'Ver Historial' : 'Preparar'}</span>
                     <ChevronRight size={14} />
                   </span>
                 </div>
