@@ -1887,18 +1887,18 @@ export default function PublicStore() {
               </div>
             </div>
 
-            {/* Hero Cover Header - La foto de portada abarca hasta la sección de Calificar */}
-            <div className="relative w-full z-0 overflow-hidden pb-4 border-b border-slate-200/60 shadow-xs">
+            {/* Hero Cover Header - La foto de portada abarca hasta el renglón de Estadísticas, justo arriba del botón Seguir */}
+            <div className="relative w-full z-0 overflow-hidden pb-5 border-b border-slate-200/60 shadow-xs">
               {/* Imagen de Portada de Fondo */}
               {heroUrl ? (
                 <div className="absolute inset-0 z-0">
                   <img 
                     src={resolveImageUrl(heroUrl)} 
                     alt="Cover" 
-                    className="w-full h-full object-cover object-center" 
+                    className="w-full h-full object-cover object-center block" 
                   />
                   {/* Overlay sutil para garantizar contraste y máxima legibilidad sin opacar la foto del fondo */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black/45" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/15 to-black/55" />
                 </div>
               ) : (
                 <div className="absolute inset-0 z-0 bg-gradient-to-b from-orange-100/70 via-amber-50/40 to-slate-50">
@@ -1906,15 +1906,15 @@ export default function PublicStore() {
                 </div>
               )}
 
-              {/* Contenido sobre la Portada (Avatar, Nombre, Handle y Calificar) */}
+              {/* Contenido sobre la Portada (Avatar, Nombre, Handle, Calificar/EM y Estadísticas) */}
               <div className="relative z-10 pt-6 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col items-center">
                 
-                {/* Avatar con anillo luminoso */}
-                <div className="flex justify-center w-full mb-3">
+                {/* Avatar centrado con estilo profesional y anillo luminoso */}
+                <div className="flex items-center justify-center w-full mb-3">
                   <div className="relative">
-                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white ring-4 ring-orange-500/20">
+                    <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white ring-4 ring-white/30 flex items-center justify-center shrink-0">
                       {logoUrl ? (
-                        <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover bg-white" />
+                        <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
                           <Store size={44} />
@@ -1929,17 +1929,31 @@ export default function PublicStore() {
                   </div>
                 </div>
 
-                {/* Title & Slug */}
+                {/* Title & Slug (Blanco brillante y legible en fondos de portada) */}
                 <div className="flex flex-col items-center text-center">
                   <div className="flex items-center gap-2 justify-center">
-                    <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${heroUrl ? 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]' : 'text-slate-900'}`}>
+                    <h1 
+                      className="text-2xl md:text-3xl font-black tracking-tight"
+                      style={{ 
+                        color: heroUrl ? '#ffffff' : '#0f172a',
+                        textShadow: heroUrl ? '0 2px 8px rgba(0,0,0,0.9)' : 'none'
+                      }}
+                    >
                       {config?.business_name || 'Mi Tienda'}
                     </h1>
                   </div>
-                  <p className={`font-extrabold text-sm mt-0.5 ${heroUrl ? 'text-amber-300 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-orange-600'}`}>@{slug}</p>
+                  <p 
+                    className="font-extrabold text-sm mt-0.5"
+                    style={{ 
+                      color: heroUrl ? '#f8fafc' : '#ea580c',
+                      textShadow: heroUrl ? '0 1px 4px rgba(0,0,0,0.9)' : 'none'
+                    }}
+                  >
+                    @{slug}
+                  </p>
                   
-                  {/* Rating & Delivery */}
-                  <div className="flex items-center justify-center gap-2.5 mt-2.5 text-sm font-medium flex-wrap">
+                  {/* Rating & Delivery (EM redondeado compacto con su rayito) */}
+                  <div className="flex items-center justify-center gap-2 mt-2.5 mb-3 text-sm font-medium flex-wrap">
                     <button 
                       onClick={() => {
                         if (!currentCustomer) {
@@ -1948,47 +1962,48 @@ export default function PublicStore() {
                         }
                         setShowReviewModal(true);
                       }} 
-                      className={`flex items-center gap-1.5 ${heroUrl ? 'bg-white/95 backdrop-blur-md text-slate-900 border-white/60 shadow-md hover:bg-white hover:scale-105' : 'bg-white border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-xs hover:bg-orange-50/50'} border px-3.5 py-1.5 rounded-full transition-all cursor-pointer`}
+                      className={`inline-flex items-center gap-1.5 ${heroUrl ? 'bg-white/95 backdrop-blur-md text-slate-900 border-white/60 shadow-md hover:bg-white hover:scale-105' : 'bg-white border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-xs hover:bg-orange-50/50'} border px-3.5 py-1.5 rounded-full transition-all cursor-pointer shrink-0`}
                     >
                       <Star size={14} className="fill-amber-400 text-amber-500" />
                       <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
                     </button>
                     {config?.has_enminutos_alliance && (
-                      <button className="flex items-center gap-1.5 bg-slate-900/90 hover:bg-black text-white px-3.5 py-1.5 rounded-full transition-all cursor-pointer shadow-md border border-white/20">
-                        <div className="flex items-center font-black tracking-tighter">
-                          <span className="text-red-500 text-sm">E</span>
-                          <span className="text-red-500 text-sm">M</span>
+                      <div className="inline-flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-md border border-white/30 shrink-0">
+                        <div className="flex items-center font-black tracking-tighter text-xs">
+                          <span className="text-red-500 font-black">E</span>
+                          <span className="text-red-500 font-black">M</span>
                           <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
                         </div>
-                        <span className="text-white text-xs font-bold tracking-wide">en minutos</span>
-                      </button>
+                        <span className="text-white text-xs font-bold tracking-wide whitespace-nowrap">en minutos</span>
+                      </div>
                     )}
                   </div>
                 </div>
+
+                {/* Estadísticas dentro de la portada, justo arriba del botón Seguir */}
+                <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto w-full text-center bg-white/95 backdrop-blur-md border border-white/50 rounded-2xl py-2.5 px-3 shadow-lg mt-1">
+                  <div className="flex flex-col items-center">
+                    <span className="font-black text-lg text-slate-900">{products.length + (storeNews?.length || 0)}</span>
+                    <span className="text-slate-500 text-[11px] font-semibold">Publicaciones</span>
+                  </div>
+                  <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity border-x border-slate-200/80 px-2" onClick={() => setShowFollowersModal(true)}>
+                    <span className="font-black text-lg text-slate-900">{followersCount}</span>
+                    <span className="text-slate-500 text-[11px] font-semibold">Seguidores</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="font-black text-lg text-slate-900">{likesCount}</span>
+                    <span className="text-slate-500 text-[11px] font-semibold">Me gusta</span>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-            {/* Profile Content Container (Debajo de la Portada: Estadísticas, Acciones, etc.) */}
+            {/* Profile Content Container (Debajo de la Portada: Botones de Acción, Acerca de, etc.) */}
             <div className="relative z-10 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col pt-3">
 
-              {/* Estadísticas */}
-              <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto pb-1 w-full text-center bg-white border border-slate-200/80 rounded-2xl py-2.5 px-3 shadow-xs">
-                <div className="flex flex-col items-center">
-                  <span className="font-black text-lg text-slate-900">{products.length + (storeNews?.length || 0)}</span>
-                  <span className="text-slate-500 text-[11px] font-semibold">Publicaciones</span>
-                </div>
-                <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity border-x border-slate-100 px-2" onClick={() => setShowFollowersModal(true)}>
-                  <span className="font-black text-lg text-slate-900">{followersCount}</span>
-                  <span className="text-slate-500 text-[11px] font-semibold">Seguidores</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="font-black text-lg text-slate-900">{likesCount}</span>
-                  <span className="text-slate-500 text-[11px] font-semibold">Me gusta</span>
-                </div>
-              </div>
-
               {/* Botones de Acción */}
-              <div className="flex gap-2.5 mt-4 w-full max-w-[440px] mx-auto">
+              <div className="flex gap-2.5 mt-2 w-full max-w-[440px] mx-auto">
                 <button 
                   onClick={async () => {
                     if (!currentCustomer && !isMerchantOwner) {
