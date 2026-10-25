@@ -12,6 +12,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function MerchantLandingPage() {
   const navigate = useNavigate();
 
+  // Resetear scroll al inicio de la página al montar
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Estado del formulario de captura del Hero (0% Comisión por 30 Días)
   const [formData, setFormData] = useState({
     storeName: '',
