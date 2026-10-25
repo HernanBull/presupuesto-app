@@ -19,7 +19,10 @@ import {
   MessageCircle,
   ChevronUp,
   ChevronDown,
-  HardDrive
+  HardDrive,
+  Sun,
+  Moon,
+  Zap
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -173,6 +176,7 @@ export default function StoreScannerMap() {
   const [isMapMoved, setIsMapMoved] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
+  const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('axon_map_theme') || 'light');
   
   // Snap Points del Bottom Sheet: 'collapsed' (105px), 'half' (52vh), 'expanded' (88vh)
   const [sheetSnap, setSheetSnap] = useState('half');
@@ -272,6 +276,7 @@ export default function StoreScannerMap() {
         const phone = store.config?.expediente?.whatsapp || store.config?.contact?.phone || store.config?.paymentProfile?.pmPhone || '';
         const schedule = store.config?.scheduleProfile || null;
         const status = checkIfStoreIsOpen(schedule);
+        const hasEnminutosAlliance = Boolean(store.config?.has_enminutos_alliance || store.config?.hasEnminutosAlliance);
 
         return {
           ...store,
@@ -282,6 +287,7 @@ export default function StoreScannerMap() {
           category,
           address,
           phone,
+          hasEnminutosAlliance,
           isOpen: status.isOpen,
           scheduleLabel: status.label,
           slug: store.store_slug || store.id
@@ -378,11 +384,12 @@ export default function StoreScannerMap() {
             <ChangeView center={userLocation} zoom={14} />
             <MapFlyController targetLocation={targetMapLocation} />
             
-            {/* Mapa oscuro OpenStreetMap sin API Key ni marcas de agua, cacheado en PWA con aceleración por hardware */}
+            {/* Mapa OpenStreetMap con selector dinámico de Modo Claro / Modo Oscuro */}
             <TileLayer
+              key={mapTheme}
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              className="dark-map-tiles"
+              className={mapTheme === 'dark' ? "dark-map-tiles" : "light-map-tiles"}
             />
 
             {/* Marcador GPS discreto del usuario (Punto azul pulsante) */}
@@ -435,7 +442,18 @@ export default function StoreScannerMap() {
                         )}
                       </div>
                       <div className="overflow-hidden">
-                        <h4 className="font-extrabold text-sm truncate text-zinc-900 leading-tight">{store.name}</h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-extrabold text-sm truncate text-zinc-900 leading-tight">{store.name}</h4>
+                          {store.hasEnminutosAlliance && (
+                            <span 
+                              className="inline-flex items-center gap-0.5 bg-slate-950 text-white px-1.5 py-0.5 rounded-full text-[9px] font-black shrink-0 border border-white/20"
+                              style={{ color: '#ffffff' }}
+                            >
+                              <span className="text-red-500">EM</span>
+                              <Zap size={8} className="fill-yellow-400 text-yellow-400" />
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-zinc-500 truncate block">{store.category}</span>
                       </div>
                     </div>
@@ -562,19 +580,35 @@ export default function StoreScannerMap() {
         </div>
       )}
 
-      {/* FLOATING ACTION BUTTONS: GPS Y DESCARGA OFFLINE */}
+      {/* FLOATING ACTION BUTTONS: GPS, MODO CLARO/OSCURO Y DESCARGA OFFLINE */}
       <div className="absolute top-20 right-4 z-40 flex flex-col gap-2">
         <button 
           onClick={centerOnUser} 
-          className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md"
+          className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-zinc-700 border border-zinc-200 shadow-md hover:bg-zinc-50 transition-all cursor-pointer"
           title="Centrar en mi ubicación"
         >
           <Crosshair size={20} className="text-amber-600" />
         </button>
 
         <button 
+          onClick={() => {
+            const nextTheme = mapTheme === 'dark' ? 'light' : 'dark';
+            setMapTheme(nextTheme);
+            localStorage.setItem('axon_map_theme', nextTheme);
+          }} 
+          className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-md transition-all border cursor-pointer ${
+            mapTheme === 'dark' 
+              ? 'bg-zinc-900 text-amber-400 border-zinc-800 hover:bg-zinc-800' 
+              : 'bg-white text-zinc-800 border-zinc-200 hover:bg-zinc-50'
+          }`}
+          title={mapTheme === 'dark' ? "Cambiar a Modo Claro (Día)" : "Cambiar a Modo Oscuro (Noche)"}
+        >
+          {mapTheme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-indigo-600" />}
+        </button>
+
+        <button 
           onClick={() => setIsOfflineModalOpen(true)} 
-          className="w-11 h-11 bg-zinc-900 rounded-2xl flex items-center justify-center text-amber-400 border border-zinc-800 shadow-md"
+          className="w-11 h-11 bg-zinc-900 rounded-2xl flex items-center justify-center text-amber-400 border border-zinc-800 shadow-md hover:bg-zinc-800 transition-all cursor-pointer"
           title="Descargar mapa offline en teléfono (Cero datos)"
         >
           <HardDrive size={18} />
@@ -688,29 +722,44 @@ export default function StoreScannerMap() {
 
                     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
                       {/* Portada HD de la tienda */}
-                      <div className="relative h-32 sm:h-36 w-full bg-slate-900 overflow-hidden">
+                      <div className="relative h-44 sm:h-52 w-full bg-slate-900 overflow-hidden">
                         {selectedStore.coverUrl ? (
                           <img 
                             src={resolveImageUrl(selectedStore.coverUrl)} 
                             alt={selectedStore.name} 
                             loading="lazy"
                             decoding="async"
-                            className="w-full h-full object-cover" 
+                            className="w-full h-full object-cover object-center" 
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
                             <Store size={36} className="text-zinc-700" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
                         
-                        {/* Badges superiores sobre portada - Blanco sólido de alto contraste y cero lag */}
-                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-                          <div className="flex items-center gap-1.5 bg-white px-3.5 py-1 rounded-full border border-zinc-200 shadow-md">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span className="text-xs font-black text-zinc-950 uppercase tracking-wide">
-                              {selectedStore.category}
-                            </span>
+                        {/* Badges superiores sobre portada - Blanco sólido de alto contraste y alianza EM */}
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none flex-wrap gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 bg-white px-3.5 py-1 rounded-full border border-zinc-200 shadow-md">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <span className="text-xs font-black text-zinc-950 uppercase tracking-wide">
+                                {selectedStore.category}
+                              </span>
+                            </div>
+                            {selectedStore.hasEnminutosAlliance && (
+                              <div 
+                                className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30 shadow-md"
+                                style={{ color: '#ffffff' }}
+                              >
+                                <div className="flex items-center font-black tracking-tighter text-[11px]">
+                                  <span className="text-red-500 font-black">E</span>
+                                  <span className="text-red-500 font-black">M</span>
+                                  <Zap size={11} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                                </div>
+                                <span className="text-[10px] font-black text-white tracking-wide whitespace-nowrap">en minutos</span>
+                              </div>
+                            )}
                           </div>
                           <div className={`text-xs font-extrabold px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-md ${
                             selectedStore.isOpen 
@@ -744,9 +793,21 @@ export default function StoreScannerMap() {
                       <div className="pt-6 px-4 pb-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h2 className="text-zinc-900 font-black text-xl leading-tight">
-                              {selectedStore.name}
-                            </h2>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="text-zinc-900 font-black text-xl leading-tight">
+                                {selectedStore.name}
+                              </h2>
+                              {selectedStore.hasEnminutosAlliance && (
+                                <span 
+                                  className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-full text-[10px] font-black shadow-xs border border-white/20"
+                                  style={{ color: '#ffffff' }}
+                                >
+                                  <span className="text-red-500">EM</span>
+                                  <Zap size={10} className="fill-yellow-400 text-yellow-400" />
+                                  <span className="text-white">en minutos</span>
+                                </span>
+                              )}
+                            </div>
                             <p className="text-zinc-500 text-xs mt-0.5 font-medium">
                               {selectedStore.scheduleLabel}
                             </p>
@@ -865,28 +926,43 @@ export default function StoreScannerMap() {
                           >
                             {/* PORTADA Y LOGO SIN CORTAR */}
                             <div className="relative">
-                              {/* BANNER / PORTADA MINIATURA */}
-                              <div className="relative h-24 w-full bg-slate-900 overflow-hidden rounded-t-2xl">
+                              {/* BANNER / PORTADA COMPLETA */}
+                              <div className="relative h-40 sm:h-48 w-full bg-slate-900 overflow-hidden rounded-t-2xl">
                                 {store.coverUrl ? (
                                   <img 
                                     src={resolveImageUrl(store.coverUrl)} 
                                     alt={store.name} 
-                                    className="w-full h-full object-cover" 
+                                    className="w-full h-full object-cover object-center" 
                                   />
                                 ) : (
                                   <div className="w-full h-full bg-gradient-to-r from-zinc-900 via-slate-800 to-zinc-900 flex items-center justify-center">
                                     <Store size={28} className="text-zinc-700" />
                                   </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
 
-                                {/* Badges superiores sobre la portada - Blanco sólido de alto contraste y cero lag */}
-                                <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none">
-                                  <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-zinc-200 shadow-md">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    <span className="text-[11px] font-black text-zinc-950 uppercase tracking-wider">
-                                      {store.category}
-                                    </span>
+                                {/* Badges superiores sobre la portada - Alto contraste y alianza EM */}
+                                <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none flex-wrap gap-1.5">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-zinc-200 shadow-md">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                      <span className="text-[11px] font-black text-zinc-950 uppercase tracking-wider">
+                                        {store.category}
+                                      </span>
+                                    </div>
+                                    {store.hasEnminutosAlliance && (
+                                      <div 
+                                        className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30 shadow-md"
+                                        style={{ color: '#ffffff' }}
+                                      >
+                                        <div className="flex items-center font-black tracking-tighter text-[11px]">
+                                          <span className="text-red-500 font-black">E</span>
+                                          <span className="text-red-500 font-black">M</span>
+                                          <Zap size={11} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                                        </div>
+                                        <span className="text-[10px] font-black text-white tracking-wide whitespace-nowrap">en minutos</span>
+                                      </div>
+                                    )}
                                   </div>
                                   <div className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shadow-md ${
                                     store.isOpen 
@@ -928,9 +1004,21 @@ export default function StoreScannerMap() {
                             <div className="pt-6 px-4 pb-3.5">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="pl-16">
-                                  <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
-                                    {store.name}
-                                  </h4>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
+                                      {store.name}
+                                    </h4>
+                                    {store.hasEnminutosAlliance && (
+                                      <span 
+                                        className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-full text-[10px] font-black shadow-xs border border-white/20"
+                                        style={{ color: '#ffffff' }}
+                                      >
+                                        <span className="text-red-500">EM</span>
+                                        <Zap size={10} className="fill-yellow-400 text-yellow-400" />
+                                        <span className="text-white">en minutos</span>
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-zinc-500 text-[11px] mt-0.5 font-medium line-clamp-1">
                                     {store.scheduleLabel}
                                   </p>
@@ -1018,10 +1106,15 @@ export default function StoreScannerMap() {
         }
         .leaflet-container {
           z-index: 10;
-          background: #0f172a;
+          background: ${mapTheme === 'dark' ? '#0f172a' : '#f1f5f9'};
         }
         .dark-map-tiles {
           filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+          transform: translate3d(0, 0, 0);
+          will-change: transform;
+        }
+        .light-map-tiles {
+          filter: brightness(98%) contrast(102%);
           transform: translate3d(0, 0, 0);
           will-change: transform;
         }
