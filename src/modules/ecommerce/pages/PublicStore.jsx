@@ -1968,13 +1968,21 @@ export default function PublicStore() {
                       <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
                     </button>
                     {config?.has_enminutos_alliance && (
-                      <div className="inline-flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-md border border-white/30 shrink-0">
+                      <div 
+                        className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-white/30 shrink-0"
+                        style={{ color: '#ffffff' }}
+                      >
                         <div className="flex items-center font-black tracking-tighter text-xs">
                           <span className="text-red-500 font-black">E</span>
                           <span className="text-red-500 font-black">M</span>
                           <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
                         </div>
-                        <span className="text-white text-xs font-bold tracking-wide whitespace-nowrap">en minutos</span>
+                        <span 
+                          className="text-xs font-black tracking-wide whitespace-nowrap"
+                          style={{ color: '#ffffff' }}
+                        >
+                          en minutos
+                        </span>
                       </div>
                     )}
                   </div>
