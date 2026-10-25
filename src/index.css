@@ -113,10 +113,10 @@
     color: #FFFFFF !important;
   }
   .axon-hero-pure-white input {
-    color: #FFFFFF !important;
+    color: #1A1A1A !important;
   }
   .axon-hero-pure-white input::placeholder {
-    color: rgba(255, 255, 255, 0.85) !important;
+    color: #71717A !important;
   }
   .axon-hero-pure-white .btn-login,
   .axon-hero-pure-white .btn-login * {
