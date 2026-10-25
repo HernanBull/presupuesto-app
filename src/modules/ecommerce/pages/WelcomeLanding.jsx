@@ -122,10 +122,12 @@ export default function WelcomeLanding() {
           
           {/* Logo Central de Marca Elegante y Translúcido (Combina con el Fondo) */}
           <div className="inline-flex items-center gap-3 mb-5 px-5 py-2.5 rounded-full bg-black/30 backdrop-blur-md shadow-2xl border border-white/20 select-none">
-            {/* Caja / Icono en dorado con transparencia */}
-            <div className="w-9 h-9 rounded-xl bg-amber-500/25 backdrop-blur-sm border border-amber-400/40 flex items-center justify-center text-amber-400 shadow-sm">
-              <ShoppingBag size={20} className="stroke-[2.5]" />
-            </div>
+            {/* Caja / Icono oficial AxonMarket */}
+            <img 
+              src="/axonmarket-logo-icon.png" 
+              alt="AxonMarket" 
+              className="w-8 h-8 rounded-xl shadow-sm object-contain" 
+            />
             {/* Tipografía de Marca: AXON en blanco y MARKET en dorado/naranja */}
             <span className="text-xl sm:text-2xl font-black tracking-wider flex items-center drop-shadow-md">
               <span className="axon-logo-white">AXON</span>

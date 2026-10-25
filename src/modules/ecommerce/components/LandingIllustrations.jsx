@@ -86,23 +86,19 @@ export function DeliveryRiderIllustration({ className = "w-32 h-28" }) {
         <path d="M91 38L98 40L96 44L90 43Z" fill="#0F172A" />
 
         {/* --- MOCHILA TÉRMICA DELIVERY (Con la cajita AxonMarket) --- */}
-        <rect x="44" y="52" width="22" height="26" rx="4" fill="#EA580C" stroke="#C2410C" strokeWidth="1.5" />
+        <rect x="43" y="50" width="24" height="28" rx="5" fill="#EA580C" stroke="#C2410C" strokeWidth="1.5" />
         {/* Franja reflectante de la mochila */}
-        <rect x="44" y="72" width="22" height="3" fill="#FDE047" />
+        <rect x="43" y="73" width="24" height="3" fill="#FDE047" />
 
-        {/* Icono de la Cajita AxonMarket en la mochila */}
-        <g transform="translate(49, 56) scale(0.55)">
-          <path
-            d="M5 9L3 21H19L17 9H5Z"
-            fill="#FFFFFF"
-          />
-          <path
-            d="M8 9V6C8 4.34315 9.34315 3 11 3C12.6569 3 14 4.34315 14 6V9"
-            stroke="#EA580C"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </g>
+        {/* Logo oficial de la Cajita AxonMarket en la mochila */}
+        <image
+          href="/axonmarket-logo-icon.png"
+          x="46"
+          y="53"
+          width="18"
+          height="18"
+          preserveAspectRatio="xMidYMid meet"
+        />
 
         {/* Línea de velocidad sutil */}
         <path d="M24 108L30 108M18 112L26 112" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
@@ -115,7 +111,7 @@ export function DeliveryRiderIllustration({ className = "w-32 h-28" }) {
  * Ilustración 2: Tienda Comercial AxonMarket
  * - Fachada de tienda con vitrina luminosa
  * - Toldo a rayas naranja y blanco crema
- * - Logo de la cajita AxonMarket en el letrero
+ * - Logo oficial de la cajita AxonMarket en el letrero
  * - Fondo orgánico suave
  */
 export function MerchantStoreIllustration({ className = "w-32 h-28" }) {
@@ -170,13 +166,15 @@ export function MerchantStoreIllustration({ className = "w-32 h-28" }) {
           />
         </g>
 
-        {/* Letrero / Emblema superior con la cajita AxonMarket */}
-        <g transform="translate(73, 24)">
-          <rect x="-1" y="0" width="16" height="14" rx="3" fill="#EA580C" />
-          {/* Cajita blanca */}
-          <path d="M3 5L2 12H12L11 5H3Z" fill="#FFFFFF" />
-          <path d="M5 5V3.5C5 2.67 5.67 2 6.5 2H7.5C8.33 2 9 2.67 9 3.5V5" stroke="#EA580C" strokeWidth="1.2" strokeLinecap="round" />
-        </g>
+        {/* Letrero / Emblema superior con la cajita oficial AxonMarket */}
+        <image
+          href="/axonmarket-logo-icon.png"
+          x="71"
+          y="18"
+          width="18"
+          height="18"
+          preserveAspectRatio="xMidYMid meet"
+        />
 
         {/* Suelo / Acera */}
         <line x1="26" y1="116" x2="134" y2="116" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" />
@@ -187,8 +185,8 @@ export function MerchantStoreIllustration({ className = "w-32 h-28" }) {
 
 /**
  * Ilustración 3: Teléfono Móvil con App AxonMarket
- * - Smartphone vertical elegante
- * - Pantalla luminosa con el logo de la cajita AxonMarket y botón
+ * - Smartphone vertical elegante estilo DoorDash
+ * - Pantalla con el logotipo oficial de la cajita anaranjada AxonMarket
  * - Fondo orgánico suave
  */
 export function MobileAppIllustration({ className = "w-32 h-28" }) {
@@ -210,40 +208,40 @@ export function MobileAppIllustration({ className = "w-32 h-28" }) {
         <ellipse cx="80" cy="118" rx="24" ry="5" fill="#94A3B8" opacity="0.3" />
 
         {/* Cuerpo del Smartphone (Carcasa oscura refinada) */}
-        <rect x="58" y="24" width="44" height="88" rx="8" fill="#0F172A" />
+        <rect x="56" y="22" width="48" height="92" rx="9" fill="#0F172A" />
 
         {/* Pantalla del Teléfono */}
-        <rect x="61" y="28" width="38" height="80" rx="5" fill="#FFFFFF" />
+        <rect x="59" y="25" width="42" height="86" rx="6" fill="#FFFFFF" />
 
-        {/* Cámara frontal / Notch */}
-        <circle cx="80" cy="32" r="1.5" fill="#334155" />
+        {/* Cámara frontal / Altavoz */}
+        <circle cx="80" cy="29" r="1.5" fill="#334155" />
 
-        {/* Interfaz de la app AxonMarket */}
-        {/* Barra superior de app */}
-        <rect x="64" y="36" width="32" height="4" rx="2" fill="#F1F5F9" />
+        {/* Logo Oficial de la Cajita AxonMarket en el centro de la pantalla (1:1 DoorDash) */}
+        <image
+          href="/axonmarket-logo-icon.png"
+          x="65"
+          y="46"
+          width="30"
+          height="30"
+          preserveAspectRatio="xMidYMid meet"
+        />
 
-        {/* Tarjeta central naranja con la Cajita AxonMarket */}
-        <rect x="66" y="46" width="28" height="28" rx="6" fill="#FFF7ED" stroke="#FDBA74" strokeWidth="1" />
-        
-        {/* Icono de la Cajita AxonMarket en el centro */}
-        <g transform="translate(73, 51)">
-          {/* Contenedor naranja de la cajita */}
-          <rect x="0" y="0" width="14" height="14" rx="3.5" fill="#EA580C" />
-          {/* Bolsa interior */}
-          <path d="M3 5.5L2.2 11.5H11.8L11 5.5H3Z" fill="#FFFFFF" />
-          <path d="M4.5 5.5V4C4.5 3.17 5.17 2.5 6 2.5H8C8.83 2.5 9.5 3.17 9.5 4V5.5" stroke="#EA580C" strokeWidth="1.2" strokeLinecap="round" />
-        </g>
-
-        {/* Nombre AXONMARKET en pantalla */}
-        <rect x="68" y="67" width="24" height="3" rx="1.5" fill="#EA580C" />
-
-        {/* Elementos UI simulados (feed de tiendas y botón de acción) */}
-        <rect x="66" y="80" width="28" height="4" rx="2" fill="#E2E8F0" />
-        <rect x="66" y="87" width="28" height="6" rx="3" fill="#EA580C" />
-        <rect x="74" y="89" width="12" height="2" rx="1" fill="#FFFFFF" />
+        {/* Tipografía de la marca bajo el icono */}
+        <text
+          x="80"
+          y="85"
+          textAnchor="middle"
+          fill="#0F172A"
+          fontSize="5"
+          fontWeight="900"
+          letterSpacing="0.8"
+          fontFamily="system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+        >
+          AXON<tspan fill="#F59E0B">MARKET</tspan>
+        </text>
 
         {/* Barra de inicio inferior (Home indicator) */}
-        <rect x="73" y="102" width="14" height="2" rx="1" fill="#94A3B8" />
+        <rect x="72" y="104" width="16" height="2" rx="1" fill="#CBD5E1" />
       </svg>
     </div>
   );
