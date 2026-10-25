@@ -25,6 +25,7 @@ import StoreProfileManager from './pages/StoreProfileManager';
 import StoreLocationManager from './pages/StoreLocationManager';
 import PublicStore from './pages/PublicStore';
 import MarketplaceDirectory from './pages/MarketplaceDirectory';
+import WelcomeLanding from './pages/WelcomeLanding';
 import StoreScannerMap from './pages/StoreScannerMap';
 import PricingPage from './pages/PricingPage';
 import MerchantFeaturesPage from './pages/MerchantFeaturesPage';
@@ -338,7 +339,11 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
-        <Route index element={<MarketplaceDirectory />} />
+        <Route index element={<WelcomeLanding />} />
+        <Route path="explorar" element={<MarketplaceDirectory />} />
+        <Route path="feed" element={<MarketplaceDirectory />} />
+        <Route path="app" element={<MarketplaceDirectory />} />
+        <Route path="directorio" element={<MarketplaceDirectory />} />
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="chats" element={<CustomerChatsPage />} />
         <Route path="funciones-comercios" element={<Navigate to="/" replace />} />

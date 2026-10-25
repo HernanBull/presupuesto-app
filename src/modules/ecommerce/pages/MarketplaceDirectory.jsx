@@ -217,6 +217,15 @@ export default function MarketplaceDirectory() {
       setIsMerchantModalOpen(true);
       setMerchantAuthMode(location.state?.mode || 'pitch');
     }
+    if (location.state?.openAuthModal) {
+      setIsAuthModalOpen(true);
+    }
+    if (location.state?.searchQuery) {
+      setSearchTerm(location.state.searchQuery);
+    }
+    if (location.state?.category) {
+      setActiveCategory(location.state.category);
+    }
   }, [location.state]);
 
   useEffect(() => {
@@ -1461,7 +1470,7 @@ export default function MarketplaceDirectory() {
               </button>
               <div 
                 className="flex items-center gap-2 select-none cursor-pointer" 
-                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/'); }}
+                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
               >
                 <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
                   <ShoppingBag size={16} className="stroke-[2.5]"/>
@@ -3023,6 +3032,19 @@ export default function MarketplaceDirectory() {
                       <div className="flex flex-col items-start">
                         <span className="font-bold text-sm">Términos de Uso</span>
                         <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Condiciones del servicio</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
+                  </button>
+
+                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/10 group-hover:bg-amber-500/20 flex items-center justify-center text-amber-600 transition-colors">
+                        <Home size={16} />
+                      </div>
+                      <div className="flex flex-col items-start">
+                        <span className="font-bold text-sm">Página Principal</span>
+                        <span className="text-[10px] text-zinc-400 group-hover:text-amber-500/70 font-medium">Bienvenida y servicios</span>
                       </div>
                     </div>
                     <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
