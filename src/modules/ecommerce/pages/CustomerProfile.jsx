@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -1177,6 +1177,12 @@ export default function CustomerProfile() {
                           {showPassword ? (currentCustomer.password || 'No definida') : '••••••••'}
                         </p>
                       </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block flex items-center gap-2"><Mail size={14} className="text-amber-500"/> Correo Electrónico</label>
+                        <p className="text-slate-900 font-semibold text-lg break-all">
+                          {currentCustomer.email || '-'}
+                        </p>
+                      </div>
                     </div>
 
                     
@@ -1305,6 +1311,13 @@ export default function CustomerProfile() {
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono General</label>
                         <input type="tel" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-all shadow-xs" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2"><Mail size={16} className="text-amber-500"/> Correo Electrónico Registrado</span>
+                          <span className="text-xs text-slate-400 font-normal">No modificable</span>
+                        </label>
+                        <input type="email" disabled value={currentCustomer?.email || ''} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 cursor-not-allowed shadow-xs font-medium" />
                       </div>
                     </div>
                     
