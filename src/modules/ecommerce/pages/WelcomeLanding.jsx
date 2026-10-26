@@ -734,7 +734,7 @@ export default function WelcomeLanding() {
           </div>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 gap-3">
-            <p>© {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124. Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} AxonMarket · Emprendimiento Hernan Perdomo · RIF J-508056124. Todos los derechos reservados.</p>
             <p>Hecho con pasión para el comercio venezolano 🇻🇪</p>
           </div>
 
