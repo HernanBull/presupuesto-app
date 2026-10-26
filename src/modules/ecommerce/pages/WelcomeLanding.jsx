@@ -116,7 +116,7 @@ export default function WelcomeLanding() {
       
       {/* 1. HERO SECTION (Estilo DoorDash limpio y organizado sobre imagen gastronómica) */}
       <section 
-        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] px-4 sm:px-6 pt-6 pb-12"
+        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[600px] sm:min-h-[660px] px-4 sm:px-6 pt-6 pb-16 sm:pb-24"
         style={{
           background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
@@ -229,8 +229,25 @@ export default function WelcomeLanding() {
 
         </div>
 
-        {/* Espaciador invisible para balance vertical */}
-        <div className="h-2 relative z-10"></div>
+        {/* Separador Orgánico en Forma de Ola / Montaña que suaviza la transición con el fondo blanco */}
+        <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
+          <svg 
+            viewBox="0 0 1440 120" 
+            preserveAspectRatio="none" 
+            className="relative block w-full h-10 sm:h-16 md:h-20 lg:h-24"
+          >
+            {/* Silueta posterior traslúcida tipo colina/montaña para profundidad */}
+            <path 
+              d="M0,45 C280,95 500,20 780,60 C1060,100 1260,25 1440,40 L1440,120 L0,120 Z" 
+              fill="rgba(250, 250, 250, 0.45)" 
+            />
+            {/* Ola frontal continua que solapa la imagen de fondo y conecta con la siguiente sección */}
+            <path 
+              d="M0,70 C240,25 460,95 720,45 C980,15 1200,80 1440,55 L1440,120 L0,120 Z" 
+              fill="#fafafa" 
+            />
+          </svg>
+        </div>
 
       </section>
 
