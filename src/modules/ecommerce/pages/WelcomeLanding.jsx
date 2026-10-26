@@ -599,10 +599,10 @@ export default function WelcomeLanding() {
 
 
       {/* 7. FOOTER PROFESIONAL AXONMARKET */}
-      <footer className="bg-zinc-950 text-zinc-400 text-xs pt-16 pb-12 mt-auto border-t border-zinc-800">
+      <footer className="bg-white text-zinc-600 text-xs pt-16 pb-12 mt-auto border-t border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 pb-12 border-b border-zinc-800/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 pb-12 border-b border-zinc-200">
             
             {/* Columna Marca */}
             <div className="space-y-4">
@@ -610,41 +610,41 @@ export default function WelcomeLanding() {
                 <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-zinc-950 font-black">
                   <ShoppingBag size={18} className="stroke-[2.5]" />
                 </div>
-                <span className="text-base font-black tracking-wider text-white">
+                <span className="text-base font-black tracking-wider text-zinc-950" style={{ color: '#09090b' }}>
                   AXON<span className="text-amber-500">MARKET</span>
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-500 leading-relaxed">
                 La plataforma de comercio y delivery local más rápida, moderna y transparente de Venezuela.
               </p>
-              <div className="text-[11px] text-amber-400 font-bold">
+              <div className="text-[11px] text-amber-600 font-bold">
                 ✓ Comercios locales verificados • Entregas rápidas y seguras
               </div>
             </div>
 
             {/* Columna Clientes */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-white mb-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 mb-3" style={{ color: '#18181b' }}>
                 Para Clientes
               </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-zinc-600">
                 <li>
-                  <button onClick={() => navigate('/explorar')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/explorar')} className="hover:text-amber-600 transition-colors">
                     Explorar Comercios
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/mapa')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/mapa')} className="hover:text-amber-600 transition-colors">
                     Mapa de Tiendas
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/explorar', { state: { openAuthModal: true } })} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/explorar', { state: { openAuthModal: true } })} className="hover:text-amber-600 transition-colors">
                     Iniciar Sesión / Registro
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/chats')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/chats')} className="hover:text-amber-600 transition-colors">
                     Mis Pedidos & Chats
                   </button>
                 </li>
@@ -653,22 +653,22 @@ export default function WelcomeLanding() {
 
             {/* Columna Comercios & Delivery */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-white mb-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 mb-3" style={{ color: '#18181b' }}>
                 Aliados & Negocios
               </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-zinc-600">
                 <li>
-                  <button onClick={() => navigate('/comerciantes')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/comerciantes')} className="hover:text-amber-600 transition-colors">
                     Registrar mi Comercio
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/delivery')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/delivery')} className="hover:text-amber-600 transition-colors">
                     Ser Repartidor Delivery
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/dashboard')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/dashboard')} className="hover:text-amber-600 transition-colors">
                     Portal Comerciante (Admin)
                   </button>
                 </li>
@@ -677,31 +677,31 @@ export default function WelcomeLanding() {
 
             {/* Columna Legal & Ayuda */}
             <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-white mb-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-900 mb-3" style={{ color: '#18181b' }}>
                 Legal & Soporte
               </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-zinc-600">
                 <li>
-                  <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-600 transition-colors">
                     Términos y Condiciones
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-600 transition-colors">
                     Política de Privacidad
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-400 transition-colors">
+                  <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-600 transition-colors">
                     Aviso Legal
                   </button>
                 </li>
                 <li>
                   <a 
-                    href="https://wa.me/584120000000?text=Hola,%20deseo%20asistencia%20en%20AxonMarket" 
+                    href="https://wa.me/584243606289?text=Hola,%20deseo%20asistencia%20en%20AxonMarket" 
                     target="_blank" 
                     rel="noreferrer"
-                    className="hover:text-amber-400 transition-colors inline-flex items-center gap-1"
+                    className="hover:text-amber-600 transition-colors inline-flex items-center gap-1 text-zinc-700 font-semibold"
                   >
                     <span>Soporte WhatsApp</span>
                     <ExternalLink size={12} />

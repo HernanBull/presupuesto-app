@@ -834,7 +834,7 @@ export default function MerchantLandingPage() {
               Empezar mi prueba gratuita de 30 días
             </a>
             <button 
-              onClick={() => window.open('https://wa.me/584120000000?text=Hola,%20deseo%20información%20para%20afiliar%20mi%20comercio%20a%20AxonMarket', '_blank')}
+              onClick={() => window.open('https://wa.me/584243606289?text=Hola,%20deseo%20información%20para%20afiliar%20mi%20comercio%20a%20AxonMarket', '_blank')}
               className="w-full sm:w-auto bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-bold text-base px-8 py-4 rounded-full border border-zinc-800 transition-all text-center inline-flex items-center justify-center gap-2"
             >
               <MessageCircle size={18} />
