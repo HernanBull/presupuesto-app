@@ -857,7 +857,7 @@ export default function MerchantLandingPage() {
             <button onClick={() => navigate('/')} className="hover:text-white transition-colors">Ir a AxonMarket</button>
           </div>
           <p className="text-zinc-500">
-            © 2026 AxonMarket Technologies C.A. Todos los derechos reservados.
+            © {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124. Todos los derechos reservados.
           </p>
         </div>
       </footer>

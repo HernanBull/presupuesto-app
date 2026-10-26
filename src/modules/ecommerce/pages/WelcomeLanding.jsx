@@ -116,7 +116,7 @@ export default function WelcomeLanding() {
       
       {/* 1. HERO SECTION (Estilo DoorDash limpio y organizado sobre imagen gastronómica) */}
       <section 
-        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[600px] sm:min-h-[660px] px-4 sm:px-6 pt-6 pb-16 sm:pb-24"
+        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[660px] sm:min-h-[720px] md:min-h-[760px] px-4 sm:px-6 pt-6 pb-28 sm:pb-36 md:pb-44"
         style={{
           background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
@@ -229,22 +229,29 @@ export default function WelcomeLanding() {
 
         </div>
 
-        {/* Separador Orgánico en Forma de Ola / Montaña que suaviza la transición con el fondo blanco */}
+        {/* Separador Vectorial Ondulado Fluido de Tres Capas hacia el Fondo Blanco */}
         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
           <svg 
-            viewBox="0 0 1440 120" 
+            viewBox="0 0 1440 280" 
             preserveAspectRatio="none" 
-            className="relative block w-full h-10 sm:h-16 md:h-20 lg:h-24"
+            className="relative block w-full h-20 sm:h-28 md:h-36 lg:h-44"
           >
-            {/* Silueta posterior traslúcida tipo colina/montaña para profundidad */}
+            {/* Capa posterior suave para dar profundidad de onda */}
             <path 
-              d="M0,45 C280,95 500,20 780,60 C1060,100 1260,25 1440,40 L1440,120 L0,120 Z" 
-              fill="rgba(250, 250, 250, 0.45)" 
+              d="M0,160 C320,240 420,60 740,140 C1060,220 1200,80 1440,130 L1440,280 L0,280 Z" 
+              fill="#ffffff" 
+              fillOpacity="0.3" 
             />
-            {/* Ola frontal continua que solapa la imagen de fondo y conecta con la siguiente sección */}
+            {/* Capa intermedia ondulada que genera movimiento orgánico */}
             <path 
-              d="M0,70 C240,25 460,95 720,45 C980,15 1200,80 1440,55 L1440,120 L0,120 Z" 
-              fill="#fafafa" 
+              d="M0,190 C260,110 520,220 820,130 C1120,40 1300,180 1440,150 L1440,280 L0,280 Z" 
+              fill="#ffffff" 
+              fillOpacity="0.5" 
+            />
+            {/* Capa frontal continua en blanco puro que cubre la foto y transiciona perfectamente */}
+            <path 
+              d="M0,130 C280,210 460,70 760,150 C1060,230 1260,60 1440,120 L1440,280 L0,280 Z" 
+              fill="#ffffff" 
             />
           </svg>
         </div>
@@ -252,7 +259,7 @@ export default function WelcomeLanding() {
       </section>
 
       {/* 4. TRES PILARES DE SERVICIOS (Ingeniería Inversa 1:1 de DoorDash) */}
-      <section className="py-16 sm:py-24 bg-zinc-50 border-b border-zinc-200">
+      <section className="py-16 sm:py-24 bg-white border-b border-zinc-200/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
@@ -727,7 +734,7 @@ export default function WelcomeLanding() {
           </div>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-zinc-500 gap-3">
-            <p>© {new Date().getFullYear()} AxonMarket Technologies C.A. Todos los derechos reservados.</p>
+            <p>© {new Date().getFullYear()} AxonMarket · Emprendimiento Hernán Perdomo · RIF J-508056124. Todos los derechos reservados.</p>
             <p>Hecho con pasión para el comercio venezolano 🇻🇪</p>
           </div>
 
