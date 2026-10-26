@@ -333,154 +333,86 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* SECCIÓN COMERCIAL: ALIANZA LOGÍSTICA OFICIAL CON EN MINUTOS */}
-      <section className="py-16 sm:py-24 bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 text-white relative overflow-hidden border-b border-zinc-800">
-        {/* Efectos de Iluminación y Patrón Tecnológico */}
+      {/* SECCIÓN LOGÍSTICA: EN MINUTOS (TARJETA CENTRADA - TEMA BLANCO Y NARANJA) */}
+      <section className="py-12 sm:py-16 bg-gradient-to-b from-white via-orange-50/25 to-white relative overflow-hidden border-b border-orange-100/70">
+        {/* Efectos sutiles de fondo con iluminación de marca */}
         <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-orange-500/15 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-orange-400/10 blur-3xl pointer-events-none" />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+        <div className="max-w-md mx-auto px-4 sm:px-6 relative z-10 flex justify-center">
+          {/* Tarjeta Comercial Visual centrada en tonalidades blanco y naranja */}
+          <div className="w-full bg-white p-6 sm:p-8 rounded-3xl border border-orange-200/90 shadow-xl shadow-orange-500/5 relative hover:border-orange-300 transition-all">
             
-            {/* Columna Izquierda: Mensaje Comercial de la Alianza */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 text-orange-400 text-xs font-black tracking-wider uppercase">
-                <Zap size={14} className="fill-orange-400 text-orange-400" />
-                <span>Alianza Logística Estratégica</span>
-              </div>
-
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.1]">
-                Entregas ultrarrápidas garantizadas con <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-400">En Minutos</span>
-              </h2>
-
-              <p className="text-sm sm:text-base text-zinc-300 leading-relaxed font-normal max-w-xl">
-                En AxonMarket sellamos una alianza estratégica con <strong className="text-white font-bold">En Minutos</strong>, la red de delivery y logística urbana más ágil. Tu tiempo es oro: los pedidos de tus restaurantes, bodegones y tiendas favoritas llegan directo a tu puerta en minutos, con rutas coordinadas por GPS y transportistas verificados.
-              </p>
-
-              {/* 3 Métricas Comerciales */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-1">
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
-                  <div className="text-xl sm:text-2xl font-black text-amber-400">En Minutos</div>
-                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Tiempos récord de despacho</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
-                  <div className="text-sm sm:text-base font-black text-white leading-tight">Maracay • Turmero</div>
-                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-1">Cagua y cobertura regional</div>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm hover:border-orange-500/40 transition-colors">
-                  <div className="text-xl sm:text-2xl font-black text-emerald-400">Garantía</div>
-                  <div className="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5">Entrega cuidada y protegida</div>
+            {/* Cabecera de la Tarjeta con Logo Insignia Oficial Real de En Minutos */}
+            <div className="flex items-center justify-between pb-6 border-b border-orange-100/80">
+              <div className="flex items-center gap-3.5">
+                {/* Logotipo Oficial Real */}
+                <img 
+                  src="/enminutos-logo.png" 
+                  alt="Logo Oficial En Minutos" 
+                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-md object-cover ring-2 ring-orange-500/25 shrink-0" 
+                />
+                <div className="flex flex-col text-left leading-tight">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base sm:text-lg font-black text-zinc-950 tracking-wide">Delivery En Minutos</span>
+                    <span className="text-orange-500 font-black">⚡</span>
+                  </div>
+                  <a 
+                    href="https://www.instagram.com/enminutos.ve" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-xs text-orange-600 font-bold hover:underline inline-flex items-center gap-1 mt-0.5 hover:text-orange-700 transition-colors"
+                  >
+                    <span>@enminutos.ve</span>
+                    <ExternalLink size={11} />
+                  </a>
                 </div>
               </div>
+              <span className="text-[10px] uppercase font-black tracking-widest bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full shrink-0">
+                Aliado Oficial
+              </span>
+            </div>
 
-              {/* Botones de Acción Comercial & Enlace a Instagram Oficial */}
-              <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-3.5">
-                <button
-                  onClick={() => navigate('/explorar')}
-                  className="px-6 sm:px-7 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-xl active:scale-95 transition-all inline-flex items-center gap-2"
-                  style={{ color: '#ffffff' }}
-                >
-                  <span>Pedir con Delivery</span>
-                  <ArrowRight size={16} />
-                </button>
-                <button
-                  onClick={() => navigate('/comerciantes')}
-                  className="px-5 sm:px-6 py-3.5 rounded-full bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
-                  style={{ color: '#ffffff' }}
-                >
-                  <span>Activar en mi Comercio</span>
-                </button>
-                <a
-                  href="https://www.instagram.com/enminutos.ve"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-5 py-3.5 rounded-full bg-gradient-to-r from-pink-600/20 to-purple-600/20 hover:from-pink-600/30 hover:to-purple-600/30 text-white border border-pink-500/30 font-bold text-sm backdrop-blur-sm active:scale-95 transition-all inline-flex items-center gap-2"
-                  style={{ color: '#ffffff' }}
-                >
-                  <span>@enminutos.ve</span>
-                  <ExternalLink size={14} className="text-pink-300" />
-                </a>
+            {/* 3 Puntos Clave de la Alianza */}
+            <div className="py-6 space-y-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200/70 flex items-center justify-center text-orange-600 shrink-0 mt-0.5 shadow-2xs">
+                  <Truck size={18} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-zinc-900">Flota Urbana de Motorizados</h4>
+                  <p className="text-xs text-zinc-500 leading-relaxed">Riders equipados y listos para recoger de inmediato en el comercio y llevar a tu destino.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200/70 flex items-center justify-center text-orange-600 shrink-0 mt-0.5 shadow-2xs">
+                  <Clock size={18} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-zinc-900">Despachos Express sin Demora</h4>
+                  <p className="text-xs text-zinc-500 leading-relaxed">Algoritmo inteligente para optimizar rutas de entrega en tu localidad.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-50 border border-orange-200/70 flex items-center justify-center text-orange-600 shrink-0 mt-0.5 shadow-2xs">
+                  <ShieldCheck size={18} />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-zinc-900">Sello de Calidad y Confianza</h4>
+                  <p className="text-xs text-zinc-500 leading-relaxed">"Tu tiempo es oro, nosotros lo cuidamos". Aliados oficiales del comercio regional.</p>
+                </div>
               </div>
             </div>
 
-            {/* Columna Derecha: Tarjeta Comercial Visual con el Logotipo Oficial Real */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md bg-gradient-to-b from-zinc-900 to-zinc-950 p-6 sm:p-8 rounded-3xl border border-orange-500/30 shadow-2xl relative">
-                
-                {/* Cabecera de la Tarjeta con Logo Insignia Oficial Real de En Minutos */}
-                <div className="flex items-center justify-between pb-6 border-b border-white/10">
-                  <div className="flex items-center gap-3.5">
-                    {/* Logotipo Oficial Real cargado desde /enminutos-logo.png */}
-                    <img 
-                      src="/enminutos-logo.png" 
-                      alt="Logo Oficial En Minutos" 
-                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-2xl object-cover ring-2 ring-red-500/40 shrink-0" 
-                    />
-                    <div className="flex flex-col text-left leading-tight">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-base sm:text-lg font-black text-white tracking-wide">Delivery En Minutos</span>
-                        <span className="text-yellow-400 font-black">⚡</span>
-                      </div>
-                      <a 
-                        href="https://www.instagram.com/enminutos.ve" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-xs text-amber-400 font-bold hover:underline inline-flex items-center gap-1 mt-0.5"
-                      >
-                        <span>@enminutos.ve</span>
-                        <ExternalLink size={11} />
-                      </a>
-                    </div>
-                  </div>
-                  <span className="text-[10px] uppercase font-black tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full shrink-0">
-                    Aliado Oficial
-                  </span>
-                </div>
-
-                {/* 3 Puntos Clave de la Alianza */}
-                <div className="py-6 space-y-4">
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-orange-400 shrink-0 mt-0.5">
-                      <Truck size={18} />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-sm font-bold text-white">Flota Urbana de Motorizados</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">Riders equipados y listos para recoger de inmediato en el comercio y llevar a tu destino.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-                      <Clock size={18} />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-sm font-bold text-white">Despachos Express sin Demora</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">Algoritmo inteligente para optimizar rutas de entrega en tu localidad.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
-                      <ShieldCheck size={18} />
-                    </div>
-                    <div className="text-left">
-                      <h4 className="text-sm font-bold text-white">Sello de Calidad y Confianza</h4>
-                      <p className="text-xs text-zinc-400 leading-relaxed">"Tu tiempo es oro, nosotros lo cuidamos". Aliados oficiales del comercio regional.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer de Tarjeta con Sello Conectado */}
-                <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5 font-semibold text-zinc-300">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Red Activa en tu Ciudad
-                  </span>
-                  <span className="text-[11px] text-amber-400 font-black">AxonMarket 🤝 En Minutos</span>
-                </div>
-
-              </div>
+            {/* Footer de Tarjeta con Sello Conectado */}
+            <div className="pt-4 border-t border-orange-100/80 flex items-center justify-between text-xs text-zinc-500">
+              <span className="flex items-center gap-1.5 font-semibold text-zinc-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Red Activa en tu Ciudad
+              </span>
+              <span className="text-[11px] text-orange-600 font-black">AxonMarket 🤝 En Minutos</span>
             </div>
 
           </div>
