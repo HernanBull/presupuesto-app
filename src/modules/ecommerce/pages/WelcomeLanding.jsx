@@ -344,33 +344,25 @@ export default function WelcomeLanding() {
           <div className="w-full bg-white p-6 sm:p-8 rounded-3xl border border-orange-200/90 shadow-xl shadow-orange-500/5 relative hover:border-orange-300 transition-all">
             
             {/* Cabecera de la Tarjeta con Logo Insignia Oficial Real de En Minutos */}
-            <div className="flex items-center justify-between pb-6 border-b border-orange-100/80">
-              <div className="flex items-center gap-3.5">
-                {/* Logotipo Oficial Real */}
-                <img 
-                  src="/enminutos-logo.png" 
-                  alt="Logo Oficial En Minutos" 
-                  className="w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-md object-cover ring-2 ring-orange-500/25 shrink-0" 
-                />
-                <div className="flex flex-col text-left leading-tight">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base sm:text-lg font-black text-zinc-950 tracking-wide">Delivery En Minutos</span>
-                    <span className="text-orange-500 font-black">⚡</span>
-                  </div>
-                  <a 
-                    href="https://www.instagram.com/enminutos.ve" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="text-xs text-orange-600 font-bold hover:underline inline-flex items-center gap-1 mt-0.5 hover:text-orange-700 transition-colors"
-                  >
-                    <span>@enminutos.ve</span>
-                    <ExternalLink size={11} />
-                  </a>
-                </div>
+            <div className="flex items-center gap-3.5 pb-6 border-b border-orange-100/80">
+              {/* Logotipo Oficial Real */}
+              <img 
+                src="/enminutos-logo.png" 
+                alt="Logo Oficial En Minutos" 
+                className="w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-md object-cover ring-2 ring-orange-500/25 shrink-0" 
+              />
+              <div className="flex flex-col text-left leading-tight">
+                <span className="text-base sm:text-lg font-black text-zinc-950 tracking-wide">Delivery En Minutos</span>
+                <a 
+                  href="https://www.instagram.com/enminutos.ve" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-xs text-orange-600 font-bold hover:underline inline-flex items-center gap-1 mt-0.5 hover:text-orange-700 transition-colors"
+                >
+                  <span>@enminutos.ve</span>
+                  <ExternalLink size={11} />
+                </a>
               </div>
-              <span className="text-[10px] uppercase font-black tracking-widest bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full shrink-0">
-                Aliado Oficial
-              </span>
             </div>
 
             {/* 3 Puntos Clave de la Alianza */}
@@ -406,13 +398,11 @@ export default function WelcomeLanding() {
               </div>
             </div>
 
-            {/* Footer de Tarjeta con Sello Conectado */}
-            <div className="pt-4 border-t border-orange-100/80 flex items-center justify-between text-xs text-zinc-500">
-              <span className="flex items-center gap-1.5 font-semibold text-zinc-700">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                Red Activa en tu Ciudad
+            {/* Footer de Tarjeta Centrado en Naranja */}
+            <div className="pt-4 border-t border-orange-100/80 flex items-center justify-center text-xs">
+              <span className="text-xs sm:text-sm text-orange-600 font-black tracking-wide">
+                AxonMarket 🤝 En Minutos
               </span>
-              <span className="text-[11px] text-orange-600 font-black">AxonMarket 🤝 En Minutos</span>
             </div>
 
           </div>
