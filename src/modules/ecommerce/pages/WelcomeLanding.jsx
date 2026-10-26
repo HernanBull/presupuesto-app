@@ -98,9 +98,6 @@ export default function WelcomeLanding() {
     );
   };
 
-  const popularCities = [
-    'Cagua', 'Maracay', 'Turmero', 'La Victoria', 'Valencia', 'Caracas', 'San Juan', 'Villa de Cura'
-  ];
 
   const popularCategories = [
     { name: 'Comida Rápida', icon: Flame, tag: 'Comida' },
@@ -599,25 +596,7 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* 6. CIUDADES ACTIVAS */}
-      <section className="py-12 bg-zinc-50 border-t border-zinc-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h3 className="text-xs font-black tracking-widest uppercase text-zinc-400 mb-4">
-            Comercios disponibles en ciudades de Venezuela
-          </h3>
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 max-w-4xl mx-auto">
-            {popularCities.map((city, i) => (
-              <button
-                key={i}
-                onClick={() => navigate('/explorar', { state: { searchQuery: city } })}
-                className="px-3.5 py-1.5 bg-white hover:bg-zinc-900 hover:text-white border border-zinc-200 text-xs font-bold text-zinc-700 rounded-full transition-all shadow-2xs"
-              >
-                📍 {city}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* 7. FOOTER PROFESIONAL AXONMARKET */}
       <footer className="bg-zinc-950 text-zinc-400 text-xs pt-16 pb-12 mt-auto border-t border-zinc-800">
