@@ -599,7 +599,16 @@ export default function PublicStore() {
     // Preparar Items
     const orderItems = Object.entries(cart).map(([id, qty]) => {
       const p = products.find(prod => prod.id === id);
-      return { id: p.id, name: p.name, price: p.is_offer ? p.discount_price : p.price, quantity: qty, sku: p.sku };
+      return { 
+        id: p.id, 
+        name: p.name, 
+        price: p.is_offer ? p.discount_price : p.price, 
+        quantity: qty, 
+        sku: p.sku,
+        is_combo: Boolean(p?.metadata?.is_combo),
+        combo_items: p?.metadata?.combo_items || null,
+        metadata: p?.metadata || null
+      };
     });
     
     const subtotal = orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -2849,8 +2858,14 @@ export default function PublicStore() {
                         >
                           {/* Top Badges */}
                           {Boolean(p.is_offer) && (
-                            <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm">
-                              {p.metadata?.offer_badge || 'Oferta'}
+                            <div className={`absolute top-2 left-2 z-10 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm ${
+                              p.metadata?.is_combo 
+                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600' 
+                                : 'bg-gradient-to-r from-red-500 to-amber-500'
+                            }`}>
+                              {p.metadata?.is_combo 
+                                ? (p.metadata?.combo_badge || '🎁 COMBO') 
+                                : (p.metadata?.offer_badge || 'Oferta')}
                             </div>
                           )}
                           {(p.stock_vitrina || 0) <= 0 && (
@@ -2873,6 +2888,13 @@ export default function PublicStore() {
                           {/* Info */}
                           <div className="p-3 flex flex-col flex-1">
                             <h3 className="font-semibold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1 min-h-[40px]">{p.name}</h3>
+                            {p.metadata?.is_combo && Array.isArray(p.metadata?.combo_items) && (
+                              <div className="mb-2">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-2 py-0.5 rounded-md">
+                                  🎁 Incluye {p.metadata.combo_items.length} artículos
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between gap-1 mb-2.5">
                               <p className="text-xs text-zinc-500 font-medium">{p.step_size || 1} {p.unit || 'unidad'}</p>
                               {(p.stock_vitrina || 0) > 0 ? (
@@ -3022,8 +3044,14 @@ export default function PublicStore() {
                  <ImageIcon size={80} className="text-zinc-800" />
                )}
                {Boolean(selectedProduct.is_offer) && (
-                 <div className="absolute top-6 left-6 text-black text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20 shadow-lg" style={{ backgroundColor: primaryColor }}>
-                   Oferta
+                 <div className={`absolute top-6 left-6 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20 shadow-lg ${
+                   selectedProduct.metadata?.is_combo 
+                     ? "bg-gradient-to-r from-purple-600 to-indigo-600" 
+                     : "bg-amber-500 text-black"
+                 }`}>
+                   {selectedProduct.metadata?.is_combo 
+                     ? (selectedProduct.metadata?.combo_badge || "🎁 COMBO ESPECIAL") 
+                     : (selectedProduct.metadata?.offer_badge || "Oferta")}
                  </div>
                )}
             </div>
@@ -3053,6 +3081,40 @@ export default function PublicStore() {
                  )}
                </div>
                
+               {/* COMBO ITEMS BREAKDOWN */}
+               {selectedProduct.metadata?.is_combo && Array.isArray(selectedProduct.metadata?.combo_items) && selectedProduct.metadata.combo_items.length > 0 && (
+                 <div className="mb-6 p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-white shadow-inner">
+                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                     <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                       <span>🎁</span> Este Combo Incluye ({selectedProduct.metadata.combo_items.length} productos):
+                     </span>
+                     {selectedProduct.metadata?.savings_usd > 0 && (
+                       <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                         ¡Ahorras ${Number(selectedProduct.metadata.savings_usd).toFixed(2)} ({selectedProduct.metadata.savings_percentage}% OFF)!
+                       </span>
+                     )}
+                   </div>
+                   
+                   <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                     {selectedProduct.metadata.combo_items.map((ci, cIdx) => (
+                       <div key={ci.id || cIdx} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 hover:border-purple-500/30 transition-colors text-xs">
+                         <div className="flex items-center gap-2.5 min-w-0">
+                           {ci.image_url ? (
+                             <img src={resolveImageUrl(ci.image_url)} alt={ci.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 shrink-0" />
+                           ) : (
+                             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-zinc-400 shrink-0">📦</div>
+                           )}
+                           <span className="font-semibold text-zinc-200 truncate">{ci.name}</span>
+                         </div>
+                         <span className="font-bold text-purple-300 shrink-0 ml-2 bg-purple-500/20 px-2 py-0.5 rounded-md border border-purple-500/30">
+                           x{ci.qty || 1} {ci.unit || "und"}
+                         </span>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
                <div className="prose prose-invert prose-zinc max-w-none mb-8 font-light text-zinc-400">
                  <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
                </div>

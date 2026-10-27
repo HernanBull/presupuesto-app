@@ -711,9 +711,35 @@ export default function OrdersManager() {
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Resumen ({selectedOrder.items ? selectedOrder.items.length : 0} arts.)</h4>
               <div className="bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-slate-100 dark:border-white/5 space-y-3">
                 {Array.isArray(selectedOrder.items) && selectedOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-200 dark:border-white/5 pb-2 last:border-0 last:pb-0">
-                    <span className="text-slate-700 dark:text-slate-300 font-medium">{item.name} <span className="text-slate-400">x{item.quantity}</span></span>
-                    <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                  <div key={idx} className="border-b border-slate-200 dark:border-white/5 pb-2.5 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.name} <span className="text-slate-400 font-normal">x{item.quantity}</span></span>
+                        {(item.is_combo || item.metadata?.is_combo) && (
+                          <span className="text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                            {item.metadata?.combo_badge || '🎁 COMBO'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-bold text-slate-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+
+                    {/* Desglose Picking / Empaque para combos */}
+                    {(item.is_combo || item.metadata?.is_combo) && Array.isArray(item.combo_items || item.metadata?.combo_items) && (item.combo_items || item.metadata?.combo_items).length > 0 && (
+                      <div className="mt-2 pl-3 py-1.5 border-l-2 border-purple-400 dark:border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 rounded-r-lg space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1">
+                          <span>📦</span> Desglose para Picking / Empaque:
+                        </p>
+                        {(item.combo_items || item.metadata?.combo_items).map((ci, cIdx) => (
+                          <div key={ci.id || cIdx} className="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-between pl-1">
+                            <span>• {ci.name}</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                              x{(ci.qty || 1) * (item.quantity || 1)} {ci.unit || 'und'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {selectedOrder.shippingInfo?.cost !== undefined && (
