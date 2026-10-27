@@ -363,16 +363,16 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       {/* Rutas protegidas exclusivamente para comerciantes */}
       <Route element={<MerchantGuard />}>
         <Route element={<EcommerceLayout theme={theme} toggleTheme={toggleTheme} />}>
-          {/* Rutas Protegidas por PIN */}
+          {/* Rutas Protegidas por PIN de Administrador */}
           <Route element={<AdminGuard />}>
             <Route path="dashboard" element={<EcommerceDashboard />} />
             <Route path="analytics" element={<AnalyticsManager />} />
             <Route path="store-profile" element={<StoreProfileManager />} />
+            <Route path="inventory" element={<InventoryManager />} />
           </Route>
           <Route path="products" element={<ProductsManager />} />
           <Route path="product-studio" element={<ProductStudio />} />
           <Route path="product-studio/:id" element={<ProductStudio />} />
-          <Route path="inventory" element={<InventoryManager />} />
           <Route path="orders" element={<OrdersManager />} />
         <Route path="support" element={<SupportManager />} />
           <Route path="preparation" element={<OrderPreparation />} />
