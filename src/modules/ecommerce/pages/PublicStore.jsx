@@ -2585,36 +2585,45 @@ export default function PublicStore() {
 
         {/* OFERTAS */}
         {currentPage === 'offers' && (
-          <div className="flex-1 flex flex-col w-full relative">
-            <div className="py-12 px-6 md:px-12 border-b border-zinc-200 bg-white relative overflow-hidden">
+          <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-28 relative">
+            <div className="py-8 md:py-12 px-4 sm:px-8 border-b border-slate-200/80 bg-white relative overflow-hidden shadow-xs">
                <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center">
-                 <h1 className={`${headingWeight} text-4xl md:text-5xl text-black tracking-tight`}>{texts.offersTitle || 'Ofertas'}</h1>
+                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold w-max mb-2">
+                   <Zap size={14} className="fill-amber-500 text-amber-500" />
+                   <span>Promociones y Descuentos</span>
+                 </div>
+                 <h1 className={`${headingWeight} text-3xl md:text-5xl text-slate-900 tracking-tight font-extrabold`}>
+                   {texts.offersTitle || 'Ofertas Flash'}
+                 </h1>
+                 <p className="text-slate-500 text-sm md:text-base mt-1">
+                   Aprovecha los mejores precios y promociones exclusivas de la tienda.
+                 </p>
                </div>
             </div>
             
             <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 md:py-12 relative z-10">
-              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 gap-0">
+              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
                   <div 
                     key={p.id}
                     id={`product-card-${p.id}`}
                     onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                    className={`group relative flex justify-between gap-3 bg-transparent border-b border-white/5 py-5 last:border-0 md:border md:rounded-2xl md:p-4 md:hover:bg-white/5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-500 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`group relative flex justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <div className="flex-1 flex flex-col pt-1">
-                            <p className="font-semibold text-white text-[15px] line-clamp-2 mb-1 group-hover:text-white/80 transition-colors leading-tight">{p.name}</p>
-                            <p className="text-xs text-zinc-400 line-clamp-2 mb-3 leading-relaxed font-light">{p.description || 'Sin descripción detallada.'}</p>
+                      <p className="font-bold text-slate-900 text-[15px] line-clamp-2 mb-1 group-hover:text-amber-600 transition-colors leading-tight">{p.name}</p>
+                      <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed font-normal">{p.description || 'Sin descripción detallada.'}</p>
                       
                       <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
                          {isUserAllowedToSeePrices ? (
                             <div className="flex items-center gap-2">
-                              <p className="font-bold text-sm" style={{ color: primaryColor }}>${Number(p.discount_price || p.price).toFixed(2)}</p>
-                              <p className="text-[10px] text-zinc-500 line-through">${Number(p.price).toFixed(2)}</p>
+                              <p className="font-black text-base text-amber-600">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                              <p className="text-xs text-slate-400 line-through">${Number(p.price).toFixed(2)}</p>
                             </div>
                           ) : (
                             <button 
                               onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                              className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-full transition-colors border border-white/5 inline-flex items-center gap-1.5"
+                              className="text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200 inline-flex items-center gap-1.5"
                             >
                               <Lock size={12} /> Precio
                             </button>
@@ -2622,29 +2631,29 @@ export default function PublicStore() {
                           {(p.stock_vitrina || 0) > 0 ? (
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                               (p.stock_vitrina || 0) <= 5 
-                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
-                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' 
+                                : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
                             }`}>
                               {(p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 border border-red-500/20">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 border border-red-500/20">
                               Agotado
                             </span>
                           )}
                       </div>
                     </div>
 
-                    <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-zinc-900/50 overflow-hidden relative flex-shrink-0 border border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.3)] self-center">
+                    <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-slate-100 overflow-hidden relative flex-shrink-0 border border-slate-200 shadow-sm self-center">
                       {p.image_url ? (
                         <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                        <div className="w-full h-full flex items-center justify-center text-slate-400">
                            <ImageIcon size={24} />
                         </div>
                       )}
                       
-                      <div className="absolute top-1 left-1 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-md flex items-center gap-1" style={{ backgroundColor: primaryColor }}>
+                      <div className="absolute top-1 left-1 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
                         <Zap size={8} fill="currentColor" className="animate-pulse" /> OFERTA
                       </div>
                       
@@ -2656,18 +2665,18 @@ export default function PublicStore() {
                       
                       <div className="absolute bottom-[-1px] right-[-1px] z-20">
                         {isUserAllowedToSeePrices && cart[p.id] > 0 ? (
-                          <div className="flex items-center gap-1.5 bg-zinc-900 border-t border-l border-white/10 rounded-tl-xl p-1" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 text-zinc-400 transition-colors"><Minus size={12}/></button>
-                            <span className="text-xs font-bold text-white min-w-[16px] text-center">{cart[p.id]}</span>
-                            <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed' : 'hover:scale-110'}`} style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}><Plus size={12}/></button>
+                          <div className="flex items-center gap-1 bg-white border-t border-l border-slate-200 rounded-tl-xl p-1 shadow-sm" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-700 transition-colors"><Minus size={12}/></button>
+                            <span className="text-xs font-bold text-slate-900 min-w-[16px] text-center">{cart[p.id]}</span>
+                            <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed bg-slate-300' : 'bg-amber-500 hover:scale-110'}`}><Plus size={12}/></button>
                           </div>
                         ) : (
                           isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
                             <button 
                               onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                              className="w-8 h-8 bg-zinc-900 rounded-tl-xl border-t border-l border-white/10 flex items-center justify-center transition-colors hover:bg-zinc-800"
+                              className="w-8 h-8 bg-amber-500 text-black rounded-tl-xl border-t border-l border-amber-600/20 flex items-center justify-center transition-all hover:bg-amber-400 active:scale-95 shadow-sm"
                             >
-                              <Plus size={16} style={{ color: primaryColor }} />
+                              <Plus size={16} />
                             </button>
                           )
                         )}
@@ -2678,7 +2687,7 @@ export default function PublicStore() {
                       <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
                         <button 
                           onClick={(e) => { e.stopPropagation(); navigate(`/product-studio/${p.id}`); }}
-                          className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.5)] hover:scale-110 transition-transform"
+                          className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:scale-110 transition-transform"
                         >
                           <Pen size={14} /> Editar
                         </button>
@@ -2686,19 +2695,20 @@ export default function PublicStore() {
                     )}
                   </div>
                 )) : (
-                  <div className="col-span-full py-32 flex flex-col items-center justify-center text-center">
-                    <div className="mb-6 opacity-30">
-                      <Tag size={64} className="text-zinc-500" strokeWidth={1} />
+                  <div className="col-span-full py-20 md:py-28 flex flex-col items-center justify-center text-center px-4">
+                    <div className="w-20 h-20 rounded-3xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-5 shadow-xs border border-amber-500/20">
+                      <Tag size={40} className="stroke-[1.8]" />
                     </div>
-                    <h3 className="text-2xl text-white font-semibold mb-3">No hay promociones vigentes</h3>
-                    <p className="text-zinc-500 text-base max-w-md">
+                    <h3 className="text-2xl font-black text-slate-900 mb-2">No hay promociones vigentes</h3>
+                    <p className="text-slate-600 text-sm md:text-base max-w-md leading-relaxed mb-6">
                       En este momento no contamos con ofertas activas. Te invitamos a revisar nuestro catálogo de productos o a volver más tarde.
                     </p>
                     <button 
                       onClick={() => setCurrentPage('products')}
-                      className="mt-8 px-8 py-3 rounded-xl text-sm font-bold tracking-wide transition-all border border-white/10 hover:border-white/20 text-white bg-white/5 hover:bg-white/10"
+                      className="px-8 py-3.5 rounded-2xl text-sm font-bold tracking-wide transition-all bg-slate-900 hover:bg-slate-800 text-white shadow-md shadow-slate-900/15 active:scale-95 flex items-center gap-2 cursor-pointer"
                     >
-                      Ir a Productos
+                      <ShoppingBag size={18} />
+                      <span>Ir a Productos</span>
                     </button>
                   </div>
                 )}
