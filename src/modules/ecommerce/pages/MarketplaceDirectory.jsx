@@ -1634,20 +1634,19 @@ export default function MarketplaceDirectory() {
           </div>
         </header>
 
-        {/* 1. Panel de Estados / Promociones de Comerciantes estilo WhatsApp (ARRIBA del buscador) */}
+        {/* 1. Panel de Estados de Comerciantes estilo WhatsApp / Stories Cards (ARRIBA del buscador) */}
         <div className="px-3 md:px-5 py-2.5 border-b border-zinc-100 bg-white">
           <div className="flex items-center justify-between px-1 mb-2">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Estados de Comerciantes</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase tracking-wider">En vivo</span>
+              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Estados</span>
             </div>
-            <span className="text-[10px] text-zinc-500 font-medium">Toca para ver</span>
+            <span className="text-[10px] text-zinc-500 font-medium">Ver historias</span>
           </div>
           
-          <div className="flex overflow-x-auto gap-4 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex overflow-x-auto gap-3 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {merchantStatuses.map((status, idx) => (
               <div 
                 key={status.id || idx}
@@ -1655,35 +1654,52 @@ export default function MarketplaceDirectory() {
                   setActiveStatusIndex(idx);
                   setIsStatusViewerOpen(true);
                 }}
-                className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+                className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
                 title={`Ver estado de ${status.name}`}
               >
-                <div className="relative">
-                  {/* Anillo de estado circular estilo WhatsApp / Stories */}
-                  <div className="w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 group-hover:scale-105 group-active:scale-95 transition-transform duration-150 shadow-sm">
-                    <div className="w-full h-full rounded-full bg-white p-[2px] overflow-hidden">
-                      {status.avatar ? (
-                        <img 
-                          src={resolveImageUrl(status.avatar)} 
-                          alt={status.name} 
-                          className="w-full h-full object-cover rounded-full" 
-                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80'; }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs rounded-full">
-                          <Store size={20} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {/* Badge de video/promo en esquina */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white">
-                    <Play size={8} fill="currentColor" />
+                {/* Imagen de fondo / Preview del Estado */}
+                <img 
+                  src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                  alt={status.name} 
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&q=80'; }}
+                />
+
+                {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
+
+                {/* Avatar del comerciante en la esquina superior izquierda */}
+                <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
+                  <div className="w-full h-full rounded-full bg-white overflow-hidden">
+                    {status.avatar ? (
+                      <img 
+                        src={resolveImageUrl(status.avatar)} 
+                        alt={status.name} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
+                        <Store size={14} />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <span className="text-[10px] text-center font-bold text-zinc-700 truncate w-14 group-hover:text-amber-600 transition-colors">
-                  {status.name}
-                </span>
+
+                {/* Icono de Play en la esquina superior derecha */}
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
+                  <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
+                </div>
+
+                {/* Nombre del comercio en la parte inferior */}
+                <div className="absolute bottom-2 left-2 right-2 flex flex-col">
+                  <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
+                    {status.name}
+                  </span>
+                  <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs">
+                    {status.time || 'Nuevo'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
