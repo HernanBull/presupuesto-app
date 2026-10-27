@@ -1807,37 +1807,55 @@ export default function PublicStore() {
         </div>
       )}
 
-      {/* Navbar (Premium Glassmorphism) */}
+      {/* Navbar (Premium Dark Glassmorphism) */}
       {currentPage !== 'home' && (
-      <nav className={`z-40 transition-all duration-300 px-6 md:px-12 py-5 sticky top-0 ${
-        isTransparentHeader ? 'bg-gradient-to-b from-black/80 to-transparent border-none' : 'bg-zinc-950/80 backdrop-blur-2xl border-b border-white/5 shadow-2xl'
-      }`}>
+      <nav 
+        className="z-40 transition-all duration-300 px-4 md:px-12 py-3.5 sticky top-0 dark-glass-nav"
+        style={{
+          backgroundColor: 'rgba(12, 12, 14, 0.88)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)'
+        }}
+      >
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setCurrentPage('home')}>
-            <span className={`text-2xl font-black tracking-tight text-white flex items-center gap-2`}>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentPage('home')}>
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setCurrentPage('home'); }} 
+              className="p-1 -ml-1 text-zinc-400 hover:text-white rounded-lg transition-colors"
+              title="Volver al inicio"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
               {config.business_name || 'MI TIENDA'}
               {config.is_verified && (
-                <div title="Comercio Verificado" className="inline-flex mt-1">
-                  <ShieldCheck size={20} className="text-blue-500 fill-blue-500/20" />
+                <div title="Comercio Verificado" className="inline-flex mt-0.5">
+                  <ShieldCheck size={18} className="text-amber-400 fill-amber-400/20" />
                 </div>
               )}
             </span>
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-bold tracking-widest uppercase">
-            <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#71717a' }}>{texts.nav1}</span>
-            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'products' ? primaryColor : '#71717a' }}>{texts.nav2 || 'Productos'}</span>
-            <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'offers' ? primaryColor : '#71717a' }}>{texts.nav3}</span>
+            <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#a1a1aa' }}>{texts.nav1}</span>
+            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'products' ? primaryColor : '#a1a1aa' }}>{texts.nav2 || 'Productos'}</span>
+            <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'offers' ? primaryColor : '#a1a1aa' }}>{texts.nav3}</span>
           </div>
           
-          <div className="flex items-center gap-6">
-             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-2 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
+          <div className="flex items-center gap-3">
+             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
                <ArrowLeft size={16} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
              
              {!currentCustomer && !isMerchantOwner ? (
-               <button onClick={() => setShowAuthModal(true)} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full transition-colors border border-white/5 hover:border-white/20">
+               <button 
+                 onClick={() => setShowAuthModal(true)} 
+                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full transition-colors border border-amber-500/40 shadow-xs active:scale-95 cursor-pointer"
+               >
                  <User size={14} /> Ingresar
                </button>
              ) : (
@@ -2566,93 +2584,109 @@ export default function PublicStore() {
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
             
             {/* Barra superior de Categorías Principales */}
-            <div className="bg-white sticky top-0 z-40 border-b border-zinc-200 px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide shadow-sm">
+            <div className="bg-white sticky top-[57px] md:top-[65px] z-30 border-b border-zinc-200 px-3 sm:px-6 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide shadow-xs">
                {mainCategories.map(mc => (
                  <button 
                    key={mc}
                    onClick={() => setActiveMainCategory(mc)}
-                   className={`whitespace-nowrap px-6 py-2 rounded-full text-sm font-bold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-md' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
+                   className={`whitespace-nowrap px-5 py-1.5 rounded-full text-xs md:text-sm font-bold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
                  >
                    {mc}
                  </button>
                ))}
             </div>
 
-            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row px-4 md:px-8 py-6 gap-6 md:gap-8">
-               
-               {/* Barra Lateral Izquierda: Subcategorías */}
-               <div className="hidden md:block w-64 flex-shrink-0">
-                  <div className="bg-white rounded-2xl shadow-sm border border-zinc-100 p-4 sticky top-24">
-                     <h3 className="font-bold text-lg mb-4 text-zinc-800 px-2">Explorar</h3>
-                     <div className="flex flex-col space-y-1">
-                       {subCategories.map(sc => (
-                         <button
-                           key={sc}
-                           onClick={() => setActiveSubCategory(sc)}
-                           className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeSubCategory === sc ? 'bg-amber-50 text-amber-600 font-bold' : 'text-zinc-600 hover:bg-zinc-50 font-medium'}`}
-                         >
-                           {sc === 'Todos' ? (
-                             <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
-                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                             </div>
-                           ) : (
-                             <div className="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center overflow-hidden">
-                                <span className="text-xs">🥦</span>
-                             </div>
-                           )}
-                           <span className="flex-1">{sc}</span>
-                         </button>
-                       ))}
-                     </div>
-                  </div>
-               </div>
-               
-               {/* Menú Móvil para Subcategorías */}
-               <div className="md:hidden w-full relative z-30">
-                  <select 
-                     value={activeSubCategory}
-                     onChange={(e) => setActiveSubCategory(e.target.value)}
-                     className="w-full appearance-none bg-white border border-zinc-200 rounded-xl px-4 py-3.5 font-bold text-zinc-700 shadow-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                  >
-                     {subCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                     <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                  </div>
-               </div>
 
-               {/* Grid de Productos */}
-               <div className="flex-1">
-                  
-                  {/* Búsqueda y Ordenar */}
-                  <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
-                    <div className="relative w-full md:max-w-md">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row px-3 sm:px-6 md:px-8 py-3.5 md:py-5 gap-3.5 md:gap-6">
+               
+               {/* Barra Lateral Izquierda: Subcategorías (Desktop) */}
+                <div className="hidden md:block w-60 lg:w-64 flex-shrink-0">
+                   <div className="bg-white rounded-2xl shadow-xs border border-zinc-200/80 p-3.5 sticky top-24">
+                      <h3 className="font-bold text-sm uppercase tracking-wider mb-3 text-zinc-800 px-2 flex items-center justify-between">
+                        <span>Explorar</span>
+                        <span className="text-[10px] font-bold text-zinc-400 normal-case bg-zinc-100 px-2 py-0.5 rounded-full">{catalogProducts.length}</span>
+                      </h3>
+                      <div className="flex flex-col space-y-1">
+                        {subCategories.map(sc => (
+                          <button
+                            key={sc}
+                            onClick={() => setActiveSubCategory(sc)}
+                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${activeSubCategory === sc ? 'bg-amber-500 text-black font-black shadow-xs' : 'text-zinc-600 hover:bg-zinc-50 font-semibold'}`}
+                          >
+                            <span className="flex-1 truncate">{sc}</span>
+                          </button>
+                        ))}
                       </div>
-                      <input 
-                        type="text" 
-                        placeholder="Buscar productos..." 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full block pl-10 pr-3 py-2 border border-zinc-200 rounded-xl leading-5 bg-zinc-50 placeholder-zinc-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                      />
-                    </div>
-                    <div className="w-full md:w-auto">
-                      <select 
-                        value={sortBy} 
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2 text-sm text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                      >
-                        <option value="newest">Más recientes</option>
-                        <option value="priceAsc">Precio: Menor a Mayor</option>
-                        <option value="priceDesc">Precio: Mayor a Menor</option>
-                        <option value="nameAsc">Nombre: A-Z</option>
-                      </select>
-                    </div>
-                  </div>
+                   </div>
+                </div>
 
-                  {catalogProducts.length > 0 ? (
+                {/* Contenedor Principal de Productos */}
+                <div className="flex-1 min-w-0">
+                   
+                   {/* Barra Compacta de Búsqueda, Subcategorías y Ordenar */}
+                   <div className="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                     <div className="relative flex-1">
+                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                         <Search size={16} />
+                       </div>
+                       <input 
+                         type="text" 
+                         placeholder="Buscar productos en el catálogo..." 
+                         value={searchQuery}
+                         onChange={(e) => setSearchQuery(e.target.value)}
+                         className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                       />
+                       {searchQuery && (
+                         <button 
+                           type="button"
+                           onClick={() => setSearchQuery('')}
+                           className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600"
+                           aria-label="Limpiar búsqueda"
+                         >
+                           <X size={14} />
+                         </button>
+                       )}
+                     </div>
+
+                     <div className="flex items-center gap-2">
+                       {/* Selector de Subcategoría en Móvil */}
+                       {subCategories.length > 1 && (
+                         <div className="md:hidden flex-1 relative">
+                           <select 
+                             value={activeSubCategory}
+                             onChange={(e) => setActiveSubCategory(e.target.value)}
+                             aria-label="Filtrar por subcategoría"
+                             className="w-full appearance-none bg-zinc-50 border border-zinc-200 rounded-xl pl-3 pr-7 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                           >
+                             {subCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
+                           </select>
+                           <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-zinc-400">
+                             <ChevronRight size={13} className="rotate-90" />
+                           </div>
+                         </div>
+                       )}
+
+                       {/* Selector de Orden */}
+                       <div className="relative flex-1 sm:flex-initial min-w-[130px]">
+                         <select 
+                           value={sortBy} 
+                           onChange={(e) => setSortBy(e.target.value)}
+                           aria-label="Ordenar productos"
+                           className="w-full appearance-none bg-zinc-50 border border-zinc-200 rounded-xl pl-3 pr-7 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
+                         >
+                           <option value="newest">Más recientes</option>
+                           <option value="priceAsc">Precio: Menor</option>
+                           <option value="priceDesc">Precio: Mayor</option>
+                           <option value="nameAsc">Nombre: A-Z</option>
+                         </select>
+                         <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-zinc-400">
+                           <ChevronRight size={13} className="rotate-90" />
+                         </div>
+                       </div>
+                     </div>
+                   </div>
+
+                   {catalogProducts.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
                       {catalogProducts.map((p, i) => (
                         <div 
@@ -2755,10 +2789,27 @@ export default function PublicStore() {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-20 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-zinc-100">
-                       <svg className="w-16 h-16 text-zinc-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                       <h3 className="text-lg font-bold text-zinc-700 mb-2">No se encontraron productos</h3>
-                       <p className="text-zinc-500">Prueba ajustando los filtros de búsqueda o categoría.</p>
+                    <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-white rounded-2xl border border-zinc-200/80 shadow-xs max-w-md mx-auto my-6">
+                       <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 mb-3.5 shadow-xs">
+                         <Package size={28} className="stroke-[1.8]" />
+                       </div>
+                       <h3 className="text-base font-bold text-zinc-800 mb-1">No se encontraron productos</h3>
+                       <p className="text-xs text-zinc-500 max-w-xs mb-4">
+                         {searchQuery ? `No hay resultados para "${searchQuery}".` : 'No hay productos disponibles con los filtros actuales.'}
+                       </p>
+                       {(searchQuery || activeSubCategory !== 'Todos' || activeMainCategory !== 'Todas') && (
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setSearchQuery('');
+                             setActiveSubCategory('Todos');
+                             setActiveMainCategory('Todas');
+                           }}
+                           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-xs font-black rounded-xl transition-all shadow-xs active:scale-95 cursor-pointer"
+                         >
+                           Ver todo el catálogo
+                         </button>
+                       )}
                     </div>
                   )}
                </div>
@@ -2766,15 +2817,19 @@ export default function PublicStore() {
           </div>
         )}
       </div>
-      <footer className="bg-zinc-950 border-t border-white/5 mt-auto relative z-10 py-12 px-6">
-        <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-3">
-             <img src={logoAxon} alt="Axon Market" className="h-6 w-auto object-contain grayscale opacity-50" />
-             <span className="font-black tracking-widest text-zinc-600 uppercase text-sm">
-               AXON MARKET
+      <footer className="bg-zinc-950 border-t border-white/10 mt-auto relative z-10 py-10 px-6">
+        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+           <div className="flex items-center gap-2.5">
+             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-zinc-950 shadow-md shadow-amber-500/20 shrink-0">
+               <ShoppingBag size={18} className="stroke-[2.5]" />
+             </div>
+             <span className="font-black tracking-tight text-white uppercase text-sm">
+               AXON<span className="text-amber-400 font-black">MARKET</span>
              </span>
            </div>
-           <p className="text-zinc-600 font-light text-xs tracking-wider uppercase">{texts.footerText}</p>
+           <p className="text-zinc-400 font-medium text-xs tracking-wider">
+             {texts.footerText || `© ${new Date().getFullYear()} AxonMarket. Todos los derechos reservados.`}
+           </p>
         </div>
       </footer>
 
@@ -3803,62 +3858,60 @@ export default function PublicStore() {
           </button>
         </div>
       </ResponsiveModal>
-      {/* Mobile Bottom Navigation Bar - Floating Luminous White & Orange */}
+      {/* Mobile Bottom Navigation Bar - Floating Modern Dark Glassmorphism */}
       <nav 
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[400px] z-50 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
+        style={{
+          backgroundColor: 'rgba(12, 12, 14, 0.85)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255, 255, 255, 0.14)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+        }}
       >
         <div className="flex justify-between items-center h-16 px-2">
           <button
             onClick={() => setCurrentPage('home')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'home' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
+            style={currentPage === 'home' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
           >
             <Store size={22} fill={currentPage === 'home' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'home' ? 'font-black' : 'font-semibold'}`}>{texts?.nav1 || 'Inicio'}</span>
+            <span className={`text-[10px] ${currentPage === 'home' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav1 || 'Inicio'}</span>
           </button>
           
           <button
             onClick={() => setCurrentPage('products')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'products' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
+            style={currentPage === 'products' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
           >
             <Package size={22} fill={currentPage === 'products' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-semibold'}`}>{texts?.nav2 || 'Catálogo'}</span>
+            <span className={`text-[10px] ${currentPage === 'products' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav2 || 'Catálogo'}</span>
           </button>
 
           {/* Standard Button for Cart */}
           <button
             onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors relative"
-            style={isCartOpen ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors relative cursor-pointer"
+            style={isCartOpen ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
           >
             <div className="relative">
               <ShoppingCart size={22} fill={isCartOpen ? "currentColor" : "none"} />
               {totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-white text-[9px] font-black flex items-center justify-center rounded-full shadow-sm bg-orange-600">
+                <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-black font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-400">
                   {totalCartItems}
                 </span>
               )}
             </div>
-            <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-semibold'}`}>Carrito</span>
+            <span className={`text-[10px] ${isCartOpen ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>Carrito</span>
           </button>
 
           <button
             onClick={() => setCurrentPage('offers')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={currentPage === 'offers' ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
+            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
+            style={currentPage === 'offers' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
           >
             <Tag size={22} fill={currentPage === 'offers' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-semibold'}`}>{texts?.nav3 || 'Ofertas'}</span>
-          </button>
-
-          <button
-            onClick={() => setIsToolsModalOpen(true)}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors"
-            style={isToolsModalOpen ? { color: primaryColor || '#ea580c' } : { color: '#64748b' }}
-          >
-            <Calculator size={22} fill={isToolsModalOpen ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${isToolsModalOpen ? 'font-black' : 'font-semibold'}`}>Útiles</span>
+            <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav3 || 'Ofertas'}</span>
           </button>
         </div>
       </nav>
