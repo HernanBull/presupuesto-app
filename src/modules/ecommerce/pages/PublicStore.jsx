@@ -2890,7 +2890,7 @@ export default function PublicStore() {
                             <h3 className="font-semibold text-zinc-800 text-sm line-clamp-2 leading-tight mb-1 min-h-[40px]">{p.name}</h3>
                             {p.metadata?.is_combo && Array.isArray(p.metadata?.combo_items) && (
                               <div className="mb-2">
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/80 px-2 py-0.5 rounded-md">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200/80 px-2 py-0.5 rounded-md">
                                   🎁 Incluye {p.metadata.combo_items.length} artículos
                                 </span>
                               </div>
@@ -3027,17 +3027,17 @@ export default function PublicStore() {
         onNavigateStore={() => {}}
       />
 
-            {/* Product Modal Rediseñado: Elegante, Compacto y Mobile-Friendly */}
+                  {/* Product Modal Rediseñado: 100% Blanco y Anaranjado, Elegante y Mobile-Friendly */}
       <ResponsiveModal
         isOpen={!!selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        className="md:max-w-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 shadow-2xl rounded-t-3xl md:rounded-3xl"
-        contentClassName="p-0 flex flex-col md:flex-row max-h-[88vh] md:max-h-[80vh] overflow-hidden"
+        className="md:max-w-3xl !bg-white bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-t-3xl md:rounded-3xl overflow-hidden"
+        contentClassName="p-0 flex flex-col md:flex-row max-h-[88vh] md:max-h-[80vh] overflow-hidden !bg-white bg-white text-slate-900"
       >
         {selectedProduct && (
           <>
-            {/* Foto del Producto (Compacta y Proporcionada en Móvil) */}
-            <div className="md:w-5/12 bg-zinc-50 dark:bg-black/50 relative flex items-center justify-center p-4 md:p-8 shrink-0 border-b md:border-b-0 md:border-r border-zinc-100 dark:border-white/5 min-h-[200px] md:min-h-[340px]">
+            {/* Foto del Producto (Fondo claro suave, adaptable en móvil) */}
+            <div className="md:w-5/12 bg-orange-50/40 relative flex items-center justify-center p-4 md:p-8 shrink-0 border-b md:border-b-0 md:border-r border-slate-100 min-h-[200px] md:min-h-[340px]">
               {selectedProduct.image_url ? (
                 <img 
                   id={`modal-img-${selectedProduct.id}`} 
@@ -3046,18 +3046,14 @@ export default function PublicStore() {
                   className="w-full h-full object-contain max-h-48 md:max-h-64 transition-transform duration-300" 
                 />
               ) : (
-                <div className="w-24 h-24 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/60 flex items-center justify-center text-zinc-400">
+                <div className="w-24 h-24 rounded-2xl bg-orange-100/60 flex items-center justify-center text-orange-400">
                   <ImageIcon size={40} />
                 </div>
               )}
 
-              {/* Badge Promocional */}
+              {/* Badge Promocional Anaranjado */}
               {Boolean(selectedProduct.is_offer) && (
-                <div className={`absolute top-3 left-3 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-md ${
-                  selectedProduct.metadata?.is_combo 
-                    ? "bg-gradient-to-r from-purple-600 to-indigo-600" 
-                    : "bg-gradient-to-r from-red-500 to-amber-500"
-                }`}>
+                <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
                   {selectedProduct.metadata?.is_combo 
                     ? (selectedProduct.metadata?.combo_badge || "🎁 COMBO ESPECIAL") 
                     : (selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH")}
@@ -3065,17 +3061,17 @@ export default function PublicStore() {
               )}
             </div>
             
-            {/* Información del Producto */}
-            <div className="md:w-7/12 p-4 md:p-7 flex flex-col relative overflow-y-auto custom-scrollbar flex-1">
+            {/* Información del Producto (Blanco y Anaranjado) */}
+            <div className="md:w-7/12 p-4 md:p-7 flex flex-col relative overflow-y-auto custom-scrollbar flex-1 bg-white text-slate-900">
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-orange-600">
                   {selectedProduct.category || 'Producto'}
                 </span>
                 {(selectedProduct.stock_vitrina || 0) > 0 ? (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                     (selectedProduct.stock_vitrina || 0) <= 5
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   }`}>
                     {(selectedProduct.stock_vitrina || 0) <= 5
                       ? `¡Solo quedan ${selectedProduct.stock_vitrina}!`
@@ -3088,38 +3084,38 @@ export default function PublicStore() {
                 )}
               </div>
 
-              <h2 className="text-lg md:text-2xl font-black text-zinc-900 dark:text-white leading-tight mb-2 tracking-tight">
+              <h2 className="text-lg md:text-2xl font-black text-slate-900 leading-tight mb-2 tracking-tight">
                 {selectedProduct.name}
               </h2>
 
-              {/* Precios */}
+              {/* Precios Claros en Anaranjado */}
               <div className="mb-3 flex items-baseline gap-2 flex-wrap">
                 {isUserAllowedToSeePrices ? (
                   selectedProduct.is_offer ? (
                     <div className="flex items-baseline gap-2 flex-wrap">
-                      <p className="text-2xl md:text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">
+                      <p className="text-2xl md:text-3xl font-black text-orange-600 leading-none">
                         ${Number(selectedProduct.discount_price || selectedProduct.price).toFixed(2)}
-                        <span className="text-xs font-semibold text-zinc-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
+                        <span className="text-xs font-semibold text-slate-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
                       </p>
-                      <p className="text-sm text-zinc-400 line-through leading-none">
+                      <p className="text-sm text-slate-400 line-through leading-none">
                         ${Number(selectedProduct.price).toFixed(2)}
                       </p>
                       {selectedProduct.metadata?.discount_pct && (
-                        <span className="text-[10px] font-black bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">
+                        <span className="text-[10px] font-black bg-orange-50 text-orange-600 border border-orange-200 px-1.5 py-0.5 rounded-md">
                           -{selectedProduct.metadata.discount_pct}% OFF
                         </span>
                       )}
                     </div>
                   ) : (
-                    <p className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white leading-none">
+                    <p className="text-2xl md:text-3xl font-black text-slate-900 leading-none">
                       ${Number(selectedProduct.price).toFixed(2)}
-                      <span className="text-xs font-semibold text-zinc-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
+                      <span className="text-xs font-semibold text-slate-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
                     </p>
                   )
                 ) : (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                    className="flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200"
+                    className="flex items-center gap-1.5 text-xs font-bold text-orange-700 bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-200"
                   >
                     <Lock size={14} /> Ver Precio
                   </button>
@@ -3132,15 +3128,15 @@ export default function PublicStore() {
                 )}
               </div>
 
-              {/* Desglose de Combo Promocional */}
+              {/* Desglose de Combo Promocional (Fondo Naranja Suave y Blanco) */}
               {selectedProduct.metadata?.is_combo && Array.isArray(selectedProduct.metadata?.combo_items) && selectedProduct.metadata.combo_items.length > 0 && (
-                <div className="mb-3 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40">
+                <div className="mb-3 p-3 rounded-2xl bg-orange-50/70 border border-orange-200/80">
                   <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-                    <span className="text-[11px] font-black uppercase text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                    <span className="text-[11px] font-black uppercase text-orange-800 flex items-center gap-1">
                       <span>🎁</span> Incluye {selectedProduct.metadata.combo_items.length} productos:
                     </span>
                     {selectedProduct.metadata?.savings_usd > 0 && (
-                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">
                         ¡Ahorras ${Number(selectedProduct.metadata.savings_usd).toFixed(2)} ({selectedProduct.metadata.savings_percentage}% OFF)!
                       </span>
                     )}
@@ -3148,16 +3144,16 @@ export default function PublicStore() {
                   
                   <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
                     {selectedProduct.metadata.combo_items.map((ci, cIdx) => (
-                      <div key={ci.id || cIdx} className="flex items-center justify-between p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-purple-100 dark:border-white/5 text-xs">
+                      <div key={ci.id || cIdx} className="flex items-center justify-between p-2 rounded-xl bg-white border border-orange-200/60 shadow-2xs text-xs">
                         <div className="flex items-center gap-2 min-w-0">
                           {ci.image_url ? (
-                            <img src={resolveImageUrl(ci.image_url)} alt={ci.name} className="w-6 h-6 rounded-md object-contain bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                            <img src={resolveImageUrl(ci.image_url)} alt={ci.name} className="w-6 h-6 rounded-md object-contain bg-slate-50 shrink-0" />
                           ) : (
                             <span className="text-xs">📦</span>
                           )}
-                          <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate text-[11px]">{ci.name}</span>
+                          <span className="font-semibold text-slate-800 truncate text-[11px]">{ci.name}</span>
                         </div>
-                        <span className="font-bold text-purple-600 dark:text-purple-400 shrink-0 ml-1 text-[11px] bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded">
+                        <span className="font-bold text-orange-700 bg-orange-100/80 border border-orange-200 shrink-0 ml-1 text-[11px] px-2 py-0.5 rounded-md">
                           x{ci.qty || 1} {ci.unit || "und"}
                         </span>
                       </div>
@@ -3167,25 +3163,25 @@ export default function PublicStore() {
               )}
 
               {/* Descripción */}
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed mb-4 line-clamp-3">
+              <div className="text-xs text-slate-600 font-normal leading-relaxed mb-4 line-clamp-3">
                 <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
               </div>
 
-              {/* Barra de Compra Integrada y Ergonómica */}
-              <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-white/5 flex items-center gap-2.5">
+              {/* Barra de Compra Integrada (Blanco y Anaranjado) */}
+              <div className="mt-auto pt-3 border-t border-slate-100 flex items-center gap-2.5">
                 {isUserAllowedToSeePrices ? (
                   <>
-                    <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 shrink-0">
+                    <div className="flex items-center bg-slate-100 border border-slate-200 rounded-xl p-1 shrink-0">
                       <button 
                         onClick={() => setModalQty(Math.max(1, modalQty - (selectedProduct.step_size || 1)))} 
-                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-700 hover:bg-zinc-200 text-zinc-800 dark:text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="w-9 text-center font-bold text-sm text-zinc-900 dark:text-white">{modalQty}</span>
+                      <span className="w-9 text-center font-bold text-sm text-slate-900">{modalQty}</span>
                       <button 
                         onClick={() => setModalQty(modalQty + (selectedProduct.step_size || 1))} 
-                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-700 hover:bg-zinc-200 text-zinc-800 dark:text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                        className="w-8 h-8 rounded-lg bg-white hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                       >
                         <Plus size={14} />
                       </button>
@@ -3194,8 +3190,7 @@ export default function PublicStore() {
                     <button 
                       onClick={storeClosed ? undefined : addModalToCart}
                       disabled={storeClosed || (selectedProduct.stock_vitrina || 0) <= 0}
-                      className="flex-1 py-3 px-4 rounded-xl text-black font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                      style={{ backgroundColor: storeClosed ? '#71717a' : primaryColor }}
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
                       <ShoppingBag size={16} />
                       <span>
@@ -3206,7 +3201,7 @@ export default function PublicStore() {
                 ) : (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                    className="w-full py-3 rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                   >
                     <Lock size={16} /> Ingresa para Comprar
                   </button>

@@ -228,7 +228,7 @@ export default function ProductsManager() {
                     {/* Badge de Combo */}
                     {(product.metadata?.is_combo || product.category === 'Combos') && (
                       <div className="absolute top-3 right-3">
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-sm">
                           {product.metadata?.combo_badge || '🎁 COMBO'}
                         </span>
                       </div>

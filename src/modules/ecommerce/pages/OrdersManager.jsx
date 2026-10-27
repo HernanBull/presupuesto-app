@@ -716,7 +716,7 @@ export default function OrdersManager() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-slate-700 dark:text-slate-300 font-semibold">{item.name} <span className="text-slate-400 font-normal">x{item.quantity}</span></span>
                         {(item.is_combo || item.metadata?.is_combo) && (
-                          <span className="text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-black bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300 border border-orange-200 px-1.5 py-0.5 rounded">
                             {item.metadata?.combo_badge || '🎁 COMBO'}
                           </span>
                         )}
@@ -726,8 +726,8 @@ export default function OrdersManager() {
 
                     {/* Desglose Picking / Empaque para combos */}
                     {(item.is_combo || item.metadata?.is_combo) && Array.isArray(item.combo_items || item.metadata?.combo_items) && (item.combo_items || item.metadata?.combo_items).length > 0 && (
-                      <div className="mt-2 pl-3 py-1.5 border-l-2 border-purple-400 dark:border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 rounded-r-lg space-y-1">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center gap-1">
+                      <div className="mt-2 pl-3 py-1.5 border-l-2 border-orange-400 dark:border-orange-500 bg-orange-50/60 dark:bg-orange-950/20 rounded-r-lg space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-orange-700 dark:text-orange-400 flex items-center gap-1">
                           <span>📦</span> Desglose para Picking / Empaque:
                         </p>
                         {(item.combo_items || item.metadata?.combo_items).map((ci, cIdx) => (
