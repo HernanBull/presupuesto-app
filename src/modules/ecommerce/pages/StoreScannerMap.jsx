@@ -488,6 +488,27 @@ export default function StoreScannerMap() {
             ))}
           </MapContainer>
         )}
+
+        {/* Fixed Central Pin Overlay (Zona de Escaneo) */}
+        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-[50]">
+          <div className="relative mt-2 opacity-80 pointer-events-none" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.5))' }}>
+            <svg width="44" height="58" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -translate-y-1/2">
+              <defs>
+                <linearGradient id="pinGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" />
+                  <stop offset="100%" stopColor="#d97706" />
+                </linearGradient>
+              </defs>
+              <path d="M22 2C10.954 2 2 10.954 2 22C2 37 22 56 22 56C22 56 42 37 42 22C42 10.954 33.046 2 22 2Z" fill="url(#pinGrad)" stroke="white" strokeWidth="3"/>
+              <path d="M22 4C11.5 4 4 11.5 4 22C4 32 18 48 22 52C26 48 40 32 40 22C40 11.5 32.5 4 22 4Z" fill="white" fillOpacity="0.15" />
+              <g transform="translate(12, 11) scale(0.85)">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 6h18" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 10a4 4 0 0 1-8 0" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </g>
+            </svg>
+          </div>
+        </div>
       </div>
 
       {/* TOP FLOATING HEADER (BUSCADOR REACTIVO SÓLIDO) */}
