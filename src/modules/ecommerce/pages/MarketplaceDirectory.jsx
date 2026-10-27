@@ -1651,8 +1651,8 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción) */}
-        <div className="flex flex-col space-y-2 px-0 py-0 pb-28 flex-1 w-full bg-black">
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción con Snap Scroll) */}
+        <div className="flex flex-col space-y-0 px-0 py-0 pb-28 flex-1 w-full bg-black snap-y snap-mandatory overscroll-contain">
           {feedPosts.length === 0 ? (
             <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
               <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -1681,7 +1681,7 @@ export default function MarketplaceDirectory() {
           )}
 
           {/* Footer App Compacto */}
-          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl">
+          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl snap-start">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
                 <ShoppingBag size={14} className="stroke-[2.5]" />

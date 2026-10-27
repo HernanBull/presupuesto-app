@@ -250,27 +250,31 @@ export default function SocialFeedCard({
   return (
     <div 
       id={`post-${postId}`}
-      className="relative w-full aspect-[4/5] sm:aspect-[9/16] min-h-[500px] max-h-[720px] bg-black cursor-pointer overflow-hidden select-none border-b border-zinc-900"
+      className="relative w-full h-[calc(100dvh-130px)] min-h-[500px] max-h-[850px] bg-black cursor-pointer overflow-hidden select-none snap-start shrink-0 flex flex-col justify-end"
       onDoubleClick={handleDoubleTap}
     >
       {/* Background Media */}
       {storeCover ? (
         <img 
           loading="lazy" 
+          decoding="async"
           src={resolveImageUrl(storeCover)} 
           alt={storeName} 
-          className="w-full h-full object-cover" 
+          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
         />
       ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
           <Store size={56} className="text-amber-500/80" />
           <span className="font-medium text-sm text-white">Explorar Tienda</span>
         </div>
       )}
 
+      {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}
+      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10" />
+
       {/* Top Overlay: Pager & Options Menu */}
       <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 select-none">
-        <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none">
+        <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none shadow-sm">
           1/1
         </div>
 
@@ -278,7 +282,7 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer"
+            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-sm"
             title="Más opciones"
           >
             <MoreHorizontal size={16} />
@@ -310,7 +314,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-2.5 bottom-4 z-20 flex flex-col items-center gap-3.5 select-none"
+        className="absolute right-3 bottom-5 z-20 flex flex-col items-center gap-3.5 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Like / Corazón */}
@@ -395,12 +399,9 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
       <div 
-        className="absolute left-0 bottom-0 right-16 z-10 p-4 pb-4 flex flex-col gap-1.5 select-none pointer-events-auto"
+        className="relative z-20 p-4 pb-4 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Smooth bottom gradient for crisp text readability */}
-        <div className="absolute inset-x-0 bottom-0 -top-24 bg-gradient-to-t from-black/95 via-black/65 to-transparent pointer-events-none -z-10" />
-
         {/* Merchant Profile Row */}
         <div className="flex items-center gap-2">
           <div 
