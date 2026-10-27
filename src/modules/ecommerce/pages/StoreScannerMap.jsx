@@ -703,10 +703,23 @@ export default function StoreScannerMap() {
                 <button
                   type="button"
                   onClick={toggleSheetSnap}
-                  className="w-8 h-8 rounded-xl bg-zinc-100 text-zinc-600 flex items-center justify-center border border-zinc-200"
+                  className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-600 flex items-center justify-center border border-zinc-200 transition-colors"
                   title={sheetSnap === 'expanded' ? 'Reducir' : 'Expandir'}
                 >
                   {sheetSnap === 'expanded' ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedStore(null);
+                    setSheetSnap('collapsed');
+                  }}
+                  className="w-8 h-8 rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-700 flex items-center justify-center border border-zinc-200 shadow-xs transition-colors cursor-pointer active:scale-95"
+                  title="Cerrar y ver mapa completo"
+                >
+                  <X size={16} />
                 </button>
               </div>
             </div>
@@ -800,12 +813,12 @@ export default function StoreScannerMap() {
                           {/* Delivery EM en minutos (una sola vez) */}
                           {selectedStore.hasEnminutosAlliance && (
                             <span 
-                              className="inline-flex items-center gap-1 bg-slate-950 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-black shadow-xs border border-white/20"
-                              style={{ color: '#ffffff' }}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-[10px] font-black shadow-xs shrink-0 select-none"
+                              style={{ backgroundColor: '#09090b', color: '#ffffff', border: '1px solid #27272a' }}
                             >
-                              <span className="text-red-500 font-black">EM</span>
-                              <Zap size={10} className="fill-yellow-400 text-yellow-400" />
-                              <span className="text-white">en minutos</span>
+                              <span style={{ color: '#ef4444', fontWeight: 900 }}>EM</span>
+                              <Zap size={10} className="fill-yellow-400 text-yellow-400 -mx-0.5" />
+                              <span style={{ color: '#ffffff', fontWeight: 800 }}>en minutos</span>
                             </span>
                           )}
                         </div>
@@ -992,12 +1005,12 @@ export default function StoreScannerMap() {
                                 {/* Delivery EM en minutos (una sola vez) */}
                                 {store.hasEnminutosAlliance && (
                                   <span 
-                                    className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-md text-[10px] font-black shadow-xs border border-white/20"
-                                    style={{ color: '#ffffff' }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-black shadow-xs shrink-0 select-none"
+                                    style={{ backgroundColor: '#09090b', color: '#ffffff', border: '1px solid #27272a' }}
                                   >
-                                    <span className="text-red-500 font-black">EM</span>
-                                    <Zap size={10} className="fill-yellow-400 text-yellow-400" />
-                                    <span className="text-white">en minutos</span>
+                                    <span style={{ color: '#ef4444', fontWeight: 900 }}>EM</span>
+                                    <Zap size={10} className="fill-yellow-400 text-yellow-400 -mx-0.5" />
+                                    <span style={{ color: '#ffffff', fontWeight: 800 }}>en minutos</span>
                                   </span>
                                 )}
                               </div>
