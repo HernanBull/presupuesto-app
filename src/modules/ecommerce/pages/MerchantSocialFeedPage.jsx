@@ -337,11 +337,13 @@ export default function MerchantSocialFeedPage() {
 
   const handleOpenModal = (newsItem = null) => {
     if (newsItem) {
+      const isVid = newsItem.media_type === 'video' || (newsItem.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(newsItem.image_url));
       setFormData({
         id: newsItem.id,
         title: newsItem.title || '',
         content: newsItem.content || '',
         image_url: newsItem.image_url || '',
+        media_type: isVid ? 'video' : 'image',
         status: newsItem.status || 'Publicado',
         badge: newsItem.badge || '🔥 Oferta Exclusiva'
       });
@@ -351,6 +353,7 @@ export default function MerchantSocialFeedPage() {
         title: '',
         content: '',
         image_url: '',
+        media_type: 'image',
         status: 'Publicado',
         badge: '🔥 Oferta Exclusiva'
       });
@@ -371,28 +374,45 @@ export default function MerchantSocialFeedPage() {
 
     setIsSubmitting(true);
     try {
+      const isVideo = Boolean(formData.media_type === 'video' || (formData.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(formData.image_url)));
       const payload = {
         workspace_id: workspaceId,
         title: formData.title.trim(),
         content: formData.content.trim(),
         image_url: formData.image_url?.trim() || null,
+        media_type: isVideo ? 'video' : 'image',
         status: formData.status || 'Publicado'
       };
 
+      let opError = null;
       if (formData.id) {
         const { error } = await supabase
           .from('ecommerce_store_news')
           .update(payload)
           .eq('id', formData.id);
-        if (error) throw error;
-        toast.success('Publicación actualizada en el feed');
+        opError = error;
       } else {
         const { error } = await supabase
           .from('ecommerce_store_news')
           .insert([payload]);
-        if (error) throw error;
-        toast.success('¡Publicado en Axon Market exitosamente!');
+        opError = error;
       }
+
+      // Si falla por columna media_type inexistente en BD no migrada, reintentar sin ella
+      if (opError && opError.message?.toLowerCase().includes('media_type')) {
+        delete payload.media_type;
+        if (formData.id) {
+          const { error } = await supabase.from('ecommerce_store_news').update(payload).eq('id', formData.id);
+          opError = error;
+        } else {
+          const { error } = await supabase.from('ecommerce_store_news').insert([payload]);
+          opError = error;
+        }
+      }
+
+      if (opError) throw opError;
+
+      toast.success(formData.id ? 'Publicación actualizada en el feed' : '¡Publicado en Axon Market exitosamente!');
 
       // Notificar al feed global para actualización instantánea
       window.dispatchEvent(new CustomEvent('axon_social_updated'));
@@ -630,18 +650,33 @@ export default function MerchantSocialFeedPage() {
                 key={item.id} 
                 className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-200 dark:border-white/5 overflow-hidden flex flex-col shadow-xs hover:border-amber-500/30 transition-all group"
               >
-                {/* Imagen del Post */}
+                {/* Imagen o Video del Post */}
                 <div className="relative aspect-4/3 bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                   {item.image_url ? (
-                    <img 
-                      src={item.image_url} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    />
+                    (item.media_type === 'video' || /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(item.image_url)) ? (
+                      <>
+                        <video 
+                          src={item.image_url} 
+                          muted 
+                          playsInline 
+                          loop 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                        <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                          <Video size={12} className="text-amber-400" /> Video
+                        </div>
+                      </>
+                    ) : (
+                      <img 
+                        src={item.image_url} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                    )
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                       <ImageIcon size={36} className="opacity-40 mb-1" />
-                      <span className="text-xs">Sin foto adjunta</span>
+                      <span className="text-xs">Sin multimedia adjunta</span>
                     </div>
                   )}
 
