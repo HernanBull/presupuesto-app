@@ -2611,13 +2611,26 @@ export default function PublicStore() {
                     className={`group relative flex justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <div className="flex-1 flex flex-col pt-1">
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                        <span className="text-[10px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
+                          {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
+                        </span>
+                        {p.metadata?.offer_limit_qty && (
+                          <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                            Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
+                          </span>
+                        )}
+                      </div>
                       <p className="font-bold text-slate-900 text-[15px] line-clamp-2 mb-1 group-hover:text-amber-600 transition-colors leading-tight">{p.name}</p>
                       <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed font-normal">{p.description || 'Sin descripción detallada.'}</p>
                       
                       <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
                          {isUserAllowedToSeePrices ? (
                             <div className="flex items-center gap-2">
-                              <p className="font-black text-base text-amber-600">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                              <p className="font-black text-base text-amber-600">
+                                ${Number(p.discount_price || p.price).toFixed(2)}
+                                <span className="text-xs font-semibold text-slate-500 ml-1">/ {p.unit_type || p.unit || 'und'}</span>
+                              </p>
                               <p className="text-xs text-slate-400 line-through">${Number(p.price).toFixed(2)}</p>
                             </div>
                           ) : (
@@ -2836,8 +2849,8 @@ export default function PublicStore() {
                         >
                           {/* Top Badges */}
                           {Boolean(p.is_offer) && (
-                            <div className="absolute top-2 left-2 z-10 bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md shadow-sm">
-                              Oferta
+                            <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm">
+                              {p.metadata?.offer_badge || 'Oferta'}
                             </div>
                           )}
                           {(p.stock_vitrina || 0) <= 0 && (
@@ -2882,11 +2895,22 @@ export default function PublicStore() {
                                 {isUserAllowedToSeePrices ? (
                                   p.is_offer ? (
                                     <div className="flex flex-col">
-                                      <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                      <div className="flex items-baseline gap-1">
+                                        <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                        <span className="text-[10px] text-zinc-500 font-semibold">/ {p.unit_type || p.unit || 'und'}</span>
+                                      </div>
                                       <p className="text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
+                                      {p.metadata?.offer_limit_qty && (
+                                        <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded mt-0.5 inline-block">
+                                          Máx. {p.metadata.offer_limit_qty} por pedido
+                                        </span>
+                                      )}
                                     </div>
                                   ) : (
-                                    <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.price).toFixed(2)}</p>
+                                    <div className="flex items-baseline gap-1">
+                                      <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.price).toFixed(2)}</p>
+                                      <span className="text-[10px] text-zinc-500 font-semibold">/ {p.unit_type || p.unit || 'und'}</span>
+                                    </div>
                                   )
                                 ) : (
                                   <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">Ver Precio</button>
