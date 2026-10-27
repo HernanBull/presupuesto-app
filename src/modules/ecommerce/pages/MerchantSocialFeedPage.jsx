@@ -3,7 +3,8 @@ import { supabase } from '../../../supabaseClient';
 import { 
   Plus, Edit2, Trash2, Eye, EyeOff, Search, Loader2, Image as ImageIcon, 
   X, Heart, MessageSquare, Bookmark, Users, Sparkles, Share2, 
-  ExternalLink, Check, ShoppingBag, ArrowUpRight, Flame, Megaphone, Star, Tag, Send
+  ExternalLink, Check, ShoppingBag, ArrowUpRight, Flame, Megaphone, Star, Tag, Send,
+  Video, Camera, ZoomIn, ZoomOut, Move, Volume2, VolumeX, Play
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -56,6 +57,17 @@ export default function MerchantSocialFeedPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
+  const videoFileInputRef = useRef(null);
+  const videoRecordInputRef = useRef(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+
+  // Estados del Recortador / Encuadre Inteligente 9:16
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageToCrop, setRawImageToCrop] = useState('');
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropPan, setCropPan] = useState({ x: 0, y: 0 });
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const [formData, setFormData] = useState({
     id: null,
@@ -150,7 +162,129 @@ export default function MerchantSocialFeedPage() {
     return () => window.removeEventListener('axon_social_updated', handleSocialUpdate);
   }, [workspaceId]);
 
-  // Manejar subida de foto a Supabase Storage
+  // Manejar selección de foto para abrir Recortador 9:16
+  const handleImageFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('La imagen no debe superar los 20 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setRawImageToCrop(event.target.result);
+      setCropZoom(1);
+      setCropPan({ x: 0, y: 0 });
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Manejar subida y grabación de Video
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('El video no debe superar los 50 MB');
+      return;
+    }
+    setUploadingVideo(true);
+    try {
+      const ext = file.name.split('.').pop() || 'mp4';
+      const fileName = `social_videos/${workspaceId}/${Date.now()}_video.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('ecommerce')
+        .upload(fileName, file, { upsert: true, contentType: file.type || 'video/mp4' });
+
+      if (uploadError) {
+        const blobUrl = URL.createObjectURL(file);
+        setFormData(prev => ({ ...prev, image_url: blobUrl, media_type: 'video' }));
+        toast.success('Video cargado localmente');
+      } else {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'video' }));
+        toast.success('¡Video subido exitosamente!');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al procesar el video');
+    } finally {
+      setUploadingVideo(false);
+      if (videoFileInputRef.current) videoFileInputRef.current.value = '';
+      if (videoRecordInputRef.current) videoRecordInputRef.current.value = '';
+    }
+  };
+
+  // Aplicar encuadre 9:16 con Canvas HTML5
+  const applyCropAndSave = async () => {
+    if (!rawImageToCrop) return;
+    setUploadingImage(true);
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = rawImageToCrop;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const targetWidth = 1080;
+      const targetHeight = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+
+      const imgAspect = img.width / img.height;
+      const targetAspect = targetWidth / targetHeight;
+
+      let renderWidth, renderHeight;
+      if (imgAspect > targetAspect) {
+        renderHeight = targetHeight * cropZoom;
+        renderWidth = renderHeight * imgAspect;
+      } else {
+        renderWidth = targetWidth * cropZoom;
+        renderHeight = renderWidth / imgAspect;
+      }
+
+      const offsetX = (targetWidth - renderWidth) / 2 + (cropPan.x * (targetWidth / 260));
+      const offsetY = (targetHeight - renderHeight) / 2 + (cropPan.y * (targetHeight / (260 * (16 / 9))));
+
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      const fileName = `social_posts/${workspaceId}/${Date.now()}_cropped_9_16.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('ecommerce')
+        .upload(fileName, blob, { upsert: true, contentType: 'image/jpeg' });
+
+      if (uploadError) {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        setFormData(prev => ({ ...prev, image_url: dataUrl, media_type: 'image' }));
+        toast.success('Encuadre aplicado');
+      } else {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'image' }));
+        toast.success('¡Foto encuadrada a 9:16 exitosamente!');
+      }
+
+      setCropModalOpen(false);
+      setRawImageToCrop('');
+    } catch (err) {
+      console.error('Error aplicando encuadre:', err);
+      setFormData(prev => ({ ...prev, image_url: rawImageToCrop, media_type: 'image' }));
+      setCropModalOpen(false);
+      toast.success('Foto seleccionada');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Manejar subida directa fallback
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -703,28 +837,67 @@ export default function MerchantSocialFeedPage() {
                     <input 
                       type="file" 
                       ref={fileInputRef} 
-                      onChange={handleImageUpload} 
+                      onChange={handleImageFileSelect} 
                       accept="image/*" 
                       className="hidden" 
                     />
+                    <input 
+                      type="file" 
+                      ref={videoRecordInputRef} 
+                      onChange={handleVideoUpload} 
+                      accept="video/*" 
+                      capture="environment" 
+                      className="hidden" 
+                    />
+                    <input 
+                      type="file" 
+                      ref={videoFileInputRef} 
+                      onChange={handleVideoUpload} 
+                      accept="video/mp4,video/webm,video/quicktime" 
+                      className="hidden" 
+                    />
+
+                    {/* Botón Subir Foto con Encuadre */}
                     <button
                       type="button"
-                      disabled={uploadingImage}
+                      disabled={uploadingImage || uploadingVideo}
                       onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                     >
-                      {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-                      Subir foto desde dispositivo
+                      {uploadingImage ? <Loader2 size={14} className="animate-spin text-amber-500" /> : <ImageIcon size={14} className="text-amber-500" />}
+                      Subir Foto (Encuadre 9:16)
+                    </button>
+
+                    {/* Botón Grabar Video desde Cámara */}
+                    <button
+                      type="button"
+                      disabled={uploadingImage || uploadingVideo}
+                      onClick={() => videoRecordInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-500/30 bg-red-500/10 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                    >
+                      <Camera size={14} />
+                      Grabar Video
+                    </button>
+
+                    {/* Botón Subir Video MP4 */}
+                    <button
+                      type="button"
+                      disabled={uploadingImage || uploadingVideo}
+                      onClick={() => videoFileInputRef.current?.click()}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                    >
+                      {uploadingVideo ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <Video size={14} />}
+                      Subir Video MP4
                     </button>
 
                     {storeProducts.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setIsProductPickerOpen(!isProductPickerOpen)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
                       >
                         <ShoppingBag size={14} />
-                        Usar foto de mi catálogo ({storeProducts.length})
+                        Foto de Catálogo ({storeProducts.length})
                       </button>
                     )}
                   </div>
@@ -745,12 +918,14 @@ export default function MerchantSocialFeedPage() {
                               onClick={() => {
                                 setFormData(prev => ({ 
                                   ...prev, 
-                                  image_url: img,
                                   title: prev.title || `¡Disponible: ${p.name}!`,
-                                  content: prev.content || `Aprovecha nuestro producto ${p.name} a tan solo $${p.price}. Disponible para entrega inmediata.`
+                                  content: prev.content || `Aprovecha nuestro producto ${p.name} a tan solo ${p.price}. Disponible para entrega inmediata.`
                                 }));
                                 setIsProductPickerOpen(false);
-                                toast.success(`Foto de "${p.name}" seleccionada`);
+                                setRawImageToCrop(img);
+                                setCropZoom(1);
+                                setCropPan({ x: 0, y: 0 });
+                                setCropModalOpen(true);
                               }}
                               className="cursor-pointer border border-transparent hover:border-amber-500 rounded-xl overflow-hidden group relative bg-white dark:bg-zinc-900"
                             >
@@ -840,27 +1015,23 @@ export default function MerchantSocialFeedPage() {
                       <div className="w-2 h-2 rounded-full bg-zinc-800"></div>
                     </div>
 
-                    {/* Background Media con Ambient Blur dual si es ancha */}
-                    {formData.image_url ? (
-                      <>
-                        {/* Capa de fondo desenfocado ambiental */}
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-                          <img 
-                            src={formData.image_url} 
-                            alt="" 
-                            className="w-full h-full object-cover scale-125 blur-xl opacity-60 brightness-60" 
-                          />
-                        </div>
-                        {/* Capa de foto principal 100% visible sin recorte */}
-                        <div className="absolute inset-0 z-0 flex items-center justify-center p-2 pointer-events-none">
-                          <img 
-                            src={formData.image_url} 
-                            alt="Preview" 
-                            className="max-w-full max-h-[75%] object-contain rounded-xl shadow-lg border border-white/10" 
-                            onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
-                          />
-                        </div>
-                      </>
+                    {/* Background Media 100% Pantalla Completa TikTok */}
+                    {Boolean(formData.image_url && (formData.media_type === 'video' || /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(formData.image_url))) ? (
+                      <video 
+                        src={formData.image_url} 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline 
+                        className="w-full h-full object-cover z-0" 
+                      />
+                    ) : formData.image_url ? (
+                      <img 
+                        src={formData.image_url} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover z-0" 
+                        onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+                      />
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-0 gap-2 p-4 text-center">
                         <ImageIcon size={36} className="opacity-40 text-amber-500" />
@@ -953,6 +1124,120 @@ export default function MerchantSocialFeedPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Recorte y Encuadre Inteligente 9:16 (Estilo TikTok) */}
+      <ResponsiveModal
+        isOpen={cropModalOpen}
+        onClose={() => setCropModalOpen(false)}
+        title="Encuadre de Pantalla 9:16 (TikTok)"
+      >
+        <div className="p-4 sm:p-6 space-y-4 text-left">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Move size={15} className="text-amber-500" />
+                Ajustar Encuadre 9:16
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                Arrastra la foto y usa el zoom para encuadrar exactamente lo que se verá en el teléfono.
+              </p>
+            </div>
+          </div>
+
+          {/* Marco Interactivo 9:16 */}
+          <div className="flex justify-center py-2">
+            <div 
+              className="relative w-60 h-[426px] bg-black rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500 select-none cursor-grab active:cursor-grabbing touch-none"
+              onPointerDown={(e) => {
+                setIsDraggingCrop(true);
+                setDragStart({ x: e.clientX - cropPan.x, y: e.clientY - cropPan.y });
+              }}
+              onPointerMove={(e) => {
+                if (!isDraggingCrop) return;
+                setCropPan({
+                  x: e.clientX - dragStart.x,
+                  y: e.clientY - dragStart.y
+                });
+              }}
+              onPointerUp={() => setIsDraggingCrop(false)}
+              onPointerCancel={() => setIsDraggingCrop(false)}
+            >
+              {rawImageToCrop && (
+                <img 
+                  src={rawImageToCrop} 
+                  alt="Crop preview" 
+                  className="absolute pointer-events-none transition-transform"
+                  style={{
+                    transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom})`,
+                    transformOrigin: 'center center',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+              )}
+
+              {/* Guías de Marco Seguro TikTok */}
+              <div className="absolute inset-0 border border-white/20 pointer-events-none rounded-3xl"></div>
+              <div className="absolute top-3 left-3 bg-black/60 px-2 py-0.5 rounded-full text-[9px] text-white/80 pointer-events-none">
+                Pantalla 9:16
+              </div>
+
+              {/* Indicador de ayuda táctil */}
+              <div className="absolute bottom-3 inset-x-3 text-center pointer-events-none">
+                <span className="bg-black/70 backdrop-blur-md text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30">
+                  ↔ Arrastra para centrar la foto
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Controles de Zoom */}
+          <div className="bg-gray-50 dark:bg-zinc-800/80 p-3 rounded-2xl border border-gray-200 dark:border-zinc-700 flex items-center gap-3">
+            <ZoomOut size={16} className="text-gray-500" />
+            <input 
+              type="range" 
+              min="1" 
+              max="3" 
+              step="0.05"
+              value={cropZoom}
+              onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+              className="flex-1 accent-amber-500 cursor-pointer"
+            />
+            <ZoomIn size={16} className="text-gray-500" />
+            <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 w-10 text-right">
+              {Math.round(cropZoom * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => { setCropZoom(1); setCropPan({ x: 0, y: 0 }); }}
+              className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline px-2"
+            >
+              Restablecer
+            </button>
+          </div>
+
+          {/* Botones de Acción */}
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setCropModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={uploadingImage}
+              onClick={applyCropAndSave}
+              className="flex items-center gap-1.5 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            >
+              {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} className="stroke-[3]" />}
+              Aplicar Encuadre 9:16
+            </button>
+          </div>
+        </div>
+      </ResponsiveModal>
 
       {/* Drawer de Comentarios para Moderar / Responder */}
       <PostCommentsDrawer

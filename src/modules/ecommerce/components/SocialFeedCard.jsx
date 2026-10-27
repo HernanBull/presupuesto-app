@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
-  MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X 
+  MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
+  Play, Volume2, VolumeX 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -68,8 +69,10 @@ export default function SocialFeedCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isWideImage, setIsWideImage] = useState(false);
-  const shouldContain = post.fit_mode === 'contain' || (post.fit_mode !== 'cover' && isWideImage);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef(null);
+  const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
 
   // Cargar estado desde el servidor
   useEffect(() => {
@@ -261,38 +264,46 @@ export default function SocialFeedCard({
       }}
       onDoubleClick={handleDoubleTap}
     >
-      {/* Background Media */}
-      {storeCover ? (
-        shouldContain ? (
-          <>
-            {/* Ambient Blurred Background (Estilo TikTok / Instagram Reels para fotos horizontales o cuadradas) */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-              <img 
-                src={resolveImageUrl(storeCover)} 
-                alt="" 
-                className="w-full h-full object-cover scale-125 blur-3xl opacity-55 brightness-60" 
-              />
-            </div>
-            {/* Foto Principal Completa sin recortes (100% visible) */}
-            <div className="absolute inset-0 z-0 flex items-center justify-center p-3 sm:p-5 pointer-events-none">
-              <img 
-                loading="lazy" 
-                decoding="async"
-                src={resolveImageUrl(storeCover)} 
-                alt={storeName} 
-                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/10" 
-              />
-            </div>
-          </>
-        ) : (
-          <img 
-            loading="lazy" 
-            decoding="async"
-            src={resolveImageUrl(storeCover)} 
-            alt={storeName} 
-            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
+      {/* Background Media - 100% Pantalla Completa TikTok */}
+      {isVideo ? (
+        <div className="absolute inset-0 w-full h-full bg-black z-0">
+          <video
+            ref={videoRef}
+            src={resolveImageUrl(post.video_url || storeCover)}
+            playsInline
+            loop
+            muted={isMuted}
+            autoPlay
+            className="w-full h-full object-cover"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (videoRef.current) {
+                if (videoRef.current.paused) {
+                  videoRef.current.play();
+                  setIsPlaying(true);
+                } else {
+                  videoRef.current.pause();
+                  setIsPlaying(false);
+                }
+              }
+            }}
           />
-        )
+          {!isPlaying && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl">
+                <Play size={32} fill="currentColor" className="translate-x-0.5 text-amber-400" />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : storeCover ? (
+        <img 
+          loading="lazy" 
+          decoding="async"
+          src={resolveImageUrl(storeCover)} 
+          alt={storeName} 
+          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
+        />
       ) : (
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
           <Store size={56} className="text-amber-500/80" />
@@ -300,28 +311,24 @@ export default function SocialFeedCard({
         </div>
       )}
 
-      {/* Detector invisible de relación de aspecto de la foto */}
-      {storeCover && (
-        <img 
-          src={resolveImageUrl(storeCover)} 
-          alt="" 
-          className="hidden" 
-          onLoad={(e) => {
-            const { naturalWidth, naturalHeight } = e.target;
-            if (naturalWidth && naturalHeight) {
-              setIsWideImage(naturalWidth / naturalHeight > 0.82);
-            }
-          }}
-        />
-      )}
-
       {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}
       <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10" />
 
       {/* Top Overlay: Pager & Options Menu */}
       <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 select-none">
+        {isVideo && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-sm"
+            title={isMuted ? "Activar sonido" : "Silenciar"}
+          >
+            {isMuted ? <VolumeX size={14} className="text-amber-400" /> : <Volume2 size={14} className="text-emerald-400" />}
+          </button>
+        )}
+
         <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none shadow-sm">
-          1/1
+          {isVideo ? 'VIDEO' : '1/1'}
         </div>
 
         <div className="relative">
