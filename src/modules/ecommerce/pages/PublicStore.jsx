@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
 import ResponsiveModal from '../components/ResponsiveModal';
+import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
@@ -29,6 +30,31 @@ if (!L.Icon.Default.prototype._axon_marker_fixed) {
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
+
+
+const formatStatusTime = (dateStr) => {
+  if (!dateStr) return 'Hoy';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Hoy';
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMin / 60);
+
+    if (diffMin < 1) return 'Ahora';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    if (diffHours < 24) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch {
+    return 'Hoy';
+  }
+};
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
@@ -100,6 +126,8 @@ export default function PublicStore() {
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
+  const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
+  const [activeStatusIndex, setActiveStatusIndex] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
@@ -286,6 +314,38 @@ export default function PublicStore() {
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
   const [storeReviewsList, setStoreReviewsList] = useState([]);
   const [storeNews, setStoreNews] = useState([]);
+  const merchantStatuses = useMemo(() => {
+    const storeAvatar = config?.logoUrl || config?.storefront?.logoUrl;
+    const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
+    const storeName = config?.business_name || 'Comercio';
+
+    const list = (storeNews || []).map((news) => ({
+      id: news.id,
+      name: storeName,
+      slug: slug,
+      avatar: storeAvatar,
+      mediaUrl: news.image_url || storeCover || storeAvatar,
+      caption: news.title ? `${news.title}: ${news.content}` : news.content,
+      time: formatStatusTime(news.created_at),
+      isVerified: !!config?.is_verified
+    }));
+
+    if (list.length === 0) {
+      list.push({
+        id: `intro-${slug || 'store'}`,
+        name: storeName,
+        slug: slug,
+        avatar: storeAvatar,
+        mediaUrl: storeCover || storeAvatar || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80',
+        caption: config?.description || '¡Bienvenidos a nuestra vitrina oficial en AxonMarket!',
+        time: 'Hoy',
+        isVerified: !!config?.is_verified
+      });
+    }
+
+    return list;
+  }, [storeNews, config, slug]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
@@ -1846,7 +1906,7 @@ export default function PublicStore() {
           </div>
           
           <div className="flex items-center gap-2.5">
-             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+             <button onClick={() => navigate('/explorar')} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                <ArrowLeft size={15} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
@@ -1904,8 +1964,8 @@ export default function PublicStore() {
             
             {/* Cabecera Superior Luminous White */}
             <div className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-              <button onClick={() => navigate('/')} className="p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-slate-700 hover:text-slate-900">
-                <ChevronLeft size={22} />
+              <button onClick={() => navigate('/explorar')} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer text-slate-700 hover:text-slate-900 active:scale-90" title="Volver a AxonMarket">
+                <ChevronLeft size={20} className="stroke-[2.5]" />
               </button>
               <div className="flex flex-col items-center">
                 <span className="font-bold text-base text-slate-900 leading-tight">{config?.business_name || 'Mi Tienda'}</span>
@@ -2176,6 +2236,88 @@ export default function PublicStore() {
                   {showSocialMenu && (
                     <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
                   )}
+                </div>
+              </div>
+
+              {/* Sección de Estados del Comercio (Estilo WhatsApp / Stories Cards) */}
+              <div className="mt-5 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 className="text-xs font-black tracking-wider uppercase text-slate-900 flex items-center gap-1.5" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+                      <span>Estados y Promociones</span>
+                    </h3>
+                  </div>
+                  {isMerchantOwner && (
+                    <button
+                      onClick={() => navigate('/social-feed')}
+                      className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors cursor-pointer"
+                      style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      <Plus size={13} className="stroke-[2.5]" />
+                      <span>Nuevo estado</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex overflow-x-auto gap-3 py-1 px-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  {merchantStatuses.map((status, idx) => (
+                    <div 
+                      key={status.id || idx}
+                      onClick={() => {
+                        setActiveStatusIndex(idx);
+                        setIsStatusViewerOpen(true);
+                      }}
+                      className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
+                      title={`Ver estado: ${status.caption || status.name}`}
+                    >
+                      {/* Imagen de fondo / Preview del Estado */}
+                      <img 
+                        src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                        alt="" 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
+                        }}
+                      />
+
+                      {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
+
+                      {/* Avatar del comerciante en la esquina superior izquierda */}
+                      <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
+                        <div className="w-full h-full rounded-full bg-white overflow-hidden">
+                          {status.avatar ? (
+                            <img 
+                              src={resolveImageUrl(status.avatar)} 
+                              alt="" 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
+                              <Store size={14} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Icono de Play en la esquina superior derecha */}
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
+                        <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
+                      </div>
+
+                      {/* Contenido / Título en la parte inferior */}
+                      <div className="absolute bottom-2 left-2 right-2 flex flex-col">
+                        <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
+                          {status.caption || status.name}
+                        </span>
+                        <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs">
+                          {status.time || 'Hoy'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -2819,6 +2961,15 @@ export default function PublicStore() {
            </p>
         </div>
       </footer>
+
+      {/* Modal Visor de Estados / Historias de la Tienda estilo WhatsApp */}
+      <MerchantStatusViewerModal
+        isOpen={isStatusViewerOpen}
+        onClose={() => setIsStatusViewerOpen(false)}
+        statuses={merchantStatuses}
+        initialIndex={activeStatusIndex}
+        onNavigateStore={() => {}}
+      />
 
       {/* Product Modal */}
       <ResponsiveModal
@@ -3838,7 +3989,7 @@ export default function PublicStore() {
           
           <button 
             type="button"
-            onClick={() => { setIsToolsModalOpen(false); navigate('/'); }}
+            onClick={() => { setIsToolsModalOpen(false); navigate('/explorar'); }}
             className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-400 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
             <Map size={18} /> Explorar más tiendas
