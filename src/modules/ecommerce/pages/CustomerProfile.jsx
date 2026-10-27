@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -351,6 +351,7 @@ export default function CustomerProfile() {
               title: foundNews?.title || 'Publicación Guardada',
               content: foundNews?.content || '',
               image_url: foundNews?.image_url || foundNews?.image || '',
+              media_type: foundNews?.media_type || (foundNews?.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(foundNews?.image_url) ? 'video' : 'image'),
               store_name: foundNews?.store_name || 'Comercio',
               store_slug: foundNews?.store_slug || s.workspace_id,
               created_at: s.created_at
@@ -1913,7 +1914,22 @@ export default function CustomerProfile() {
                         <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
                           {post.image_url ? (
                             <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
-                              <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              {(post.media_type === 'video' || /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(post.image_url)) ? (
+                                <>
+                                  <video 
+                                    src={post.image_url} 
+                                    muted 
+                                    loop 
+                                    playsInline 
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                  />
+                                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                                    <Video size={11} className="text-amber-400" /> Video
+                                  </div>
+                                </>
+                              ) : (
+                                <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              )}
                             </div>
                           ) : (
                             <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
