@@ -81,18 +81,18 @@ export default function OffersManager() {
     try {
       const { error } = await supabase
         .from('ecommerce_products')
-        .update({ is_offer: false, discount_price: 0 })
+        .update({ is_offer: 0, discount_price: 0 })
         .eq('id', product.id);
 
       if (error) throw error;
       // Actualización optimista
       setProducts(prev => prev.map(p =>
-        p.id === product.id ? { ...p, is_offer: false, discount_price: 0 } : p
+        p.id === product.id ? { ...p, is_offer: 0, discount_price: 0 } : p
       ));
       toast.success('📦 Oferta desactivada.');
     } catch (err) {
       console.error(err);
-      toast.error('Error al desactivar la oferta.');
+      toast.error('Error al desactivar la oferta: ' + err.message);
     }
   };
 
@@ -120,7 +120,7 @@ export default function OffersManager() {
       setSaving(true);
       const { error } = await supabase
         .from('ecommerce_products')
-        .update({ is_offer: true, discount_price: priceNum })
+        .update({ is_offer: 1, discount_price: priceNum })
         .eq('id', editingProduct.id);
 
       if (error) throw error;
@@ -128,7 +128,7 @@ export default function OffersManager() {
       // Actualización optimista
       setProducts(prev => prev.map(p =>
         p.id === editingProduct.id
-          ? { ...p, is_offer: true, discount_price: priceNum }
+          ? { ...p, is_offer: 1, discount_price: priceNum }
           : p
       ));
       toast.success('⚡ ¡Oferta publicada en vitrina!');
@@ -145,8 +145,8 @@ export default function OffersManager() {
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const activeOffers  = filteredProducts.filter(p => !!p.is_offer);
-  const inactiveOffers = filteredProducts.filter(p => !p.is_offer);
+  const activeOffers  = filteredProducts.filter(p => Number(p.is_offer) === 1 || p.is_offer === true);
+  const inactiveOffers = filteredProducts.filter(p => !p.is_offer || Number(p.is_offer) === 0);
 
   const discountPct = editingProduct && editingProduct.price > 0
     ? Math.round((1 - Number(discountPrice) / editingProduct.price) * 100)
