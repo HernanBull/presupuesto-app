@@ -24,6 +24,39 @@ const resolveImageUrl = (url) => {
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
+const DEFAULT_STORY_COVERS = [
+  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&q=80',
+  'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&q=80',
+  'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=80',
+  'https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=500&q=80',
+  'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=500&q=80'
+];
+
+const formatStatusTime = (dateStr) => {
+  if (!dateStr) return 'Hoy';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Hoy';
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMin / 60);
+
+    if (diffMin < 1) return 'Ahora';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    if (diffHours < 24) {
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Ayer';
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch {
+    return 'Hoy';
+  }
+};
+
 const PasswordRequirements = ({ password = '' }) => {
   const reqs = [
     { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
@@ -1359,9 +1392,10 @@ export default function MarketplaceDirectory() {
       }
     });
 
-    (stores || []).forEach(store => {
+    (stores || []).forEach((store, idx) => {
       const storeNewsList = newsByWorkspace[store.id] || [];
       const primaryNews = storeNewsList[0];
+      const fallbackCover = DEFAULT_STORY_COVERS[idx % DEFAULT_STORY_COVERS.length];
       const media = primaryNews?.image_url || store.config?.coverUrl || store.config?.storefront?.heroUrl || store.config?.bannerUrl;
       const logo = store.config?.logoUrl || store.config?.storefront?.logoUrl;
       
@@ -1371,9 +1405,9 @@ export default function MarketplaceDirectory() {
           name: store.name || 'Comercio Axon',
           slug: store.store_slug || store.id,
           avatar: logo,
-          mediaUrl: media || logo,
+          mediaUrl: media || fallbackCover,
           caption: primaryNews ? `${primaryNews.title ? primaryNews.title + ': ' : ''}${primaryNews.content}` : (store.config?.description || '¡Conoce nuestras promociones y productos disponibles hoy!'),
-          time: primaryNews?.created_at ? 'Hoy' : 'Activo',
+          time: formatStatusTime(primaryNews?.created_at || store.created_at),
           isVerified: !!store.config?.is_verified,
           hasNews: storeNewsList.length > 0
         });
@@ -1389,7 +1423,7 @@ export default function MarketplaceDirectory() {
           avatar: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=150&q=80',
           mediaUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80',
           caption: '🔥 ¡2x1 en combos especiales este fin de semana!',
-          time: 'Hace 1h',
+          time: '10:15 AM',
           isVerified: true
         },
         {
@@ -1399,7 +1433,7 @@ export default function MarketplaceDirectory() {
           avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
           mediaUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
           caption: '✨ Nueva colección de calzado y accesorios ya en vitrina.',
-          time: 'Hace 3h',
+          time: '09:30 AM',
           isVerified: true
         },
         {
@@ -1409,7 +1443,7 @@ export default function MarketplaceDirectory() {
           avatar: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&q=80',
           mediaUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80',
           caption: '📱 Descuentos del 20% en cargadores rápidos y protectores.',
-          time: 'Hace 4h',
+          time: '08:45 AM',
           isVerified: true
         }
       ];
@@ -1634,19 +1668,9 @@ export default function MarketplaceDirectory() {
           </div>
         </header>
 
-        {/* 1. Panel de Estados de Comerciantes estilo WhatsApp / Stories Cards (ARRIBA del buscador) */}
+        {/* 1. Panel de Historias de Comerciantes estilo WhatsApp / Stories Cards (ARRIBA del buscador) */}
         <div className="px-3 md:px-5 py-2.5 border-b border-zinc-100 bg-white">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Estados</span>
-            </div>
-            <span className="text-[10px] text-zinc-500 font-medium">Ver historias</span>
-          </div>
-          
-          <div className="flex overflow-x-auto gap-3 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex overflow-x-auto gap-3 py-0.5 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {merchantStatuses.map((status, idx) => (
               <div 
                 key={status.id || idx}
@@ -1660,9 +1684,12 @@ export default function MarketplaceDirectory() {
                 {/* Imagen de fondo / Preview del Estado */}
                 <img 
                   src={resolveImageUrl(status.mediaUrl || status.avatar)} 
-                  alt={status.name} 
+                  alt="" 
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                  onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=400&q=80'; }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = DEFAULT_STORY_COVERS[idx % DEFAULT_STORY_COVERS.length];
+                  }}
                 />
 
                 {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
@@ -1674,9 +1701,12 @@ export default function MarketplaceDirectory() {
                     {status.avatar ? (
                       <img 
                         src={resolveImageUrl(status.avatar)} 
-                        alt={status.name} 
+                        alt="" 
                         className="w-full h-full object-cover" 
-                        onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80'; }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80';
+                        }}
                       />
                     ) : (
                       <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
@@ -1697,7 +1727,7 @@ export default function MarketplaceDirectory() {
                     {status.name}
                   </span>
                   <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs">
-                    {status.time || 'Nuevo'}
+                    {status.time || 'Hoy'}
                   </span>
                 </div>
               </div>
