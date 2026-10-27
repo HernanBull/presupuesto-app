@@ -99,6 +99,7 @@ export default function PublicStore() {
   const [bcvRate, setBcvRate] = useState(36.50);
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
@@ -1807,56 +1808,49 @@ export default function PublicStore() {
         </div>
       )}
 
-      {/* Navbar (Premium Dark Glassmorphism) */}
+      {/* Navbar Superior (Limpio, integrado sin franja negra) */}
       {currentPage !== 'home' && (
       <nav 
-        className="z-40 transition-all duration-300 px-4 md:px-12 py-3.5 sticky top-0 dark-glass-nav"
-        style={{
-          backgroundColor: 'rgba(12, 12, 14, 0.88)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)'
-        }}
+        className="z-40 transition-all duration-300 px-4 md:px-8 py-2.5 sticky top-0 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
       >
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentPage('home')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('home')}>
             <button 
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentPage('home'); }} 
-              className="p-1 -ml-1 text-zinc-400 hover:text-white rounded-lg transition-colors"
+              className="p-1 -ml-1 text-zinc-700 hover:text-black rounded-lg transition-colors cursor-pointer"
               title="Volver al inicio"
             >
-              <ChevronLeft size={22} />
+              <ChevronLeft size={22} className="stroke-[2.5]" />
             </button>
-            <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            <span className="text-lg md:text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
               {config.business_name || 'MI TIENDA'}
               {config.is_verified && (
                 <div title="Comercio Verificado" className="inline-flex mt-0.5">
-                  <ShieldCheck size={18} className="text-amber-400 fill-amber-400/20" />
+                  <ShieldCheck size={18} className="text-amber-500 fill-amber-500/20" />
                 </div>
               )}
             </span>
           </div>
           
-          <div className="hidden md:flex items-center gap-8 text-sm font-bold tracking-widest uppercase">
-            <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#a1a1aa' }}>{texts.nav1}</span>
-            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'products' ? primaryColor : '#a1a1aa' }}>{texts.nav2 || 'Productos'}</span>
-            <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-white" style={{ color: currentPage === 'offers' ? primaryColor : '#a1a1aa' }}>{texts.nav3}</span>
+          <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase">
+            <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#52525b' }}>{texts.nav1}</span>
+            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'products' ? primaryColor : '#52525b' }}>{texts.nav2 || 'Productos'}</span>
+            <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'offers' ? primaryColor : '#52525b' }}>{texts.nav3}</span>
           </div>
           
-          <div className="flex items-center gap-3">
-             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-white transition-colors">
-               <ArrowLeft size={16} /> Salir
+          <div className="flex items-center gap-2.5">
+             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors">
+               <ArrowLeft size={15} /> Salir
              </button>
-             <div className="h-4 w-[1px] bg-white/10 hidden sm:block"></div>
+             <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
              {!currentCustomer && !isMerchantOwner ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
-                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 px-4 py-2 rounded-full transition-colors border border-amber-500/40 shadow-xs active:scale-95 cursor-pointer"
+                 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-zinc-950 hover:bg-black text-amber-400 px-4 py-2 rounded-full transition-all shadow-xs active:scale-95 cursor-pointer border border-zinc-900"
                >
-                 <User size={14} /> Ingresar
+                 <User size={13} className="text-amber-400 stroke-[2.5]" /> Ingresar
                </button>
              ) : (
                <div className="flex items-center gap-3">
@@ -1870,38 +1864,15 @@ export default function PublicStore() {
                        <img 
                          src={resolveImageUrl(currentCustomer.profile_pic)} 
                          alt="Perfil" 
-                         className="w-7 h-7 rounded-full object-cover border border-amber-500 shadow-sm" 
+                         className="w-8 h-8 rounded-full object-cover border border-zinc-300" 
                        />
                      ) : (
-                       <div className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 font-black text-[10px] flex items-center justify-center border border-amber-300 shadow-sm">
+                       <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center border border-amber-300">
                          {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
                        </div>
                      )}
                    </button>
                  )}
-               <motion.button 
-                 ref={cartIconRef}
-                 onClick={() => setIsCartOpen(true)} 
-                 className="relative p-2 text-zinc-400 hover:text-white transition-all group z-50"
-                 animate={cartBounce ? { scale: [1, 1.4, 1] } : {}}
-                 transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
-               >
-                 <div className="absolute inset-0 rounded-full scale-0 group-hover:scale-100 transition-transform blur-md opacity-20" style={{ backgroundColor: primaryColor }}></div>
-                 <ShoppingBag size={22} className="relative z-10" />
-                 <AnimatePresence>
-                   {totalCartItems > 0 && (
-                     <motion.span 
-                       initial={{ scale: 0 }}
-                       animate={{ scale: 1 }}
-                       exit={{ scale: 0 }}
-                       className="absolute top-0 right-0 w-4 h-4 text-black text-[9px] font-black flex items-center justify-center rounded-full border border-zinc-950 z-20 shadow-md" 
-                       style={{ backgroundColor: primaryColor }}
-                     >
-                       {totalCartItems}
-                     </motion.span>
-                   )}
-                 </AnimatePresence>
-               </motion.button>
                </div>
              )}
           </div>
@@ -2584,7 +2555,7 @@ export default function PublicStore() {
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
             
             {/* Barra superior de Categorías Principales */}
-            <div className="bg-white sticky top-[57px] md:top-[65px] z-30 border-b border-zinc-200 px-3 sm:px-6 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide shadow-xs">
+            <div className="bg-white sticky top-[49px] md:top-[53px] z-30 border-b border-zinc-200 px-3 sm:px-6 py-2 flex gap-2 overflow-x-auto scrollbar-hide shadow-xs">
                {mainCategories.map(mc => (
                  <button 
                    key={mc}
@@ -2817,18 +2788,18 @@ export default function PublicStore() {
           </div>
         )}
       </div>
-      <footer className="bg-zinc-950 border-t border-white/10 mt-auto relative z-10 py-10 px-6">
-        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+      <footer className="bg-white border-t border-zinc-200 mt-auto relative z-10 py-8 px-6">
+        <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-center gap-3 text-center">
            <div className="flex items-center gap-2.5">
              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 flex items-center justify-center text-zinc-950 shadow-md shadow-amber-500/20 shrink-0">
                <ShoppingBag size={18} className="stroke-[2.5]" />
              </div>
-             <span className="font-black tracking-tight text-white uppercase text-sm">
-               AXON<span className="text-amber-400 font-black">MARKET</span>
+             <span className="font-black tracking-tight text-zinc-950 uppercase text-sm">
+               AXON<span className="text-amber-500 font-black">MARKET</span>
              </span>
            </div>
-           <p className="text-zinc-400 font-medium text-xs tracking-wider">
-             {texts.footerText || `© ${new Date().getFullYear()} AxonMarket. Todos los derechos reservados.`}
+           <p className="text-zinc-500 font-medium text-xs tracking-wider">
+             {texts.footerText || `© ${new Date().getFullYear()} Todos los derechos reservados.`}
            </p>
         </div>
       </footer>
@@ -3858,63 +3829,98 @@ export default function PublicStore() {
           </button>
         </div>
       </ResponsiveModal>
-      {/* Mobile Bottom Navigation Bar - Floating Modern Dark Glassmorphism */}
-      <nav 
-        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
-        style={{
-          backgroundColor: 'rgba(12, 12, 14, 0.85)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
-        }}
-      >
-        <div className="flex justify-between items-center h-16 px-2">
-          <button
-            onClick={() => setCurrentPage('home')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
-            style={currentPage === 'home' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
-          >
-            <Store size={22} fill={currentPage === 'home' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'home' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav1 || 'Inicio'}</span>
-          </button>
-          
-          <button
-            onClick={() => setCurrentPage('products')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
-            style={currentPage === 'products' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
-          >
-            <Package size={22} fill={currentPage === 'products' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'products' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav2 || 'Catálogo'}</span>
-          </button>
+      {/* Botón flotante en esquina izquierda cuando la barra está oculta */}
+      {!isBottomNavOpen && (
+        <button
+          onClick={() => setIsBottomNavOpen(true)}
+          className="md:hidden fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+          style={{
+            backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
+          }}
+          title="Abrir menú"
+          aria-label="Abrir menú de navegación"
+        >
+          <Store size={22} className="stroke-[2.2] text-amber-400" />
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+          </span>
+        </button>
+      )}
 
-          {/* Standard Button for Cart */}
-          <button
-            onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors relative cursor-pointer"
-            style={isCartOpen ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
-          >
-            <div className="relative">
-              <ShoppingCart size={22} fill={isCartOpen ? "currentColor" : "none"} />
-              {totalCartItems > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-black font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-400">
-                  {totalCartItems}
-                </span>
-              )}
-            </div>
-            <span className={`text-[10px] ${isCartOpen ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>Carrito</span>
-          </button>
+      {/* Mobile Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
+      {isBottomNavOpen && (
+        <nav 
+          className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
+          style={{
+            backgroundColor: 'rgba(12, 12, 14, 0.82)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex justify-between items-center h-16 px-2 relative">
+            <button
+              onClick={() => setCurrentPage('home')}
+              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
+              style={currentPage === 'home' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+            >
+              <Store size={22} className={currentPage === 'home' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
+              <span className={`text-[10px] ${currentPage === 'home' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav1 || 'Inicio'}</span>
+            </button>
+            
+            <button
+              onClick={() => setCurrentPage('products')}
+              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
+              style={currentPage === 'products' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+            >
+              <Package size={22} className={currentPage === 'products' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
+              <span className={`text-[10px] ${currentPage === 'products' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav2 || 'Catálogo'}</span>
+            </button>
 
-          <button
-            onClick={() => setCurrentPage('offers')}
-            className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors cursor-pointer"
-            style={currentPage === 'offers' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
-          >
-            <Tag size={22} fill={currentPage === 'offers' ? "currentColor" : "none"} />
-            <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav3 || 'Ofertas'}</span>
-          </button>
-        </div>
-      </nav>
+            {/* Standard Button for Cart */}
+            <button
+              onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
+              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
+              style={isCartOpen ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+            >
+              <div className="relative">
+                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-black font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-400">
+                    {totalCartItems}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] ${isCartOpen ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>Carrito</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentPage('offers')}
+              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
+              style={currentPage === 'offers' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+            >
+              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
+              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav3 || 'Ofertas'}</span>
+            </button>
+
+            {/* Botón para cerrar la barra al instante y liberar pantalla */}
+            <button
+              onClick={() => setIsBottomNavOpen(false)}
+              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
+              style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
+              title="Ocultar menú"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* Spacer for mobile bottom nav */}
       <div className="md:hidden h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
