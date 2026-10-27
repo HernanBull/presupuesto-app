@@ -456,31 +456,34 @@ export default function OrderPreparation() {
 
   const verifyPin = async (pinCode) => {
     // 1. Consultar Workspace config (adminPin y personal configurado en Perfil de Tienda)
-    const workspaceId = localStorage.getItem('activeWorkspace');
     let masterPin = localStorage.getItem('adminPin') || '9999';
     try {
+      const workspaceId = localStorage.getItem('activeWorkspace');
+      let query = supabase.from('workspaces').select('config');
       if (workspaceId) {
-        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-        if (ws?.config?.adminPin) {
-          masterPin = ws.config.adminPin;
-        }
-        const staffArr = ws?.config?.staff || [];
-        const foundInWs = staffArr.find(s => (s.pin_code === pinCode || s.pinCode === pinCode) && s.is_active !== false);
-        if (foundInWs) {
-          const matchedWorker = {
-            id: foundInWs.id,
-            fullName: foundInWs.full_name || foundInWs.fullName,
-            pinCode: foundInWs.pin_code || foundInWs.pinCode,
-            role: foundInWs.role || 'PICKER'
-          };
-          sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
-          localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
-          setActiveWorker(matchedWorker);
-          triggerHaptic([50, 50, 100]);
-          playBeep(980, 0.12);
-          setPinInput('');
-          return;
-        }
+        query = query.eq('id', workspaceId);
+      }
+      const { data: wsList } = await query.limit(1);
+      const ws = wsList && wsList.length > 0 ? wsList[0] : null;
+      if (ws?.config?.adminPin) {
+        masterPin = ws.config.adminPin;
+      }
+      const staffArr = ws?.config?.staff || [];
+      const foundInWs = staffArr.find(s => (s.pin_code === pinCode || s.pinCode === pinCode) && s.is_active !== false);
+      if (foundInWs) {
+        const matchedWorker = {
+          id: foundInWs.id,
+          fullName: foundInWs.full_name || foundInWs.fullName,
+          pinCode: foundInWs.pin_code || foundInWs.pinCode,
+          role: foundInWs.role || 'PICKER'
+        };
+        sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+        localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+        setActiveWorker(matchedWorker);
+        triggerHaptic([50, 50, 100]);
+        playBeep(980, 0.12);
+        setPinInput('');
+        return;
       }
     } catch (e) {
       console.warn('Error verificando config workspace:', e);
