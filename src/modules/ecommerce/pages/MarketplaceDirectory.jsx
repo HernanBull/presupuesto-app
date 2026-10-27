@@ -56,22 +56,32 @@ export default function MarketplaceDirectory() {
   const [bannerSlide, setBannerSlide] = useState(0);
   const categoriesScrollRef = useRef(null);
 
-  // Bottom Navigation Bar Desplegable y Auto-ocultable en Scroll
-  const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
+  // Bottom Navigation Bar Auto-ocultable en Scroll (Directo por DOM / Cero React Re-renders / Cero Lag)
+  const bottomNavRef = useRef(null);
   const lastScrollY = useRef(0);
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (Math.abs(currentScrollY - lastScrollY.current) > 25) {
-        if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-          // Desplazamiento hacia abajo: ocultar para permitir ver las fotos completas sin obstrucción
-          setIsBottomNavOpen(false);
-        } else if (currentScrollY < lastScrollY.current) {
-          // Desplazamiento hacia arriba: desplegar barra automáticamente
-          setIsBottomNavOpen(true);
-        }
-        lastScrollY.current = currentScrollY;
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const nav = bottomNavRef.current;
+          if (nav) {
+            if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
+              // Desplazamiento hacia abajo: ocultar de forma natural y automática
+              nav.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
+              nav.classList.remove('translate-y-0', 'opacity-100');
+            } else if (currentScrollY < lastScrollY.current) {
+              // Desplazamiento hacia arriba: mostrar de forma natural
+              nav.classList.remove('translate-y-28', 'opacity-0', 'pointer-events-none');
+              nav.classList.add('translate-y-0', 'opacity-100');
+            }
+          }
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
@@ -1651,8 +1661,8 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción con Snap Scroll) */}
-        <div className="flex flex-col space-y-0 px-0 py-0 pb-28 flex-1 w-full bg-black snap-y snap-mandatory overscroll-contain">
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción) */}
+        <div className="flex flex-col space-y-0 px-0 py-0 pb-28 flex-1 w-full bg-black">
           {feedPosts.length === 0 ? (
             <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
               <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -1681,7 +1691,7 @@ export default function MarketplaceDirectory() {
           )}
 
           {/* Footer App Compacto */}
-          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl snap-start">
+          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
                 <ShoppingBag size={14} className="stroke-[2.5]" />
@@ -1702,96 +1712,58 @@ export default function MarketplaceDirectory() {
 
       </div>
 
-      {/* Bottom Navigation Bar - Desplegable / Colapsable Glassmorphic Design */}
-      <AnimatePresence>
-        {isBottomNavOpen ? (
-          <motion.div 
-            key="bottom-nav-bar"
-            initial={{ y: 90, opacity: 0, x: '-50%' }}
-            animate={{ y: 0, opacity: 1, x: '-50%' }}
-            exit={{ y: 110, opacity: 0, x: '-50%' }}
-            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            className="fixed bottom-5 left-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/90 backdrop-blur-xl border border-white/10 shadow-[0_12px_45px_rgba(0,0,0,0.65)]"
-          >
-            {/* Pestaña / Botón de repliegue superior */}
-            <button
-              type="button"
-              onClick={() => setIsBottomNavOpen(false)}
-              className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900/95 backdrop-blur-md border border-white/20 text-zinc-300 hover:text-white rounded-full px-3 py-0.5 text-[9px] font-bold flex items-center gap-1 shadow-md hover:bg-zinc-800 active:scale-95 transition-all cursor-pointer select-none"
-              title="Ocultar barra de navegación"
-            >
-              <ChevronDown size={11} strokeWidth={2.5} />
-              <span>Ocultar</span>
-            </button>
+      {/* Bottom Navigation Bar - Minimalista y Natural (Cero lag, sin Framer Motion) */}
+      <div 
+        ref={bottomNavRef}
+        className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.6)] transition-all duration-300 ease-out translate-y-0 opacity-100 will-change-transform"
+      >
+        <div className="flex justify-between items-center h-16 px-2">
+           <button 
+             onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors cursor-pointer"
+           >
+             <Home size={22} fill="currentColor" />
+             <span className="text-[10px] font-bold">Inicio</span>
+           </button>
+           
+           <button onClick={() => {
+              setIsCategoriesOpen(true);
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white transition-colors relative cursor-pointer">
+             <Menu size={22} />
+             <span className="text-[10px] font-medium">Categorías</span>
+           </button>
 
-            <div className="flex justify-between items-center h-16 px-2">
-              <button 
-                onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors cursor-pointer"
-              >
-                <Home size={22} fill="currentColor" />
-                <span className="text-[10px] font-bold">Inicio</span>
-              </button>
-              
-              <button onClick={() => {
-                setIsCategoriesOpen(true);
-              }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white transition-colors relative cursor-pointer">
-                <Menu size={22} />
-                <span className="text-[10px] font-medium">Categorías</span>
-              </button>
+           {/* Floating Action Button */}
+           <div className="flex-1 flex justify-center relative -top-6">
+             <div 
+               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+               className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+               title="Subir al inicio"
+             >
+               <ShoppingBag size={24} className="stroke-[2.5]" />
+             </div>
+           </div>
 
-              {/* Floating Action Button */}
-              <div className="flex-1 flex justify-center relative -top-6">
-                <div 
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
-                  className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-                  title="Subir al inicio"
-                >
-                  <ShoppingBag size={24} className="stroke-[2.5]" />
-                </div>
-              </div>
+           <button onClick={() => {
+              if (!currentCustomer) { 
+                setAuthMode('login'); 
+                setIsAuthModalOpen(true); 
+              } else {
+                navigate('/profile', { state: { tab: 'favoritas' } });
+              }
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors cursor-pointer">
+             <Heart size={22} />
+             <span className="text-[10px] font-medium">Favoritos</span>
+           </button>
 
-              <button onClick={() => {
-                if (!currentCustomer) { 
-                  setAuthMode('login'); 
-                  setIsAuthModalOpen(true); 
-                } else {
-                  navigate('/profile', { state: { tab: 'favoritas' } });
-                }
-              }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors cursor-pointer">
-                <Heart size={22} />
-                <span className="text-[10px] font-medium">Favoritos</span>
-              </button>
-
-              <button onClick={() => {
-                navigate('/mapa');
-              }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500 cursor-pointer">
-                <MapPin size={22} />
-                <span className="text-[10px] font-medium">Mapa</span>
-              </button>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.button 
-            key="bottom-nav-trigger"
-            initial={{ y: 50, opacity: 0, x: '-50%' }}
-            animate={{ y: 0, opacity: 1, x: '-50%' }}
-            exit={{ y: 50, opacity: 0, x: '-50%' }}
-            transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            onClick={() => setIsBottomNavOpen(true)}
-            className="fixed bottom-4 left-1/2 z-50 bg-zinc-950/90 backdrop-blur-xl border border-amber-500/40 text-white rounded-full px-4 py-2 flex items-center gap-2.5 shadow-[0_10px_35px_rgba(0,0,0,0.7)] hover:bg-zinc-900 active:scale-95 transition-all cursor-pointer group select-none"
-            title="Desplegar menú de navegación"
-          >
-            <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-black font-black shadow-xs group-hover:scale-105 transition-transform">
-              <ShoppingBag size={13} strokeWidth={2.5} />
-            </div>
-            <span className="text-xs font-bold tracking-wide text-zinc-100 group-hover:text-amber-400 transition-colors">
-              Menú
-            </span>
-            <ChevronUp size={15} strokeWidth={2.5} className="text-amber-400 group-hover:-translate-y-0.5 transition-transform" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+           <button onClick={() => {
+              navigate('/mapa');
+           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500 cursor-pointer">
+             <MapPin size={22} />
+             <span className="text-[10px] font-medium">Mapa</span>
+           </button>
+        </div>
+      </div>
 
       {/* Cart Slide-over */}
       <AnimatePresence>

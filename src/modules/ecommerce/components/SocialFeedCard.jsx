@@ -250,7 +250,7 @@ export default function SocialFeedCard({
   return (
     <div 
       id={`post-${postId}`}
-      className="relative w-full h-[calc(100dvh-130px)] min-h-[500px] max-h-[850px] bg-black cursor-pointer overflow-hidden select-none snap-start shrink-0 flex flex-col justify-end"
+      className="relative w-full aspect-[4/5] sm:aspect-[9/16] min-h-[500px] max-h-[800px] bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end border-b border-zinc-900/60 will-change-transform"
       onDoubleClick={handleDoubleTap}
     >
       {/* Background Media */}
