@@ -214,30 +214,31 @@ export default function MerchantSocialFeedPage() {
       ctx.fillRect(0, 0, targetWidth, targetHeight);
       ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
 
-      // 5. Convertir a Blob y subir a Supabase Storage
+      // 5. Convertir a Blob y subir a Supabase Storage con File nativo a la raíz del bucket
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-      const fileName = `social_posts/${workspaceId}/${Date.now()}_autocentered_9_16.jpg`;
+      const uniqueName = `${Date.now()}_social_${Math.random().toString(36).substring(2, 8)}.jpg`;
+      const fileToUpload = new File([blob], uniqueName, { type: 'image/jpeg' });
 
       const { error: uploadError } = await supabase.storage
         .from('ecommerce')
-        .upload(fileName, blob, { upsert: true, contentType: 'image/jpeg' });
+        .upload(uniqueName, fileToUpload, { upsert: true, contentType: 'image/jpeg' });
 
       if (uploadError) {
-        // Fallback local en caso de error de red o permisos en bucket
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        setFormData(prev => ({ ...prev, image_url: dataUrl, media_type: 'image' }));
-        toast.success('¡Foto centrada a 9:16 correctamente!', { id: toastId });
-      } else {
-        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        console.error('Error al subir imagen a Supabase Storage:', uploadError);
+        toast.error(`Error al almacenar imagen: ${uploadError.message || 'Error en servidor'}`, { id: toastId });
+        return;
+      }
+
+      const { data } = supabase.storage.from('ecommerce').getPublicUrl(uniqueName);
+      if (data?.publicUrl) {
         setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'image' }));
         toast.success('¡Foto centrada automáticamente a 9:16!', { id: toastId });
+      } else {
+        throw new Error('No se pudo generar la URL de la imagen');
       }
     } catch (err) {
       console.warn('Error en auto-centrado:', err);
-      if (typeof source === 'string') {
-        setFormData(prev => ({ ...prev, image_url: source, media_type: 'image' }));
-      }
-      toast.success('Foto cargada', { id: toastId });
+      toast.error('No se pudo procesar la imagen seleccionada', { id: toastId });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -264,25 +265,28 @@ export default function MerchantSocialFeedPage() {
       return;
     }
     setUploadingVideo(true);
+    const toastId = toast.loading('Subiendo video a Axon Market...');
     try {
       const ext = file.name.split('.').pop() || 'mp4';
-      const fileName = `social_videos/${workspaceId}/${Date.now()}_video.${ext}`;
+      const uniqueName = `${Date.now()}_video_${Math.random().toString(36).substring(2, 8)}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from('ecommerce')
-        .upload(fileName, file, { upsert: true, contentType: file.type || 'video/mp4' });
+        .upload(uniqueName, file, { upsert: true, contentType: file.type || 'video/mp4' });
 
       if (uploadError) {
-        const blobUrl = URL.createObjectURL(file);
-        setFormData(prev => ({ ...prev, image_url: blobUrl, media_type: 'video' }));
-        toast.success('Video cargado localmente');
-      } else {
-        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        console.error('Error al subir video a Supabase Storage:', uploadError);
+        toast.error(`Error al subir video: ${uploadError.message || 'Error de almacenamiento'}`, { id: toastId });
+        return;
+      }
+
+      const { data } = supabase.storage.from('ecommerce').getPublicUrl(uniqueName);
+      if (data?.publicUrl) {
         setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'video' }));
-        toast.success('¡Video subido exitosamente!');
+        toast.success('¡Video subido exitosamente!', { id: toastId });
       }
     } catch (err) {
       console.error(err);
-      toast.error('Error al procesar el video');
+      toast.error('Error al procesar el video', { id: toastId });
     } finally {
       setUploadingVideo(false);
       if (videoFileInputRef.current) videoFileInputRef.current.value = '';
@@ -360,6 +364,10 @@ export default function MerchantSocialFeedPage() {
       toast.error('El título y contenido son obligatorios');
       return;
     }
+    if (!workspaceId) {
+      toast.error('No se detectó la tienda activa. Por favor recarga la página.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -367,8 +375,8 @@ export default function MerchantSocialFeedPage() {
         workspace_id: workspaceId,
         title: formData.title.trim(),
         content: formData.content.trim(),
-        image_url: formData.image_url.trim() || null,
-        status: formData.status
+        image_url: formData.image_url?.trim() || null,
+        status: formData.status || 'Publicado'
       };
 
       if (formData.id) {
@@ -393,7 +401,7 @@ export default function MerchantSocialFeedPage() {
       fetchNews();
     } catch (error) {
       console.error('Error saving news:', error);
-      toast.error('Error al guardar la publicación');
+      toast.error(error.message || 'Error al guardar la publicación');
     } finally {
       setIsSubmitting(false);
     }
@@ -1009,8 +1017,8 @@ export default function MerchantSocialFeedPage() {
                     </span>
                   </div>
 
-                  {/* Teléfono Mockup TikTok Vertical */}
-                  <div className="relative w-full aspect-[9/16] bg-black border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-end select-none">
+                  {/* Teléfono Mockup TikTok Vertical (100% Pantalla Completa) */}
+                  <div className="relative w-full aspect-[9/16] bg-black border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl select-none">
                     
                     {/* Isla Dinámica / Parlante Superior */}
                     <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-zinc-900 rounded-full z-30 flex items-center justify-center">
@@ -1026,13 +1034,13 @@ export default function MerchantSocialFeedPage() {
                         loop 
                         muted 
                         playsInline 
-                        className="w-full h-full object-cover z-0" 
+                        className="absolute inset-0 w-full h-full object-cover z-0" 
                       />
                     ) : formData.image_url ? (
                       <img 
                         src={formData.image_url} 
                         alt="Preview" 
-                        className="w-full h-full object-cover z-0" 
+                        className="absolute inset-0 w-full h-full object-cover z-0" 
                         onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
                       />
                     ) : (
@@ -1043,8 +1051,8 @@ export default function MerchantSocialFeedPage() {
                       </div>
                     )}
 
-                    {/* Degradado inferior */}
-                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none z-10" />
+                    {/* Degradado inferior cinematográfico */}
+                    <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/95 via-black/40 to-transparent pointer-events-none z-10" />
 
                     {/* Top Overlay: Pager */}
                     <div className="absolute top-8 right-3 z-20">
@@ -1054,7 +1062,7 @@ export default function MerchantSocialFeedPage() {
                     </div>
 
                     {/* TikTok Right Action Column */}
-                    <div className="absolute right-2.5 bottom-12 z-20 flex flex-col items-center gap-3">
+                    <div className="absolute right-2.5 bottom-8 z-20 flex flex-col items-center gap-3">
                       <div className="flex flex-col items-center gap-0.5">
                         <div className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
                           <Heart size={16} className="text-red-500 fill-red-500" />
@@ -1084,8 +1092,8 @@ export default function MerchantSocialFeedPage() {
                       </div>
                     </div>
 
-                    {/* TikTok Bottom Left Info Overlay */}
-                    <div className="relative z-20 p-3 pb-8 pr-14 flex flex-col gap-1 pointer-events-none">
+                    {/* TikTok Bottom Left Info Overlay Flotante */}
+                    <div className="absolute bottom-0 left-0 right-14 z-20 p-3.5 pb-6 flex flex-col gap-1 pointer-events-none">
                       <div className="flex items-center gap-1.5">
                         <div className="w-6 h-6 rounded-full bg-amber-500 overflow-hidden border border-white/80 shrink-0">
                           {storeLogo ? (
