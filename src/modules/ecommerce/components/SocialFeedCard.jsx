@@ -250,227 +250,236 @@ export default function SocialFeedCard({
   return (
     <div 
       id={`post-${postId}`}
-      className="bg-white dark:bg-zinc-950 flex flex-col pb-4 border-b border-slate-200 dark:border-white/10 last:border-b-0 shadow-xs"
+      className="relative w-full aspect-[4/5] sm:aspect-[9/16] min-h-[500px] max-h-[720px] bg-black cursor-pointer overflow-hidden select-none border-b border-zinc-900"
+      onDoubleClick={handleDoubleTap}
     >
-      {/* Post Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-950">
-        <div 
-          className="flex items-center gap-3 cursor-pointer" 
-          onClick={() => onNavigateStore(storeSlug || workspaceId)}
-        >
-          <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10 p-0.5 shrink-0 shadow-xs">
-            {storeLogo ? (
-              <img src={resolveImageUrl(storeLogo)} alt={storeName} className="w-full h-full rounded-full object-cover bg-white" />
-            ) : (
-              <Store size={20} className="text-slate-950" />
-            )}
-          </div>
-          <div className="flex flex-col">
-            <span className="text-slate-900 dark:text-white font-bold text-sm tracking-wide leading-tight flex items-center gap-1">
-              {storeName}
-              {isVerified && <CheckCircle size={13} className="text-blue-500 fill-blue-500/20 shrink-0" />}
-            </span>
-            <span className="text-slate-500 dark:text-zinc-400 text-[11px] flex items-center gap-1 mt-0.5 line-clamp-1">
-              <MapPin size={11} className="text-amber-500 shrink-0" /> {address}
-            </span>
-          </div>
+      {/* Background Media */}
+      {storeCover ? (
+        <img 
+          loading="lazy" 
+          src={resolveImageUrl(storeCover)} 
+          alt={storeName} 
+          className="w-full h-full object-cover" 
+        />
+      ) : (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950">
+          <Store size={56} className="text-amber-500/80" />
+          <span className="font-medium text-sm text-white">Explorar Tienda</span>
         </div>
-        
-        <div className="flex items-center gap-2 relative">
-          {/* Botón Seguir: Muestra icono discreto cuando ya se sigue (sin la palabra Siguiendo) */}
+      )}
+
+      {/* Top Overlay: Pager & Options Menu */}
+      <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 select-none">
+        <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none">
+          1/1
+        </div>
+
+        <div className="relative">
           <button 
             type="button"
-            onClick={handleFollow}
-            className={`text-xs font-bold rounded-full flex items-center justify-center gap-1 active:scale-95 cursor-pointer shadow-xs ${
-              isFollowing 
-                ? 'bg-zinc-100 dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-1.5 px-2.5' 
-                : 'bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5'
-            }`}
-            title={isFollowing ? 'Siguiendo este comercio (Toca para dejar de seguir)' : 'Seguir este comercio'}
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer"
+            title="Más opciones"
           >
-            {isFollowing ? (
-              <Check size={14} strokeWidth={2.8} />
-            ) : (
-              <>
-                <UserPlus size={13} />
-                <span>Seguir</span>
-              </>
-            )}
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => setShowMenu(!showMenu)}
-            className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
-          >
-            <MoreHorizontal size={20} />
+            <MoreHorizontal size={16} />
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-10 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-slate-200 dark:border-white/10 py-1 min-w-[160px] z-30">
+            <div 
+              className="absolute right-0 top-9 bg-zinc-900/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/15 py-1 min-w-[160px] z-30 animate-in fade-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button 
                 onClick={() => { setShowMenu(false); onNavigateStore(storeSlug || workspaceId); }}
-                className="w-full text-left px-4 py-2 text-xs font-medium text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2"
               >
-                Visitar vitrina
+                <Store size={14} className="text-amber-400" />
+                <span>Visitar vitrina</span>
               </button>
               <button 
                 onClick={(e) => { setShowMenu(false); handleOpenShare(e); }}
-                className="w-full text-left px-4 py-2 text-xs font-medium text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2"
               >
-                Compartir publicación
+                <Share2 size={14} className="text-amber-400" />
+                <span>Compartir publicación</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Post Image Container */}
+      {/* TikTok-Style Right Action Bar */}
       <div 
-        className="w-full aspect-[4/5] bg-slate-900 cursor-pointer relative overflow-hidden select-none"
-        onDoubleClick={handleDoubleTap}
+        className="absolute right-2.5 bottom-4 z-20 flex flex-col items-center gap-3.5 select-none"
+        onClick={(e) => e.stopPropagation()}
       >
-        {storeCover ? (
-          <img 
-            loading="lazy" 
-            src={resolveImageUrl(storeCover)} 
-            alt={storeName} 
-            className="w-full h-full object-cover" 
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-slate-950">
-            <Store size={56} className="text-amber-500/80" />
-            <span className="font-medium text-sm text-white">Explorar Tienda</span>
-          </div>
-        )}
-
-        {/* Pager Indicator */}
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white border border-white/15 font-semibold tracking-wider z-10 pointer-events-none">
-          1/1
-        </div>
-
-        {/* TikTok-Style Right Action Bar */}
-        <div 
-          className="absolute right-2.5 bottom-3.5 z-20 flex flex-col items-center gap-3.5 select-none"
-          onClick={(e) => e.stopPropagation()}
+        {/* Like / Corazón */}
+        <button 
+          type="button"
+          onClick={handleLike} 
+          className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+          title="Me gusta"
         >
-          {/* Like / Corazón */}
-          <button 
-            type="button"
-            onClick={handleLike} 
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-            title="Me gusta"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
-              <Heart 
-                size={22} 
-                strokeWidth={isLiked ? 0 : 2} 
-                fill={isLiked ? '#ef4444' : 'none'} 
-                className={isLiked ? 'text-red-500 scale-110 transition-transform' : 'text-white'} 
-              />
-            </div>
-            <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
-              {likesCount}
-            </span>
-          </button>
-
-          {/* Mensaje / Comentarios */}
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenComments({ postId, postTitle: storeName, workspaceId });
-            }}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-            title="Comentar"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
-              <MessageCircle size={21} strokeWidth={2} className="text-white" />
-            </div>
-            <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
-              {commentsCount}
-            </span>
-          </button>
-
-          {/* Telegram / Compartir */}
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenShare(e);
-            }}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-            title="Compartir publicación"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
-              <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
-              Compartir
-            </span>
-          </button>
-
-          {/* Favoritos / Guardar */}
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleSave(e);
-            }}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-            title="Guardar en favoritos"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
-              <Bookmark 
-                size={20} 
-                strokeWidth={isSaved ? 0 : 2} 
-                fill={isSaved ? '#f59e0b' : 'none'} 
-                className={isSaved ? 'text-amber-500 scale-105' : 'text-white'} 
-              />
-            </div>
-            <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
-              {isSaved ? 'Guardado' : 'Guardar'}
-            </span>
-          </button>
-        </div>
-
-        {/* Animated Heart Burst on double tap */}
-        {showHeartBurst && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
-            <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-2xl" />
+          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+            <Heart 
+              size={22} 
+              strokeWidth={isLiked ? 0 : 2} 
+              fill={isLiked ? '#ef4444' : 'none'} 
+              className={isLiked ? 'text-red-500 scale-110 transition-transform' : 'text-white'} 
+            />
           </div>
-        )}
+          <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+            {likesCount}
+          </span>
+        </button>
+
+        {/* Mensaje / Comentarios */}
+        <button 
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenComments({ postId, postTitle: storeName, workspaceId });
+          }}
+          className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+          title="Comentar"
+        >
+          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+            <MessageCircle size={21} strokeWidth={2} className="text-white" />
+          </div>
+          <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+            {commentsCount}
+          </span>
+        </button>
+
+        {/* Telegram / Compartir */}
+        <button 
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenShare(e);
+          }}
+          className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+          title="Compartir publicación"
+        >
+          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+            <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
+          </div>
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+            Compartir
+          </span>
+        </button>
+
+        {/* Favoritos / Guardar */}
+        <button 
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSave(e);
+          }}
+          className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+          title="Guardar en favoritos"
+        >
+          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+            <Bookmark 
+              size={20} 
+              strokeWidth={isSaved ? 0 : 2} 
+              fill={isSaved ? '#f59e0b' : 'none'} 
+              className={isSaved ? 'text-amber-500 scale-105' : 'text-white'} 
+            />
+          </div>
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+            {isSaved ? 'Guardado' : 'Guardar'}
+          </span>
+        </button>
       </div>
 
-      {/* Post Content / Caption */}
-      <div className="px-4 pt-3 flex flex-col gap-1.5 bg-white dark:bg-zinc-950">
-        <div className="text-slate-800 dark:text-zinc-200 text-sm leading-snug">
-          <span 
-            className="font-bold mr-2 cursor-pointer hover:underline text-slate-950 dark:text-white"
+      {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
+      <div 
+        className="absolute left-0 bottom-0 right-16 z-10 p-4 pb-4 flex flex-col gap-1.5 select-none pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Smooth bottom gradient for crisp text readability */}
+        <div className="absolute inset-x-0 bottom-0 -top-24 bg-gradient-to-t from-black/95 via-black/65 to-transparent pointer-events-none -z-10" />
+
+        {/* Merchant Profile Row */}
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-white/80 p-0.5 shrink-0 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-transform"
             onClick={() => onNavigateStore(storeSlug || workspaceId)}
           >
-            {storeName}
-          </span>
-          <span className="text-slate-600 dark:text-zinc-300 inline">
+            {storeLogo ? (
+              <img src={resolveImageUrl(storeLogo)} alt={storeName} className="w-full h-full rounded-full object-cover bg-white" />
+            ) : (
+              <Store size={18} className="text-slate-950" />
+            )}
+          </div>
+
+          <div 
+            className="flex flex-col min-w-0 cursor-pointer" 
+            onClick={() => onNavigateStore(storeSlug || workspaceId)}
+          >
+            <div className="flex items-center gap-1">
+              <span className="text-white font-black text-sm tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:underline truncate">
+                @{storeName}
+              </span>
+              {isVerified && <CheckCircle size={13} className="text-blue-400 fill-blue-400/20 shrink-0" />}
+            </div>
+            <span className="text-zinc-300 text-[10px] font-medium flex items-center gap-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] truncate">
+              <MapPin size={10} className="text-amber-400 shrink-0" /> {address}
+            </span>
+          </div>
+
+          {/* Botón Seguir */}
+          <button 
+            type="button"
+            onClick={handleFollow}
+            className={`ml-1 text-xs font-bold rounded-full flex items-center justify-center gap-1 active:scale-95 cursor-pointer shadow-md transition-all shrink-0 ${
+              isFollowing 
+                ? 'bg-white/20 backdrop-blur-md text-emerald-400 border border-emerald-400/40 px-2 py-0.5' 
+                : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 px-2.5 py-0.5 font-black'
+            }`}
+            title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
+          >
+            {isFollowing ? (
+              <Check size={13} strokeWidth={2.8} />
+            ) : (
+              <>
+                <UserPlus size={12} strokeWidth={2.5} />
+                <span className="text-[11px]">Seguir</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Caption / Description */}
+        <div className="text-white text-xs font-normal leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] pr-1">
+          <span className="text-zinc-100 line-clamp-2">
             {caption}
           </span>
         </div>
 
-        {/* Botón para ver comentarios */}
-        <button 
-          type="button"
-          onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-          className="text-left text-slate-500 dark:text-zinc-400 text-xs font-semibold hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
-        >
-          {commentsCount > 0 
-            ? `Ver los ${commentsCount} comentarios` 
-            : 'Agregar un comentario...'}
-        </button>
-
-        <span className="text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider font-medium">
-          {formatTimeAgo(createdAt)}
-        </span>
+        {/* Comments Link & Date */}
+        <div className="flex items-center gap-2 text-[11px]">
+          <button 
+            type="button"
+            onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
+            className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+          >
+            <MessageCircle size={12} />
+            <span>{commentsCount > 0 ? `Ver ${commentsCount} comentarios` : 'Comentar...'}</span>
+          </button>
+          <span className="text-zinc-400 text-[10px] font-medium">
+            • {formatTimeAgo(createdAt)}
+          </span>
+        </div>
       </div>
+
+      {/* Animated Heart Burst on double tap */}
+      {showHeartBurst && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
+          <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-2xl" />
+        </div>
+      )}
 
       {/* Modal / Menú de Compartir Publicación */}
       <ResponsiveModal

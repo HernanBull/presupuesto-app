@@ -1651,13 +1651,13 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Instagram edge-to-edge sin bordes blancos) */}
-        <div className="flex flex-col space-y-4 px-0 py-2 pb-28 flex-1 w-full">
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción) */}
+        <div className="flex flex-col space-y-2 px-0 py-0 pb-28 flex-1 w-full bg-black">
           {feedPosts.length === 0 ? (
-            <div className="mx-4 text-center py-16 px-4 bg-zinc-50 rounded-2xl border border-dashed border-zinc-200">
-              <ShoppingBag size={36} className="text-zinc-300 mx-auto mb-2" />
-              <p className="text-sm font-bold text-zinc-600">No hay publicaciones disponibles</p>
-              <p className="text-xs text-zinc-400 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
+            <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
+              <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
+              <p className="text-sm font-bold text-zinc-300">No hay publicaciones disponibles</p>
+              <p className="text-xs text-zinc-500 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
               {activeCategory !== 'Todas' && (
                 <button 
                   onClick={() => setActiveCategory('Todas')} 
@@ -1681,22 +1681,22 @@ export default function MarketplaceDirectory() {
           )}
 
           {/* Footer App Compacto */}
-          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-100 bg-zinc-50/50 mt-4 mb-16 rounded-2xl">
+          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
                 <ShoppingBag size={14} className="stroke-[2.5]" />
               </div>
-              <span className="font-bold text-xs tracking-widest text-zinc-800">AXON<span className="text-amber-600">MARKET</span></span>
+              <span className="font-bold text-xs tracking-widest text-zinc-100">AXON<span className="text-amber-500">MARKET</span></span>
             </div>
             <p className="text-[11px] text-zinc-400">Tu marketplace local en Venezuela</p>
-            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-500">
-              <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-600">Términos</button>
+            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-400">
+              <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-400">Términos</button>
               <span>•</span>
-              <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-600">Privacidad</button>
+              <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-400">Privacidad</button>
               <span>•</span>
-              <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-600">Aviso Legal</button>
+              <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-400">Aviso Legal</button>
             </div>
-            <p className="text-[10px] text-zinc-400 mt-2">© {new Date().getFullYear()} AxonMarket</p>
+            <p className="text-[10px] text-zinc-500 mt-2">© {new Date().getFullYear()} AxonMarket</p>
           </div>
         </div>
 
