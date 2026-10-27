@@ -4,7 +4,7 @@ import {
   Plus, Edit2, Trash2, Eye, EyeOff, Search, Loader2, Image as ImageIcon, 
   X, Heart, MessageSquare, Bookmark, Users, Sparkles, Share2, 
   ExternalLink, Check, ShoppingBag, ArrowUpRight, Flame, Megaphone, Star, Tag, Send,
-  Video, Camera, ZoomIn, ZoomOut, Move, Volume2, VolumeX, Play
+  Video, Camera, Volume2, VolumeX, Play
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -19,7 +19,6 @@ import {
   getStoreLikesList
 } from '../services/socialService';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
-import ResponsiveModal from '../components/ResponsiveModal';
 
 const POST_BADGES = [
   { id: 'oferta', label: '🔥 Oferta Exclusiva', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
@@ -60,14 +59,6 @@ export default function MerchantSocialFeedPage() {
   const videoFileInputRef = useRef(null);
   const videoRecordInputRef = useRef(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
-
-  // Estados del Recortador / Encuadre Inteligente 9:16
-  const [cropModalOpen, setCropModalOpen] = useState(false);
-  const [rawImageToCrop, setRawImageToCrop] = useState('');
-  const [cropZoom, setCropZoom] = useState(1);
-  const [cropPan, setCropPan] = useState({ x: 0, y: 0 });
-  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const [formData, setFormData] = useState({
     id: null,
@@ -162,23 +153,105 @@ export default function MerchantSocialFeedPage() {
     return () => window.removeEventListener('axon_social_updated', handleSocialUpdate);
   }, [workspaceId]);
 
-  // Manejar selección de foto para abrir Recortador 9:16
-  const handleImageFileSelect = (e) => {
+  // Centrado y Recorte Automático 9:16 Inteligente (Sin fricción ni arrastre manual)
+  const processAndCenterImage916 = async (source) => {
+    if (!source) return;
+    setUploadingImage(true);
+    const toastId = toast.loading('Centrando y optimizando foto a formato 9:16...');
+    try {
+      // 1. Obtener DataURL si es un objeto File o Blob
+      let src = source;
+      if (source instanceof File || source instanceof Blob) {
+        src = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(source);
+        });
+      }
+
+      // 2. Cargar objeto Image nativo
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = src;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+      });
+
+      // 3. Crear canvas 1080 x 1920 (proporción 9:16 estándar vertical)
+      const targetWidth = 1080;
+      const targetHeight = 1920;
+      const targetAspect = targetWidth / targetHeight; // 9/16 = 0.5625
+      const imgAspect = img.width / img.height;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d');
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 4. Calcular recorte centrado perfecto automáticamente
+      let sWidth, sHeight, sx, sy;
+      if (imgAspect > targetAspect) {
+        // La imagen es horizontal o cuadrada (más ancha que 9:16). Se centra horizontalmente.
+        sHeight = img.height;
+        sWidth = img.height * targetAspect;
+        sx = (img.width - sWidth) / 2;
+        sy = 0;
+      } else {
+        // La imagen es más alta que 9:16. Se centra verticalmente.
+        sWidth = img.width;
+        sHeight = img.width / targetAspect;
+        sx = 0;
+        sy = (img.height - sHeight) / 2;
+      }
+
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+      ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetWidth, targetHeight);
+
+      // 5. Convertir a Blob y subir a Supabase Storage
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      const fileName = `social_posts/${workspaceId}/${Date.now()}_autocentered_9_16.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('ecommerce')
+        .upload(fileName, blob, { upsert: true, contentType: 'image/jpeg' });
+
+      if (uploadError) {
+        // Fallback local en caso de error de red o permisos en bucket
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        setFormData(prev => ({ ...prev, image_url: dataUrl, media_type: 'image' }));
+        toast.success('¡Foto centrada a 9:16 correctamente!', { id: toastId });
+      } else {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
+        setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'image' }));
+        toast.success('¡Foto centrada automáticamente a 9:16!', { id: toastId });
+      }
+    } catch (err) {
+      console.warn('Error en auto-centrado:', err);
+      if (typeof source === 'string') {
+        setFormData(prev => ({ ...prev, image_url: source, media_type: 'image' }));
+      }
+      toast.success('Foto cargada', { id: toastId });
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Manejar selección de foto del comerciante
+  const handleImageFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 20 MB');
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('La imagen no debe superar los 25 MB');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setRawImageToCrop(event.target.result);
-      setCropZoom(1);
-      setCropPan({ x: 0, y: 0 });
-      setCropModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    await processAndCenterImage916(file);
   };
 
   // Manejar subida y grabación de Video
@@ -213,74 +286,6 @@ export default function MerchantSocialFeedPage() {
       setUploadingVideo(false);
       if (videoFileInputRef.current) videoFileInputRef.current.value = '';
       if (videoRecordInputRef.current) videoRecordInputRef.current.value = '';
-    }
-  };
-
-  // Aplicar encuadre 9:16 con Canvas HTML5
-  const applyCropAndSave = async () => {
-    if (!rawImageToCrop) return;
-    setUploadingImage(true);
-    try {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = rawImageToCrop;
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      const targetWidth = 1080;
-      const targetHeight = 1920;
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
-      const ctx = canvas.getContext('2d');
-
-      const imgAspect = img.width / img.height;
-      const targetAspect = targetWidth / targetHeight;
-
-      let renderWidth, renderHeight;
-      if (imgAspect > targetAspect) {
-        renderHeight = targetHeight * cropZoom;
-        renderWidth = renderHeight * imgAspect;
-      } else {
-        renderWidth = targetWidth * cropZoom;
-        renderHeight = renderWidth / imgAspect;
-      }
-
-      const offsetX = (targetWidth - renderWidth) / 2 + (cropPan.x * (targetWidth / 260));
-      const offsetY = (targetHeight - renderHeight) / 2 + (cropPan.y * (targetHeight / (260 * (16 / 9))));
-
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
-      ctx.drawImage(img, offsetX, offsetY, renderWidth, renderHeight);
-
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-      const fileName = `social_posts/${workspaceId}/${Date.now()}_cropped_9_16.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('ecommerce')
-        .upload(fileName, blob, { upsert: true, contentType: 'image/jpeg' });
-
-      if (uploadError) {
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        setFormData(prev => ({ ...prev, image_url: dataUrl, media_type: 'image' }));
-        toast.success('Encuadre aplicado');
-      } else {
-        const { data } = supabase.storage.from('ecommerce').getPublicUrl(fileName);
-        setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'image' }));
-        toast.success('¡Foto encuadrada a 9:16 exitosamente!');
-      }
-
-      setCropModalOpen(false);
-      setRawImageToCrop('');
-    } catch (err) {
-      console.error('Error aplicando encuadre:', err);
-      setFormData(prev => ({ ...prev, image_url: rawImageToCrop, media_type: 'image' }));
-      setCropModalOpen(false);
-      toast.success('Foto seleccionada');
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -857,7 +862,7 @@ export default function MerchantSocialFeedPage() {
                       className="hidden" 
                     />
 
-                    {/* Botón Subir Foto con Encuadre */}
+                    {/* Botón Subir Foto con Auto-centrado 9:16 */}
                     <button
                       type="button"
                       disabled={uploadingImage || uploadingVideo}
@@ -865,7 +870,7 @@ export default function MerchantSocialFeedPage() {
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                     >
                       {uploadingImage ? <Loader2 size={14} className="animate-spin text-amber-500" /> : <ImageIcon size={14} className="text-amber-500" />}
-                      Subir Foto (Encuadre 9:16)
+                      Subir Foto (Auto-centrado 9:16)
                     </button>
 
                     {/* Botón Grabar Video desde Cámara */}
@@ -902,7 +907,7 @@ export default function MerchantSocialFeedPage() {
                     )}
                   </div>
 
-                  {/* Selector desplegable de productos del catálogo */}
+                  {/* Selector desplegable de productos del catálogo con centrado automático */}
                   {isProductPickerOpen && storeProducts.length > 0 && (
                     <div className="p-3 bg-gray-50 dark:bg-zinc-800/80 rounded-2xl border border-gray-200 dark:border-zinc-700 space-y-2">
                       <p className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase">
@@ -922,10 +927,7 @@ export default function MerchantSocialFeedPage() {
                                   content: prev.content || `Aprovecha nuestro producto ${p.name} a tan solo ${p.price}. Disponible para entrega inmediata.`
                                 }));
                                 setIsProductPickerOpen(false);
-                                setRawImageToCrop(img);
-                                setCropZoom(1);
-                                setCropPan({ x: 0, y: 0 });
-                                setCropModalOpen(true);
+                                processAndCenterImage916(img);
                               }}
                               className="cursor-pointer border border-transparent hover:border-amber-500 rounded-xl overflow-hidden group relative bg-white dark:bg-zinc-900"
                             >
@@ -949,12 +951,12 @@ export default function MerchantSocialFeedPage() {
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
 
-                  {/* Guía informativa de formato y márgenes TikTok */}
+                  {/* Guía informativa de formato y centrado 9:16 */}
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-2.5 mt-2">
                     <Sparkles size={16} className="text-amber-500 shrink-0 mt-0.5" />
                     <div className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                      <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Márgenes y Formato Estilo TikTok (9:16)</span>
-                      Para llenar la pantalla usa fotos verticales (1080 × 1920 px). Si subes fotos horizontales o cuadradas (hamburguesas, ropa, promociones), AxonMarket le aplicará automáticamente <strong className="text-zinc-900 dark:text-white">fondo ambiental difuminado</strong> para que tu foto salga 100% completa sin recortar ningún detalle.
+                      <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Encuadre Automático Inteligente (9:16)</span>
+                      Cualquier foto que subas o elijas de tu catálogo se centra y adapta automáticamente a la pantalla completa de tus clientes en proporción vertical 9:16 (1080 × 1920 px) sin cortes manuales ni necesidad de arrastrar.
                     </div>
                   </div>
                 </div>
@@ -1124,120 +1126,6 @@ export default function MerchantSocialFeedPage() {
           </div>
         </div>
       )}
-
-      {/* Modal de Recorte y Encuadre Inteligente 9:16 (Estilo TikTok) */}
-      <ResponsiveModal
-        isOpen={cropModalOpen}
-        onClose={() => setCropModalOpen(false)}
-        title="Encuadre de Pantalla 9:16 (TikTok)"
-      >
-        <div className="p-4 sm:p-6 space-y-4 text-left">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Move size={15} className="text-amber-500" />
-                Ajustar Encuadre 9:16
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                Arrastra la foto y usa el zoom para encuadrar exactamente lo que se verá en el teléfono.
-              </p>
-            </div>
-          </div>
-
-          {/* Marco Interactivo 9:16 */}
-          <div className="flex justify-center py-2">
-            <div 
-              className="relative w-60 h-[426px] bg-black rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-500 select-none cursor-grab active:cursor-grabbing touch-none"
-              onPointerDown={(e) => {
-                setIsDraggingCrop(true);
-                setDragStart({ x: e.clientX - cropPan.x, y: e.clientY - cropPan.y });
-              }}
-              onPointerMove={(e) => {
-                if (!isDraggingCrop) return;
-                setCropPan({
-                  x: e.clientX - dragStart.x,
-                  y: e.clientY - dragStart.y
-                });
-              }}
-              onPointerUp={() => setIsDraggingCrop(false)}
-              onPointerCancel={() => setIsDraggingCrop(false)}
-            >
-              {rawImageToCrop && (
-                <img 
-                  src={rawImageToCrop} 
-                  alt="Crop preview" 
-                  className="absolute pointer-events-none transition-transform"
-                  style={{
-                    transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom})`,
-                    transformOrigin: 'center center',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover'
-                  }}
-                />
-              )}
-
-              {/* Guías de Marco Seguro TikTok */}
-              <div className="absolute inset-0 border border-white/20 pointer-events-none rounded-3xl"></div>
-              <div className="absolute top-3 left-3 bg-black/60 px-2 py-0.5 rounded-full text-[9px] text-white/80 pointer-events-none">
-                Pantalla 9:16
-              </div>
-
-              {/* Indicador de ayuda táctil */}
-              <div className="absolute bottom-3 inset-x-3 text-center pointer-events-none">
-                <span className="bg-black/70 backdrop-blur-md text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-amber-500/30">
-                  ↔ Arrastra para centrar la foto
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Controles de Zoom */}
-          <div className="bg-gray-50 dark:bg-zinc-800/80 p-3 rounded-2xl border border-gray-200 dark:border-zinc-700 flex items-center gap-3">
-            <ZoomOut size={16} className="text-gray-500" />
-            <input 
-              type="range" 
-              min="1" 
-              max="3" 
-              step="0.05"
-              value={cropZoom}
-              onChange={(e) => setCropZoom(parseFloat(e.target.value))}
-              className="flex-1 accent-amber-500 cursor-pointer"
-            />
-            <ZoomIn size={16} className="text-gray-500" />
-            <span className="text-xs font-bold text-gray-700 dark:text-zinc-200 w-10 text-right">
-              {Math.round(cropZoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={() => { setCropZoom(1); setCropPan({ x: 0, y: 0 }); }}
-              className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline px-2"
-            >
-              Restablecer
-            </button>
-          </div>
-
-          {/* Botones de Acción */}
-          <div className="flex items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              onClick={() => setCropModalOpen(false)}
-              className="px-4 py-2 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              disabled={uploadingImage}
-              onClick={applyCropAndSave}
-              className="flex items-center gap-1.5 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              {uploadingImage ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} className="stroke-[3]" />}
-              Aplicar Encuadre 9:16
-            </button>
-          </div>
-        </div>
-      </ResponsiveModal>
 
       {/* Drawer de Comentarios para Moderar / Responder */}
       <PostCommentsDrawer

@@ -218,7 +218,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       </aside>
 
       {/* Mobile Header */}
-      <header className="md:hidden bg-white dark:bg-zinc-950 border-b border-slate-200 dark:border-white/5 z-20 shrink-0 px-4 py-3 flex items-center justify-between">
+      <header 
+        className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 px-4 flex items-center justify-between"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
+      >
         <div className="flex items-center gap-2 max-w-[60%]">
           <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black shrink-0">
             <ShoppingBag size={20} />
@@ -295,7 +298,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-black relative">
+      <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-black relative pb-24 md:pb-6">
         <div className="absolute top-4 right-6 hidden md:flex items-center gap-3 z-50">
            <div className="relative">
              <button onClick={() => setShowNotifications(!showNotifications)} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors relative">
@@ -362,10 +365,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Nav — 4 primary + "Más" */}
+      {/* Mobile Bottom Nav — 4 primary + "Más" (Fijo al fondo de la pantalla) */}
       <nav
-        className="md:hidden bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-white/5 z-30 shrink-0 shadow-[0_-8px_32px_rgba(0,0,0,0.06)]"
-        style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/5 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         <div className="flex items-center justify-around px-1 pt-2">
           {primaryNavItems.map((item) => (
