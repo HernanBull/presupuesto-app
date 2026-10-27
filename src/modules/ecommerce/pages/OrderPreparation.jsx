@@ -305,6 +305,11 @@ export default function OrderPreparation() {
     return hasPicked && !allPicked;
   });
   const packedOrders = orders.filter(o => o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED');
+  const visibleOrders = activeTab === 'PENDING'
+    ? pendingOrders
+    : activeTab === 'IN_PROGRESS'
+    ? inProgressOrders
+    : packedOrders;
 
   // Orden seleccionada actualmente para la pantalla de detalle y empaque
   const selectedOrder = orders.find(o => o.id === selectedOrderId);
