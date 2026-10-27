@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 
 export default function StoreProfileManager() {
@@ -131,6 +131,15 @@ export default function StoreProfileManager() {
   
   const [socialLinks, setSocialLinks] = useState({ instagram: '', facebook: '', tiktok: '', whatsapp: '' });
   
+  // Personal y PINs de Acceso (Picking & AxonPOS)
+  const [staffList, setStaffList] = useState([]);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffPin, setNewStaffPin] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('PICKER'); // PICKER | CASHIER | SUPERVISOR
+  const [staffStatusMsg, setStaffStatusMsg] = useState({ type: '', msg: '' });
+  const [isStaffSaving, setIsStaffSaving] = useState(false);
+  const [showStaffPins, setShowStaffPins] = useState({});
+
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
   const handleImageUpload = async (e, type) => {
@@ -221,6 +230,34 @@ export default function StoreProfileManager() {
               if (ws.config.scheduleProfile.closeTime) setCloseTime(ws.config.scheduleProfile.closeTime);
               if (ws.config.scheduleProfile.closeWarningMinutes !== undefined) setCloseWarningMinutes(ws.config.scheduleProfile.closeWarningMinutes);
             }
+
+            // Sincronizar Personal & PINs desde config y tabla users de Supabase (AxonPOS & Picking)
+            let mergedStaff = [];
+            if (ws.config.staff && Array.isArray(ws.config.staff)) {
+              mergedStaff = [...ws.config.staff];
+            }
+            try {
+              const { data: suUsers } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+              if (suUsers && suUsers.length > 0) {
+                const map = new Map();
+                mergedStaff.forEach(s => map.set(s.pin_code || s.pinCode, s));
+                suUsers.forEach(u => {
+                  if (u.role !== 'ADMIN' && u.pin_code && !map.has(u.pin_code)) {
+                    map.set(u.pin_code, {
+                      id: u.id,
+                      full_name: u.full_name || u.fullName,
+                      pin_code: u.pin_code,
+                      role: u.role || 'PICKER',
+                      created_at: u.created_at
+                    });
+                  }
+                });
+                mergedStaff = Array.from(map.values());
+              }
+            } catch (uErr) {
+              console.warn('Error syncing staff users:', uErr);
+            }
+            setStaffList(mergedStaff);
           }
         }
         setIsLoaded(true);
@@ -235,6 +272,124 @@ export default function StoreProfileManager() {
       authListener.subscription.unsubscribe();
     };
   }, [workspaceId]);
+
+  const toggleShowPin = (workerId) => {
+    setShowStaffPins(prev => ({ ...prev, [workerId]: !prev[workerId] }));
+  };
+
+  const handleAddStaff = async (e) => {
+    e.preventDefault();
+    setStaffStatusMsg({ type: '', msg: '' });
+    const cleanName = newStaffName.trim();
+    const cleanPin = newStaffPin.trim();
+
+    if (!cleanName) {
+      setStaffStatusMsg({ type: 'error', msg: 'Por favor, ingresa el nombre del trabajador.' });
+      return;
+    }
+    if (cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
+      setStaffStatusMsg({ type: 'error', msg: 'El PIN debe contener exactamente 4 dígitos numéricos (ej. 1234).' });
+      return;
+    }
+    if (staffList.some(s => (s.pin_code || s.pinCode) === cleanPin)) {
+      setStaffStatusMsg({ type: 'error', msg: `El PIN ${cleanPin} ya está asignado a otro miembro del personal.` });
+      return;
+    }
+
+    setIsStaffSaving(true);
+    const workerId = 'usr-picker-' + Date.now();
+    const newWorker = {
+      id: workerId,
+      full_name: cleanName,
+      pin_code: cleanPin,
+      role: newStaffRole,
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+
+    const updatedList = [newWorker, ...staffList];
+    setStaffList(updatedList);
+
+    // 1. Guardar en tabla users de Supabase (compatible con AxonPOS y Picking)
+    try {
+      await supabase.from('users').upsert({
+        id: workerId,
+        username: cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(100 + Math.random() * 900),
+        full_name: cleanName,
+        role: newStaffRole,
+        pin_code: cleanPin,
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+    } catch (sbErr) {
+      console.warn('Error guardando en users:', sbErr);
+    }
+
+    // 2. Guardar en workspace config en Supabase
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const currentConfig = ws?.config || {};
+      await supabase.from('workspaces').update({
+        config: {
+          ...currentConfig,
+          staff: updatedList
+        }
+      }).eq('id', workspaceId);
+    } catch (wsErr) {
+      console.warn('Error actualizando workspace config:', wsErr);
+    }
+
+    // 3. Respaldo local
+    try {
+      const local = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+      localStorage.setItem('axon_pickers', JSON.stringify([newWorker, ...local.filter(x => x.pinCode !== cleanPin && x.pin_code !== cleanPin)]));
+    } catch (e) {}
+
+    setIsStaffSaving(false);
+    setNewStaffName('');
+    setNewStaffPin('');
+    setStaffStatusMsg({ type: 'success', msg: `¡${cleanName} registrado con éxito! PIN: ${cleanPin}` });
+    setTimeout(() => setStaffStatusMsg({ type: '', msg: '' }), 4000);
+  };
+
+  const handleRemoveStaff = async (workerId, pinCode, workerName) => {
+    if (!window.confirm(`¿Estás seguro de revocar el acceso a "${workerName}" (PIN: ${pinCode})?`)) return;
+
+    const updatedList = staffList.filter(s => s.id !== workerId && (s.pin_code || s.pinCode) !== pinCode);
+    setStaffList(updatedList);
+
+    // 1. Eliminar de tabla users de Supabase
+    try {
+      if (pinCode) {
+        await supabase.from('users').delete().eq('pin_code', pinCode);
+      }
+      if (workerId) {
+        await supabase.from('users').delete().eq('id', workerId);
+      }
+    } catch (e) {
+      console.warn('Error eliminando de users:', e);
+    }
+
+    // 2. Actualizar workspace config
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const currentConfig = ws?.config || {};
+      await supabase.from('workspaces').update({
+        config: {
+          ...currentConfig,
+          staff: updatedList
+        }
+      }).eq('id', workspaceId);
+    } catch (e) {
+      console.warn('Error actualizando config:', e);
+    }
+
+    // 3. Respaldo local
+    try {
+      const local = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+      localStorage.setItem('axon_pickers', JSON.stringify(local.filter(x => x.id !== workerId && x.pinCode !== pinCode && x.pin_code !== pinCode)));
+    } catch (e) {}
+  };
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -317,6 +472,7 @@ export default function StoreProfileManager() {
         autoBcv: !manualBcv, // Keep for backward compatibility
         has_enminutos_alliance: hasEnminutosAlliance,
         socialLinks,
+        staff: staffList,
         paymentProfile: {
           paymentMobile,
           pmBank,
@@ -993,8 +1149,175 @@ export default function StoreProfileManager() {
           </div>
         </section>
 
+        {/* Personal y PINs de Acceso (Picking & AxonPOS) */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-lg">
+              <Users size={20} />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Personal y PINs de Acceso (Picking & AxonPOS)</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Crea y asigna un PIN de 4 dígitos a cada miembro de tu equipo. Este PIN funciona como su cédula digital para identificarse al empacar pedidos en Picking y para acceder a AxonPOS.
+              </p>
+            </div>
+          </div>
 
+          <div className="space-y-6">
+            {/* Formulario de Alta de Trabajador */}
+            <form onSubmit={handleAddStaff} className="p-4 sm:p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/70 dark:bg-slate-950/60 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white">
+                <UserPlus size={16} className="text-orange-600" />
+                <span>Registrar Nuevo Personal</span>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">
+                    Nombre del Trabajador
+                  </label>
+                  <input
+                    type="text"
+                    value={newStaffName}
+                    onChange={(e) => setNewStaffName(e.target.value)}
+                    placeholder="Ej. Carlos Gómez"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-orange-500 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">
+                    Rol / Cargo
+                  </label>
+                  <select
+                    value={newStaffRole}
+                    onChange={(e) => setNewStaffRole(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:border-orange-500 font-medium"
+                  >
+                    <option value="PICKER">Empacador (Picking)</option>
+                    <option value="CASHIER">Cajero (AxonPOS)</option>
+                    <option value="SUPERVISOR">Supervisor / Almacén</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">
+                    PIN Asignado (4 dígitos)
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    value={newStaffPin}
+                    onChange={(e) => setNewStaffPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="••••"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-center tracking-[0.4em] font-mono font-black text-slate-800 dark:text-white focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              {staffStatusMsg.msg && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-bold ${
+                    staffStatusMsg.type === 'error'
+                      ? 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/30 dark:border-red-900/50'
+                      : 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/50'
+                  }`}
+                >
+                  {staffStatusMsg.type === 'error' ? '⚠️ ' : '✓ '}
+                  {staffStatusMsg.msg}
+                </div>
+              )}
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={isStaffSaving}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-orange-600/20"
+                >
+                  <Check size={15} />
+                  <span>{isStaffSaving ? 'Guardando...' : 'Guardar y Asignar PIN'}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Listado de Personal Registrado */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Personal Autorizado ({staffList.length})
+                </span>
+              </div>
+
+              {staffList.length === 0 ? (
+                <div className="text-center py-8 px-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/30">
+                  <KeyRound size={28} className="mx-auto text-slate-400 mb-2 opacity-50" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    No hay trabajadores con PIN registrados todavía
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Agrega el primer miembro de tu equipo usando el formulario superior.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {staffList.map((worker) => {
+                    const pin = worker.pin_code || worker.pinCode || '----';
+                    const isPinVisible = !!showStaffPins[worker.id];
+                    const roleLabel =
+                      worker.role === 'CASHIER'
+                        ? 'Cajero'
+                        : worker.role === 'SUPERVISOR'
+                        ? 'Supervisor'
+                        : 'Empacador';
+
+                    return (
+                      <div
+                        key={worker.id || pin}
+                        className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3 shadow-xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center font-black text-sm shrink-0 border border-orange-200 dark:border-orange-900/40">
+                            {(worker.full_name || worker.fullName || 'T').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                              {worker.full_name || worker.fullName}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {roleLabel}
+                              </span>
+                              <span className="text-[11px] font-mono font-bold text-slate-500">
+                                PIN: {isPinVisible ? pin : '••••'}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleShowPin(worker.id)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                title={isPinVisible ? 'Ocultar PIN' : 'Ver PIN'}
+                              >
+                                {isPinVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStaff(worker.id, pin, worker.full_name || worker.fullName)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors shrink-0"
+                          title="Revocar acceso"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

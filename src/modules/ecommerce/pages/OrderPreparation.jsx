@@ -73,10 +73,12 @@ export default function OrderPreparation() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const knownOrderIdsRef = useRef(new Set());
 
-  // Autenticación de Empacadores por PIN (Idéntico a AxonPOS)
+  // Autenticación obligatoria de Empacadores por PIN (Estilo Cédula de Identidad)
   const [activeWorker, setActiveWorker] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('axon_active_picker') || 'null');
+      const sess = sessionStorage.getItem('axon_active_picker');
+      if (sess) return JSON.parse(sess);
+      return null;
     } catch (e) {
       return null;
     }
@@ -339,9 +341,41 @@ export default function OrderPreparation() {
   };
 
   const verifyPin = async (pinCode) => {
-    const masterPin = localStorage.getItem('adminPin') || '9999';
+    // 1. Consultar Workspace config (adminPin y personal configurado en Perfil de Tienda)
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    let masterPin = localStorage.getItem('adminPin') || '9999';
+    try {
+      if (workspaceId) {
+        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+        if (ws?.config?.adminPin) {
+          masterPin = ws.config.adminPin;
+        }
+        const staffArr = ws?.config?.staff || [];
+        const foundInWs = staffArr.find(s => (s.pin_code === pinCode || s.pinCode === pinCode) && s.is_active !== false);
+        if (foundInWs) {
+          const matchedWorker = {
+            id: foundInWs.id,
+            fullName: foundInWs.full_name || foundInWs.fullName,
+            pinCode: foundInWs.pin_code || foundInWs.pinCode,
+            role: foundInWs.role || 'PICKER'
+          };
+          sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+          localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+          setActiveWorker(matchedWorker);
+          triggerHaptic([50, 50, 100]);
+          playBeep(980, 0.12);
+          setPinInput('');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Error verificando config workspace:', e);
+    }
+
+    // 2. PIN Maestro de SuperAdmin
     if (pinCode === masterPin || pinCode === '9999' || pinCode === '1234') {
       const adminWorker = { id: 'admin', fullName: 'SuperAdmin / Propietario', role: 'ADMIN' };
+      sessionStorage.setItem('axon_active_picker', JSON.stringify(adminWorker));
       localStorage.setItem('axon_active_picker', JSON.stringify(adminWorker));
       setActiveWorker(adminWorker);
       triggerHaptic([50, 50, 100]);
@@ -350,7 +384,7 @@ export default function OrderPreparation() {
       return;
     }
 
-    // 1. Consultar usuarios en Supabase Cloud (sincronizados con AxonPOS)
+    // 3. Consultar usuarios en Supabase Cloud (sincronizados con AxonPOS)
     try {
       const { data: suUsers } = await supabase
         .from('users')
@@ -366,6 +400,7 @@ export default function OrderPreparation() {
           pinCode: u.pin_code,
           role: u.role || 'PICKER'
         };
+        sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
         localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
         setActiveWorker(matchedWorker);
         triggerHaptic([50, 50, 100]);
@@ -377,20 +412,27 @@ export default function OrderPreparation() {
       console.warn('Error consultando Supabase users:', e);
     }
 
-    // 2. Consultar almacenamiento local
+    // 4. Consultar almacenamiento local
     const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-    const found = savedPickers.find(p => p.pinCode === pinCode && p.isActive !== false);
+    const found = savedPickers.find(p => (p.pinCode === pinCode || p.pin_code === pinCode) && p.isActive !== false);
 
     if (found) {
-      localStorage.setItem('axon_active_picker', JSON.stringify(found));
-      setActiveWorker(found);
+      const matched = {
+        id: found.id,
+        fullName: found.fullName || found.full_name,
+        pinCode: found.pinCode || found.pin_code,
+        role: found.role || 'PICKER'
+      };
+      sessionStorage.setItem('axon_active_picker', JSON.stringify(matched));
+      localStorage.setItem('axon_active_picker', JSON.stringify(matched));
+      setActiveWorker(matched);
       triggerHaptic([50, 50, 100]);
       playBeep(980, 0.12);
       setPinInput('');
     } else {
       triggerHaptic([100, 50, 100]);
       playBeep(300, 0.2);
-      setPinError('PIN no registrado');
+      setPinError('PIN no autorizado');
       setTimeout(() => {
         setPinInput('');
         setPinError(null);
@@ -535,9 +577,11 @@ export default function OrderPreparation() {
 
   const handleWorkerLogout = () => {
     triggerHaptic(40);
+    sessionStorage.removeItem('axon_active_picker');
     localStorage.removeItem('axon_active_picker');
     setActiveWorker(null);
     setSelectedOrderId(null);
+    setPinInput('');
   };
 
   // MODAL EXCLUSIVO DE SUPERADMIN PARA GESTIÓN DE PERSONAL Y PINS
@@ -862,28 +906,15 @@ export default function OrderPreparation() {
             textAlign: 'center'
           }}
         >
-          <div
-            style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '20px',
-              backgroundColor: '#EA580C',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '16px',
-              boxShadow: '0 8px 20px rgba(234, 88, 12, 0.35)'
-            }}
-          >
-            <Package size={32} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 900, color: '#FFFFFF', margin: 0, letterSpacing: '-0.02em' }}>
+              Picking
+            </h1>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
           </div>
 
-          <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#FFFFFF', margin: '0 0 6px' }}>
-            Estación de Picking
-          </h2>
-          <p style={{ fontSize: '13px', color: '#94A3B8', margin: '0 0 24px', lineHeight: 1.4 }}>
-            Ingresa tu PIN de 4 dígitos asignado por el Administrador
+          <p style={{ fontSize: '13px', color: '#94A3B8', margin: '0 0 24px', fontWeight: 600 }}>
+            Ingresa tu PIN de 4 dígitos para acceder
           </p>
 
           <div style={{ display: 'flex', gap: '14px', marginBottom: '24px' }}>
@@ -1420,34 +1451,11 @@ export default function OrderPreparation() {
           gap: '12px'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '12px',
-              backgroundColor: '#FFF7ED',
-              color: '#EA580C',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid #FED7AA'
-            }}
-          >
-            <Package size={22} strokeWidth={2.4} />
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '15px', fontWeight: 900, color: '#0F172A' }}>
-                Estación de Picking
-              </span>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981' }} />
-            </div>
-            <div style={{ fontSize: '11px', color: '#64748B' }}>
-              AxonMarket • <strong style={{ color: '#EA580C' }}>Empaque y Despacho</strong>
-            </div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '18px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
+            Picking
+          </span>
+          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1459,46 +1467,18 @@ export default function OrderPreparation() {
                 gap: '6px',
                 backgroundColor: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '#FEF3C7' : '#F1F5F9',
                 border: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '1px solid #FDE68A' : '1px solid #E2E8F0',
-                padding: '4px 10px',
+                padding: '5px 10px',
                 borderRadius: '10px',
                 fontSize: '11px',
                 fontWeight: 800,
                 color: (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? '#B45309' : '#1E293B'
               }}
             >
-              <User size={13} className={(activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? 'text-amber-700' : 'text-amber-600'} />
-              <span>{activeWorker.fullName}</span>
+              <User size={13} className={(activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') ? 'text-amber-700' : 'text-slate-600'} />
+              <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {activeWorker.fullName || activeWorker.full_name}
+              </span>
             </div>
-          )}
-
-          {activeWorker && (activeWorker.role === 'ADMIN' || activeWorker.role === 'MASTER') && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic(30);
-                setIsRegisterModalOpen(true);
-                setMasterPinStep('REGISTER');
-                fetchStaffList();
-              }}
-              style={{
-                height: '36px',
-                padding: '0 10px',
-                borderRadius: '10px',
-                border: '1px solid #FED7AA',
-                backgroundColor: '#FFF7ED',
-                color: '#EA580C',
-                fontSize: '11px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
-              title="Gestión de Personal y PINs"
-            >
-              <ShieldCheck size={14} />
-              <span>Personal & PINs</span>
-            </button>
           )}
 
           <button
