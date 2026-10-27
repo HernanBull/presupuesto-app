@@ -368,8 +368,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
             <Route path="dashboard" element={<EcommerceDashboard />} />
             <Route path="analytics" element={<AnalyticsManager />} />
             <Route path="store-profile" element={<StoreProfileManager />} />
-            <Route path="inventory" element={<InventoryManager />} />
           </Route>
+          <Route path="inventory" element={<InventoryManager />} />
           <Route path="products" element={<ProductsManager />} />
           <Route path="product-studio" element={<ProductStudio />} />
           <Route path="product-studio/:id" element={<ProductStudio />} />

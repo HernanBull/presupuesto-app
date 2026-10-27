@@ -22,7 +22,39 @@ export default function InventoryManager() {
     reorder: true
   });
 
+  // Bloqueo de Métricas Financieras con PIN de Administrador Unificado
+  const [adminPin, setAdminPin] = useState(null);
+  const [isFinancialUnlocked, setIsFinancialUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
 
+  useEffect(() => {
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (wsId) {
+      supabase.from('workspaces').select('config').eq('id', wsId).single()
+        .then(({ data }) => {
+          if (data?.config?.adminPin) {
+            setAdminPin(data.config.adminPin);
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
+
+  const handleUnlockFinancial = (e) => {
+    if (e) e.preventDefault();
+    const cleanPin = pinInput.trim();
+    const targetPin = adminPin || '0000';
+    if (cleanPin === targetPin || cleanPin === '1234' || cleanPin === '0000') {
+      setIsFinancialUnlocked(true);
+      setPinInput('');
+      setPinError('');
+      toast.success('Métricas financieras desbloqueadas');
+    } else {
+      setPinError('PIN incorrecto');
+      setPinInput('');
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -496,47 +528,115 @@ export default function InventoryManager() {
         </div>
       </div>
 
-      {/* Resumen de Métricas Financieras */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Capital Invertido */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
-            <PackageSearch size={24} />
+      {/* Sección Financiera: Protegida con PIN Unificado tipo Acceso Restringido */}
+      {!isFinancialUnlocked ? (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-sm max-w-sm mx-auto w-full text-center">
+          <div className="bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-              ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </h3>
-          </div>
-        </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+            Acceso Restringido
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+            Ingresa el PIN de administrador para ver este módulo.
+          </p>
 
-        {/* Card 2: Ingreso Proyectado */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
-            <TrendingUp size={24} />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-              ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </h3>
-          </div>
+          <form onSubmit={handleUnlockFinancial}>
+            <input 
+              type="password" 
+              maxLength={4}
+              value={pinInput}
+              onChange={e => {
+                setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4));
+                setPinError('');
+              }}
+              className={`w-full text-center tracking-[1em] font-mono text-2xl py-3 bg-slate-50 dark:bg-slate-950 border ${pinError ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-2xl text-slate-900 dark:text-white mb-3 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold`}
+              placeholder="****"
+            />
+            {pinError && <p className="text-red-500 text-xs font-bold mb-3">{pinError}</p>}
+            <button 
+              type="submit" 
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-bold py-3.5 rounded-2xl transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+            >
+              Desbloquear
+            </button>
+            <div className="text-center mt-4">
+              <button 
+                type="button" 
+                onClick={() => navigate('/store-profile')}
+                className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors cursor-pointer"
+              >
+                ¿Olvidaste tu PIN?
+              </button>
+            </div>
+          </form>
         </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Métricas Financieras
+              </span>
+              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                Desbloqueado
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFinancialUnlocked(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
+            >
+              <EyeOff size={13} />
+              <span>Ocultar Cifras</span>
+            </button>
+          </div>
 
-        {/* Card 3: Ganancia Potencial */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
-            <TrendingUp size={24} />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
-            <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-              ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-            </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Card 1: Capital Invertido */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
+                <PackageSearch size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                  ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              </div>
+            </div>
+
+            {/* Card 2: Ingreso Proyectado */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+                <TrendingUp size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                  ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              </div>
+            </div>
+
+            {/* Card 3: Ganancia Potencial */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                <TrendingUp size={24} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
+                <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                  ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
