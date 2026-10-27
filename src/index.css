@@ -58,6 +58,11 @@
     min-height: 100vh;
     touch-action: manipulation;
     overscroll-behavior-y: none;
+    font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+  }
+  
+  button, input, select, textarea {
+    font-family: inherit;
   }
   
   /* Sobrescribimos temporalmente las clases oscuras forzadas 

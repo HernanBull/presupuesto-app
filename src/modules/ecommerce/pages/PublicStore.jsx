@@ -1814,16 +1814,22 @@ export default function PublicStore() {
         className="z-40 transition-all duration-300 px-4 md:px-8 py-2.5 sticky top-0 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
       >
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('home')}>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentPage('home')}>
             <button 
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentPage('home'); }} 
-              className="p-1 -ml-1 text-zinc-700 hover:text-black rounded-lg transition-colors cursor-pointer"
+              className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 hover:text-black flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/60"
               title="Volver al inicio"
             >
-              <ChevronLeft size={22} className="stroke-[2.5]" />
+              <ChevronLeft size={18} className="stroke-[2.5]" />
             </button>
-            <span className="text-lg md:text-xl font-black tracking-tight text-zinc-950 flex items-center gap-1.5">
+            <span 
+              className="text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5"
+              style={{ 
+                fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
+                letterSpacing: '-0.025em'
+              }}
+            >
               {config.business_name || 'MI TIENDA'}
               {config.is_verified && (
                 <div title="Comercio Verificado" className="inline-flex mt-0.5">
@@ -1833,14 +1839,14 @@ export default function PublicStore() {
             </span>
           </div>
           
-          <div className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase">
+          <div className="hidden md:flex items-center gap-6 text-xs font-semibold tracking-wider uppercase" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
             <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#52525b' }}>{texts.nav1}</span>
             <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'products' ? primaryColor : '#52525b' }}>{texts.nav2 || 'Productos'}</span>
             <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'offers' ? primaryColor : '#52525b' }}>{texts.nav3}</span>
           </div>
           
           <div className="flex items-center gap-2.5">
-             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors">
+             <button onClick={() => navigate('/')} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                <ArrowLeft size={15} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
@@ -1848,9 +1854,18 @@ export default function PublicStore() {
              {!currentCustomer && !isMerchantOwner ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
-                 className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-zinc-950 hover:bg-black text-amber-400 px-4 py-2 rounded-full transition-all shadow-xs active:scale-95 cursor-pointer border border-zinc-900"
+                 className="flex items-center gap-1.5 text-xs font-bold uppercase px-4 py-2 rounded-full transition-all active:scale-95 cursor-pointer border"
+                 style={{
+                   fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                   letterSpacing: '0.04em',
+                   backgroundColor: '#09090b',
+                   color: '#fbbf24',
+                   borderColor: 'rgba(251, 191, 36, 0.4)',
+                   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.12)'
+                 }}
                >
-                 <User size={13} className="text-amber-400 stroke-[2.5]" /> Ingresar
+                 <User size={13} className="text-amber-400 stroke-[2.5]" />
+                 <span>INGRESAR</span>
                </button>
              ) : (
                <div className="flex items-center gap-3">
@@ -2560,7 +2575,8 @@ export default function PublicStore() {
                  <button 
                    key={mc}
                    onClick={() => setActiveMainCategory(mc)}
-                   className={`whitespace-nowrap px-5 py-1.5 rounded-full text-xs md:text-sm font-bold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
+                   style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
+                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
                  >
                    {mc}
                  </button>
