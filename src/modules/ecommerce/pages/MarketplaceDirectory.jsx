@@ -1824,11 +1824,18 @@ export default function MarketplaceDirectory() {
 
       </div>
 
-      {/* Botón flotante en esquina izquierda (Sin parpadeo, limpio y elegante) */}
+      {/* Botón flotante en esquina izquierda (Negro transparente ultra moderno, sin parpadeo) */}
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
-          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full bg-zinc-950 text-amber-400 border border-amber-500/40 shadow-[0_6px_25px_rgba(0,0,0,0.8)] flex items-center justify-center cursor-pointer active:scale-90 hover:bg-zinc-900 transition-transform"
+          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+          style={{
+            backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
+          }}
           title="Abrir menú"
           aria-label="Abrir menú de navegación"
         >
@@ -1836,32 +1843,39 @@ export default function MarketplaceDirectory() {
         </button>
       )}
 
-      {/* Bottom Navigation Bar - Apertura instantánea sin animaciones (Cero Lag en celulares) */}
+      {/* Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
       {isBottomNavOpen && (
         <div 
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/95 backdrop-blur-xl border border-amber-500/30 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav"
+          style={{
+            backgroundColor: 'rgba(12, 12, 14, 0.82)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255, 255, 255, 0.14)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+          }}
         >
           <div className="flex justify-between items-center h-16 px-2 relative">
             <button 
               onClick={() => { window.scrollTo({ top: 0, behavior: 'instant' }); }}
-              className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 cursor-pointer"
+              className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
             >
               <Home size={22} fill="currentColor" />
-              <span className="text-[10px] font-bold">Inicio</span>
+              <span className="text-[10px] font-bold text-amber-400">Inicio</span>
             </button>
             
             <button onClick={() => {
               setIsCategoriesOpen(true);
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white cursor-pointer">
-              <Menu size={22} />
-              <span className="text-[10px] font-medium">Categorías</span>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-white cursor-pointer group">
+              <Menu size={22} className="text-zinc-300 group-hover:text-white" />
+              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
             </button>
 
             {/* Floating Action Button */}
             <div className="flex-1 flex justify-center relative -top-6">
               <div 
                 onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })} 
-                className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95"
+                className="w-14 h-14 bg-gradient-to-tr from-amber-500 to-amber-400 rounded-full flex items-center justify-center text-zinc-950 shadow-[0_10px_25px_rgba(245,158,11,0.55)] cursor-pointer active:scale-95 transition-transform"
                 title="Subir al inicio"
               >
                 <ShoppingBag size={24} className="stroke-[2.5]" />
@@ -1875,22 +1889,23 @@ export default function MarketplaceDirectory() {
               } else {
                 navigate('/profile', { state: { tab: 'favoritas' } });
               }
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 cursor-pointer">
-              <Heart size={22} />
-              <span className="text-[10px] font-medium">Favoritos</span>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
+              <Heart size={22} className="text-zinc-300 group-hover:text-amber-400" />
+              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Favoritos</span>
             </button>
 
             <button onClick={() => {
               navigate('/mapa');
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 cursor-pointer">
-              <MapPin size={22} />
-              <span className="text-[10px] font-medium">Mapa</span>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
+              <MapPin size={22} className="text-zinc-300 group-hover:text-amber-400" />
+              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Mapa</span>
             </button>
 
             {/* Botón para cerrar la barra al instante y liberar pantalla */}
             <button
               onClick={() => setIsBottomNavOpen(false)}
-              className="absolute -top-3 -right-2 w-7 h-7 bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-full border border-white/20 flex items-center justify-center shadow-md cursor-pointer"
+              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
+              style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
               title="Ocultar menú"
             >
               <X size={14} />

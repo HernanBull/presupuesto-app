@@ -94,6 +94,23 @@
     background-color: var(--bg-primary) !important;
   }
 
+  /* Barra de Navegación Móvil Ultra-Moderna - Negro Translúcido Glassmorphism */
+  .dark-glass-nav {
+    background-color: rgba(10, 10, 10, 0.82) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.75) !important;
+  }
+
+  .dark-glass-fab {
+    background-color: rgba(10, 10, 10, 0.88) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(245, 158, 11, 0.35) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+  }
+
   /* Forzamos textos claros secundarios a gris carbón en paneles claros */
   .dark .text-slate-50, .text-slate-50 {
     color: var(--text-main) !important;
