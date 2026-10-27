@@ -19,6 +19,7 @@ import {
   getStoreLikesList
 } from '../services/socialService';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
+import ResponsiveModal from '../components/ResponsiveModal';
 
 const POST_BADGES = [
   { id: 'oferta', label: '🔥 Oferta Exclusiva', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
