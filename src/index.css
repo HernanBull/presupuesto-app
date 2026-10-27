@@ -116,6 +116,15 @@
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
   }
 
+  /* TikTok Feed Item - Cero bordes, 100% Pantalla Completa sin margen */
+  .tiktok-feed-item {
+    background-color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    margin: 0 !important;
+  }
+
   /* Forzamos textos claros secundarios a gris carbón en paneles claros */
   .dark .text-slate-50, .text-slate-50 {
     color: var(--text-main) !important;

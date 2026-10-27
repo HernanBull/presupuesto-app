@@ -250,7 +250,13 @@ export default function SocialFeedCard({
   return (
     <div 
       id={`post-${postId}`}
-      className="relative w-full aspect-[4/5] sm:aspect-[9/16] min-h-[500px] max-h-[800px] bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end border-b border-zinc-900/60 will-change-transform"
+      className="tiktok-feed-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end will-change-transform m-0 p-0"
+      style={{
+        height: '100dvh',
+        border: 'none',
+        outline: 'none',
+        boxShadow: 'none'
+      }}
       onDoubleClick={handleDoubleTap}
     >
       {/* Background Media */}
@@ -314,7 +320,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-3 bottom-5 z-20 flex flex-col items-center gap-3.5 select-none"
+        className="absolute right-3 bottom-24 sm:bottom-20 z-20 flex flex-col items-center gap-3.5 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Like / Corazón */}
@@ -399,7 +405,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
       <div 
-        className="relative z-20 p-4 pb-4 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
+        className="relative z-20 p-4 pb-24 sm:pb-20 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Merchant Profile Row */}

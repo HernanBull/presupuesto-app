@@ -89,6 +89,7 @@ export default function MarketplaceDirectory() {
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [bannerSlide, setBannerSlide] = useState(0);
   const categoriesScrollRef = useRef(null);
+  const mainContainerRef = useRef(null);
 
   // Control de Barra de Navegación y Estados (Detección de umbral ultra-liviana sin lag)
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
@@ -1579,248 +1580,181 @@ export default function MarketplaceDirectory() {
       </div>
 
       {/* Centered Mobile-First App Shell (Wider for Desktop) */}
-      <div className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] min-h-screen bg-white md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
+      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-auto snap-y snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
-        {/* App Header */}
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
-          <div className="w-full flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)} 
-                className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
-                title="Menú de opciones"
-              >
-                <MoreVertical size={22} strokeWidth={2.2} />
-              </button>
-              <div 
-                className="flex items-center gap-2 select-none cursor-pointer" 
-                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
-              >
-                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                  <ShoppingBag size={16} className="stroke-[2.5]"/>
+        {/* Cabecera Superior y Explorar Destacados (Snap Start - Oculta fluidamente al bajar al feed) */}
+        <div className="w-full snap-start shrink-0 bg-white z-40 flex flex-col">
+          {/* App Header */}
+          <header className="bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)} 
+                  className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
+                  title="Menú de opciones"
+                >
+                  <MoreVertical size={22} strokeWidth={2.2} />
+                </button>
+                <div 
+                  className="flex items-center gap-2 select-none cursor-pointer" 
+                  onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
+                >
+                  <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                    <ShoppingBag size={16} className="stroke-[2.5]"/>
+                  </div>
+                  <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
                 </div>
-                <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {Object.keys(globalCart).length > 0 && (
-                <button
-                  onClick={() => setIsCartOpen(true)}
-                  className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
-                  title="Ver mis carritos de compra"
-                >
-                  <ShoppingCart size={20} />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
-                    {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
-                  </span>
-                </button>
-              )}
-
-              {currentCustomer ? (
-                /* Usuario logueado: Mostramos su foto de perfil */
-                <button 
-                  onClick={() => navigate('/profile')} 
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
-                  title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
-                >
-                  {currentCustomer.profile_pic ? (
-                    <img 
-                      src={resolveImageUrl(currentCustomer.profile_pic)} 
-                      alt="Perfil" 
-                      className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
-                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </button>
-              ) : currentMerchant ? (
-                /* Comercio logueado */
-                <button 
-                  onClick={() => navigate('/dashboard')} 
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
-                >
-                  <Store size={14} /> Panel
-                </button>
-              ) : (
-                /* Visitante no logueado */
-                <>
-                  <button 
-                    onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
-                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                    title="Abrir mi Tienda"
+              <div className="flex items-center gap-2">
+                {Object.keys(globalCart).length > 0 && (
+                  <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
+                    title="Ver mis carritos de compra"
                   >
-                    <Store size={20} strokeWidth={2} />
+                    <ShoppingCart size={20} />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
+                      {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
+                    </span>
                   </button>
-                  
+                )}
+
+                {currentCustomer ? (
                   <button 
-                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                    title="Iniciar Sesión"
+                    onClick={() => navigate('/profile')} 
+                    className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                    title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
                   >
-                    <User size={20} strokeWidth={2} />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* 1. Panel de Historias de Comerciantes estilo WhatsApp / Stories Cards (ARRIBA del buscador) */}
-        <div className="px-3 md:px-5 py-2.5 border-b border-zinc-100 bg-white">
-          <div className="flex overflow-x-auto gap-3 py-0.5 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {merchantStatuses.map((status, idx) => (
-              <div 
-                key={status.id || idx}
-                onClick={() => {
-                  setActiveStatusIndex(idx);
-                  setIsStatusViewerOpen(true);
-                }}
-                className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
-                title={`Ver estado de ${status.name}`}
-              >
-                {/* Imagen de fondo / Preview del Estado */}
-                <img 
-                  src={resolveImageUrl(status.mediaUrl || status.avatar)} 
-                  alt="" 
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = DEFAULT_STORY_COVERS[idx % DEFAULT_STORY_COVERS.length];
-                  }}
-                />
-
-                {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
-
-                {/* Avatar del comerciante en la esquina superior izquierda */}
-                <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
-                  <div className="w-full h-full rounded-full bg-white overflow-hidden">
-                    {status.avatar ? (
+                    {currentCustomer.profile_pic ? (
                       <img 
-                        src={resolveImageUrl(status.avatar)} 
-                        alt="" 
-                        className="w-full h-full object-cover" 
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80';
-                        }}
+                        src={resolveImageUrl(currentCustomer.profile_pic)} 
+                        alt="Perfil" 
+                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
                       />
                     ) : (
-                      <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
-                        <Store size={14} />
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* Icono de Play en la esquina superior derecha */}
-                <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
-                  <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
-                </div>
-
-                {/* Nombre del comercio en la parte inferior */}
-                <div className="absolute bottom-2 left-2 right-2 flex flex-col">
-                  <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
-                    {status.name}
-                  </span>
-                  <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs">
-                    {status.time || 'Hoy'}
-                  </span>
-                </div>
+                  </button>
+                ) : currentMerchant ? (
+                  <button 
+                    onClick={() => navigate('/dashboard')} 
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
+                  >
+                    <Store size={14} /> Panel
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
+                      className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                      title="Abrir mi Tienda"
+                    >
+                      <Store size={20} strokeWidth={2} />
+                    </button>
+                    
+                    <button 
+                      onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                      className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                      title="Iniciar Sesión"
+                    >
+                      <User size={20} strokeWidth={2} />
+                    </button>
+                  </>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 2. App Search Bar (Buscador) */}
-        <div className="px-4 md:px-6 py-2.5 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
-          <div className="relative w-full group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={18} className="text-zinc-400" />
             </div>
-            <input
-              id="mobile-search-input"
-              type="text"
-              placeholder="¿Qué quieres pedir hoy?"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
-            />
-          </div>
-        </div>
+          </header>
 
-        {/* 3. Explorar Destacados / Categorías Rápidas (ABAJO del buscador) */}
-        <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
-          <div className="flex items-center justify-between px-1 mb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">EXPLORAR DESTACADOS</span>
+          {/* 2. App Search Bar (Buscador) */}
+          <div className="px-4 md:px-6 py-2.5 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
+            <div className="relative w-full group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Search size={18} className="text-zinc-400" />
+              </div>
+              <input
+                id="mobile-search-input"
+                type="text"
+                placeholder="¿Qué quieres pedir hoy?"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
+              />
             </div>
-            {discoveryFilter !== 'all' && (
-              <button
-                onClick={() => setDiscoveryFilter('all')}
-                className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline"
-              >
-                Ver todo
-              </button>
-            )}
           </div>
-          
-          <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {[
-              { id: 'all', name: 'Todo', icon: ShoppingBag, color: 'from-amber-500 to-amber-300' },
-              { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
-              { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
-              { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
-              { id: 'tendencias', name: 'Tendencias', icon: TrendingUp, color: 'from-blue-500 to-cyan-400' },
-              { id: 'verificadas', name: 'Top Tiend...', icon: ShieldCheck, color: 'from-emerald-500 to-teal-400' },
-              { id: 'eventos', name: 'Eventos', icon: Zap, color: 'from-yellow-400 to-amber-500' }
-            ].map((story) => {
-              const isActive = discoveryFilter === story.id;
-              const IconComp = story.icon;
-              return (
-                <div 
-                  key={story.id} 
-                  onClick={() => setDiscoveryFilter(story.id)} 
-                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+
+          {/* 3. Explorar Destacados / Categorías Rápidas (ABAJO del buscador) */}
+          <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">EXPLORAR DESTACADOS</span>
+              </div>
+              {discoveryFilter !== 'all' && (
+                <button
+                  onClick={() => setDiscoveryFilter('all')}
+                  className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline"
                 >
-                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? `bg-gradient-to-tr ${story.color} shadow-[0_0_15px_rgba(245,158,11,0.45)] scale-105` : 'bg-zinc-200/80 hover:bg-amber-300'}`}>
-                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-zinc-950 text-white' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
-                      <IconComp size={20} strokeWidth={isActive ? 2.5 : 1.9} className={isActive ? 'text-amber-400' : ''} />
-                    </div>
-                  </div>
-                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600 font-black' : 'text-zinc-500'}`}>
-                    {story.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Indicador de Categoría Activa (si el usuario filtró desde el menú de categorías) */}
-        {activeCategory !== 'Todas' && (
-          <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-zinc-800">
-                Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
-              </span>
+                  Ver todo
+                </button>
+              )}
             </div>
-            <button
-              onClick={() => setActiveCategory('Todas')}
-              className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
-            >
-              Mostrar todas
-            </button>
+            
+            <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              {[
+                { id: 'all', name: 'Todo', icon: ShoppingBag, color: 'from-amber-500 to-amber-300' },
+                { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
+                { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
+                { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
+                { id: 'tendencias', name: 'Tendencias', icon: TrendingUp, color: 'from-blue-500 to-cyan-400' },
+                { id: 'verificadas', name: 'Top Tiend...', icon: ShieldCheck, color: 'from-emerald-500 to-teal-400' },
+                { id: 'eventos', name: 'Eventos', icon: Zap, color: 'from-yellow-400 to-amber-500' }
+              ].map((story) => {
+                const isActive = discoveryFilter === story.id;
+                const IconComp = story.icon;
+                return (
+                  <div 
+                    key={story.id} 
+                    onClick={() => setDiscoveryFilter(story.id)} 
+                    className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+                  >
+                    <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? `bg-gradient-to-tr ${story.color} shadow-[0_0_15px_rgba(245,158,11,0.45)] scale-105` : 'bg-zinc-200/80 hover:bg-amber-300'}`}>
+                      <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-zinc-950 text-white' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
+                        <IconComp size={20} strokeWidth={isActive ? 2.5 : 1.9} className={isActive ? 'text-amber-400' : ''} />
+                      </div>
+                    </div>
+                    <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600 font-black' : 'text-zinc-500'}`}>
+                      {story.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Indicador de Categoría Activa */}
+          {activeCategory !== 'Todas' && (
+            <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span className="text-xs font-bold text-zinc-800">
+                  Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveCategory('Todas')}
+                className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
+              >
+                Mostrar todas
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción) */}
-        <div className="flex flex-col space-y-0 px-0 py-0 pb-28 flex-1 w-full bg-black">
+        <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black">
           {feedPosts.length === 0 ? (
             <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
               <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -1849,7 +1783,7 @@ export default function MarketplaceDirectory() {
           )}
 
           {/* Footer App Compacto */}
-          <div className="mx-4 py-6 px-4 text-center border-t border-zinc-800 bg-zinc-900/50 mt-4 mb-16 rounded-2xl">
+          <div className="w-full snap-start shrink-0 py-12 px-4 text-center border-t border-zinc-800 bg-zinc-950 mt-0">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
                 <ShoppingBag size={14} className="stroke-[2.5]" />
@@ -1903,7 +1837,7 @@ export default function MarketplaceDirectory() {
         >
           <div className="flex justify-between items-center h-16 px-2 relative">
             <button 
-              onClick={() => { window.scrollTo({ top: 0, behavior: 'instant' }); }}
+              onClick={() => { mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
             >
               <Home size={22} fill="currentColor" />
@@ -1920,7 +1854,7 @@ export default function MarketplaceDirectory() {
             {/* Floating Action Button */}
             <div className="flex-1 flex justify-center relative -top-6">
               <div 
-                onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })} 
+                onClick={() => { mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
                 className="w-14 h-14 bg-gradient-to-tr from-amber-500 to-amber-400 rounded-full flex items-center justify-center text-zinc-950 shadow-[0_10px_25px_rgba(245,158,11,0.55)] cursor-pointer active:scale-95 transition-transform"
                 title="Subir al inicio"
               >
