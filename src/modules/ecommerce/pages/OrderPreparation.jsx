@@ -31,7 +31,8 @@ import {
   LogOut,
   UserPlus,
   Trash2,
-  Lock
+  Lock,
+  Filter
 } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest } from '../../delivery/utils/telegramService';
@@ -94,6 +95,7 @@ export default function OrderPreparation() {
   const [registerSuccess, setRegisterSuccess] = useState(null);
   const [staffList, setStaffList] = useState([]);
   const [isStaffLoading, setIsStaffLoading] = useState(false);
+  const [selectedWorkerFilter, setSelectedWorkerFilter] = useState('ALL');
 
   // Habilitar scroll fluido en body y html en móvil
   useEffect(() => {
@@ -119,17 +121,35 @@ export default function OrderPreparation() {
       const { data, error } = await query.order('date', { ascending: false });
       if (error) throw error;
       
-      const safeData = (data || []).map(order => ({
-        ...order,
-        date: new Date(order.date).toLocaleString(),
-        paymentMethod: order.paymentmethod,
-        paymentStatus: order.paymentstatus,
-        paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : order.paymentdetails,
-        shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
-        items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
-        deliveryPin: order.delivery_pin,
-        isMobile: order.ismobile
-      }));
+      const safeData = (data || []).map(order => {
+        let shippingInfo = {};
+        try {
+          shippingInfo = typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : (order.shipping_info || {});
+        } catch (e) {}
+
+        const pickerId = order.picker_id || shippingInfo?.picker_id || shippingInfo?.packed_by_id || null;
+        const pickerName = order.picker_name || shippingInfo?.picker_name || shippingInfo?.packed_by_name || null;
+        const packedById = order.packed_by_id || shippingInfo?.packed_by_id || pickerId || null;
+        const packedByName = order.packed_by_name || shippingInfo?.packed_by_name || pickerName || null;
+        const packedAt = shippingInfo?.packed_at || null;
+
+        return {
+          ...order,
+          date: new Date(order.date).toLocaleString(),
+          paymentMethod: order.paymentmethod,
+          paymentStatus: order.paymentstatus,
+          paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : order.paymentdetails,
+          shippingInfo,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
+          deliveryPin: order.delivery_pin,
+          isMobile: order.ismobile,
+          pickerId,
+          pickerName,
+          packedById,
+          packedByName,
+          packedAt
+        };
+      });
       
       // Alerta sonora para nuevos pedidos entrantes
       const newOrders = safeData.filter(o => !knownOrderIdsRef.current.has(o.id));
@@ -152,6 +172,7 @@ export default function OrderPreparation() {
 
   useEffect(() => {
     fetchOrders();
+    fetchStaffList();
     const interval = setInterval(fetchOrders, 6000);
     return () => clearInterval(interval);
   }, []);
@@ -200,10 +221,36 @@ export default function OrderPreparation() {
     triggerHaptic(30);
     playBeep(880, 0.05);
 
+    const workerId = activeWorker?.id || 'admin';
+    const workerName = activeWorker?.fullName || 'SuperAdmin';
+    const workerPin = activeWorker?.pinCode || '';
+
     const updatedOrders = orders.map(order => {
       if (order.id === orderId) {
+        const assignedPickerId = order.pickerId || workerId;
+        const assignedPickerName = order.pickerName || workerName;
+        const updatedShipping = {
+          ...(order.shippingInfo || {}),
+          picker_id: assignedPickerId,
+          picker_name: assignedPickerName,
+          picker_pin: workerPin
+        };
+
+        // Guardar asignación en Supabase si es la primera vez que se toca el pedido
+        if (!order.pickerId && order.id) {
+          try {
+            supabase.from('ecommerce_orders_v2')
+              .update({ shipping_info: updatedShipping })
+              .eq('id', order.id)
+              .then(() => {});
+          } catch (e) {}
+        }
+
         return {
           ...order,
+          pickerId: assignedPickerId,
+          pickerName: assignedPickerName,
+          shippingInfo: updatedShipping,
           items: order.items.map(item => 
             item.id === itemId ? { ...item, picked: !item.picked } : item
           )
@@ -233,17 +280,55 @@ export default function OrderPreparation() {
       newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     }
 
+    const workerId = activeWorker?.id || 'admin';
+    const workerName = activeWorker?.fullName || 'SuperAdmin';
+    const workerPin = activeWorker?.pinCode || '';
+    const nowIso = new Date().toISOString();
+
+    const updatedShipping = {
+      ...(orderToSend.shippingInfo || {}),
+      picker_id: orderToSend.pickerId || workerId,
+      picker_name: orderToSend.pickerName || workerName,
+      picker_pin: workerPin,
+      packed_by_id: workerId,
+      packed_by_name: workerName,
+      packed_at: nowIso
+    };
+
     const updatedOrders = orders.map(order => 
-      order.id === orderId ? { ...order, status: 'Enviado', deliveryPin: newDeliveryPin } : order
+      order.id === orderId ? { 
+        ...order, 
+        status: 'Enviado', 
+        deliveryPin: newDeliveryPin,
+        pickerId: order.pickerId || workerId,
+        pickerName: order.pickerName || workerName,
+        packedById: workerId,
+        packedByName: workerName,
+        packedAt: nowIso,
+        shippingInfo: updatedShipping
+      } : order
     );
     setOrders(updatedOrders);
+
+    // Guardar en historial local individual del trabajador
+    try {
+      const myHistoryKey = `axon_history_${workerId}`;
+      const myPrev = JSON.parse(localStorage.getItem(myHistoryKey) || '[]');
+      if (!myPrev.includes(orderId)) {
+        localStorage.setItem(myHistoryKey, JSON.stringify([orderId, ...myPrev]));
+      }
+    } catch (e) {}
     
     // Regresar a la lista de pedidos de inmediato
     setSelectedOrderId(null);
     
     try {
       supabase.from('ecommerce_orders_v2')
-        .update({ status: 'Enviado', delivery_pin: newDeliveryPin })
+        .update({ 
+          status: 'Enviado', 
+          delivery_pin: newDeliveryPin,
+          shipping_info: updatedShipping
+        })
         .eq('id', orderId)
         .then(({ error }) => { 
           if (error) console.error(error); 
@@ -298,15 +383,44 @@ export default function OrderPreparation() {
     return Math.round(((pickedCount + invoicePicked) / totalSteps) * 100);
   };
 
-  // Clasificación de Pedidos en pestañas idénticas a AxonPOS
+  const isAdmin = activeWorker?.role === 'ADMIN' || activeWorker?.role === 'MASTER' || activeWorker?.id === 'admin';
+  const currentWorkerId = activeWorker?.id;
+
+  // Clasificación de Pedidos con Historial Separado por Trabajador
   const pendingOrders = orders.filter(o => o.status === 'Preparando' || o.status === 'ACCEPTED' || o.status === 'Pendiente');
+  
   const inProgressOrders = orders.filter(o => {
     if (o.status !== 'Preparando') return false;
     const hasPicked = o.items.some(i => i.picked);
     const allPicked = o.items.every(i => i.picked) && fiscalInvoicePicked[o.id];
-    return hasPicked && !allPicked;
+    const isUnderPrep = hasPicked && !allPicked;
+    if (!isUnderPrep) return false;
+
+    if (isAdmin) {
+      if (selectedWorkerFilter === 'ALL') return true;
+      return (o.pickerId === selectedWorkerFilter || o.shippingInfo?.picker_id === selectedWorkerFilter);
+    }
+    return (o.pickerId === currentWorkerId || o.shippingInfo?.picker_id === currentWorkerId || !o.pickerId);
   });
-  const packedOrders = orders.filter(o => o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED');
+
+  const packedOrders = orders.filter(o => {
+    const isPacked = o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED';
+    if (!isPacked) return false;
+
+    const orderWorkerId = o.packedById || o.pickerId || o.shippingInfo?.packed_by_id || o.shippingInfo?.picker_id;
+
+    if (isAdmin) {
+      if (selectedWorkerFilter === 'ALL') return true;
+      return orderWorkerId === selectedWorkerFilter;
+    }
+
+    const localWorkerHistory = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem(`axon_history_${currentWorkerId}`) || '[]')
+      : [];
+
+    return orderWorkerId === currentWorkerId || localWorkerHistory.includes(o.id);
+  });
+
   const visibleOrders = activeTab === 'PENDING'
     ? pendingOrders
     : activeTab === 'IN_PROGRESS'
@@ -462,6 +576,25 @@ export default function OrderPreparation() {
           map.set(u.id, u);
         }
       });
+
+      const workspaceId = localStorage.getItem('activeWorkspace');
+      if (workspaceId) {
+        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+        if (ws?.config?.staff && Array.isArray(ws.config.staff)) {
+          ws.config.staff.forEach(s => {
+            if (!map.has(s.id)) {
+              map.set(s.id, {
+                id: s.id,
+                fullName: s.full_name || s.fullName,
+                pinCode: s.pin_code || s.pinCode,
+                role: s.role || 'PICKER',
+                createdAt: s.created_at
+              });
+            }
+          });
+        }
+      }
+
       // Filtrar administradores para mostrar solo trabajadores autorizados
       setStaffList(Array.from(map.values()).filter(u => u.id !== 'admin' && u.id !== 'usr-admin-master'));
     } catch (e) {
@@ -1525,6 +1658,83 @@ export default function OrderPreparation() {
         </div>
       </header>
 
+      {/* Selector de Historial de Trabajador Exclusivo para SuperAdmin */}
+      {isAdmin && (
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderBottom: '1px solid #E2E8F0',
+            padding: '8px 16px',
+            maxWidth: '720px',
+            width: '100%',
+            margin: '0 auto',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '10px'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+            <Filter size={14} color="#EA580C" />
+            <span>Ver pedidos por:</span>
+          </div>
+
+          <select
+            value={selectedWorkerFilter}
+            onChange={(e) => setSelectedWorkerFilter(e.target.value)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '10px',
+              border: '1.5px solid #CBD5E1',
+              backgroundColor: '#F8FAFC',
+              fontSize: '12px',
+              fontWeight: 800,
+              color: '#0F172A',
+              outline: 'none',
+              cursor: 'pointer',
+              maxWidth: '240px'
+            }}
+          >
+            <option value="ALL">Todos los trabajadores (Global)</option>
+            {staffList.map((worker) => (
+              <option key={worker.id} value={worker.id}>
+                {worker.fullName || worker.full_name} (PIN: {worker.pinCode || worker.pin_code})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Subtítulo informativo de historial individual para trabajador regular */}
+      {!isAdmin && activeWorker && (
+        <div
+          style={{
+            backgroundColor: '#F0FDF4',
+            borderBottom: '1px solid #DCFCE7',
+            padding: '7px 16px',
+            maxWidth: '720px',
+            width: '100%',
+            margin: '0 auto',
+            boxSizing: 'border-box',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '11px',
+            color: '#166534',
+            fontWeight: 700
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <User size={13} color="#16A34A" />
+            <span>Historial individual de: <strong>{activeWorker.fullName || activeWorker.full_name}</strong></span>
+          </div>
+          <span style={{ backgroundColor: '#DCFCE7', padding: '2px 8px', borderRadius: '6px', fontWeight: 800, color: '#14532D', fontFamily: 'monospace' }}>
+            PIN: {activeWorker.pinCode || '••••'}
+          </span>
+        </div>
+      )}
+
       {/* Pestañas de Estado E-commerce (Idénticas a AxonPOS) */}
       <div
         style={{
@@ -1712,6 +1922,31 @@ export default function OrderPreparation() {
                     {order.date}
                   </span>
                 </div>
+
+                {/* Indicador del Empacador Asignado */}
+                {(order.packedByName || order.pickerName || order.shippingInfo?.packed_by_name || order.shippingInfo?.picker_name) && (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      backgroundColor: (activeTab === 'PACKED' || order.status === 'Enviado') ? '#F0FDF4' : '#EFF6FF',
+                      border: (activeTab === 'PACKED' || order.status === 'Enviado') ? '1px solid #DCFCE7' : '1px solid #DBEAFE',
+                      borderRadius: '8px',
+                      padding: '3px 8px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: (activeTab === 'PACKED' || order.status === 'Enviado') ? '#166534' : '#1E40AF',
+                      width: 'fit-content'
+                    }}
+                  >
+                    <User size={12} />
+                    <span>
+                      {(activeTab === 'PACKED' || order.status === 'Enviado') ? 'Empacador: ' : 'En preparación: '}
+                      <strong>{order.packedByName || order.pickerName || order.shippingInfo?.packed_by_name || order.shippingInfo?.picker_name}</strong>
+                    </span>
+                  </div>
+                )}
 
                 {/* Historial de productos empacados para órdenes listas */}
                 {(activeTab === 'PACKED' || order.status === 'Enviado' || order.status === 'Entregado' || order.status === 'COMPLETED') && (
