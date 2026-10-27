@@ -773,6 +773,15 @@ export default function MerchantSocialFeedPage() {
                     placeholder="O pega directamente la URL de la imagen..."
                     className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
+
+                  {/* Guía informativa de formato y márgenes TikTok */}
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-2.5 mt-2">
+                    <Sparkles size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div className="text-[11px] text-zinc-700 dark:text-zinc-300 leading-relaxed">
+                      <span className="font-bold text-amber-600 dark:text-amber-400 block mb-0.5">Márgenes y Formato Estilo TikTok (9:16)</span>
+                      Para llenar la pantalla usa fotos verticales (1080 × 1920 px). Si subes fotos horizontales o cuadradas (hamburguesas, ropa, promociones), AxonMarket le aplicará automáticamente <strong className="text-zinc-900 dark:text-white">fondo ambiental difuminado</strong> para que tu foto salga 100% completa sin recortar ningún detalle.
+                    </div>
+                  </div>
                 </div>
 
                 {/* Publicar inmediatamente check */}
@@ -809,93 +818,134 @@ export default function MerchantSocialFeedPage() {
                 </div>
               </form>
 
-              {/* Live Preview Estilo Instagram a la derecha */}
-              <div className="lg:col-span-5 bg-gray-100 dark:bg-zinc-950 p-6 flex flex-col items-center justify-center">
-                <div className="w-full max-w-[320px]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                      <Eye size={13} />
-                      Previsualización en Vivo
+              {/* Live Preview Estilo TikTok a la derecha */}
+              <div className="lg:col-span-5 bg-zinc-950 p-6 flex flex-col items-center justify-center border-l border-zinc-800">
+                <div className="w-full max-w-[280px]">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                      <Eye size={13} className="text-amber-400" />
+                      Vista Previa TikTok (9:16)
                     </span>
-                    <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Feed Móvil
+                    <span className="text-[10px] font-extrabold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
+                      Feed AxonMarket
                     </span>
                   </div>
 
-                  {/* Teléfono Mockup */}
-                  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 rounded-[2rem] overflow-hidden shadow-xl text-left">
-                    {/* Header del post */}
-                    <div className="flex items-center justify-between px-3.5 py-3 border-b border-gray-100 dark:border-white/5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden border border-amber-500/30">
+                  {/* Teléfono Mockup TikTok Vertical */}
+                  <div className="relative w-full aspect-[9/16] bg-black border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-end select-none">
+                    
+                    {/* Isla Dinámica / Parlante Superior */}
+                    <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-zinc-900 rounded-full z-30 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-zinc-950 border border-zinc-800 mr-2"></div>
+                      <div className="w-2 h-2 rounded-full bg-zinc-800"></div>
+                    </div>
+
+                    {/* Background Media con Ambient Blur dual si es ancha */}
+                    {formData.image_url ? (
+                      <>
+                        {/* Capa de fondo desenfocado ambiental */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                          <img 
+                            src={formData.image_url} 
+                            alt="" 
+                            className="w-full h-full object-cover scale-125 blur-xl opacity-60 brightness-60" 
+                          />
+                        </div>
+                        {/* Capa de foto principal 100% visible sin recorte */}
+                        <div className="absolute inset-0 z-0 flex items-center justify-center p-2 pointer-events-none">
+                          <img 
+                            src={formData.image_url} 
+                            alt="Preview" 
+                            className="max-w-full max-h-[75%] object-contain rounded-xl shadow-lg border border-white/10" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-0 gap-2 p-4 text-center">
+                        <ImageIcon size={36} className="opacity-40 text-amber-500" />
+                        <span className="text-xs font-semibold text-zinc-400">Sube o selecciona una foto para verla aquí</span>
+                        <span className="text-[10px] text-zinc-600">Formato 9:16 vertical o cualquier imagen</span>
+                      </div>
+                    )}
+
+                    {/* Degradado inferior */}
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none z-10" />
+
+                    {/* Top Overlay: Pager */}
+                    <div className="absolute top-8 right-3 z-20">
+                      <div className="bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] text-white/90 border border-white/15 font-semibold">
+                        1/1
+                      </div>
+                    </div>
+
+                    {/* TikTok Right Action Column */}
+                    <div className="absolute right-2.5 bottom-12 z-20 flex flex-col items-center gap-3">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                          <Heart size={16} className="text-red-500 fill-red-500" />
+                        </div>
+                        <span className="text-[9px] font-bold text-white drop-shadow-sm">1</span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                          <MessageSquare size={15} className="text-white" />
+                        </div>
+                        <span className="text-[9px] font-bold text-white drop-shadow-sm">0</span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                          <Send size={14} className="text-white -ml-0.5" />
+                        </div>
+                        <span className="text-[8px] font-bold text-white drop-shadow-sm">Enviar</span>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-0.5">
+                        <div className="w-8 h-8 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20">
+                          <Bookmark size={15} className="text-amber-400 fill-amber-400" />
+                        </div>
+                        <span className="text-[8px] font-bold text-white drop-shadow-sm">Guardar</span>
+                      </div>
+                    </div>
+
+                    {/* TikTok Bottom Left Info Overlay */}
+                    <div className="relative z-20 p-3 pb-8 pr-14 flex flex-col gap-1 pointer-events-none">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-amber-500 overflow-hidden border border-white/80 shrink-0">
                           {storeLogo ? (
                             <img src={storeLogo} alt="Logo" className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-xs text-amber-500">
+                            <div className="w-full h-full flex items-center justify-center font-bold text-[9px] text-black">
                               {storeName.charAt(0)}
                             </div>
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-extrabold text-gray-900 dark:text-white leading-tight">
-                              {storeName}
-                            </span>
-                          </div>
-                          <span className="text-[9px] text-gray-400 block">Venezuela</span>
-                        </div>
-                      </div>
-
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full">
-                        Siguiendo
-                      </span>
-                    </div>
-
-                    {/* Foto */}
-                    <div className="aspect-square bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
-                      {formData.image_url ? (
-                        <img 
-                          src={formData.image_url} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover" 
-                          onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                          <ImageIcon size={32} className="opacity-40 mb-1" />
-                          <span className="text-[10px]">Carga una foto para verla aquí</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Acciones del Post */}
-                    <div className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <Heart size={20} className="text-red-500 fill-red-500" />
-                          <MessageSquare size={19} className="text-gray-700 dark:text-zinc-300" />
-                          <Send size={18} className="text-gray-700 dark:text-zinc-300" />
-                        </div>
-                        <Bookmark size={19} className="text-gray-700 dark:text-zinc-300" />
-                      </div>
-
-                      <p className="text-[11px] font-black text-gray-900 dark:text-white mb-1">
-                        1 Me gusta
-                      </p>
-
-                      <div className="text-[11px] text-gray-800 dark:text-zinc-200 leading-tight">
-                        <span className="font-bold mr-1.5">{storeName}</span>
-                        {formData.title && <span className="font-semibold block mb-0.5">{formData.title}</span>}
-                        <span className="text-gray-600 dark:text-zinc-400">
-                          {formData.content || 'Escribe tu mensaje en el formulario para verlo reflejado aquí en tiempo real...'}
+                        <span className="text-white font-extrabold text-xs truncate drop-shadow-md">
+                          @{storeName}
+                        </span>
+                        <span className="bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.2 rounded-full ml-0.5">
+                          Seguir
                         </span>
                       </div>
 
-                      <span className="text-[9px] text-gray-400 uppercase tracking-widest mt-2 block font-semibold">
-                        HACE UNOS SEGUNDOS
-                      </span>
+                      {formData.title && (
+                        <p className="text-white font-bold text-[11px] leading-tight line-clamp-1 drop-shadow-md">
+                          {formData.title}
+                        </p>
+                      )}
+
+                      <p className="text-zinc-200 text-[10px] leading-tight line-clamp-2 drop-shadow-md">
+                        {formData.content || 'Escribe los detalles de tu publicación en el formulario...'}
+                      </p>
                     </div>
+
                   </div>
+
+                  <p className="text-[10px] text-zinc-500 text-center mt-2.5">
+                    ✨ Vista previa idéntica a la pantalla del cliente en el feed TikTok.
+                  </p>
                 </div>
               </div>
 

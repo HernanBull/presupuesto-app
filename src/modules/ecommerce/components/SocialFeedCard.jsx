@@ -68,6 +68,8 @@ export default function SocialFeedCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isWideImage, setIsWideImage] = useState(false);
+  const shouldContain = post.fit_mode === 'contain' || (post.fit_mode !== 'cover' && isWideImage);
 
   // Cargar estado desde el servidor
   useEffect(() => {
@@ -261,18 +263,56 @@ export default function SocialFeedCard({
     >
       {/* Background Media */}
       {storeCover ? (
-        <img 
-          loading="lazy" 
-          decoding="async"
-          src={resolveImageUrl(storeCover)} 
-          alt={storeName} 
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
-        />
+        shouldContain ? (
+          <>
+            {/* Ambient Blurred Background (Estilo TikTok / Instagram Reels para fotos horizontales o cuadradas) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              <img 
+                src={resolveImageUrl(storeCover)} 
+                alt="" 
+                className="w-full h-full object-cover scale-125 blur-3xl opacity-55 brightness-60" 
+              />
+            </div>
+            {/* Foto Principal Completa sin recortes (100% visible) */}
+            <div className="absolute inset-0 z-0 flex items-center justify-center p-3 sm:p-5 pointer-events-none">
+              <img 
+                loading="lazy" 
+                decoding="async"
+                src={resolveImageUrl(storeCover)} 
+                alt={storeName} 
+                className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-white/10" 
+              />
+            </div>
+          </>
+        ) : (
+          <img 
+            loading="lazy" 
+            decoding="async"
+            src={resolveImageUrl(storeCover)} 
+            alt={storeName} 
+            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" 
+          />
+        )
       ) : (
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
           <Store size={56} className="text-amber-500/80" />
           <span className="font-medium text-sm text-white">Explorar Tienda</span>
         </div>
+      )}
+
+      {/* Detector invisible de relación de aspecto de la foto */}
+      {storeCover && (
+        <img 
+          src={resolveImageUrl(storeCover)} 
+          alt="" 
+          className="hidden" 
+          onLoad={(e) => {
+            const { naturalWidth, naturalHeight } = e.target;
+            if (naturalWidth && naturalHeight) {
+              setIsWideImage(naturalWidth / naturalHeight > 0.82);
+            }
+          }}
+        />
       )}
 
       {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}

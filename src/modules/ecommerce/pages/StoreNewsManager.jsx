@@ -283,6 +283,9 @@ export default function StoreNewsManager() {
                     <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.src = ''; }} />
                   </div>
                 )}
+                <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
+                  💡 <strong>Formato TikTok (9:16 vertical):</strong> Resolución ideal 1080 × 1920 px. Fotos horizontales o cuadradas saldrán 100% completas con fondo ambiental difuminado automático.
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <input
