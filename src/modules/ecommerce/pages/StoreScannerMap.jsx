@@ -178,6 +178,15 @@ export default function StoreScannerMap() {
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState(false);
   const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('axon_map_theme') || 'light');
   
+  const handleExitMap = () => {
+    // Si viene navegando desde la vitrina o explorador, volver atrás; sino ir al feed de comercios
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate('/explorar');
+    }
+  };
+
   // Snap Points del Bottom Sheet: 'collapsed' (105px), 'half' (52vh), 'expanded' (88vh)
   const [sheetSnap, setSheetSnap] = useState('half');
   const touchStartY = useRef(null);
@@ -506,12 +515,12 @@ export default function StoreScannerMap() {
       <div className="absolute top-0 left-0 right-0 z-40 p-4 safe-area-pt">
         <div className="flex gap-2 items-center max-w-4xl mx-auto">
           <button 
-            onClick={() => navigate('/')} 
-            className="flex-shrink-0 px-3.5 h-11 bg-white hover:bg-zinc-50 rounded-2xl flex items-center gap-2 text-zinc-800 border border-zinc-200 shadow-md text-xs font-bold transition-all"
-            title="Volver al Directorio de tiendas"
+            onClick={handleExitMap} 
+            className="flex-shrink-0 px-3.5 h-11 bg-white hover:bg-zinc-50 rounded-2xl flex items-center gap-2 text-zinc-800 border border-zinc-200 shadow-md text-xs font-bold transition-all cursor-pointer"
+            title="Volver a los comercios"
           >
             <ArrowLeft size={16} />
-            <span className="hidden sm:inline">Directorio</span>
+            <span className="hidden sm:inline">Comercios</span>
           </button>
 
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white/90 backdrop-blur-md rounded-2xl border border-zinc-200 text-xs font-bold text-zinc-700 shadow-sm shrink-0">

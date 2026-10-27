@@ -65,7 +65,7 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
   };
 
   return (
-    <div className="w-full bg-slate-50 dark:bg-black pb-24 font-sans text-slate-900 dark:text-slate-50 relative">
+    <div className="w-full bg-slate-50 dark:bg-black pb-48 sm:pb-36 font-sans text-slate-900 dark:text-slate-50 relative">
       
       {!initialData?.id && (
         <section className="p-4 md:p-6 pb-2">
@@ -272,14 +272,18 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
         </section>
       </form>
 
-      <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] z-40">
-        <div className="max-w-4xl mx-auto flex justify-end gap-4">
-          <button type="button" onClick={() => navigate('/')} className="px-6 py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 lg:left-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.15)] z-40">
+        <div className="max-w-4xl mx-auto flex items-center justify-end gap-3 sm:gap-4">
+          <button 
+            type="button" 
+            onClick={() => navigate('/products')} 
+            className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
             Descartar
           </button>
           <button 
             onClick={handleSubmit}
-            className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 transition-all transform hover:-translate-y-0.5"
+            className="flex items-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 shadow-lg shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Save size={18} /> Guardar Producto
           </button>

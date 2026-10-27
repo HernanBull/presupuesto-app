@@ -99,14 +99,17 @@ export default function MarketplaceDirectory() {
   useEffect(() => {
     let isScrolled = false;
     const handleScrollThreshold = () => {
-      const past = window.scrollY > 60;
+      const scrollPos = window.scrollY || mainContainerRef.current?.scrollTop || 0;
+      const past = scrollPos > 60;
       if (past !== isScrolled) {
         isScrolled = past;
         setIsBottomNavOpen(!past);
       }
     };
     window.addEventListener('scroll', handleScrollThreshold, { passive: true });
-    return () => window.removeEventListener('scroll', handleScrollThreshold);
+    const c = mainContainerRef.current;
+    if (c) c.addEventListener('scroll', handleScrollThreshold, { passive: true });
+    return () => { window.removeEventListener('scroll', handleScrollThreshold); if (c) c.removeEventListener('scroll', handleScrollThreshold); };
   }, []);
 
   const scrollCategories = (direction) => {
@@ -1808,18 +1811,18 @@ export default function MarketplaceDirectory() {
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
-          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+          className="fixed bottom-6 left-5 z-50 w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] border-2 border-white/50 active:scale-90 hover:scale-105 transition-all animate-in zoom-in-75 duration-200"
           style={{
-            backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            backgroundColor: 'transparent',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
+            border: 'none',
             boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
           }}
           title="Abrir menú"
           aria-label="Abrir menú de navegación"
         >
-          <ShoppingBag size={22} className="stroke-[2.2] text-amber-400" />
+          <ShoppingBag size={24} className="stroke-[2.5]" />
         </button>
       )}
 

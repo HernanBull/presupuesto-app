@@ -67,12 +67,12 @@ export default function ProductsManager() {
     variants: 1
   });
 
-  // Filtros
-  const filteredProducts = products.filter(product => {
+  // Filtros de Combos
+  const combosOnly = products.filter(p => p.metadata?.is_combo || p.category === 'Combos');
+  const filteredProducts = combosOnly.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'Todas' || product.category === categoryFilter;
     const matchesStatus = statusFilter === 'Todos' || product.publishStatus === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const openEditor = (product = null) => {
@@ -105,7 +105,7 @@ export default function ProductsManager() {
   };
 
   const handleDelete = async (id) => {
-    if(window.confirm('¿Estás seguro de eliminar este producto?')) {
+    if(window.confirm('¿Estás seguro de eliminar este combo?')) {
       try {
         const { error } = await supabase
           .from('ecommerce_products')
@@ -115,7 +115,7 @@ export default function ProductsManager() {
         if (!error) {
           setProducts(products.filter(p => p.id !== id));
         } else {
-          alert('Error al eliminar producto: ' + error.message);
+          alert('Error al eliminar combo: ' + error.message);
         }
       } catch (err) {
         console.error(err);
@@ -124,30 +124,27 @@ export default function ProductsManager() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24 md:pb-8 relative">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-28 md:pb-8 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Productos & Combos</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona tu catálogo, arma combos especiales y publica en tu tienda.</p>
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+            <span className="w-2.5 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full inline-block"></span>
+            Combos & Paquetes
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Arma combos atractivos con los productos de tu inventario y publícalos directamente en tu vitrina.
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
-          <button 
-            type="button"
-            onClick={() => openEditor()} 
-            className="flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm shadow-violet-500/20 active:scale-95 cursor-pointer"
-          >
-            <Plus size={16} />
-            <span>+ Nuevo Producto</span>
-          </button>
+        <div className="w-full sm:w-auto flex items-center justify-end">
           <button 
             type="button"
             onClick={() => {
               setEditingCombo(null);
               setIsComboModalOpen(true);
             }} 
-            className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/25 active:scale-95 cursor-pointer"
           >
-            <Package size={16} />
+            <Package size={18} />
             <span>+ Crear Combo</span>
           </button>
         </div>
@@ -155,32 +152,22 @@ export default function ProductsManager() {
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-4">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
-              type="text"
-              placeholder="Buscar productos..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-shadow dark:text-white"
+              type="text" 
+              placeholder="Buscar combos..." 
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-shadow dark:text-white font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <select 
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-            >
-              <option value="Todas">Todas las Categorías</option>
-              <option value="Ropa">Ropa</option>
-              <option value="Electrónica">Electrónica</option>
-              <option value="Accesorios">Accesorios</option>
-            </select>
-            <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 font-medium"
             >
               <option value="Todos">Todos los Estados</option>
               <option value="Publicado">Publicado</option>
@@ -192,23 +179,40 @@ export default function ProductsManager() {
         {/* Grid de Tarjetas */}
         <div className="p-4 bg-slate-50/50 dark:bg-slate-900/50">
           {filteredProducts.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 font-medium">
-              No se encontraron productos.
+            <div className="py-16 text-center flex flex-col items-center justify-center max-w-md mx-auto">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 mb-4 shadow-inner">
+                <Package size={32} />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                {searchTerm ? 'No se encontraron combos' : 'Aún no tienes combos creados'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                {searchTerm ? 'Intenta con otro término de búsqueda.' : 'Crea paquetes especiales combinando productos que ya tienes registrados en tu inventario para venderlos juntos en tu vitrina.'}
+              </p>
+              {!searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCombo(null);
+                    setIsComboModalOpen(true);
+                  }}
+                  className="mt-5 flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                >
+                  <Package size={15} />
+                  <span>+ Crear mi primer combo</span>
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {filteredProducts.map((product, i) => (
                 <div 
                   key={product.id} 
                   className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-in fade-in zoom-in-95" 
                   style={{ animationDelay: `${(i % 10) * 50}ms` }}
                   onClick={() => {
-                    if (product.metadata?.is_combo || product.category === 'Combos') {
-                      setEditingCombo(product);
-                      setIsComboModalOpen(true);
-                    } else {
-                      openEditor(product);
-                    }
+                    setEditingCombo(product);
+                    setIsComboModalOpen(true);
                   }}
                 >
                   <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
@@ -239,16 +243,12 @@ export default function ProductsManager() {
                       <button 
                         onClick={(e) => { 
                           e.stopPropagation(); 
-                          if (product.metadata?.is_combo || product.category === 'Combos') {
-                            setEditingCombo(product);
-                            setIsComboModalOpen(true);
-                          } else {
-                            openEditor(product);
-                          }
+                          setEditingCombo(product);
+                          setIsComboModalOpen(true);
                         }} 
-                        className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md"
+                        className="w-8 h-8 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-md hover:bg-amber-50 transition-colors"
                       >
-                        <Edit2 size={14} />
+                        <Edit2 size={14} className="text-amber-600" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-8 h-8 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-md">
                         <Trash2 size={14} />
@@ -260,16 +260,12 @@ export default function ProductsManager() {
                        <button 
                          onClick={(e) => { 
                            e.stopPropagation(); 
-                           if (product.metadata?.is_combo || product.category === 'Combos') {
-                             setEditingCombo(product);
-                             setIsComboModalOpen(true);
-                           } else {
-                             openEditor(product);
-                           }
+                           setEditingCombo(product);
+                           setIsComboModalOpen(true);
                          }} 
-                         className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                         className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 hover:bg-amber-50 transition-all"
                        >
-                         <Edit2 size={18} />
+                         <Edit2 size={18} className="text-amber-600" />
                        </button>
                        <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
                          <Trash2 size={18} />
@@ -281,9 +277,9 @@ export default function ProductsManager() {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <h3 className="font-bold text-slate-800 dark:text-white line-clamp-1">{product.name}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{product.category}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">{product.category || 'Combo Especial'}</p>
                       </div>
-                      <p className="font-black text-lg text-violet-600 dark:text-violet-400">${product.price.toFixed(2)}</p>
+                      <p className="font-black text-lg text-amber-600 dark:text-amber-400">${product.price.toFixed(2)}</p>
                     </div>
                     
                     <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

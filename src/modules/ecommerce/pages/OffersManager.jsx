@@ -247,30 +247,20 @@ export default function OffersManager() {
             <Zap className="text-amber-500 fill-amber-500" /> Ofertas Flash & Combos
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Destaca productos con descuentos por porcentaje, precios por kilo/metro y arma combos promocionales.
+            Destaca productos con descuentos por porcentaje y precios por unidad o medida en tu vitrina.
           </p>
         </div>
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <div className="relative w-full sm:w-60">
+          <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar producto..."
+              placeholder="Buscar producto en oferta..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
             />
           </div>
-          <button
-            onClick={() => {
-              setEditingCombo(null);
-              setIsComboModalOpen(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs rounded-xl shadow-md shadow-amber-500/20 hover:from-amber-600 hover:to-orange-600 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
-          >
-            <Package size={14} />
-            <span>+ Armar Combo</span>
-          </button>
         </div>
       </div>
 
