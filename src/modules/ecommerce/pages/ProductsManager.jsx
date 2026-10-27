@@ -130,25 +130,25 @@ export default function ProductsManager() {
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Productos & Combos</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona tu catálogo, arma combos especiales y publica en tu tienda.</p>
         </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+          <button 
+            type="button"
+            onClick={() => openEditor()} 
+            className="flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-sm shadow-violet-500/20 active:scale-95 cursor-pointer"
+          >
+            <Plus size={16} />
+            <span>+ Nuevo Producto</span>
+          </button>
           <button 
             type="button"
             onClick={() => {
               setEditingCombo(null);
               setIsComboModalOpen(true);
             }} 
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black px-4 py-2.5 rounded-xl text-sm font-extrabold transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
           >
-            <Package size={17} />
-            <span>+ Armar Combo</span>
-          </button>
-          <button 
-            type="button"
-            onClick={() => openEditor()} 
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20 active:scale-95 cursor-pointer"
-          >
-            <Plus size={18} />
-            <span>Nuevo Producto</span>
+            <Package size={16} />
+            <span>+ Crear Combo</span>
           </button>
         </div>
       </div>

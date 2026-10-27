@@ -3051,12 +3051,14 @@ export default function PublicStore() {
                 </div>
               )}
 
-              {/* Badge Promocional Anaranjado */}
-              {Boolean(selectedProduct.is_offer) && (
-                <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
-                  {selectedProduct.metadata?.is_combo 
-                    ? (selectedProduct.metadata?.combo_badge || "🎁 COMBO ESPECIAL") 
-                    : (selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH")}
+              {/* Badge Promocional / Distintivo */}
+              {selectedProduct.metadata?.is_combo ? (
+                <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-[10px] md:text-xs uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
+                  {selectedProduct.metadata?.combo_badge || "🎁 COMBO"}
+                </div>
+              ) : Boolean(selectedProduct.is_offer) && (
+                <div className="absolute top-3 left-3 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
+                  {selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH"}
                 </div>
               )}
             </div>
@@ -3128,16 +3130,16 @@ export default function PublicStore() {
                 )}
               </div>
 
-              {/* Desglose de Combo Promocional (Fondo Naranja Suave y Blanco) */}
+              {/* Desglose de Productos Incluidos en el Combo */}
               {selectedProduct.metadata?.is_combo && Array.isArray(selectedProduct.metadata?.combo_items) && selectedProduct.metadata.combo_items.length > 0 && (
                 <div className="mb-3 p-3 rounded-2xl bg-orange-50/70 border border-orange-200/80">
                   <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                     <span className="text-[11px] font-black uppercase text-orange-800 flex items-center gap-1">
-                      <span>🎁</span> Incluye {selectedProduct.metadata.combo_items.length} productos:
+                      <span>📦</span> Incluye {selectedProduct.metadata.combo_items.length} productos:
                     </span>
-                    {selectedProduct.metadata?.savings_usd > 0 && (
-                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">
-                        ¡Ahorras ${Number(selectedProduct.metadata.savings_usd).toFixed(2)} ({selectedProduct.metadata.savings_percentage}% OFF)!
+                    {selectedProduct.metadata?.original_sum_price > selectedProduct.price && (
+                      <span className="text-[10px] font-bold text-slate-500">
+                        Valor individual: ${Number(selectedProduct.metadata.original_sum_price).toFixed(2)}
                       </span>
                     )}
                   </div>

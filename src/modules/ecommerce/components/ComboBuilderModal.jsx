@@ -20,6 +20,33 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
   const [productSearch, setProductSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingImg, setUploadingImg] = useState(false);
+
+  const handleImageFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImg(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `combos/${workspaceId || 'general'}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('ecommerce').upload(path, file, { upsert: true });
+      if (!upErr) {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(path);
+        if (data?.publicUrl) setComboImage(data.publicUrl);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (re) => setComboImage(re.target.result);
+        reader.readAsDataURL(file);
+      }
+    } catch(err) {
+      console.error('Error subiendo imagen:', err);
+      const reader = new FileReader();
+      reader.onload = (re) => setComboImage(re.target.result);
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingImg(false);
+    }
+  };
 
   // Inicializar o limpiar
   useEffect(() => {
@@ -135,9 +162,9 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
         description: comboDescription.trim() || `Combo especial incluye: ${comboItems.map(i => `${i.qty}x ${i.name}`).join(', ')}`,
         category: 'Combos',
         created_at: existingCombo?.created_at || new Date().toISOString(),
-        price: Number(originalSumPrice.toFixed(2)),
-        discount_price: Number(numericComboPrice.toFixed(2)),
-        is_offer: 1,
+        price: Number(numericComboPrice.toFixed(2)),
+        discount_price: 0,
+        is_offer: 0,
         stock: Number(comboStock) || 10,
         stock_vitrina: Number(comboStock) || 10,
         publish_status: 'Publicado',
@@ -213,10 +240,10 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
               </div>
               <div>
                 <h3 className="text-lg font-black tracking-tight">
-                  {existingCombo ? 'Modificar Combo Promocional' : 'Armar Nuevo Combo de Productos'}
+                  {existingCombo ? 'Modificar Combo' : 'Crear Combo de Productos'}
                 </h3>
                 <p className="text-white/80 text-xs">
-                  Combina productos, fija un precio especial y muestra el ahorro al comprador.
+                  Agrupa productos de tu inventario para venderlos juntos como un combo.
                 </p>
               </div>
             </div>
@@ -403,15 +430,20 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                    URL Foto del Combo (Opcional)
+                    Foto del Combo
                   </label>
-                  <input
-                    type="text"
-                    placeholder="https://..."
-                    value={comboImage}
-                    onChange={(e) => setComboImage(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white"
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs">
+                      <ImageIcon size={14} className="text-amber-500" />
+                      <span>{uploadingImg ? 'Subiendo...' : comboImage ? 'Cambiar Foto' : 'Subir Foto'}</span>
+                      <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" disabled={uploadingImg} />
+                    </label>
+                    {comboImage && (
+                      <div className="w-9 h-9 rounded-lg border border-amber-300 overflow-hidden shrink-0 bg-white shadow-2xs">
+                        <img src={comboImage} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -502,7 +534,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
               {saving ? (
                 <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               ) : (
-                <span>Publicar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
+                <span>Guardar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
               )}
             </button>
           </div>
