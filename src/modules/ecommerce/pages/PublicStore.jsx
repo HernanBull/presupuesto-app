@@ -3027,203 +3027,191 @@ export default function PublicStore() {
         onNavigateStore={() => {}}
       />
 
-      {/* Product Modal */}
+            {/* Product Modal Rediseñado: Elegante, Compacto y Mobile-Friendly */}
       <ResponsiveModal
         isOpen={!!selectedProduct}
         onClose={() => setSelectedProduct(null)}
-        className="md:max-w-4xl bg-zinc-950 border border-white/10"
-        contentClassName="p-0 flex flex-col md:flex-row max-h-[85vh] md:max-h-[80vh] overflow-hidden"
+        className="md:max-w-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 shadow-2xl rounded-t-3xl md:rounded-3xl"
+        contentClassName="p-0 flex flex-col md:flex-row max-h-[88vh] md:max-h-[80vh] overflow-hidden"
       >
         {selectedProduct && (
           <>
-            <div className="md:w-1/2 bg-black relative flex items-center justify-center p-8 md:p-12 overflow-hidden min-h-[300px] shrink-0">
-               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-               {selectedProduct.image_url ? (
-                 <img id={`modal-img-${selectedProduct.id}`} src={resolveImageUrl(selectedProduct.image_url)} alt={selectedProduct.name} className="w-full h-full object-contain relative z-10 max-h-[60vh]" />
-               ) : (
-                 <ImageIcon size={80} className="text-zinc-800" />
-               )}
-               {Boolean(selectedProduct.is_offer) && (
-                 <div className={`absolute top-6 left-6 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full z-20 shadow-lg ${
-                   selectedProduct.metadata?.is_combo 
-                     ? "bg-gradient-to-r from-purple-600 to-indigo-600" 
-                     : "bg-amber-500 text-black"
-                 }`}>
-                   {selectedProduct.metadata?.is_combo 
-                     ? (selectedProduct.metadata?.combo_badge || "🎁 COMBO ESPECIAL") 
-                     : (selectedProduct.metadata?.offer_badge || "Oferta")}
-                 </div>
-               )}
+            {/* Foto del Producto (Compacta y Proporcionada en Móvil) */}
+            <div className="md:w-5/12 bg-zinc-50 dark:bg-black/50 relative flex items-center justify-center p-4 md:p-8 shrink-0 border-b md:border-b-0 md:border-r border-zinc-100 dark:border-white/5 min-h-[200px] md:min-h-[340px]">
+              {selectedProduct.image_url ? (
+                <img 
+                  id={`modal-img-${selectedProduct.id}`} 
+                  src={resolveImageUrl(selectedProduct.image_url)} 
+                  alt={selectedProduct.name} 
+                  className="w-full h-full object-contain max-h-48 md:max-h-64 transition-transform duration-300" 
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/60 flex items-center justify-center text-zinc-400">
+                  <ImageIcon size={40} />
+                </div>
+              )}
+
+              {/* Badge Promocional */}
+              {Boolean(selectedProduct.is_offer) && (
+                <div className={`absolute top-3 left-3 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-md ${
+                  selectedProduct.metadata?.is_combo 
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600" 
+                    : "bg-gradient-to-r from-red-500 to-amber-500"
+                }`}>
+                  {selectedProduct.metadata?.is_combo 
+                    ? (selectedProduct.metadata?.combo_badge || "🎁 COMBO ESPECIAL") 
+                    : (selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH")}
+                </div>
+              )}
             </div>
             
-            <div className="md:w-1/2 p-6 md:p-10 flex flex-col relative overflow-y-auto custom-scrollbar">
-               <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2">{selectedProduct.category || 'Categoría'}</p>
-               <h2 className="text-3xl md:text-4xl font-light text-white mb-2 tracking-tight leading-tight">{selectedProduct.name}</h2>
-               <p className="text-sm text-zinc-400 mb-6">Disponibles en vitrina: <span className="font-bold text-white">{selectedProduct.stock_vitrina || 0}</span> unidades</p>
-               
-               <div className="mb-8">
-                 {isUserAllowedToSeePrices ? (
-                   selectedProduct.is_offer ? (
-                     <div className="flex items-center gap-4">
-                       <p className="text-4xl font-black" style={{ color: primaryColor }}>${Number(selectedProduct.discount_price || selectedProduct.price).toFixed(2)}</p>
-                       <p className="text-lg text-zinc-500 line-through">${Number(selectedProduct.price).toFixed(2)}</p>
-                     </div>
-                   ) : (
-                     <p className="text-3xl font-bold" style={{ color: primaryColor }}>${Number(selectedProduct.price).toFixed(2)}</p>
-                   )
-                 ) : (
-                   <button 
-                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                     className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 px-6 py-3 rounded-full transition-colors border border-white/5 inline-flex"
-                   >
-                     <Lock size={16} /> Ver Precio
-                   </button>
-                 )}
-               </div>
-               
-               {/* COMBO ITEMS BREAKDOWN */}
-               {selectedProduct.metadata?.is_combo && Array.isArray(selectedProduct.metadata?.combo_items) && selectedProduct.metadata.combo_items.length > 0 && (
-                 <div className="mb-6 p-4 rounded-2xl bg-purple-950/40 border border-purple-500/30 text-white shadow-inner">
-                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                     <span className="text-xs font-black uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-                       <span>🎁</span> Este Combo Incluye ({selectedProduct.metadata.combo_items.length} productos):
-                     </span>
-                     {selectedProduct.metadata?.savings_usd > 0 && (
-                       <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                         ¡Ahorras ${Number(selectedProduct.metadata.savings_usd).toFixed(2)} ({selectedProduct.metadata.savings_percentage}% OFF)!
-                       </span>
-                     )}
-                   </div>
-                   
-                   <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                     {selectedProduct.metadata.combo_items.map((ci, cIdx) => (
-                       <div key={ci.id || cIdx} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 hover:border-purple-500/30 transition-colors text-xs">
-                         <div className="flex items-center gap-2.5 min-w-0">
-                           {ci.image_url ? (
-                             <img src={resolveImageUrl(ci.image_url)} alt={ci.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 shrink-0" />
-                           ) : (
-                             <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-zinc-400 shrink-0">📦</div>
-                           )}
-                           <span className="font-semibold text-zinc-200 truncate">{ci.name}</span>
-                         </div>
-                         <span className="font-bold text-purple-300 shrink-0 ml-2 bg-purple-500/20 px-2 py-0.5 rounded-md border border-purple-500/30">
-                           x{ci.qty || 1} {ci.unit || "und"}
-                         </span>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-               )}
+            {/* Información del Producto */}
+            <div className="md:w-7/12 p-4 md:p-7 flex flex-col relative overflow-y-auto custom-scrollbar flex-1">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                  {selectedProduct.category || 'Producto'}
+                </span>
+                {(selectedProduct.stock_vitrina || 0) > 0 ? (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                    (selectedProduct.stock_vitrina || 0) <= 5
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                  }`}>
+                    {(selectedProduct.stock_vitrina || 0) <= 5
+                      ? `¡Solo quedan ${selectedProduct.stock_vitrina}!`
+                      : `${selectedProduct.stock_vitrina} disponibles`}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200">
+                    Agotado
+                  </span>
+                )}
+              </div>
 
-               <div className="prose prose-invert prose-zinc max-w-none mb-8 font-light text-zinc-400">
-                 <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
-               </div>
+              <h2 className="text-lg md:text-2xl font-black text-zinc-900 dark:text-white leading-tight mb-2 tracking-tight">
+                {selectedProduct.name}
+              </h2>
 
-               {/* REVIEWS SECTION */}
-               <div className="mb-8 border-t border-white/5 pt-8">
-                 <h3 className="text-xl font-light text-white mb-6">Reseñas del Producto</h3>
-                 
-                 {/* Lista de Reseñas Aprobadas */}
-                 {productReviews.length > 0 ? (
-                   <div className="space-y-4 mb-8">
-                     {productReviews.map(r => (
-                       <div key={r.id} className="bg-white/5 rounded-2xl p-5 border border-white/5">
-                         <div className="flex items-center justify-between mb-2">
-                           <span className="font-bold text-white text-sm">{r.customer_name}</span>
-                           <span className="text-xs text-zinc-500">{new Date(r.created_at).toLocaleDateString()}</span>
-                         </div>
-                         <div className="flex gap-1 mb-3">
-                           {[1,2,3,4,5].map(star => (
-                             <Star key={star} size={12} className={star <= r.rating ? 'fill-amber-400 text-amber-400' : 'fill-white/10 text-transparent'} />
-                           ))}
-                         </div>
-                         <p className="text-sm text-zinc-400 font-light italic">"{r.comment}"</p>
-                         {r.reply && (
-                           <div className="mt-4 bg-zinc-900 rounded-xl p-4 border-l-2" style={{ borderColor: primaryColor }}>
-                             <p className="text-xs font-bold mb-1" style={{ color: primaryColor }}>Respuesta de la Tienda:</p>
-                             <p className="text-sm text-zinc-300 font-light">{r.reply}</p>
-                           </div>
-                         )}
-                       </div>
-                     ))}
-                   </div>
-                 ) : (
-                   <p className="text-sm text-zinc-500 mb-8 italic">Aún no hay reseñas para este producto. ¡Sé el primero en opinar!</p>
-                 )}
+              {/* Precios */}
+              <div className="mb-3 flex items-baseline gap-2 flex-wrap">
+                {isUserAllowedToSeePrices ? (
+                  selectedProduct.is_offer ? (
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <p className="text-2xl md:text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">
+                        ${Number(selectedProduct.discount_price || selectedProduct.price).toFixed(2)}
+                        <span className="text-xs font-semibold text-zinc-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
+                      </p>
+                      <p className="text-sm text-zinc-400 line-through leading-none">
+                        ${Number(selectedProduct.price).toFixed(2)}
+                      </p>
+                      {selectedProduct.metadata?.discount_pct && (
+                        <span className="text-[10px] font-black bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded-md">
+                          -{selectedProduct.metadata.discount_pct}% OFF
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white leading-none">
+                      ${Number(selectedProduct.price).toFixed(2)}
+                      <span className="text-xs font-semibold text-zinc-500 ml-1">/ {selectedProduct.unit_type || selectedProduct.unit || 'und'}</span>
+                    </p>
+                  )
+                ) : (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200"
+                  >
+                    <Lock size={14} /> Ver Precio
+                  </button>
+                )}
 
-                 {/* Formulario para dejar reseña */}
-                 <div className="bg-zinc-900 rounded-2xl p-6 border border-white/5">
-                   <h4 className="text-sm font-bold uppercase tracking-widest text-zinc-400 mb-4">Deja tu opinión</h4>
-                   {reviewSent ? (
-                     <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl p-4 text-sm text-center">
-                       ¡Gracias por tu opinión! Tu reseña ha sido enviada y está pendiente de aprobación.
-                     </div>
-                   ) : (
-                     <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
-                       <div className="flex items-center gap-2">
-                         <span className="text-sm text-zinc-400">Calificación:</span>
-                         <div className="flex gap-1 cursor-pointer">
-                           {[1,2,3,4,5].map(star => (
-                             <Star 
-                               key={star} 
-                               size={20} 
-                               onClick={() => setReviewRating(star)}
-                               className={star <= reviewRating ? 'fill-amber-400 text-amber-400 hover:scale-110 transition-transform' : 'fill-white/10 text-white/10 hover:fill-amber-400/50 hover:text-amber-400/50 transition-all'} 
-                             />
-                           ))}
-                         </div>
-                       </div>
-                       <textarea 
-                         required
-                         rows="3"
-                         placeholder="¿Qué te pareció este producto?"
-                         value={reviewComment}
-                         onChange={(e) => setReviewComment(e.target.value)}
-                         className="w-full bg-black border border-white/10 rounded-xl p-4 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors resize-none"
-                       ></textarea>
-                       <button 
-                         type="submit"
-                         disabled={isSubmittingReview || !reviewComment.trim()}
-                         className="self-end px-6 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-full hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                       >
-                         {isSubmittingReview ? 'Enviando...' : 'Enviar Reseña'}
-                       </button>
-                     </form>
-                   )}
-                 </div>
-               </div>
+                {selectedProduct.metadata?.offer_limit_qty && (
+                  <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                    Límite: Máx. {selectedProduct.metadata.offer_limit_qty} por pedido
+                  </span>
+                )}
+              </div>
 
-               <div className="mt-auto space-y-6 border-t border-white/5 pt-6 shrink-0">
-                 {isUserAllowedToSeePrices ? (
-                   <>
-                     <div className="flex items-center gap-4">
-                       <span className="text-sm font-bold uppercase tracking-widest text-zinc-500">Cantidad</span>
-                       <div className="flex items-center bg-zinc-900 border border-white/10 rounded-full p-1">
-                         <button onClick={() => setModalQty(Math.max(1, modalQty - (selectedProduct.step_size||1)))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Minus size={16}/></button>
-                         <span className="w-12 text-center font-bold text-lg">{modalQty}</span>
-                         <button onClick={() => setModalQty(modalQty + (selectedProduct.step_size||1))} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"><Plus size={16}/></button>
-                       </div>
-                     </div>
+              {/* Desglose de Combo Promocional */}
+              {selectedProduct.metadata?.is_combo && Array.isArray(selectedProduct.metadata?.combo_items) && selectedProduct.metadata.combo_items.length > 0 && (
+                <div className="mb-3 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40">
+                  <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+                    <span className="text-[11px] font-black uppercase text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                      <span>🎁</span> Incluye {selectedProduct.metadata.combo_items.length} productos:
+                    </span>
+                    {selectedProduct.metadata?.savings_usd > 0 && (
+                      <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        ¡Ahorras ${Number(selectedProduct.metadata.savings_usd).toFixed(2)} ({selectedProduct.metadata.savings_percentage}% OFF)!
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                    {selectedProduct.metadata.combo_items.map((ci, cIdx) => (
+                      <div key={ci.id || cIdx} className="flex items-center justify-between p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-purple-100 dark:border-white/5 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {ci.image_url ? (
+                            <img src={resolveImageUrl(ci.image_url)} alt={ci.name} className="w-6 h-6 rounded-md object-contain bg-zinc-100 dark:bg-zinc-800 shrink-0" />
+                          ) : (
+                            <span className="text-xs">📦</span>
+                          )}
+                          <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate text-[11px]">{ci.name}</span>
+                        </div>
+                        <span className="font-bold text-purple-600 dark:text-purple-400 shrink-0 ml-1 text-[11px] bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded">
+                          x{ci.qty || 1} {ci.unit || "und"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                     <button 
-                       onClick={storeClosed ? undefined : addModalToCart}
-                       className={`w-full py-5 rounded-full text-black font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all shadow-lg ${storeClosed ? 'bg-zinc-600 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
-                       style={{ backgroundColor: storeClosed ? '#52525b' : primaryColor }}
-                     >
-                       {storeClosed ? <X size={18} /> : <ShoppingBag size={18} />} 
-                       {storeSchedule.status === 'closing' ? 'Cierra Pronto' : storeClosed ? 'Tienda Cerrada' : 'Agregar al Carrito'}
-                     </button>
-                   </>
-                 ) : (
-                   <button 
-                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                     className={`w-full py-5 rounded-full text-white font-bold uppercase tracking-[0.2em] text-sm flex items-center justify-center gap-3 transition-all bg-white/5 hover:bg-white/10 border border-white/10`}
-                     >
-                       <Lock size={18} /> 
-                       Ingresa para Comprar
-                   </button>
-                 )}
-               </div>
+              {/* Descripción */}
+              <div className="text-xs text-zinc-600 dark:text-zinc-400 font-normal leading-relaxed mb-4 line-clamp-3">
+                <p>{selectedProduct.description || 'Sin descripción detallada disponible para este producto.'}</p>
+              </div>
+
+              {/* Barra de Compra Integrada y Ergonómica */}
+              <div className="mt-auto pt-3 border-t border-zinc-100 dark:border-white/5 flex items-center gap-2.5">
+                {isUserAllowedToSeePrices ? (
+                  <>
+                    <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 shrink-0">
+                      <button 
+                        onClick={() => setModalQty(Math.max(1, modalQty - (selectedProduct.step_size || 1)))} 
+                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-700 hover:bg-zinc-200 text-zinc-800 dark:text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="w-9 text-center font-bold text-sm text-zinc-900 dark:text-white">{modalQty}</span>
+                      <button 
+                        onClick={() => setModalQty(modalQty + (selectedProduct.step_size || 1))} 
+                        className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-700 hover:bg-zinc-200 text-zinc-800 dark:text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+
+                    <button 
+                      onClick={storeClosed ? undefined : addModalToCart}
+                      disabled={storeClosed || (selectedProduct.stock_vitrina || 0) <= 0}
+                      className="flex-1 py-3 px-4 rounded-xl text-black font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                      style={{ backgroundColor: storeClosed ? '#71717a' : primaryColor }}
+                    >
+                      <ShoppingBag size={16} />
+                      <span>
+                        {storeClosed ? 'Tienda Cerrada' : (selectedProduct.stock_vitrina || 0) <= 0 ? 'Agotado' : `Agregar • ${((selectedProduct.is_offer ? selectedProduct.discount_price : selectedProduct.price) * modalQty).toFixed(2)}`}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                    className="w-full py-3 rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <Lock size={16} /> Ingresa para Comprar
+                  </button>
+                )}
+              </div>
             </div>
           </>
         )}

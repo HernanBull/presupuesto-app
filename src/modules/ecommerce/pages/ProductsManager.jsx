@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Image as ImageIcon, CheckCircle, Clock, Package } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import ComboBuilderModal from '../components/ComboBuilderModal';
 export default function ProductsManager() {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -51,6 +52,10 @@ export default function ProductsManager() {
   
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  
+  // Modal de Combos Promocionales
+  const [isComboModalOpen, setIsComboModalOpen] = useState(false);
+  const [editingCombo, setEditingCombo] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -122,13 +127,30 @@ export default function ProductsManager() {
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-24 md:pb-8 relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Productos</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona tu catálogo, variantes y disponibilidad en la tienda.</p>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Productos & Combos</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestiona tu catálogo, arma combos especiales y publica en tu tienda.</p>
         </div>
-        <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
-          <Plus size={18} />
-          Nuevo Producto
-        </button>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button 
+            type="button"
+            onClick={() => {
+              setEditingCombo(null);
+              setIsComboModalOpen(true);
+            }} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black px-4 py-2.5 rounded-xl text-sm font-extrabold transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+          >
+            <Package size={17} />
+            <span>+ Armar Combo</span>
+          </button>
+          <button 
+            type="button"
+            onClick={() => openEditor()} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20 active:scale-95 cursor-pointer"
+          >
+            <Plus size={18} />
+            <span>Nuevo Producto</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
@@ -180,7 +202,14 @@ export default function ProductsManager() {
                   key={product.id} 
                   className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group cursor-pointer animate-in fade-in zoom-in-95" 
                   style={{ animationDelay: `${(i % 10) * 50}ms` }}
-                  onClick={() => openEditor(product)}
+                  onClick={() => {
+                    if (product.metadata?.is_combo || product.category === 'Combos') {
+                      setEditingCombo(product);
+                      setIsComboModalOpen(true);
+                    } else {
+                      openEditor(product);
+                    }
+                  }}
                 >
                   <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
                     {product.imageUrl ? (
@@ -196,9 +225,29 @@ export default function ProductsManager() {
                       </span>
                     </div>
 
+                    {/* Badge de Combo */}
+                    {(product.metadata?.is_combo || product.category === 'Combos') && (
+                      <div className="absolute top-3 right-3">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm">
+                          {product.metadata?.combo_badge || '🎁 COMBO'}
+                        </span>
+                      </div>
+                    )}
+
                     {/* Botones rápidos: hover en desktop, siempre visibles en móvil */}
                     <div className="absolute bottom-2 right-2 flex gap-1.5 sm:hidden">
-                      <button onClick={(e) => { e.stopPropagation(); openEditor(product); }} className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md">
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (product.metadata?.is_combo || product.category === 'Combos') {
+                            setEditingCombo(product);
+                            setIsComboModalOpen(true);
+                          } else {
+                            openEditor(product);
+                          }
+                        }} 
+                        className="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-md"
+                      >
                         <Edit2 size={14} />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-8 h-8 rounded-full bg-red-500/90 text-white flex items-center justify-center shadow-md">
@@ -208,7 +257,18 @@ export default function ProductsManager() {
 
                     {/* Quick Actions Hover overlay — solo desktop */}
                     <div className="hidden sm:flex absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center gap-3">
-                       <button onClick={(e) => { e.stopPropagation(); openEditor(product); }} className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
+                       <button 
+                         onClick={(e) => { 
+                           e.stopPropagation(); 
+                           if (product.metadata?.is_combo || product.category === 'Combos') {
+                             setEditingCombo(product);
+                             setIsComboModalOpen(true);
+                           } else {
+                             openEditor(product);
+                           }
+                         }} 
+                         className="w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                       >
                          <Edit2 size={18} />
                        </button>
                        <button onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
@@ -255,7 +315,16 @@ export default function ProductsManager() {
         </div>
       </div>
 
-      {/* Drawer eliminated in favor of ProductStudio */}
+      {/* Modal Creador y Editor de Combos Promocionales */}
+      <ComboBuilderModal
+        isOpen={isComboModalOpen}
+        onClose={() => setIsComboModalOpen(false)}
+        onComboSaved={() => {
+          fetchProducts();
+        }}
+        existingCombo={editingCombo}
+        availableProducts={products}
+      />
     </div>
   );
 }

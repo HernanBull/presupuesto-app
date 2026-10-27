@@ -134,6 +134,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
         name: comboName.trim(),
         description: comboDescription.trim() || `Combo especial incluye: ${comboItems.map(i => `${i.qty}x ${i.name}`).join(', ')}`,
         category: 'Combos',
+        created_at: existingCombo?.created_at || new Date().toISOString(),
         price: Number(originalSumPrice.toFixed(2)),
         discount_price: Number(numericComboPrice.toFixed(2)),
         is_offer: 1,
@@ -501,10 +502,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
               {saving ? (
                 <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               ) : (
-                <>
-                  <Sparkles size={14} />
-                  <span>Publicar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
-                </>
+                <span>Publicar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
               )}
             </button>
           </div>
