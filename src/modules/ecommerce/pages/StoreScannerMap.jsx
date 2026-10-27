@@ -745,40 +745,7 @@ export default function StoreScannerMap() {
                             <Store size={36} className="text-zinc-700" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
-                        
-                        {/* Badges superiores sobre portada - Blanco sólido de alto contraste y alianza EM */}
-                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none flex-wrap gap-1.5">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="flex items-center gap-1.5 bg-white px-3.5 py-1 rounded-full border border-zinc-200 shadow-md">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              <span className="text-xs font-black text-zinc-950 uppercase tracking-wide">
-                                {selectedStore.category}
-                              </span>
-                            </div>
-                            {selectedStore.hasEnminutosAlliance && (
-                              <div 
-                                className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30 shadow-md"
-                                style={{ color: '#ffffff' }}
-                              >
-                                <div className="flex items-center font-black tracking-tighter text-[11px]">
-                                  <span className="text-red-500 font-black">E</span>
-                                  <span className="text-red-500 font-black">M</span>
-                                  <Zap size={11} className="fill-yellow-400 text-yellow-400 ml-0.5" />
-                                </div>
-                                <span className="text-[10px] font-black text-white tracking-wide whitespace-nowrap">en minutos</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className={`text-xs font-extrabold px-3 py-1 rounded-full border flex items-center gap-1.5 shadow-md ${
-                            selectedStore.isOpen 
-                              ? 'bg-emerald-600 border-emerald-500 text-white' 
-                              : 'bg-zinc-900 border-zinc-700 text-zinc-300'
-                          }`}>
-                            <span className={`w-2 h-2 rounded-full ${selectedStore.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
-                            <span className="uppercase tracking-wider">{selectedStore.isOpen ? 'Abierto' : 'Cerrado'}</span>
-                          </div>
-                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
                         {/* Logotipo Circular Superpuesto */}
                         <div className="absolute -bottom-4 left-4 z-20">
@@ -800,33 +767,55 @@ export default function StoreScannerMap() {
 
                       {/* Info del Comercio */}
                       <div className="pt-6 px-4 pb-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h2 className="text-zinc-900 font-black text-xl leading-tight">
-                                {selectedStore.name}
-                              </h2>
-                              {selectedStore.hasEnminutosAlliance && (
-                                <span 
-                                  className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-full text-[10px] font-black shadow-xs border border-white/20"
-                                  style={{ color: '#ffffff' }}
-                                >
-                                  <span className="text-red-500">EM</span>
-                                  <Zap size={10} className="fill-yellow-400 text-yellow-400" />
-                                  <span className="text-white">en minutos</span>
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-zinc-500 text-xs mt-0.5 font-medium">
-                              {selectedStore.scheduleLabel}
-                            </p>
-                          </div>
+                        <div className="flex items-start justify-between gap-3 pl-18">
+                          <h2 className="text-zinc-900 font-black text-xl leading-tight">
+                            {selectedStore.name}
+                          </h2>
                           <div className="text-right flex-shrink-0">
                             <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                              <Navigation size={12} /> {selectedStore.distanceKm || '0.5'} km
+                              <Navigation size={12} className="text-amber-500" /> {selectedStore.distanceKm || '0.5'} km
                             </span>
                           </div>
                         </div>
+
+                        {/* Fila de Etiquetas: Estado, Categoría y Alianza Delivery EM (sin duplicar) */}
+                        <div className="flex items-center gap-1.5 flex-wrap mt-2 pl-18">
+                          {/* Estado de Apertura */}
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-lg border ${
+                            selectedStore.isOpen 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                              : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${selectedStore.isOpen ? 'bg-emerald-500' : 'bg-zinc-400'}`}></span>
+                            {selectedStore.isOpen ? 'Abierto' : 'Cerrado'}
+                          </span>
+
+                          {/* Categoría */}
+                          {selectedStore.category && (
+                            <span className="inline-flex items-center text-[11px] font-bold text-zinc-700 bg-zinc-100 px-2.5 py-0.5 rounded-lg border border-zinc-200">
+                              {selectedStore.category}
+                            </span>
+                          )}
+
+                          {/* Delivery EM en minutos (una sola vez) */}
+                          {selectedStore.hasEnminutosAlliance && (
+                            <span 
+                              className="inline-flex items-center gap-1 bg-slate-950 text-white px-2.5 py-0.5 rounded-lg text-[10px] font-black shadow-xs border border-white/20"
+                              style={{ color: '#ffffff' }}
+                            >
+                              <span className="text-red-500 font-black">EM</span>
+                              <Zap size={10} className="fill-yellow-400 text-yellow-400" />
+                              <span className="text-white">en minutos</span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Horario detallado */}
+                        {selectedStore.scheduleLabel && (
+                          <p className="text-zinc-500 text-xs mt-1.5 font-medium pl-18">
+                            {selectedStore.scheduleLabel}
+                          </p>
+                        )}
 
                         {selectedStore.address && (
                           <p className="text-zinc-600 text-xs mt-3 flex items-start gap-1.5 bg-zinc-50 p-2.5 rounded-xl border border-zinc-100">
@@ -948,50 +937,10 @@ export default function StoreScannerMap() {
                                     <Store size={28} className="text-zinc-700" />
                                   </div>
                                 )}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20" />
-
-                                {/* Badges superiores sobre la portada - Alto contraste y alianza EM */}
-                                <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between z-10 pointer-events-none flex-wrap gap-1.5">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-zinc-200 shadow-md">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                      <span className="text-[11px] font-black text-zinc-950 uppercase tracking-wider">
-                                        {store.category}
-                                      </span>
-                                    </div>
-                                    {store.hasEnminutosAlliance && (
-                                      <div 
-                                        className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/30 shadow-md"
-                                        style={{ color: '#ffffff' }}
-                                      >
-                                        <div className="flex items-center font-black tracking-tighter text-[11px]">
-                                          <span className="text-red-500 font-black">E</span>
-                                          <span className="text-red-500 font-black">M</span>
-                                          <Zap size={11} className="fill-yellow-400 text-yellow-400 ml-0.5" />
-                                        </div>
-                                        <span className="text-[10px] font-black text-white tracking-wide whitespace-nowrap">en minutos</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border flex items-center gap-1 shadow-md ${
-                                    store.isOpen 
-                                      ? 'bg-emerald-600 border-emerald-500 text-white' 
-                                      : 'bg-zinc-900 border-zinc-700 text-zinc-300'
-                                  }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-white' : 'bg-zinc-400'}`}></span>
-                                    <span className="uppercase tracking-wider">{store.isOpen ? 'Abierto' : 'Cerrado'}</span>
-                                  </div>
-                                </div>
-
-                                {/* Distancia flotante sólida */}
-                                <div className="absolute bottom-2 right-3 z-10">
-                                  <span className="text-[11px] font-black text-amber-300 flex items-center gap-1 bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 shadow-sm">
-                                    <Navigation size={11} className="text-amber-400" /> {store.distanceKm} km
-                                  </span>
-                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                               </div>
 
-                              {/* LOGO SUPERPUESTO (fuera del contenedor overflow-hidden para que NO se corte en la mitad) */}
+                              {/* LOGO SUPERPUESTO */}
                               <div className="absolute -bottom-5 left-4 z-20">
                                 <div className="w-14 h-14 rounded-2xl border-2 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center ring-2 ring-black/10">
                                   {store.logoUrl ? (
@@ -1011,31 +960,57 @@ export default function StoreScannerMap() {
 
                             {/* CUERPO DE LA TARJETA */}
                             <div className="pt-6 px-4 pb-3.5">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="pl-16">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
-                                      {store.name}
-                                    </h4>
-                                    {store.hasEnminutosAlliance && (
-                                      <span 
-                                        className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-full text-[10px] font-black shadow-xs border border-white/20"
-                                        style={{ color: '#ffffff' }}
-                                      >
-                                        <span className="text-red-500">EM</span>
-                                        <Zap size={10} className="fill-yellow-400 text-yellow-400" />
-                                        <span className="text-white">en minutos</span>
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-zinc-500 text-[11px] mt-0.5 font-medium line-clamp-1">
-                                    {store.scheduleLabel}
-                                  </p>
-                                </div>
+                              {/* Nombre del comercio y Distancia */}
+                              <div className="flex items-start justify-between gap-2 pl-16">
+                                <h4 className="font-extrabold text-zinc-900 text-base leading-tight tracking-tight">
+                                  {store.name}
+                                </h4>
+                                <span className="text-[11px] font-black text-amber-700 bg-amber-50 border border-amber-200/70 px-2 py-0.5 rounded-lg flex items-center gap-1 shrink-0">
+                                  <Navigation size={11} className="text-amber-500" /> {store.distanceKm} km
+                                </span>
                               </div>
 
+                              {/* Fila de Etiquetas: Estado, Categoría y Alianza Delivery EM (sin duplicar) */}
+                              <div className="flex items-center gap-1.5 flex-wrap mt-2 pl-16">
+                                {/* Estado: Abierto / Cerrado */}
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${
+                                  store.isOpen 
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                    : 'bg-zinc-100 text-zinc-600 border-zinc-200'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${store.isOpen ? 'bg-emerald-500' : 'bg-zinc-400'}`}></span>
+                                  {store.isOpen ? 'Abierto' : 'Cerrado'}
+                                </span>
+
+                                {/* Categoría */}
+                                {store.category && (
+                                  <span className="inline-flex items-center text-[10px] font-bold text-zinc-700 bg-zinc-100 px-2 py-0.5 rounded-md border border-zinc-200">
+                                    {store.category}
+                                  </span>
+                                )}
+
+                                {/* Delivery EM en minutos (una sola vez) */}
+                                {store.hasEnminutosAlliance && (
+                                  <span 
+                                    className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-md text-[10px] font-black shadow-xs border border-white/20"
+                                    style={{ color: '#ffffff' }}
+                                  >
+                                    <span className="text-red-500 font-black">EM</span>
+                                    <Zap size={10} className="fill-yellow-400 text-yellow-400" />
+                                    <span className="text-white">en minutos</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Horario detallado */}
+                              {store.scheduleLabel && (
+                                <p className="text-zinc-500 text-[11px] mt-1.5 font-medium pl-16">
+                                  {store.scheduleLabel}
+                                </p>
+                              )}
+
                               {store.address && (
-                                <p className="text-zinc-600 text-xs mt-2.5 flex items-center gap-1.5 line-clamp-1">
+                                <p className="text-zinc-600 text-xs mt-2.5 flex items-center gap-1.5 line-clamp-1 border-t border-zinc-100 pt-2">
                                   <MapPin size={12} className="text-zinc-400 flex-shrink-0" />
                                   <span className="truncate">{store.address}</span>
                                 </p>
