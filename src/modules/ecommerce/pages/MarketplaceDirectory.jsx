@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -10,6 +10,7 @@ import CustomerAnalyticsModal from '../components/CustomerAnalyticsModal';
 import PwaInstallBanner from '../components/PwaInstallBanner';
 import SocialFeedCard from '../components/SocialFeedCard';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
+import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
@@ -56,38 +57,10 @@ export default function MarketplaceDirectory() {
   const [bannerSlide, setBannerSlide] = useState(0);
   const categoriesScrollRef = useRef(null);
 
-  // Bottom Navigation Bar Auto-ocultable en Scroll (Directo por DOM / Cero React Re-renders / Cero Lag)
-  const bottomNavRef = useRef(null);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          const nav = bottomNavRef.current;
-          if (nav) {
-            if (currentScrollY > lastScrollY.current && currentScrollY > 80) {
-              // Desplazamiento hacia abajo: ocultar de forma natural y automática
-              nav.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
-              nav.classList.remove('translate-y-0', 'opacity-100');
-            } else if (currentScrollY < lastScrollY.current) {
-              // Desplazamiento hacia arriba: mostrar de forma natural
-              nav.classList.remove('translate-y-28', 'opacity-0', 'pointer-events-none');
-              nav.classList.add('translate-y-0', 'opacity-100');
-            }
-          }
-          lastScrollY.current = currentScrollY;
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Control de Barra de Navegación y Estados (Cero scroll listeners para eliminar 100% el lag móvil)
+  const [isBottomNavOpen, setIsBottomNavOpen] = useState(false);
+  const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
+  const [activeStatusIndex, setActiveStatusIndex] = useState(0);
 
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
@@ -1361,6 +1334,77 @@ export default function MarketplaceDirectory() {
     (store.config?.description && store.config.description.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
+  const merchantStatuses = useMemo(() => {
+    const list = [];
+    const newsByWorkspace = {};
+    (storeNews || []).forEach(news => {
+      if (news?.workspace_id) {
+        if (!newsByWorkspace[news.workspace_id]) {
+          newsByWorkspace[news.workspace_id] = [];
+        }
+        newsByWorkspace[news.workspace_id].push(news);
+      }
+    });
+
+    (stores || []).forEach(store => {
+      const storeNewsList = newsByWorkspace[store.id] || [];
+      const primaryNews = storeNewsList[0];
+      const media = primaryNews?.image_url || store.config?.coverUrl || store.config?.storefront?.heroUrl || store.config?.bannerUrl;
+      const logo = store.config?.logoUrl || store.config?.storefront?.logoUrl;
+      
+      if (media || logo || store.name) {
+        list.push({
+          id: store.id || store.store_slug,
+          name: store.name || 'Comercio Axon',
+          slug: store.store_slug || store.id,
+          avatar: logo,
+          mediaUrl: media || logo,
+          caption: primaryNews ? `${primaryNews.title ? primaryNews.title + ': ' : ''}${primaryNews.content}` : (store.config?.description || '¡Conoce nuestras promociones y productos disponibles hoy!'),
+          time: primaryNews?.created_at ? 'Hoy' : 'Activo',
+          isVerified: !!store.config?.is_verified,
+          hasNews: storeNewsList.length > 0
+        });
+      }
+    });
+
+    if (list.length === 0) {
+      return [
+        {
+          id: 'demo-1',
+          name: 'Burger King Express',
+          slug: '',
+          avatar: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=150&q=80',
+          mediaUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80',
+          caption: '🔥 ¡2x1 en combos especiales este fin de semana!',
+          time: 'Hace 1h',
+          isVerified: true
+        },
+        {
+          id: 'demo-2',
+          name: 'Moda Urbana',
+          slug: '',
+          avatar: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=150&q=80',
+          mediaUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
+          caption: '✨ Nueva colección de calzado y accesorios ya en vitrina.',
+          time: 'Hace 3h',
+          isVerified: true
+        },
+        {
+          id: 'demo-3',
+          name: 'TechStore',
+          slug: '',
+          avatar: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&q=80',
+          mediaUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&q=80',
+          caption: '📱 Descuentos del 20% en cargadores rápidos y protectores.',
+          time: 'Hace 4h',
+          isVerified: true
+        }
+      ];
+    }
+
+    return list;
+  }, [stores, storeNews]);
+
   const feedPosts = useMemo(() => {
     // 1. Vitrinas de tiendas
     const storeCards = filteredStores.map(store => ({
@@ -1594,52 +1638,59 @@ export default function MarketplaceDirectory() {
           </div>
         </div>
 
-        {/* Barra de Stories: Ofertas, Promociones, Eventos, Tendencias y Más Likes */}
+        {/* Panel de Estados / Promociones de Comerciantes estilo WhatsApp */}
         <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
-          <div className="flex items-center justify-between px-1 mb-2">
+          <div className="flex items-center justify-between px-1 mb-2.5">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Explorar Destacados</span>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Estados de Comerciantes</span>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase tracking-wider">En vivo</span>
             </div>
-            {discoveryFilter !== 'all' && (
-              <button
-                onClick={() => setDiscoveryFilter('all')}
-                className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline"
-              >
-                Ver todo
-              </button>
-            )}
+            <span className="text-[10px] text-zinc-500 font-medium">Toca para ver</span>
           </div>
           
-          <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            {[
-              { id: 'all', name: 'Todo', icon: ShoppingBag, color: 'from-amber-500 to-amber-300' },
-              { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
-              { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
-              { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
-              { id: 'tendencias', name: 'Tendencias', icon: TrendingUp, color: 'from-blue-500 to-cyan-400' },
-              { id: 'verificadas', name: 'Top Tiendas', icon: ShieldCheck, color: 'from-emerald-500 to-teal-400' },
-              { id: 'eventos', name: 'Eventos', icon: Zap, color: 'from-yellow-400 to-amber-500' }
-            ].map((story) => {
-              const isActive = discoveryFilter === story.id;
-              const IconComp = story.icon;
-              return (
-                <div 
-                  key={story.id} 
-                  onClick={() => setDiscoveryFilter(story.id)} 
-                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
-                >
-                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? `bg-gradient-to-tr ${story.color} shadow-[0_0_15px_rgba(245,158,11,0.45)] scale-105` : 'bg-zinc-200/80 hover:bg-amber-300'}`}>
-                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-zinc-950 text-white' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
-                      <IconComp size={20} strokeWidth={isActive ? 2.5 : 1.9} className={isActive ? 'text-amber-400' : ''} />
+          <div className="flex overflow-x-auto gap-4 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {merchantStatuses.map((status, idx) => (
+              <div 
+                key={status.id || idx}
+                onClick={() => {
+                  setActiveStatusIndex(idx);
+                  setIsStatusViewerOpen(true);
+                }}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+                title={`Ver estado de ${status.name}`}
+              >
+                <div className="relative">
+                  {/* Anillo de estado circular estilo WhatsApp / Stories */}
+                  <div className="w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 group-hover:scale-105 group-active:scale-95 transition-transform duration-150 shadow-sm">
+                    <div className="w-full h-full rounded-full bg-white p-[2px] overflow-hidden">
+                      {status.avatar ? (
+                        <img 
+                          src={resolveImageUrl(status.avatar)} 
+                          alt={status.name} 
+                          className="w-full h-full object-cover rounded-full" 
+                          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=150&q=80'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs rounded-full">
+                          <Store size={20} />
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600 font-black' : 'text-zinc-500'}`}>
-                    {story.name}
-                  </span>
+                  {/* Badge de video/promo en esquina */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs border-2 border-white">
+                    <Play size={8} fill="currentColor" />
+                  </div>
                 </div>
-              );
-            })}
+                <span className="text-[10px] text-center font-bold text-zinc-700 truncate w-14 group-hover:text-amber-600 transition-colors">
+                  {status.name}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -1712,58 +1763,93 @@ export default function MarketplaceDirectory() {
 
       </div>
 
-      {/* Bottom Navigation Bar - Minimalista y Natural (Cero lag, sin Framer Motion) */}
-      <div 
-        ref={bottomNavRef}
-        className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.6)] transition-all duration-300 ease-out translate-y-0 opacity-100 will-change-transform"
-      >
-        <div className="flex justify-between items-center h-16 px-2">
-           <button 
-             onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 transition-colors cursor-pointer"
-           >
-             <Home size={22} fill="currentColor" />
-             <span className="text-[10px] font-bold">Inicio</span>
-           </button>
-           
-           <button onClick={() => {
+      {/* Botón flotante discreto en esquina izquierda (Sin interferir con el feed al hacer scroll) */}
+      {!isBottomNavOpen && (
+        <button
+          onClick={() => setIsBottomNavOpen(true)}
+          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full bg-zinc-950/90 text-amber-400 border border-amber-500/30 shadow-[0_6px_25px_rgba(0,0,0,0.7)] flex items-center justify-center cursor-pointer active:scale-90 hover:bg-zinc-900"
+          title="Abrir menú"
+          aria-label="Abrir menú de navegación"
+        >
+          <ShoppingBag size={22} className="stroke-[2.2]" />
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+          </span>
+        </button>
+      )}
+
+      {/* Bottom Navigation Bar - Apertura instantánea sin animaciones (Cero Lag en celulares) */}
+      {isBottomNavOpen && (
+        <div 
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl bg-zinc-950/95 backdrop-blur-xl border border-amber-500/30 shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+        >
+          <div className="flex justify-between items-center h-16 px-2 relative">
+            <button 
+              onClick={() => { window.scrollTo({ top: 0, behavior: 'instant' }); }}
+              className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-500 cursor-pointer"
+            >
+              <Home size={22} fill="currentColor" />
+              <span className="text-[10px] font-bold">Inicio</span>
+            </button>
+            
+            <button onClick={() => {
               setIsCategoriesOpen(true);
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white transition-colors relative cursor-pointer">
-             <Menu size={22} />
-             <span className="text-[10px] font-medium">Categorías</span>
-           </button>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-white cursor-pointer">
+              <Menu size={22} />
+              <span className="text-[10px] font-medium">Categorías</span>
+            </button>
 
-           {/* Floating Action Button */}
-           <div className="flex-1 flex justify-center relative -top-6">
-             <div 
-               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
-               className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-               title="Subir al inicio"
-             >
-               <ShoppingBag size={24} className="stroke-[2.5]" />
-             </div>
-           </div>
+            {/* Floating Action Button */}
+            <div className="flex-1 flex justify-center relative -top-6">
+              <div 
+                onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })} 
+                className="w-14 h-14 bg-amber-500 rounded-full flex items-center justify-center text-black shadow-[0_10px_25px_rgba(245,158,11,0.5)] cursor-pointer active:scale-95"
+                title="Subir al inicio"
+              >
+                <ShoppingBag size={24} className="stroke-[2.5]" />
+              </div>
+            </div>
 
-           <button onClick={() => {
+            <button onClick={() => {
               if (!currentCustomer) { 
                 setAuthMode('login'); 
                 setIsAuthModalOpen(true); 
               } else {
                 navigate('/profile', { state: { tab: 'favoritas' } });
               }
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 transition-colors cursor-pointer">
-             <Heart size={22} />
-             <span className="text-[10px] font-medium">Favoritos</span>
-           </button>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 cursor-pointer">
+              <Heart size={22} />
+              <span className="text-[10px] font-medium">Favoritos</span>
+            </button>
 
-           <button onClick={() => {
+            <button onClick={() => {
               navigate('/mapa');
-           }} className="flex-1 flex flex-col items-center gap-1 p-2 transition-colors text-zinc-400 hover:text-amber-500 cursor-pointer">
-             <MapPin size={22} />
-             <span className="text-[10px] font-medium">Mapa</span>
-           </button>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-400 hover:text-amber-500 cursor-pointer">
+              <MapPin size={22} />
+              <span className="text-[10px] font-medium">Mapa</span>
+            </button>
+
+            {/* Botón para cerrar la barra al instante y liberar pantalla */}
+            <button
+              onClick={() => setIsBottomNavOpen(false)}
+              className="absolute -top-3 -right-2 w-7 h-7 bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 rounded-full border border-white/20 flex items-center justify-center shadow-md cursor-pointer"
+              title="Ocultar menú"
+            >
+              <X size={14} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal Visor de Estados / Historias de Comerciantes estilo WhatsApp */}
+      <MerchantStatusViewerModal
+        isOpen={isStatusViewerOpen}
+        onClose={() => setIsStatusViewerOpen(false)}
+        statuses={merchantStatuses}
+        initialIndex={activeStatusIndex}
+        onNavigateStore={(slug) => navigate(`/${slug}`)}
+      />
 
       {/* Cart Slide-over */}
       <AnimatePresence>
