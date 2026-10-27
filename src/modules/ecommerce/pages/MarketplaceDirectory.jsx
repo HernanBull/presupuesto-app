@@ -57,10 +57,23 @@ export default function MarketplaceDirectory() {
   const [bannerSlide, setBannerSlide] = useState(0);
   const categoriesScrollRef = useRef(null);
 
-  // Control de Barra de Navegación y Estados (Cero scroll listeners para eliminar 100% el lag móvil)
-  const [isBottomNavOpen, setIsBottomNavOpen] = useState(false);
+  // Control de Barra de Navegación y Estados (Detección de umbral ultra-liviana sin lag)
+  const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
+
+  useEffect(() => {
+    let isScrolled = false;
+    const handleScrollThreshold = () => {
+      const past = window.scrollY > 60;
+      if (past !== isScrolled) {
+        isScrolled = past;
+        setIsBottomNavOpen(!past);
+      }
+    };
+    window.addEventListener('scroll', handleScrollThreshold, { passive: true });
+    return () => window.removeEventListener('scroll', handleScrollThreshold);
+  }, []);
 
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
@@ -1621,30 +1634,12 @@ export default function MarketplaceDirectory() {
           </div>
         </header>
 
-        {/* App Search Bar */}
-        <div className="px-4 md:px-6 py-3 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
-          <div className="relative w-full group">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <Search size={18} className="text-zinc-400" />
-            </div>
-            <input
-              id="mobile-search-input"
-              type="text"
-              placeholder="¿Qué quieres pedir hoy?"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
-            />
-          </div>
-        </div>
-
-        {/* Panel de Estados / Promociones de Comerciantes estilo WhatsApp */}
-        <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
-          <div className="flex items-center justify-between px-1 mb-2.5">
+        {/* 1. Panel de Estados / Promociones de Comerciantes estilo WhatsApp (ARRIBA del buscador) */}
+        <div className="px-3 md:px-5 py-2.5 border-b border-zinc-100 bg-white">
+          <div className="flex items-center justify-between px-1 mb-2">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative flex h-2 w-2">
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
               <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">Estados de Comerciantes</span>
               <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase tracking-wider">En vivo</span>
@@ -1691,6 +1686,72 @@ export default function MarketplaceDirectory() {
                 </span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* 2. App Search Bar (Buscador) */}
+        <div className="px-4 md:px-6 py-2.5 sticky top-[57px] z-40 bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-xs">
+          <div className="relative w-full group">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search size={18} className="text-zinc-400" />
+            </div>
+            <input
+              id="mobile-search-input"
+              type="text"
+              placeholder="¿Qué quieres pedir hoy?"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-zinc-50 border border-zinc-200/80 rounded-2xl py-2.5 pl-10 pr-4 text-zinc-900 text-sm font-medium focus:outline-none focus:border-amber-500/50 shadow-inner placeholder-zinc-400"
+            />
+          </div>
+        </div>
+
+        {/* 3. Explorar Destacados / Categorías Rápidas (ABAJO del buscador) */}
+        <div className="px-3 md:px-5 py-3 border-b border-zinc-100 bg-white">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span className="text-[11px] font-black tracking-wider uppercase text-zinc-800">EXPLORAR DESTACADOS</span>
+            </div>
+            {discoveryFilter !== 'all' && (
+              <button
+                onClick={() => setDiscoveryFilter('all')}
+                className="text-[10px] font-bold text-amber-600 hover:text-amber-700 hover:underline"
+              >
+                Ver todo
+              </button>
+            )}
+          </div>
+          
+          <div className="flex overflow-x-auto gap-3.5 py-1 px-1 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { id: 'all', name: 'Todo', icon: ShoppingBag, color: 'from-amber-500 to-amber-300' },
+              { id: 'ofertas', name: 'Ofertas', icon: Flame, color: 'from-orange-500 to-amber-400' },
+              { id: 'promociones', name: 'Promos', icon: Gift, color: 'from-purple-500 to-pink-500' },
+              { id: 'top_likes', name: 'Más Likes', icon: Heart, color: 'from-rose-500 to-red-400' },
+              { id: 'tendencias', name: 'Tendencias', icon: TrendingUp, color: 'from-blue-500 to-cyan-400' },
+              { id: 'verificadas', name: 'Top Tiend...', icon: ShieldCheck, color: 'from-emerald-500 to-teal-400' },
+              { id: 'eventos', name: 'Eventos', icon: Zap, color: 'from-yellow-400 to-amber-500' }
+            ].map((story) => {
+              const isActive = discoveryFilter === story.id;
+              const IconComp = story.icon;
+              return (
+                <div 
+                  key={story.id} 
+                  onClick={() => setDiscoveryFilter(story.id)} 
+                  className="flex flex-col items-center gap-1.5 cursor-pointer group snap-start shrink-0 select-none"
+                >
+                  <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${isActive ? `bg-gradient-to-tr ${story.color} shadow-[0_0_15px_rgba(245,158,11,0.45)] scale-105` : 'bg-zinc-200/80 hover:bg-amber-300'}`}>
+                    <div className={`w-full h-full rounded-full flex items-center justify-center transition-colors ${isActive ? 'bg-zinc-950 text-white' : 'bg-white text-zinc-600 group-hover:text-amber-600'}`}>
+                      <IconComp size={20} strokeWidth={isActive ? 2.5 : 1.9} className={isActive ? 'text-amber-400' : ''} />
+                    </div>
+                  </div>
+                  <span className={`text-[10px] text-center font-bold truncate w-14 ${isActive ? 'text-amber-600 font-black' : 'text-zinc-500'}`}>
+                    {story.name}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -1763,19 +1824,15 @@ export default function MarketplaceDirectory() {
 
       </div>
 
-      {/* Botón flotante discreto en esquina izquierda (Sin interferir con el feed al hacer scroll) */}
+      {/* Botón flotante en esquina izquierda (Sin parpadeo, limpio y elegante) */}
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
-          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full bg-zinc-950/90 text-amber-400 border border-amber-500/30 shadow-[0_6px_25px_rgba(0,0,0,0.7)] flex items-center justify-center cursor-pointer active:scale-90 hover:bg-zinc-900"
+          className="fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full bg-zinc-950 text-amber-400 border border-amber-500/40 shadow-[0_6px_25px_rgba(0,0,0,0.8)] flex items-center justify-center cursor-pointer active:scale-90 hover:bg-zinc-900 transition-transform"
           title="Abrir menú"
           aria-label="Abrir menú de navegación"
         >
-          <ShoppingBag size={22} className="stroke-[2.2]" />
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-          </span>
+          <ShoppingBag size={22} className="stroke-[2.2] text-amber-400" />
         </button>
       )}
 
