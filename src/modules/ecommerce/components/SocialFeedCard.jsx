@@ -345,78 +345,108 @@ export default function SocialFeedCard({
         )}
 
         {/* Pager Indicator */}
-        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white border border-white/15 font-semibold tracking-wider">
+        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white border border-white/15 font-semibold tracking-wider z-10 pointer-events-none">
           1/1
+        </div>
+
+        {/* TikTok-Style Right Action Bar */}
+        <div 
+          className="absolute right-2.5 bottom-3.5 z-20 flex flex-col items-center gap-3.5 select-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Like / Corazón */}
+          <button 
+            type="button"
+            onClick={handleLike} 
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Me gusta"
+          >
+            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+              <Heart 
+                size={22} 
+                strokeWidth={isLiked ? 0 : 2} 
+                fill={isLiked ? '#ef4444' : 'none'} 
+                className={isLiked ? 'text-red-500 scale-110 transition-transform' : 'text-white'} 
+              />
+            </div>
+            <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+              {likesCount}
+            </span>
+          </button>
+
+          {/* Mensaje / Comentarios */}
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenComments({ postId, postTitle: storeName, workspaceId });
+            }}
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Comentar"
+          >
+            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+              <MessageCircle size={21} strokeWidth={2} className="text-white" />
+            </div>
+            <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+              {commentsCount}
+            </span>
+          </button>
+
+          {/* Telegram / Compartir */}
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenShare(e);
+            }}
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Compartir publicación"
+          >
+            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+              <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
+            </div>
+            <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+              Compartir
+            </span>
+          </button>
+
+          {/* Favoritos / Guardar */}
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave(e);
+            }}
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Guardar en favoritos"
+          >
+            <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+              <Bookmark 
+                size={20} 
+                strokeWidth={isSaved ? 0 : 2} 
+                fill={isSaved ? '#f59e0b' : 'none'} 
+                className={isSaved ? 'text-amber-500 scale-105' : 'text-white'} 
+              />
+            </div>
+            <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+              {isSaved ? 'Guardado' : 'Guardar'}
+            </span>
+          </button>
         </div>
 
         {/* Animated Heart Burst on double tap */}
         {showHeartBurst && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
             <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-2xl" />
           </div>
         )}
       </div>
 
-      {/* Post Actions Bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-zinc-950">
-        <div className="flex items-center gap-4 text-slate-900 dark:text-white">
-          <button 
-            type="button"
-            onClick={handleLike} 
-            className="active:scale-90 cursor-pointer"
-            title="Me gusta"
-          >
-            <Heart 
-              size={26} 
-              strokeWidth={isLiked ? 0 : 2} 
-              fill={isLiked ? '#ef4444' : 'none'} 
-              className={isLiked ? 'text-red-500' : 'text-slate-800 dark:text-white'} 
-            />
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-            className="active:scale-90 cursor-pointer"
-            title="Comentar"
-          >
-            <MessageCircle size={26} strokeWidth={2} className="text-slate-800 dark:text-white" />
-          </button>
-          
-          <button 
-            type="button"
-            onClick={handleOpenShare}
-            className="active:scale-90 cursor-pointer -mt-0.5"
-            title="Compartir por WhatsApp o enlace"
-          >
-            <Send size={24} strokeWidth={2} className="text-slate-800 dark:text-white" />
-          </button>
-        </div>
-
-        <button 
-          type="button"
-          onClick={handleSave}
-          className="active:scale-90 cursor-pointer text-slate-800 dark:text-white"
-          title="Guardar publicación"
-        >
-          <Bookmark 
-            size={26} 
-            strokeWidth={isSaved ? 0 : 2} 
-            fill={isSaved ? 'currentColor' : 'none'} 
-            className={isSaved ? 'text-amber-500' : ''} 
-          />
-        </button>
-      </div>
-
       {/* Post Content / Caption */}
-      <div className="px-4 flex flex-col gap-1 bg-white dark:bg-zinc-950">
-        <span className="text-slate-900 dark:text-white text-sm font-black">
-          {likesCount} {likesCount === 1 ? 'Me gusta' : 'Me gusta'}
-        </span>
-        
+      <div className="px-4 pt-3 flex flex-col gap-1.5 bg-white dark:bg-zinc-950">
         <div className="text-slate-800 dark:text-zinc-200 text-sm leading-snug">
           <span 
-            className="font-bold mr-2 cursor-pointer hover:underline"
+            className="font-bold mr-2 cursor-pointer hover:underline text-slate-950 dark:text-white"
             onClick={() => onNavigateStore(storeSlug || workspaceId)}
           >
             {storeName}
@@ -430,14 +460,14 @@ export default function SocialFeedCard({
         <button 
           type="button"
           onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-          className="text-left text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1 hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+          className="text-left text-slate-500 dark:text-zinc-400 text-xs font-semibold hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
         >
           {commentsCount > 0 
             ? `Ver los ${commentsCount} comentarios` 
             : 'Agregar un comentario...'}
         </button>
 
-        <span className="text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider mt-0.5 font-medium">
+        <span className="text-slate-400 dark:text-zinc-500 text-[10px] uppercase tracking-wider font-medium">
           {formatTimeAgo(createdAt)}
         </span>
       </div>
