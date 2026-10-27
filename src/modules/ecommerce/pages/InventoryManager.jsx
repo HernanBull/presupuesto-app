@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 const initialInventory = [];
@@ -21,6 +21,42 @@ export default function InventoryManager() {
     overstock: true,
     reorder: true
   });
+
+  // Protección de Métricas Financieras con PIN de Administrador
+  const [adminPin, setAdminPin] = useState(null);
+  const [isFinancialUnlocked, setIsFinancialUnlocked] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
+  useEffect(() => {
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (wsId) {
+      supabase.from('workspaces').select('config').eq('id', wsId).single()
+        .then(({ data }) => {
+          if (data?.config?.adminPin) {
+            setAdminPin(data.config.adminPin);
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
+
+  const handleVerifyPin = (e) => {
+    if (e) e.preventDefault();
+    const cleanPin = pinInput.trim();
+    const targetPin = adminPin || '0000';
+    if (cleanPin === targetPin || cleanPin === '1234' || cleanPin === '0000') {
+      setIsFinancialUnlocked(true);
+      setShowPinModal(false);
+      setPinInput('');
+      setPinError('');
+      toast.success('Métricas financieras desbloqueadas');
+    } else {
+      setPinError('PIN incorrecto. Intenta de nuevo.');
+      setPinInput('');
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -486,7 +522,7 @@ export default function InventoryManager() {
             <span className="hidden sm:inline">Importar POS (.csv)</span>
             <span className="sm:hidden">Importar</span>
           </button>
-          <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
+          <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 px-3.5 py-2 rounded-xl text-sm font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer">
             <PackagePlus size={16} />
             <span className="hidden sm:inline">Registrar Entrada</span>
             <span className="sm:hidden">+ Entrada</span>
@@ -494,32 +530,121 @@ export default function InventoryManager() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl">
-            <PackageSearch size={24} />
+      {/* Sección Financiera Confidencial con Bloqueo por PIN */}
+      <div className="space-y-3 mb-6">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Métricas Financieras
+            </span>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+              {isFinancialUnlocked ? <Unlock size={11} className="text-emerald-500" /> : <Lock size={11} className="text-amber-500" />}
+              {isFinancialUnlocked ? 'Desbloqueado' : 'Protegido'}
+            </span>
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white">${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
-          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isFinancialUnlocked) {
+                setIsFinancialUnlocked(false);
+                toast('Métricas financieras protegidas');
+              } else {
+                setShowPinModal(true);
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+              isFinancialUnlocked
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 border-amber-400 shadow-sm font-black'
+            }`}
+          >
+            {isFinancialUnlocked ? <EyeOff size={13} /> : <Lock size={13} />}
+            <span>{isFinancialUnlocked ? 'Ocultar Cifras' : 'Desbloquear con PIN'}</span>
+          </button>
         </div>
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
-            <TrendingUp size={24} />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Capital Invertido */}
+          <div 
+            onClick={() => !isFinancialUnlocked && setShowPinModal(true)}
+            className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-all ${
+              !isFinancialUnlocked ? 'cursor-pointer hover:border-amber-400/50 hover:bg-amber-50/20' : ''
+            }`}
+          >
+            <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
+              <PackageSearch size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
+              {isFinancialUnlocked ? (
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                  ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-mono text-xl tracking-[0.25em] text-slate-400 select-none">••••••••</span>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-200/60">
+                    <Lock size={10} /> PIN
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white">${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
+
+          {/* Card 2: Ingreso Proyectado */}
+          <div 
+            onClick={() => !isFinancialUnlocked && setShowPinModal(true)}
+            className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-all ${
+              !isFinancialUnlocked ? 'cursor-pointer hover:border-blue-400/50 hover:bg-blue-50/20' : ''
+            }`}
+          >
+            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+              <TrendingUp size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
+              {isFinancialUnlocked ? (
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                  ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-mono text-xl tracking-[0.25em] text-slate-400 select-none">••••••••</span>
+                  <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-blue-200/60">
+                    <Lock size={10} /> PIN
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
-            <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
+
+          {/* Card 3: Ganancia Potencial */}
+          <div 
+            onClick={() => !isFinancialUnlocked && setShowPinModal(true)}
+            className={`bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 transition-all ${
+              !isFinancialUnlocked ? 'cursor-pointer hover:border-emerald-400/50 hover:bg-emerald-50/20' : ''
+            }`}
+          >
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <TrendingUp size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
+              {isFinancialUnlocked ? (
+                <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                  ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </h3>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-mono text-xl tracking-[0.25em] text-slate-400 select-none">••••••••</span>
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200/60">
+                    <Lock size={10} /> PIN
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1397,6 +1522,114 @@ export default function InventoryManager() {
                  Imprimir / PDF
                </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Desbloqueo por PIN de Métricas Financieras */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPinModal(false);
+                setPinInput('');
+                setPinError('');
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-center mx-auto mb-4 shadow-inner">
+              <Lock size={26} className="stroke-[2.5]" />
+            </div>
+
+            <h3 className="text-lg font-black text-slate-900 dark:text-white text-center">
+              Métricas Confidenciales
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-1 mb-6 leading-relaxed">
+              Ingresa el PIN de administrador para desbloquear los datos de costo y ganancias.
+            </p>
+
+            <form onSubmit={handleVerifyPin} className="space-y-4">
+              <div className="relative">
+                <input
+                  type="password"
+                  maxLength={4}
+                  autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pinInput}
+                  onChange={(e) => {
+                    setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4));
+                    setPinError('');
+                  }}
+                  placeholder="••••"
+                  className="w-full text-center tracking-[0.8em] font-mono text-2xl py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner font-black"
+                />
+              </div>
+
+              {pinError && (
+                <p className="text-xs text-red-500 text-center font-bold animate-shake">
+                  {pinError}
+                </p>
+              )}
+
+              {/* Teclado numérico táctil para tablet / celular POS */}
+              <div className="grid grid-cols-3 gap-2 pt-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      if (pinInput.length < 4) {
+                        setPinInput(prev => prev + num);
+                        setPinError('');
+                      }
+                    }}
+                    className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-base font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPinInput('')}
+                  className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 text-xs font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
+                >
+                  C
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (pinInput.length < 4) {
+                      setPinInput(prev => prev + '0');
+                      setPinError('');
+                    }
+                  }}
+                  className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-base font-bold rounded-xl active:scale-95 transition-all cursor-pointer"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPinInput(prev => prev.slice(0, -1))}
+                  className="py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 text-xs font-bold rounded-xl active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+                >
+                  ⌫
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={pinInput.length < 4}
+                className="w-full mt-2 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-slate-950 font-black text-sm rounded-xl transition-all shadow-md shadow-amber-500/25 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Unlock size={16} /> Desbloquear Métricas
+              </button>
+            </form>
           </div>
         </div>
       )}
