@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -56,6 +56,7 @@ export default function CustomerProfile() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [authProvider, setAuthProvider] = useState('email');
   const [showUnderConstruction, setShowUnderConstruction] = useState(false);
+  const [copiedPinOrderId, setCopiedPinOrderId] = useState(null);
 
   const handleRefreshAuthStatus = async () => {
     setIsRefreshingAuth(true);
@@ -554,8 +555,34 @@ export default function CustomerProfile() {
     } catch (e) {
       console.error(e);
     }
-    setLoadingOrders(false);
-  };
+      setLoadingOrders(false);
+    };
+
+    // Suscripción Realtime para actualizar pedidos y PIN de entrega automáticamente
+    useEffect(() => {
+      if (!currentCustomer?.email) return;
+
+      const channelName = `customer_profile_orders_${currentCustomer.email.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const ordersChannel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'ecommerce_orders_v2',
+            filter: `customer_email=eq.${currentCustomer.email}`
+          },
+          () => {
+            fetchOrders(currentCustomer.email);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(ordersChannel);
+      };
+    }, [currentCustomer?.email]);
 
   const updateCustomerData = async (updatedData) => {
     const newUser = { ...currentCustomer, ...updatedData };
@@ -1705,16 +1732,46 @@ export default function CustomerProfile() {
                           
                           {/* Seguridad: PIN del Delivery */}
                           <div className="mt-6 border-t border-slate-100 pt-4">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Seguridad de Entrega</h4>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                                <Lock size={13} className="text-amber-500" />
+                                Seguridad de Entrega
+                              </h4>
+                              {order.deliveryPin && (
+                                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                                  Código de Verificación
+                                </span>
+                              )}
+                            </div>
+
                             {order.deliveryPin ? (
-                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between">
+                              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                                 <div>
-                                  <span className="block text-[10px] font-bold text-emerald-800 mb-1">PIN SECRETO DE ENTREGA</span>
-                                  <span className="text-3xl font-black text-emerald-600 tracking-[0.3em] font-mono">{order.deliveryPin}</span>
+                                  <span className="block text-[10px] font-black text-amber-900 tracking-wider mb-1">
+                                    PIN SECRETO DE ENTREGA
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-3xl font-black text-slate-900 tracking-[0.25em] font-mono bg-white px-3 py-1 rounded-xl border border-amber-200 shadow-inner">
+                                      {order.deliveryPin}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(order.deliveryPin);
+                                        setCopiedPinOrderId(order.id);
+                                        setTimeout(() => setCopiedPinOrderId(null), 2500);
+                                      }}
+                                      className="flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all shadow-xs cursor-pointer"
+                                    >
+                                      {copiedPinOrderId === order.id ? <Check size={14} /> : <Copy size={14} />}
+                                      <span>{copiedPinOrderId === order.id ? '¡Copiado!' : 'Copiar'}</span>
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="text-right">
-                                  <Lock size={24} className="text-emerald-600 inline-block mb-1" />
-                                  <p className="text-xs text-emerald-800 max-w-[120px] leading-tight font-medium">Dicta este código al repartidor al recibir tu pedido.</p>
+                                <div className="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-amber-200/60">
+                                  <p className="text-xs text-amber-950 font-medium leading-relaxed max-w-[200px]">
+                                    🛡️ Dicta este código al repartidor únicamente cuando recibas tu paquete en tus manos.
+                                  </p>
                                 </div>
                               </div>
                             ) : (

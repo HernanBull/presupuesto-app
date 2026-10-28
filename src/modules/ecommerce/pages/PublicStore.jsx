@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, AlertTriangle, Check } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, AlertTriangle, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -129,6 +129,8 @@ export default function PublicStore() {
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lastPlacedOrder, setLastPlacedOrder] = useState(null);
+  const [pinCopied, setPinCopied] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState(1);
   const [isCheckoutMode, setIsCheckoutMode] = useState(false);
   const [checkoutAddress, setCheckoutAddress] = useState('');
@@ -689,6 +691,9 @@ export default function PublicStore() {
     const flatRate = config?.shippingProfile?.flatRate ? Number(config.shippingProfile.flatRate) : 0;
     const finalTotal = subtotal + (isFreeShipping ? 0 : flatRate);
 
+    // Generar PIN Secreto de Entrega único de 6 dígitos desde el origen
+    const generatedDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+
     const orderData = {
       id: 'ORD-' + Math.floor(Math.random() * 1000000),
       workspace_id: workspaceId,
@@ -699,6 +704,7 @@ export default function PublicStore() {
       total: finalTotal,
       items: orderItems,
       status: 'Pendiente',
+      delivery_pin: generatedDeliveryPin,
       paymentmethod: selectedPaymentMethod,
       paymentstatus: selectedPaymentMethod === 'cash' ? 'approved' : 'pending',
       paymentdetails: {
@@ -742,7 +748,7 @@ export default function PublicStore() {
               await storeCh.send({
                 type: 'broadcast',
                 event: 'NEW_ORDER',
-                payload: { orderId: orderData.id, workspaceId }
+                payload: { orderId: orderData.id, workspaceId, deliveryPin: generatedDeliveryPin }
               });
               storeCh.unsubscribe();
             }
@@ -768,7 +774,15 @@ export default function PublicStore() {
         setAppliedDiscount(null);
         setDiscountCode('');
         
-        // Mostrar modal de éxito en lugar de redireccionar
+        // Guardar datos del pedido para mostrar en el modal de confirmación
+        setLastPlacedOrder({
+          id: orderData.id,
+          deliveryPin: generatedDeliveryPin,
+          total: finalTotal,
+          itemsCount: orderItems.length,
+          address: checkoutAddress
+        });
+        setPinCopied(false);
         setShowSuccessModal(true);
       } else {
         alert("Hubo un error al procesar el pedido.");
@@ -4080,29 +4094,75 @@ export default function PublicStore() {
         }} 
       />
 
-      {/* Success Modal */}
+      {/* Success Modal con PIN Secreto de Entrega */}
       <ResponsiveModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
-        className="md:max-w-sm bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
-        contentClassName="p-8 text-center"
+        className="md:max-w-md bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
+        contentClassName="p-6 text-center"
       >
-        <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 className="text-emerald-500" size={40} />
+        <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+          <CheckCircle2 className="text-emerald-500" size={36} />
         </div>
-        <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Pedido Exitoso!</h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-8">Tu orden ha sido recibida y está siendo procesada.</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-1">¡Pedido Registrado con Éxito!</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+          Tu orden <span className="font-bold text-slate-800 dark:text-slate-200">#{lastPlacedOrder?.id}</span> ha sido recibida y se encuentra en proceso.
+        </p>
+
+        {/* Tarjeta Destacada de Seguridad: PIN Secreto de Entrega */}
+        <div className="mb-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/10 border-2 border-amber-300 dark:border-amber-500/40 rounded-2xl p-4 text-left shadow-sm relative overflow-hidden">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="p-1 rounded-md bg-amber-500 text-white">
+                <Lock size={13} />
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                PIN Secreto de Entrega
+              </span>
+            </div>
+            <span className="text-[10px] bg-amber-200/60 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 font-bold px-2 py-0.5 rounded-full">
+              Requerido al recibir
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-500/30 rounded-xl px-4 py-3 shadow-inner">
+            <span className="font-mono text-3xl font-black tracking-[0.3em] text-slate-900 dark:text-amber-400">
+              {lastPlacedOrder?.deliveryPin || '------'}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (lastPlacedOrder?.deliveryPin) {
+                  navigator.clipboard.writeText(lastPlacedOrder.deliveryPin);
+                  setPinCopied(true);
+                  setTimeout(() => setPinCopied(false), 2500);
+                }
+              }}
+              className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 active:scale-95 transition-all shadow-xs cursor-pointer"
+            >
+              {pinCopied ? <Check size={14} /> : <Copy size={14} />}
+              <span>{pinCopied ? '¡Copiado!' : 'Copiar'}</span>
+            </button>
+          </div>
+
+          <p className="text-[11px] text-amber-900/90 dark:text-amber-300/90 mt-2.5 font-medium leading-relaxed">
+            🛡️ <strong>Importante:</strong> Dicta este código único al repartidor únicamente cuando recibas tu paquete en tus manos para validar la entrega.
+          </p>
+        </div>
         
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <button 
-            onClick={() => navigate('/profile', { state: { tab: 'pedidos' } })}
-            className="w-full py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
+            onClick={() => {
+              setShowSuccessModal(false);
+              navigate('/profile', { state: { tab: 'pedidos' } });
+            }}
+            className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-bold transition-all shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 text-sm cursor-pointer"
           >
-            Ver estado de mi pedido <ArrowRight size={18} />
+            Ver estado en Mis Pedidos <ArrowRight size={16} />
           </button>
           <button 
             onClick={() => setShowSuccessModal(false)}
-            className="w-full py-3.5 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-xl font-bold transition-colors"
+            className="w-full py-3 bg-slate-100 dark:bg-zinc-900 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-zinc-800 rounded-xl font-semibold transition-colors text-sm cursor-pointer"
           >
             Seguir comprando
           </button>

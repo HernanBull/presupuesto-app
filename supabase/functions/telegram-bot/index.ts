@@ -92,24 +92,26 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
   const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
 
   let deliveryPin = customerData.deliveryPin;
-  if (!deliveryPin) {
-    deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
-  }
 
-  // 1. Resolver y garantizar datos completos del punto de recogida (Tienda Física)
+  // 1. Resolver y garantizar datos completos del punto de recogida (Tienda Física) y PIN existente
   let resolvedPickup: any = pickupInfo ? { ...pickupInfo } : {};
   let resolvedWsId = workspaceId;
 
-  if (!resolvedWsId && orderId) {
+  if (orderId) {
     try {
-      const { data: ord } = await supabase.from('ecommerce_orders_v2').select('workspace_id, pickup_store_name, pickup_address, pickup_phone').eq('id', orderId).maybeSingle();
+      const { data: ord } = await supabase.from('ecommerce_orders_v2').select('workspace_id, pickup_store_name, pickup_address, pickup_phone, delivery_pin').eq('id', orderId).maybeSingle();
       if (ord) {
-        resolvedWsId = ord.workspace_id;
+        if (!deliveryPin && ord.delivery_pin) deliveryPin = ord.delivery_pin;
+        if (!resolvedWsId) resolvedWsId = ord.workspace_id;
         if (!resolvedPickup.name && ord.pickup_store_name) resolvedPickup.name = ord.pickup_store_name;
         if (!resolvedPickup.address && ord.pickup_address) resolvedPickup.address = ord.pickup_address;
         if (!resolvedPickup.phone && ord.pickup_phone) resolvedPickup.phone = ord.pickup_phone;
       }
     } catch (e) {}
+  }
+
+  if (!deliveryPin) {
+    deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   if (resolvedWsId && (!resolvedPickup.name || !resolvedPickup.address || !resolvedPickup.location)) {
