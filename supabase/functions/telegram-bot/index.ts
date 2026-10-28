@@ -96,30 +96,94 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
     deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  // Datos del punto de recogida (Tienda Física AxonPOS)
-  const storeName = pickupInfo?.name || commerceId || 'Tienda AxonPOS';
-  const storeAddress = pickupInfo?.address || 'Mostrador Principal';
-  const storePhone = pickupInfo?.phone ? `\n📞 <b>Contacto Mostrador:</b> ${pickupInfo.phone}` : '';
+  // 1. Resolver y garantizar datos completos del punto de recogida (Tienda Física)
+  let resolvedPickup: any = pickupInfo ? { ...pickupInfo } : {};
+  let resolvedWsId = workspaceId;
 
-  const gpsLink = customerData.location ? `\n📍 <b>GPS Destino:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
-  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\n🏪 <b>PUNTO DE RECOGIDA (TIENDA):</b>\n<b>${storeName}</b>\n<code>${storeAddress}</code>${storePhone}\n\n📍 <b>ZONA DE ENTREGA (CLIENTE):</b>\n<code>${customerData.zone || customerData.address}</code>${gpsLink}\n\n📦 <b>DETALLES DEL PAQUETE:</b>\n<b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}\n<b>Productos:</b>\n<code>${customerData.productList || 'Artículos de la tienda'}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}\n\n<i>(El teléfono y dirección exacta del cliente se enviarán por privado al aceptar el viaje por seguridad)</i>`;
+  if (!resolvedWsId && orderId) {
+    try {
+      const { data: ord } = await supabase.from('ecommerce_orders_v2').select('workspace_id, pickup_store_name, pickup_address, pickup_phone').eq('id', orderId).maybeSingle();
+      if (ord) {
+        resolvedWsId = ord.workspace_id;
+        if (!resolvedPickup.name && ord.pickup_store_name) resolvedPickup.name = ord.pickup_store_name;
+        if (!resolvedPickup.address && ord.pickup_address) resolvedPickup.address = ord.pickup_address;
+        if (!resolvedPickup.phone && ord.pickup_phone) resolvedPickup.phone = ord.pickup_phone;
+      }
+    } catch (e) {}
+  }
 
-  const replyMarkup = {
-    inline_keyboard: [
-      [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }],
-      [{ text: "🗺️ Ver Mapa Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone || customerData.address)}` }]
-    ]
-  };
+  if (resolvedWsId && (!resolvedPickup.name || !resolvedPickup.address || !resolvedPickup.location)) {
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('name, map_address, latitude, longitude, config').eq('id', resolvedWsId).maybeSingle();
+      if (ws) {
+        if (!resolvedPickup.name) {
+          resolvedPickup.name = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';
+        }
+        if (!resolvedPickup.address) {
+          resolvedPickup.address = ws.map_address || ws.config?.location?.address || ws.config?.address || ws.config?.expediente?.address || 'Mostrador Principal';
+        }
+        if (!resolvedPickup.phone) {
+          resolvedPickup.phone = ws.config?.expediente?.phone || ws.config?.expediente?.whatsapp || ws.config?.contact?.phone || '';
+        }
+        if (!resolvedPickup.location) {
+          const lat = ws.latitude || ws.config?.location?.lat || ws.config?.expediente?.gps?.lat;
+          const lng = ws.longitude || ws.config?.location?.lng || ws.config?.expediente?.gps?.lng;
+          if (lat && lng) {
+            resolvedPickup.location = { lat: Number(lat), lng: Number(lng) };
+            resolvedPickup.maps_url = `https://maps.google.com/?q=${lat},${lng}`;
+          }
+        }
+      }
+    } catch (errWs) {
+      console.warn("No se pudo cargar datos de tienda desde workspaces:", errWs);
+    }
+  }
+
+  const storeName = resolvedPickup.name || commerceId || 'Tienda AxonPOS';
+  const storeAddress = resolvedPickup.address || 'Mostrador Principal';
+  const storePhone = resolvedPickup.phone ? `\n📞 <b>Contacto Mostrador:</b> ${resolvedPickup.phone}` : '';
+  const storeGpsUrl = resolvedPickup.maps_url || (resolvedPickup.location?.lat ? `https://maps.google.com/?q=${resolvedPickup.location.lat},${resolvedPickup.location.lng}` : null);
+  const storeGpsText = storeGpsUrl ? `\n🗺️ <b>GPS Tienda:</b> ${storeGpsUrl}` : '';
+
+  // 2. Resolver GPS del Cliente
+  let customerMapsUrl = customerData.maps_url || null;
+  if (!customerMapsUrl && customerData.location && typeof customerData.location === 'object' && customerData.location.lat && customerData.location.lng) {
+    customerMapsUrl = `https://maps.google.com/?q=${customerData.location.lat},${customerData.location.lng}`;
+  }
+  const customerGpsText = customerMapsUrl ? `\n🗺️ <b>GPS Cliente:</b> ${customerMapsUrl}` : '';
+
+  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\n🏪 <b>PASO 1: RECOGIDA EN TIENDA</b>\n<b>${storeName}</b>\n📍 <code>${storeAddress}</code>${storePhone}${storeGpsText}\n\n📍 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📍 <b>Zona/Destino:</b>\n<code>${customerData.zone || customerData.address}</code>${customerGpsText}\n\n📦 <b>DETALLES DEL PAQUETE:</b>\n<b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}\n<b>Productos:</b>\n<code>${customerData.productList || 'Artículos de la tienda'}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}${customerData.totalUsd ? `\n💰 <b>Total Orden:</b> $${Number(customerData.totalUsd).toFixed(2)}` : ''}\n\n<i>(El teléfono y dirección exacta del cliente se enviarán por privado al aceptar el viaje)</i>`;
+
+  const keyboardButtons: any[] = [
+    [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]
+  ];
+
+  const mapRow: any[] = [];
+  if (storeGpsUrl) {
+    mapRow.push({ text: "🏬 Ver Tienda en Maps", url: storeGpsUrl });
+  }
+  if (customerMapsUrl) {
+    mapRow.push({ text: "🏠 Ver Destino en Maps", url: customerMapsUrl });
+  } else if (customerData.address) {
+    mapRow.push({ text: "🗺️ Ver Mapa Zona", url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerData.zone || customerData.address)}` });
+  }
+
+  if (mapRow.length > 0) {
+    keyboardButtons.push(mapRow);
+  }
+
+  const replyMarkup = { inline_keyboard: keyboardButtons };
 
   const telegramRes = await sendMessageToChat(chatId, message, replyMarkup);
   if (!telegramRes.ok) throw new Error("Error al enviar a Telegram");
 
-  // Actualizar tabla ecommerce_orders_v2 con datos de subasta y PIN
+  // Actualizar tabla ecommerce_orders_v2 con datos de subasta, tienda y PIN
   try {
     await supabase.from('ecommerce_orders_v2').update({
       delivery_pin: deliveryPin,
       pickup_store_name: storeName,
       pickup_address: storeAddress,
+      pickup_phone: resolvedPickup.phone || null,
       delivery_telegram_sent: true,
       delivery_telegram_status: 'broadcasted'
     }).eq('id', orderId);
@@ -127,11 +191,11 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
     console.error("Error actualizando ecommerce_orders_v2 en send_delivery:", err);
   }
 
-  // Guardar en delivery_pending_trips
+  // Guardar en delivery_pending_trips con pickupInfo completo
   await supabase.from('delivery_pending_trips').upsert([{ 
     order_id: orderId, 
-    workspace_id: workspaceId,
-    customer_data: JSON.stringify({ ...customerData, pickupInfo }), 
+    workspace_id: resolvedWsId,
+    customer_data: JSON.stringify({ ...customerData, pickupInfo: resolvedPickup }), 
     delivery_pin: deliveryPin 
   }], { onConflict: 'order_id' });
 
@@ -476,15 +540,27 @@ async function handleTelegramUpdate(update, supabase) {
       console.error("Error actualizando conductor en ecommerce_orders_v2:", err);
     }
 
-    const gpsLink = customerData.location ? `\n📍 <b>Mapa GPS:</b> https://www.google.com/maps?q=${customerData.location.lat},${customerData.location.lng}` : '';
-    const pickupText = pickup ? `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup.name || 'Tienda AxonPOS'}</b>\n📍 ${pickup.address || 'Mostrador Principal'}${pickup.phone ? `\n📞 ${pickup.phone}` : ''}` : '';
-    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b> \n<code>${customerData.address}</code>${gpsLink}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente al entregar)</i>`;
-    const replyMarkup = {
-      inline_keyboard: [
-        [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }],
-        [{ text: "🚨 Abortar Viaje (Emergencia)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=cancel_${orderId}` }]
-      ]
-    };
+    const storeMapsUrl = pickup?.maps_url || (pickup?.location?.lat ? `https://maps.google.com/?q=${pickup.location.lat},${pickup.location.lng}` : null);
+    const storeGpsText = storeMapsUrl ? `\n🗺️ <b>Navegar a Tienda:</b> ${storeMapsUrl}` : '';
+    const pickupText = `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup?.name || 'Tienda AxonPOS'}</b>\n📍 <code>${pickup?.address || 'Mostrador Principal'}</code>${pickup?.phone ? `\n📞 <b>Teléfono:</b> ${pickup.phone}` : ''}${storeGpsText}`;
+
+    let customerMapsUrl = customerData.maps_url || null;
+    if (!customerMapsUrl && customerData.location && typeof customerData.location === 'object' && customerData.location.lat && customerData.location.lng) {
+      customerMapsUrl = `https://maps.google.com/?q=${customerData.location.lat},${customerData.location.lng}`;
+    }
+    const customerGpsText = customerMapsUrl ? `\n🗺️ <b>Navegar al Cliente:</b> ${customerMapsUrl}` : '';
+    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b>\n<code>${customerData.address}</code>${customerGpsText}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente al entregarle)</i>`;
+    
+    const replyButtons: any[] = [
+      [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }]
+    ];
+    const navRow: any[] = [];
+    if (storeMapsUrl) navRow.push({ text: "🏬 Maps Tienda", url: storeMapsUrl });
+    if (customerMapsUrl) navRow.push({ text: "🏠 Maps Cliente", url: customerMapsUrl });
+    if (navRow.length > 0) replyButtons.push(navRow);
+    replyButtons.push([{ text: "🚨 Abortar Viaje (Emergencia)", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=cancel_${orderId}` }]);
+
+    const replyMarkup = { inline_keyboard: replyButtons };
     await sendMessageToChat(chatId, privateMessage, replyMarkup);
     await logEvent('info', `Repartidor tomó el pedido #${orderId}`, { orderId, driverId: chatId, driverName }, supabase);
 

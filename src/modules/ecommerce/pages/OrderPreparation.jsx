@@ -405,23 +405,70 @@ export default function OrderPreparation() {
         });
     } catch (e) { console.error(e); }
 
+  // Helper para resolver datos de la tienda física para el repartidor
+  const resolveStorePickupInfo = async (wsId) => {
+    if (!wsId) return null;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('id, name, map_address, latitude, longitude, config').eq('id', wsId).maybeSingle();
+      if (!ws) return null;
+      
+      const storeName = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';
+      const storeAddress = ws.map_address || ws.config?.location?.address || ws.config?.address || ws.config?.expediente?.address || 'Mostrador Principal';
+      const storePhone = ws.config?.expediente?.phone || ws.config?.expediente?.whatsapp || ws.config?.contact?.phone || '';
+      
+      const lat = ws.latitude || ws.config?.location?.lat || ws.config?.expediente?.gps?.lat;
+      const lng = ws.longitude || ws.config?.location?.lng || ws.config?.expediente?.gps?.lng;
+      const location = (lat && lng) ? { lat: Number(lat), lng: Number(lng) } : null;
+      const maps_url = location ? `https://maps.google.com/?q=${location.lat},${location.lng}` : null;
+
+      return {
+        name: storeName,
+        address: storeAddress,
+        phone: storePhone,
+        location,
+        maps_url
+      };
+    } catch (err) {
+      console.warn('[OrderPreparation] Error resolviendo pickupInfo:', err);
+      return null;
+    }
+  };
+
     // Enviar a Telegram directamente desde Picking
     if (orderToSend) {
+      const wsId = orderToSend.workspace_id || localStorage.getItem('activeWorkspace');
+      const pickupInfo = await resolveStorePickupInfo(wsId);
+
+      const customerLocation = orderToSend.shipping_info?.location || null;
+      const customerMapsUrl = customerLocation 
+        ? (orderToSend.shipping_info?.maps_url || `https://maps.google.com/?q=${customerLocation.lat},${customerLocation.lng}`) 
+        : null;
+
       const customerData = {
         name: orderToSend.customer,
         phone: orderToSend.paymentDetails?.phone || 'Sin número',
         address: orderToSend.address || 'Dirección del cliente',
-        location: orderToSend.shipping_info?.location || null,
+        location: customerLocation,
+        maps_url: customerMapsUrl,
         zone: 'Centro de la ciudad',
         packageType: 'Paquete E-commerce',
         productList: `Pedido ${orderToSend.id} (${orderToSend.items?.length || 0} artículos)`,
         weight: 1,
         quantity: 1,
-        deliveryPin: newDeliveryPin
+        deliveryPin: newDeliveryPin,
+        totalUsd: orderToSend.total || 0,
+        totalVes: orderToSend.total_ves || 0,
+        paymentMethod: orderToSend.paymentmethod || orderToSend.paymentMethod || 'Por verificar'
       };
 
       try {
-        const res = await sendDeliveryRequest('Tienda Principal', customerData, orderToSend.id);
+        const res = await sendDeliveryRequest(
+          pickupInfo?.name || 'Tienda AxonPOS',
+          customerData,
+          orderToSend.id,
+          wsId,
+          pickupInfo
+        );
         if (!res.success) {
           console.error("Error al enviar a Telegram: ", res.error);
         }

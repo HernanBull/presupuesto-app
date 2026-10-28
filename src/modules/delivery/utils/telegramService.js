@@ -1,4 +1,4 @@
-export const sendDeliveryRequest = async (commerceId, customerData, customOrderId = null) => {
+export const sendDeliveryRequest = async (commerceId, customerData, customOrderId = null, workspaceId = null, pickupInfo = null) => {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -11,9 +11,11 @@ export const sendDeliveryRequest = async (commerceId, customerData, customOrderI
       },
       body: JSON.stringify({ 
         type: 'send_delivery',
-        commerceId, 
+        commerceId: pickupInfo?.name || commerceId, 
+        workspaceId,
         customerData, 
-        customOrderId 
+        customOrderId,
+        pickupInfo
       })
     });
     const data = await res.json();
