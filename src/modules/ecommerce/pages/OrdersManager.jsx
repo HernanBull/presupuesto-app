@@ -114,6 +114,7 @@ export default function OrdersManager() {
           shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
           deliveryPin: order.delivery_pin,
+          pickupPin: (typeof order.shipping_info === 'object' ? order.shipping_info?.pickup_pin : null) || (typeof order.shipping_info === 'string' ? (() => { try { return JSON.parse(order.shipping_info)?.pickup_pin; } catch { return null; } })() : null) || order.pickup_pin || null,
           pickerName: order.picker_name || (typeof order.shipping_info === 'object' ? order.shipping_info?.picker_name : null) || (typeof order.shipping_info === 'string' ? (() => { try { return JSON.parse(order.shipping_info)?.picker_name; } catch { return null; } })() : null),
           pickerId: order.picker_id || (typeof order.shipping_info === 'object' ? order.shipping_info?.picker_id : null) || (typeof order.shipping_info === 'string' ? (() => { try { return JSON.parse(order.shipping_info)?.picker_id; } catch { return null; } })() : null),
           isMobile: order.ismobile
@@ -748,7 +749,7 @@ export default function OrdersManager() {
                     
                     {/* Badge de Trazabilidad del Picker / Empacador */}
                     {(col.id === 'Preparando' || col.id === 'Enviado') && (
-                      <div className={`mb-3 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs font-bold ${
+                      <div className={`mb-2 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs font-bold ${
                         (order.pickerName || order.shippingInfo?.picker_name)
                           ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
                           : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60'
@@ -764,6 +765,22 @@ export default function OrdersManager() {
                         {!(order.pickerName || order.shippingInfo?.picker_name) && (
                           <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0 ml-1" />
                         )}
+                      </div>
+                    )}
+
+                    {/* Badge de Seguridad: PIN de Retiro en Tienda (Comerciante ↔ Delivery) */}
+                    {(col.id === 'Preparando' || col.id === 'Enviado') && (
+                      <div className="mb-3 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-amber-600">🔑</span>
+                          <span className="text-[10px] uppercase font-bold text-amber-900 dark:text-amber-200">Retiro Tienda:</span>
+                          <span className="font-mono font-black text-amber-800 dark:text-amber-300 tracking-wider">
+                            {order.pickupPin || (order.shippingInfo && typeof order.shippingInfo === 'object' ? order.shippingInfo?.pickup_pin : null) || 'Pendiente'}
+                          </span>
+                        </div>
+                        <span className="text-[9px] font-semibold text-amber-700/80 dark:text-amber-400/80">
+                          Exigir al repartidor
+                        </span>
                       </div>
                     )}
                     
@@ -930,6 +947,30 @@ export default function OrdersManager() {
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
                   </div>
                 ) : null}
+
+                {/* Seguridad de Despacho: Doble PIN */}
+                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black uppercase text-amber-900 dark:text-amber-200 flex items-center gap-1">
+                      🔑 PIN de Retiro en Tienda (Comerciante ↔ Delivery)
+                    </span>
+                    <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                      Exigir al repartidor
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-amber-200 rounded-lg p-2.5">
+                    <span className="font-mono text-xl font-black text-amber-600 dark:text-amber-400 tracking-widest">
+                      {selectedOrder.pickupPin || (selectedOrder.shippingInfo && typeof selectedOrder.shippingInfo === 'object' ? selectedOrder.shippingInfo?.pickup_pin : null) || 'Pendiente'}
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      El repartidor debe dictarte este código
+                    </span>
+                  </div>
+                  <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                    <span>PIN de Entrega al Cliente:</span>
+                    <span className="font-mono font-bold text-slate-400">•••••• (🔒 Privado en poder del cliente)</span>
+                  </div>
+                </div>
               </div>
             </div>
               

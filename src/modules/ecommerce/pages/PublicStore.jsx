@@ -691,8 +691,10 @@ export default function PublicStore() {
     const flatRate = config?.shippingProfile?.flatRate ? Number(config.shippingProfile.flatRate) : 0;
     const finalTotal = subtotal + (isFreeShipping ? 0 : flatRate);
 
-    // Generar PIN Secreto de Entrega único de 6 dígitos desde el origen
+    // Generar PIN Secreto de Entrega único de 6 dígitos (Cliente ↔ Repartidor)
     const generatedDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generar PIN de Recogida en Tienda único de 6 dígitos (Comerciante ↔ Repartidor)
+    const generatedPickupPin = Math.floor(100000 + Math.random() * 900000).toString();
 
     const orderData = {
       id: 'ORD-' + Math.floor(Math.random() * 1000000),
@@ -720,7 +722,8 @@ export default function PublicStore() {
          cost: isFreeShipping ? 0 : flatRate,
          location: checkoutLocation,
          maps_url: checkoutLocation ? `https://maps.google.com/?q=${checkoutLocation.lat},${checkoutLocation.lng}` : null,
-         accuracy: checkoutLocation?.accuracy || null
+         accuracy: checkoutLocation?.accuracy || null,
+         pickup_pin: generatedPickupPin
       },
       date: new Date().toISOString()
     };
@@ -748,7 +751,7 @@ export default function PublicStore() {
               await storeCh.send({
                 type: 'broadcast',
                 event: 'NEW_ORDER',
-                payload: { orderId: orderData.id, workspaceId, deliveryPin: generatedDeliveryPin }
+                payload: { orderId: orderData.id, workspaceId, deliveryPin: generatedDeliveryPin, pickupPin: generatedPickupPin }
               });
               storeCh.unsubscribe();
             }

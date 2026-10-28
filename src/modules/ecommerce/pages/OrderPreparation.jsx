@@ -142,6 +142,7 @@ export default function OrderPreparation() {
           shippingInfo,
           items: typeof order.items === 'string' ? JSON.parse(order.items) : (Array.isArray(order.items) ? order.items : []),
           deliveryPin: order.delivery_pin,
+          pickupPin: shippingInfo?.pickup_pin || order.pickup_pin || null,
           isMobile: order.ismobile,
           pickerId,
           pickerName,
@@ -346,6 +347,10 @@ export default function OrderPreparation() {
     if (!newDeliveryPin) {
       newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     }
+    let newPickupPin = orderToSend.pickupPin || orderToSend.shippingInfo?.pickup_pin;
+    if (!newPickupPin) {
+      newPickupPin = Math.floor(100000 + Math.random() * 900000).toString();
+    }
 
     const workerId = activeWorker?.id || 'admin';
     const workerName = activeWorker?.fullName || 'SuperAdmin';
@@ -354,6 +359,7 @@ export default function OrderPreparation() {
 
     const updatedShipping = {
       ...(orderToSend.shippingInfo || {}),
+      pickup_pin: newPickupPin,
       picker_id: orderToSend.pickerId || workerId,
       picker_name: orderToSend.pickerName || workerName,
       picker_pin: workerPin,
@@ -367,6 +373,7 @@ export default function OrderPreparation() {
         ...order, 
         status: 'Enviado', 
         deliveryPin: newDeliveryPin,
+        pickupPin: newPickupPin,
         pickerId: order.pickerId || workerId,
         pickerName: order.pickerName || workerName,
         packedById: workerId,
@@ -438,6 +445,9 @@ export default function OrderPreparation() {
     if (orderToSend) {
       const wsId = orderToSend.workspace_id || localStorage.getItem('activeWorkspace');
       const pickupInfo = await resolveStorePickupInfo(wsId);
+      if (pickupInfo) {
+        pickupInfo.pickup_pin = newPickupPin;
+      }
 
       const customerLocation = orderToSend.shipping_info?.location || null;
       const customerMapsUrl = customerLocation 
@@ -456,6 +466,7 @@ export default function OrderPreparation() {
         weight: 1,
         quantity: 1,
         deliveryPin: newDeliveryPin,
+        pickupPin: newPickupPin,
         totalUsd: orderToSend.total || 0,
         totalVes: orderToSend.total_ves || 0,
         paymentMethod: orderToSend.paymentmethod || orderToSend.paymentMethod || 'Por verificar'
@@ -2086,6 +2097,21 @@ export default function OrderPreparation() {
                     </div>
                   </div>
                 )}
+
+                {/* Badge de Seguridad: PIN de Retiro en Tienda (Comerciante ↔ Delivery) */}
+                <div style={{ backgroundColor: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '10px', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#92400E', textTransform: 'uppercase', display: 'block' }}>
+                      🔑 PIN DE RETIRO EN TIENDA
+                    </span>
+                    <span style={{ fontFamily: 'monospace', fontSize: '16px', fontWeight: 900, color: '#78350F', letterSpacing: '0.15em' }}>
+                      {order.pickupPin || order.shippingInfo?.pickup_pin || 'Pendiente'}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: '10px', color: '#B45309', fontWeight: 600, maxWidth: '140px' }}>
+                    El repartidor debe dictarte este código
+                  </div>
+                </div>
 
                 <div
                   style={{

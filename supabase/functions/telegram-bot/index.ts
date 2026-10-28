@@ -95,13 +95,17 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
 
   // 1. Resolver y garantizar datos completos del punto de recogida (Tienda Física) y PIN existente
   let resolvedPickup: any = pickupInfo ? { ...pickupInfo } : {};
-  let resolvedWsId = workspaceId;
+  let pickupPin = customerData.pickupPin || pickupInfo?.pickup_pin;
 
   if (orderId) {
     try {
-      const { data: ord } = await supabase.from('ecommerce_orders_v2').select('workspace_id, pickup_store_name, pickup_address, pickup_phone, delivery_pin').eq('id', orderId).maybeSingle();
+      const { data: ord } = await supabase.from('ecommerce_orders_v2').select('workspace_id, pickup_store_name, pickup_address, pickup_phone, delivery_pin, shipping_info').eq('id', orderId).maybeSingle();
       if (ord) {
         if (!deliveryPin && ord.delivery_pin) deliveryPin = ord.delivery_pin;
+        if (!pickupPin) {
+          const ordShipping = typeof ord.shipping_info === 'string' ? JSON.parse(ord.shipping_info) : ord.shipping_info;
+          if (ordShipping?.pickup_pin) pickupPin = ordShipping.pickup_pin;
+        }
         if (!resolvedWsId) resolvedWsId = ord.workspace_id;
         if (!resolvedPickup.name && ord.pickup_store_name) resolvedPickup.name = ord.pickup_store_name;
         if (!resolvedPickup.address && ord.pickup_address) resolvedPickup.address = ord.pickup_address;
@@ -113,6 +117,12 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
   if (!deliveryPin) {
     deliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
   }
+  if (!pickupPin) {
+    pickupPin = Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  resolvedPickup.pickup_pin = pickupPin;
+  customerData.pickupPin = pickupPin;
 
   if (resolvedWsId && (!resolvedPickup.name || !resolvedPickup.address || !resolvedPickup.location)) {
     try {
@@ -544,14 +554,15 @@ async function handleTelegramUpdate(update, supabase) {
 
     const storeMapsUrl = pickup?.maps_url || (pickup?.location?.lat ? `https://maps.google.com/?q=${pickup.location.lat},${pickup.location.lng}` : null);
     const storeGpsText = storeMapsUrl ? `\n🗺️ <b>Navegar a Tienda:</b> ${storeMapsUrl}` : '';
-    const pickupText = `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup?.name || 'Tienda AxonPOS'}</b>\n📍 <code>${pickup?.address || 'Mostrador Principal'}</code>${pickup?.phone ? `\n📞 <b>Teléfono:</b> ${pickup.phone}` : ''}${storeGpsText}`;
+    const tripPickupPin = pickup?.pickup_pin || customerData?.pickupPin || 'Por verificar';
+    const pickupText = `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup?.name || 'Tienda AxonPOS'}</b>\n📍 <code>${pickup?.address || 'Mostrador Principal'}</code>${pickup?.phone ? `\n📞 <b>Teléfono:</b> ${pickup.phone}` : ''}${storeGpsText}\n\n🔑 <b>CÓDIGO DE RETIRO EN TIENDA:</b> <code>${tripPickupPin}</code>\n👉 <i>(Dicta este código al personal de la tienda para que verifiquen tu asignación y te entreguen el paquete)</i>`;
 
     let customerMapsUrl = customerData.maps_url || null;
     if (!customerMapsUrl && customerData.location && typeof customerData.location === 'object' && customerData.location.lat && customerData.location.lng) {
       customerMapsUrl = `https://maps.google.com/?q=${customerData.location.lat},${customerData.location.lng}`;
     }
     const customerGpsText = customerMapsUrl ? `\n🗺️ <b>Navegar al Cliente:</b> ${customerMapsUrl}` : '';
-    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b>\n<code>${customerData.address}</code>${customerGpsText}\n\n🔐 <b>PIN DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n<i>(Pídele este código de 6 dígitos al cliente al entregarle)</i>`;
+    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b>\n<code>${customerData.address}</code>${customerGpsText}\n\n🔐 <b>PIN SECRETO DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n👉 <i>(Solicítale este código de 6 dígitos al cliente en mano para validar la entrega)</i>`;
     
     const replyButtons: any[] = [
       [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }]
