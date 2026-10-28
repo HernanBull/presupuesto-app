@@ -243,6 +243,19 @@ export default function OrderPreparation() {
               .update({ shipping_info: updatedShipping })
               .eq('id', order.id)
               .then(() => {});
+
+            if (channel) {
+              channel.send({
+                type: 'broadcast',
+                event: 'PICKER_ASSIGNED',
+                payload: {
+                  orderId: order.id,
+                  orderNumber: order.order_number || order.orderNumber,
+                  pickerName: assignedPickerName,
+                  pickerId: assignedPickerId
+                }
+              });
+            }
           } catch (e) {}
         }
 
@@ -260,6 +273,54 @@ export default function OrderPreparation() {
     });
     setOrders(updatedOrders);
     broadcastUpdate(updatedOrders);
+  };
+
+  const handleSelectOrder = (order) => {
+    triggerHaptic(30);
+    setSelectedOrderId(order.id);
+
+    const workerId = activeWorker?.id || 'admin';
+    const workerName = activeWorker?.fullName || activeWorker?.full_name || 'SuperAdmin';
+    const workerPin = activeWorker?.pinCode || '';
+
+    if (!order.pickerName && !order.shippingInfo?.picker_name) {
+      const updatedShipping = {
+        ...(order.shippingInfo || {}),
+        picker_id: workerId,
+        picker_name: workerName,
+        picker_pin: workerPin
+      };
+
+      try {
+        supabase.from('ecommerce_orders_v2')
+          .update({ 
+            status: 'Preparando',
+            shipping_info: updatedShipping 
+          })
+          .eq('id', order.id)
+          .then(() => {});
+      } catch (e) {}
+
+      if (channel) {
+        channel.send({
+          type: 'broadcast',
+          event: 'PICKER_ASSIGNED',
+          payload: {
+            orderId: order.id,
+            orderNumber: order.order_number || order.orderNumber,
+            pickerName: workerName,
+            pickerId: workerId
+          }
+        });
+      }
+
+      setOrders(prev => prev.map(o => o.id === order.id ? {
+        ...o,
+        pickerId: workerId,
+        pickerName: workerName,
+        shippingInfo: updatedShipping
+      } : o));
+    }
   };
 
   const toggleFiscalInvoice = (orderId) => {
@@ -1888,10 +1949,7 @@ export default function OrderPreparation() {
             return (
               <div
                 key={order.id}
-                onClick={() => {
-                  triggerHaptic(30);
-                  setSelectedOrderId(order.id);
-                }}
+                onClick={() => handleSelectOrder(order)}
                 style={{
                   backgroundColor: '#FFFFFF',
                   borderRadius: '18px',

@@ -54,6 +54,8 @@ export default function OrdersManager() {
           shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : order.shipping_info,
           items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
           deliveryPin: order.delivery_pin,
+          pickerName: order.picker_name || (typeof order.shipping_info === 'object' ? order.shipping_info?.picker_name : null) || (typeof order.shipping_info === 'string' ? (() => { try { return JSON.parse(order.shipping_info)?.picker_name; } catch { return null; } })() : null),
+          pickerId: order.picker_id || (typeof order.shipping_info === 'object' ? order.shipping_info?.picker_id : null) || (typeof order.shipping_info === 'string' ? (() => { try { return JSON.parse(order.shipping_info)?.picker_id; } catch { return null; } })() : null),
           isMobile: order.ismobile
         }));
         
@@ -125,6 +127,29 @@ export default function OrdersManager() {
             order.id === payload.payload.orderId ? { ...order, status: 'Enviado' } : order
           );
         });
+      }
+    })
+    .on('broadcast', { event: 'PICKER_ASSIGNED' }, (payload) => {
+      const { orderId, orderNumber, pickerName, pickerId } = payload.payload || {};
+      if (orderId || orderNumber) {
+        setOrders(prevOrders => prevOrders.map(order => {
+          if (order.id === orderId || order.orderNumber === orderNumber || order.id === orderNumber) {
+            const currentShipping = typeof order.shippingInfo === 'object' ? (order.shippingInfo || {}) : {};
+            const updatedShipping = {
+              ...currentShipping,
+              picker_name: pickerName,
+              picker_id: pickerId
+            };
+            return {
+              ...order,
+              pickerName: pickerName || order.pickerName,
+              pickerId: pickerId || order.pickerId,
+              status: order.status === 'Pendiente' ? 'Preparando' : order.status,
+              shippingInfo: updatedShipping
+            };
+          }
+          return order;
+        }));
       }
     }).subscribe();
 
@@ -470,7 +495,28 @@ export default function OrdersManager() {
                       {order.isMobile ? <Smartphone size={12} className="inline mr-1" /> : null}
                       {order.customer}
                     </p>
-                    <p className="text-xs text-slate-500 mb-4">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    <p className="text-xs text-slate-500 mb-2">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    
+                    {/* Badge de Trazabilidad del Picker / Empacador */}
+                    {(col.id === 'Preparando' || col.id === 'Enviado') && (
+                      <div className={`mb-3 px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs font-bold ${
+                        (order.pickerName || order.shippingInfo?.picker_name)
+                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'
+                          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60'
+                      }`}>
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span>👷‍♂️</span>
+                          <span className="truncate">
+                            {(order.pickerName || order.shippingInfo?.picker_name)
+                              ? `Empacando: ${order.pickerName || order.shippingInfo?.picker_name}`
+                              : 'Esperando que un picker lo tome'}
+                          </span>
+                        </div>
+                        {!(order.pickerName || order.shippingInfo?.picker_name) && (
+                          <span className="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0 ml-1" />
+                        )}
+                      </div>
+                    )}
                     
                     {order.paymentMethod === 'pago_movil' && (order.paymentStatus === 'pending' || order.paymentStatus === 'review' || order.paymentStatus === 'fraud') && (
                       <div className={`mb-3 p-3 border rounded-xl flex flex-col gap-2 ${order.paymentStatus === 'review' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/50' : order.paymentStatus === 'fraud' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700'}`}>
@@ -608,6 +654,33 @@ export default function OrdersManager() {
                     {selectedOrder.table_number && <p><span className="font-bold">Mesa:</span> {selectedOrder.table_number}</p>}
                   </div>
                 )}
+
+                {/* Trazabilidad de Picking / Empacador */}
+                {(selectedOrder.pickerName || selectedOrder.shippingInfo?.picker_name) ? (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl text-sm text-blue-900 dark:text-blue-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">👷‍♂️</span>
+                      <div>
+                        <p className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Empacador Asignado</p>
+                        <p className="font-extrabold text-blue-900 dark:text-blue-100">{selectedOrder.pickerName || selectedOrder.shippingInfo?.picker_name}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-800/40 text-blue-800 dark:text-blue-200">
+                      {selectedOrder.status === 'Preparando' ? 'En preparación' : 'Empacado'}
+                    </span>
+                  </div>
+                ) : selectedOrder.status === 'Preparando' ? (
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl text-sm text-amber-900 dark:text-amber-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">⏳</span>
+                      <div>
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase">Sin Empacador</p>
+                        <p className="text-xs text-amber-800 dark:text-amber-300">Esperando que un trabajador tome la orden en la app móvil.</p>
+                      </div>
+                    </div>
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                  </div>
+                ) : null}
               </div>
             </div>
               
