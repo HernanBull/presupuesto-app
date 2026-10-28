@@ -183,7 +183,7 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
 🏪 <b>PASO 1: RECOGIDA EN TIENDA</b>
 🏢 <b>Tienda:</b> ${storeName}
 📍 <b>Dirección Local:</b>
-<code>${storeAddress}</code>${storePhone}${storeGpsText}
+<code>${storeAddress}</code>${storeGpsText}
 
 🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>
 👤 <b>Cliente:</b> ${customerData.name}
@@ -194,7 +194,7 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
 <b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}
 <b>Productos:</b>
 <code>${customerData.productList || 'Artículos de la tienda'}</code>
-${customerData.weight ? `⚖️ <b>Peso:</b> ${customerData.weight} kg\n` : ''}${customerData.quantity ? `🔢 <b>Cantidad:</b> ${customerData.quantity} uds\n` : ''}${customerData.totalUsd ? `💰 <b>Total Pedido:</b> $${Number(customerData.totalUsd).toFixed(2)}\n` : ''}══════════════════════
+${customerData.weight ? `⚖️ <b>Peso:</b> ${customerData.weight} kg\n` : ''}${customerData.quantity ? `🔢 <b>Cantidad:</b> ${customerData.quantity} uds\n` : ''}══════════════════════
 <i>⚠️ Al presionar "Aceptar Viaje" recibirás por privado el Código de Retiro en Tienda y el PIN Secreto del Cliente.</i>`;
 
   const keyboardButtons: any[] = [
@@ -706,7 +706,6 @@ async function handleTelegramUpdate(update, supabase) {
     const orderId = text.replace('/start complete_', '');
     await supabase.from('ecommerce_orders_v2').update({ 
       driver_confirmed: 1,
-      status: 'Entregado',
       delivery_driver_id: chatId.toString(),
       delivery_telegram_status: 'delivered'
     }).eq('id', orderId);

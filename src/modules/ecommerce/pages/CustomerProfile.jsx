@@ -1798,28 +1798,25 @@ export default function CustomerProfile() {
                             <button className="w-full py-2.5 bg-white border border-slate-200 text-slate-800 rounded-xl text-sm font-bold hover:border-amber-500 hover:text-amber-600 transition-colors shadow-xs flex items-center justify-center gap-2">
                               Ver Tienda <ChevronRight size={16} />
                             </button>
-                            {order.status === 'Enviado' && (
-                              order.customer_confirmed ? (
-                                <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 flex items-center justify-center gap-2 text-center px-2">
-                                  <Clock size={16} /> Esperando al repartidor
-                                </div>
-                              ) : (
-                                <button 
-                                  onClick={() => confirmOrderReceived(order.id)}
-                                  className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-xs hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
-                                >
-                                  <CheckCircle size={16} /> Confirmar Recibido
-                                </button>
-                              )
-                            )}
-                            {(order.status === 'Completado' || order.status === 'Entregado') && (
+                            {!order.customer_confirmed && (order.status === 'Enviado' || order.status === 'Entregado') ? (
+                              <button 
+                                onClick={() => confirmOrderReceived(order.id)}
+                                className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-xs hover:bg-emerald-600 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                              >
+                                <CheckCircle size={16} /> Confirmar Recibido
+                              </button>
+                            ) : order.customer_confirmed && order.status === 'Enviado' ? (
+                              <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-200 flex items-center justify-center gap-2 text-center px-2">
+                                <Clock size={16} /> Esperando al repartidor
+                              </div>
+                            ) : (order.status === 'Completado' || order.status === 'Entregado') ? (
                               <button 
                                 onClick={() => setRatingModal({ isOpen: true, orderId: order.id, rating: 0, comment: '' })}
-                                className="w-full py-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-2.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm font-bold hover:bg-amber-100 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                               >
                                 <Star size={16} /> Calificar Compra
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
