@@ -414,9 +414,15 @@ export default function OrderPreparation() {
 
   // Helper para resolver datos de la tienda física para el repartidor
   const resolveStorePickupInfo = async (wsId) => {
-    if (!wsId) return null;
     try {
-      const { data: ws } = await supabase.from('workspaces').select('id, name, map_address, latitude, longitude, config').eq('id', wsId).maybeSingle();
+      let targetWsId = wsId;
+      if (!targetWsId) {
+        const { data: defaultWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+        if (defaultWs) targetWsId = defaultWs.id;
+      }
+      if (!targetWsId) return null;
+
+      const { data: ws } = await supabase.from('workspaces').select('id, name, map_address, latitude, longitude, config').eq('id', targetWsId).maybeSingle();
       if (!ws) return null;
       
       const storeName = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';

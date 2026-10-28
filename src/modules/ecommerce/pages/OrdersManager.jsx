@@ -142,9 +142,15 @@ export default function OrdersManager() {
 
   // Helper para resolver datos de la tienda física para el repartidor
   const resolveStorePickupInfo = async (wsId) => {
-    if (!wsId) return null;
     try {
-      const { data: ws } = await supabase.from('workspaces').select('id, name, map_address, latitude, longitude, config').eq('id', wsId).maybeSingle();
+      let targetWsId = wsId;
+      if (!targetWsId) {
+        const { data: defaultWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+        if (defaultWs) targetWsId = defaultWs.id;
+      }
+      if (!targetWsId) return null;
+
+      const { data: ws } = await supabase.from('workspaces').select('id, name, map_address, latitude, longitude, config').eq('id', targetWsId).maybeSingle();
       if (!ws) return null;
       
       const storeName = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';
@@ -184,6 +190,10 @@ export default function OrdersManager() {
 
     const wsId = order.workspace_id || order.workspaceId || localStorage.getItem('activeWorkspace');
     const pickupInfo = await resolveStorePickupInfo(wsId);
+    const pickupPin = order.pickupPin || order.shipping_info?.pickup_pin || order.shippingInfo?.pickup_pin || null;
+    if (pickupInfo && pickupPin) {
+      pickupInfo.pickup_pin = pickupPin;
+    }
 
     const customerLocation = order.shippingInfo?.location || order.shipping_info?.location || null;
     const customerMapsUrl = customerLocation
@@ -202,6 +212,7 @@ export default function OrdersManager() {
       weight: 1,
       quantity: 1,
       deliveryPin: order.deliveryPin,
+      pickupPin: pickupPin,
       totalUsd: order.total || 0,
       totalVes: order.total_ves || 0,
       paymentMethod: order.paymentMethod || order.paymentmethod || 'Por verificar'

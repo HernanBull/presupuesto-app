@@ -91,6 +91,7 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
 
   const orderId = customOrderId || 'ORD-' + Math.random().toString(36).substr(2, 6).toUpperCase();
 
+  let resolvedWsId = workspaceId || null;
   let deliveryPin = customerData.deliveryPin;
 
   // 1. Resolver y garantizar datos completos del punto de recogida (Tienda Física) y PIN existente
@@ -106,11 +107,21 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
           const ordShipping = typeof ord.shipping_info === 'string' ? JSON.parse(ord.shipping_info) : ord.shipping_info;
           if (ordShipping?.pickup_pin) pickupPin = ordShipping.pickup_pin;
         }
-        if (!resolvedWsId) resolvedWsId = ord.workspace_id;
+        if (!resolvedWsId && ord.workspace_id) resolvedWsId = ord.workspace_id;
         if (!resolvedPickup.name && ord.pickup_store_name) resolvedPickup.name = ord.pickup_store_name;
         if (!resolvedPickup.address && ord.pickup_address) resolvedPickup.address = ord.pickup_address;
         if (!resolvedPickup.phone && ord.pickup_phone) resolvedPickup.phone = ord.pickup_phone;
       }
+    } catch (e) {
+      console.warn("Error leyendo orden en handleSendDelivery:", e);
+    }
+  }
+
+  // Fallback si todavía no hay workspace_id
+  if (!resolvedWsId) {
+    try {
+      const { data: defaultWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+      if (defaultWs) resolvedWsId = defaultWs.id;
     } catch (e) {}
   }
 
@@ -124,14 +135,15 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
   resolvedPickup.pickup_pin = pickupPin;
   customerData.pickupPin = pickupPin;
 
-  if (resolvedWsId && (!resolvedPickup.name || !resolvedPickup.address || !resolvedPickup.location)) {
+  // Enriquecer datos de tienda desde workspaces si falta nombre, dirección o GPS
+  if (resolvedWsId && (!resolvedPickup.name || resolvedPickup.name === 'Tienda AxonPOS' || !resolvedPickup.address || resolvedPickup.address === 'Mostrador Principal' || !resolvedPickup.location)) {
     try {
       const { data: ws } = await supabase.from('workspaces').select('name, map_address, latitude, longitude, config').eq('id', resolvedWsId).maybeSingle();
       if (ws) {
-        if (!resolvedPickup.name) {
+        if (!resolvedPickup.name || resolvedPickup.name === 'Tienda AxonPOS') {
           resolvedPickup.name = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';
         }
-        if (!resolvedPickup.address) {
+        if (!resolvedPickup.address || resolvedPickup.address === 'Mostrador Principal') {
           resolvedPickup.address = ws.map_address || ws.config?.location?.address || ws.config?.address || ws.config?.expediente?.address || 'Mostrador Principal';
         }
         if (!resolvedPickup.phone) {
@@ -164,7 +176,26 @@ async function handleSendDelivery({ commerceId, workspaceId, customerData, custo
   }
   const customerGpsText = customerMapsUrl ? `\n🗺️ <b>GPS Cliente:</b> ${customerMapsUrl}` : '';
 
-  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨\n🆔 <b>Pedido:</b> #${orderId}\n\n🏪 <b>PASO 1: RECOGIDA EN TIENDA</b>\n<b>${storeName}</b>\n📍 <code>${storeAddress}</code>${storePhone}${storeGpsText}\n\n📍 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📍 <b>Zona/Destino:</b>\n<code>${customerData.zone || customerData.address}</code>${customerGpsText}\n\n📦 <b>DETALLES DEL PAQUETE:</b>\n<b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}\n<b>Productos:</b>\n<code>${customerData.productList || 'Artículos de la tienda'}</code>\n${customerData.weight ? `\n⚖️ <b>Peso:</b> ${customerData.weight} kg` : ''}${customerData.quantity ? `\n🔢 <b>Cantidad:</b> ${customerData.quantity} uds` : ''}${customerData.totalUsd ? `\n💰 <b>Total Orden:</b> $${Number(customerData.totalUsd).toFixed(2)}` : ''}\n\n<i>(El teléfono y dirección exacta del cliente se enviarán por privado al aceptar el viaje)</i>`;
+  const message = `🚨 <b>NUEVO VIAJE DISPONIBLE</b> 🚨
+🆔 <b>Pedido:</b> #${orderId}
+
+══════════════════════
+🏪 <b>PASO 1: RECOGIDA EN TIENDA</b>
+🏢 <b>Tienda:</b> ${storeName}
+📍 <b>Dirección Local:</b>
+<code>${storeAddress}</code>${storePhone}${storeGpsText}
+
+🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>
+👤 <b>Cliente:</b> ${customerData.name}
+📍 <b>Zona de Entrega:</b>
+<code>${customerData.zone || customerData.address}</code>${customerGpsText}
+
+📦 <b>DETALLES DEL PAQUETE:</b>
+<b>Tipo:</b> ${customerData.packageType || 'Paquete E-commerce'}
+<b>Productos:</b>
+<code>${customerData.productList || 'Artículos de la tienda'}</code>
+${customerData.weight ? `⚖️ <b>Peso:</b> ${customerData.weight} kg\n` : ''}${customerData.quantity ? `🔢 <b>Cantidad:</b> ${customerData.quantity} uds\n` : ''}${customerData.totalUsd ? `💰 <b>Total Pedido:</b> $${Number(customerData.totalUsd).toFixed(2)}\n` : ''}══════════════════════
+<i>⚠️ Al presionar "Aceptar Viaje" recibirás por privado el Código de Retiro en Tienda y el PIN Secreto del Cliente.</i>`;
 
   const keyboardButtons: any[] = [
     [{ text: "🚗 Aceptar Viaje", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=accept_${orderId}` }]
@@ -519,20 +550,84 @@ async function handleTelegramUpdate(update, supabase) {
       return new Response("OK", { headers: corsHeaders });
     }
 
-    const customerData = JSON.parse(pendingOrder.customer_data);
-    const pickup = customerData.pickupInfo;
+    const customerData = typeof pendingOrder.customer_data === 'string' ? JSON.parse(pendingOrder.customer_data) : (pendingOrder.customer_data || {});
+    let pickup = customerData.pickupInfo ? { ...customerData.pickupInfo } : {};
+    let orderWsId = pendingOrder.workspace_id || null;
+    let ordDeliveryPin = pendingOrder.delivery_pin || customerData.deliveryPin || null;
+    let ordPickupPin = pickup.pickup_pin || customerData.pickupPin || null;
+
+    // Consultar ecommerce_orders_v2 para enriquecer cualquier dato faltante
+    try {
+      const { data: ord } = await supabase.from('ecommerce_orders_v2')
+        .select('workspace_id, pickup_store_name, pickup_address, pickup_phone, delivery_pin, shipping_info')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (ord) {
+        if (!orderWsId && ord.workspace_id) orderWsId = ord.workspace_id;
+        if (!ordDeliveryPin && ord.delivery_pin) ordDeliveryPin = ord.delivery_pin;
+        if (!pickup.name && ord.pickup_store_name) pickup.name = ord.pickup_store_name;
+        if ((!pickup.address || pickup.address === 'Mostrador Principal') && ord.pickup_address) pickup.address = ord.pickup_address;
+        if (!pickup.phone && ord.pickup_phone) pickup.phone = ord.pickup_phone;
+        if (!ordPickupPin) {
+          const ordShipping = typeof ord.shipping_info === 'string' ? JSON.parse(ord.shipping_info) : ord.shipping_info;
+          if (ordShipping?.pickup_pin) ordPickupPin = ordShipping.pickup_pin;
+        }
+      }
+    } catch (e) {
+      console.warn("Error consultando ecommerce_orders_v2 en accept:", e);
+    }
+
+    // Fallback de workspace si aún no lo tenemos
+    if (!orderWsId) {
+      try {
+        const { data: defaultWs } = await supabase.from('workspaces').select('id').limit(1).maybeSingle();
+        if (defaultWs) orderWsId = defaultWs.id;
+      } catch (e) {}
+    }
+
+    // Enriquecer datos de tienda física desde workspaces
+    if (orderWsId && (!pickup.name || pickup.name === 'Tienda AxonPOS' || !pickup.address || pickup.address === 'Mostrador Principal' || !pickup.location)) {
+      try {
+        const { data: ws } = await supabase.from('workspaces').select('name, map_address, latitude, longitude, config').eq('id', orderWsId).maybeSingle();
+        if (ws) {
+          if (!pickup.name || pickup.name === 'Tienda AxonPOS') {
+            pickup.name = ws.config?.expediente?.storeName || ws.config?.expediente?.razonSocial || ws.name || 'Tienda AxonPOS';
+          }
+          if (!pickup.address || pickup.address === 'Mostrador Principal') {
+            pickup.address = ws.map_address || ws.config?.location?.address || ws.config?.address || ws.config?.expediente?.address || 'Mostrador Principal';
+          }
+          if (!pickup.phone) {
+            pickup.phone = ws.config?.expediente?.phone || ws.config?.expediente?.whatsapp || ws.config?.contact?.phone || '';
+          }
+          if (!pickup.location) {
+            const lat = ws.latitude || ws.config?.location?.lat || ws.config?.expediente?.gps?.lat;
+            const lng = ws.longitude || ws.config?.location?.lng || ws.config?.expediente?.gps?.lng;
+            if (lat && lng) {
+              pickup.location = { lat: Number(lat), lng: Number(lng) };
+              pickup.maps_url = `https://maps.google.com/?q=${lat},${lng}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Error consultando workspace en accept:", e);
+      }
+    }
+
+    if (!ordDeliveryPin) ordDeliveryPin = '123456';
+    if (!ordPickupPin) ordPickupPin = '654321';
+    pickup.pickup_pin = ordPickupPin;
 
     await supabase.from('delivery_pending_trips').delete().eq('order_id', orderId);
     await supabase.from('delivery_active_trips').insert([{ 
       order_id: orderId, 
-      workspace_id: pendingOrder.workspace_id,
+      workspace_id: orderWsId,
       driver_id: chatId, 
       driver_name: driverData.name || driverName,
       driver_phone: driverData.telefono || 'Sin teléfono',
       driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
-      pin: pendingOrder.delivery_pin, 
+      pin: ordDeliveryPin, 
       customer_name: customerData.name, 
-      customer_data: pendingOrder.customer_data, 
+      customer_data: JSON.stringify({ ...customerData, pickupInfo: pickup, pickupPin: ordPickupPin, deliveryPin: ordDeliveryPin }), 
       start_time: new Date().toISOString() 
     }]);
 
@@ -546,23 +641,49 @@ async function handleTelegramUpdate(update, supabase) {
         delivery_driver_moto: `${driverData.moto || 'Moto'} (${driverData.placa || 'Sin placa'})`,
         delivery_driver_code: driverData.driver_code || 'REP',
         delivery_telegram_status: 'assigned',
-        delivery_pin: pendingOrder.delivery_pin
+        delivery_pin: ordDeliveryPin,
+        pickup_store_name: pickup.name || 'Tienda AxonPOS',
+        pickup_address: pickup.address || 'Mostrador Principal',
+        pickup_phone: pickup.phone || null
       }).eq('id', orderId);
     } catch (err) {
       console.error("Error actualizando conductor en ecommerce_orders_v2:", err);
     }
 
     const storeMapsUrl = pickup?.maps_url || (pickup?.location?.lat ? `https://maps.google.com/?q=${pickup.location.lat},${pickup.location.lng}` : null);
-    const storeGpsText = storeMapsUrl ? `\n🗺️ <b>Navegar a Tienda:</b> ${storeMapsUrl}` : '';
-    const tripPickupPin = pickup?.pickup_pin || customerData?.pickupPin || 'Por verificar';
-    const pickupText = `\n\n🏪 <b>PASO 1: RETIRO EN EL LOCAL</b>\n<b>${pickup?.name || 'Tienda AxonPOS'}</b>\n📍 <code>${pickup?.address || 'Mostrador Principal'}</code>${pickup?.phone ? `\n📞 <b>Teléfono:</b> ${pickup.phone}` : ''}${storeGpsText}\n\n🔑 <b>CÓDIGO DE RETIRO EN TIENDA:</b> <code>${tripPickupPin}</code>\n👉 <i>(Dicta este código al personal de la tienda para que verifiquen tu asignación y te entreguen el paquete)</i>`;
+    const storeGpsText = storeMapsUrl ? `\n🗺️ <b>Navegación Tienda:</b> ${storeMapsUrl}` : '';
+    const storePhoneText = pickup?.phone ? `\n📞 <b>Teléfono Tienda:</b> ${pickup.phone}` : '';
 
     let customerMapsUrl = customerData.maps_url || null;
     if (!customerMapsUrl && customerData.location && typeof customerData.location === 'object' && customerData.location.lat && customerData.location.lng) {
       customerMapsUrl = `https://maps.google.com/?q=${customerData.location.lat},${customerData.location.lng}`;
     }
-    const customerGpsText = customerMapsUrl ? `\n🗺️ <b>Navegar al Cliente:</b> ${customerMapsUrl}` : '';
-    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅${pickupText}\n\n🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>\n👤 <b>Cliente:</b> ${customerData.name}\n📱 <b>Teléfono:</b> ${customerData.phone}\n📍 <b>Dirección Exacta:</b>\n<code>${customerData.address}</code>${customerGpsText}\n\n🔐 <b>PIN SECRETO DE ENTREGA:</b> <code>${pendingOrder.delivery_pin}</code>\n👉 <i>(Solicítale este código de 6 dígitos al cliente en mano para validar la entrega)</i>`;
+    const customerGpsText = customerMapsUrl ? `\n🗺️ <b>Navegación Cliente:</b> ${customerMapsUrl}` : '';
+
+    const privateMessage = `✅ <b>¡VIAJE ACEPTADO CON ÉXITO!</b> ✅
+🆔 <b>Pedido:</b> #${orderId}
+
+══════════════════════
+🏪 <b>PASO 1: RECOGIDA EN TIENDA</b>
+🏢 <b>Tienda:</b> ${pickup?.name || 'Tienda AxonPOS'}
+📍 <b>Dirección Local:</b>
+<code>${pickup?.address || 'Mostrador Principal'}</code>${storePhoneText}${storeGpsText}
+
+🔑 <b>CÓDIGO DE RETIRO EN TIENDA:</b>
+👉 <code>${ordPickupPin}</code> 👈
+<i>(Dicta este código al personal de la tienda para que verifiquen tu asignación y te entreguen el paquete)</i>
+══════════════════════
+
+🏠 <b>PASO 2: ENTREGA AL CLIENTE</b>
+👤 <b>Cliente:</b> ${customerData.name}
+📱 <b>Teléfono:</b> ${customerData.phone}
+📍 <b>Dirección de Entrega:</b>
+<code>${customerData.address}</code>${customerGpsText}
+
+🔐 <b>PIN SECRETO DE ENTREGA:</b>
+👉 <code>${ordDeliveryPin}</code> 👈
+<i>(Solicítale este código de 6 dígitos al cliente en mano para validar la entrega)</i>
+══════════════════════`;
     
     const replyButtons: any[] = [
       [{ text: "✅ Marcar como Entregado", url: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=complete_${orderId}` }]
