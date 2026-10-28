@@ -1,8 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar, ExternalLink } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 import ResponsiveModal from '../components/ResponsiveModal';
+
+// ==============================================================================
+// UTILIDADES DE FECHA LOCAL (VENEZUELA / UTC-4) Y FORMATEO CRONOLÓGICO
+// ==============================================================================
+export const getLocalDateString = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const getYesterdayDateString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return getLocalDateString(d);
+};
+
+export const formatOrderTime = (dateInput) => {
+  if (!dateInput) return '--:--';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '--:--';
+  const orderDateStr = getLocalDateString(d);
+  const todayStr = getLocalDateString();
+  const yesterdayStr = getYesterdayDateString();
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  if (orderDateStr === todayStr) {
+    return timeStr;
+  } else if (orderDateStr === yesterdayStr) {
+    return `Ayer • ${timeStr}`;
+  } else {
+    const day = d.getDate();
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${day} ${monthNames[d.getMonth()]} • ${timeStr}`;
+  }
+};
 
 const initialOrders = [];
 
@@ -10,7 +46,31 @@ export default function OrdersManager() {
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterMode, setFilterMode] = useState('today'); // 'today' | 'yesterday' | 'specific' | 'all'
+  const [currentLocalDate, setCurrentLocalDate] = useState(getLocalDateString());
+  const [filterDate, setFilterDate] = useState(getLocalDateString());
+
+  // Cierre y Reinicio Automático a Medianoche (00:00:05 Hora Local)
+  useEffect(() => {
+    let timerId;
+    const scheduleMidnight = () => {
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+      const ms = midnight.getTime() - now.getTime();
+
+      timerId = setTimeout(() => {
+        const newToday = getLocalDateString();
+        setCurrentLocalDate(newToday);
+        setFilterDate(prev => (filterMode === 'today' ? newToday : prev));
+        scheduleMidnight();
+      }, ms);
+    };
+
+    scheduleMidnight();
+    return () => {
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [filterMode]);
 
   // Cargar pedidos desde el backend
   useEffect(() => {
@@ -24,19 +84,18 @@ export default function OrdersManager() {
           .select('*')
           .eq('workspace_id', workspaceId);
 
-        const todayStr = new Date().toISOString().split('T')[0];
-        
-        if (filterDate === todayStr) {
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          const orQuery = `date.gte.${today.toISOString()},status.in.("Pendiente","Preparando","Enviado")`;
-          query = query.or(orQuery);
+        if (filterMode === 'all') {
+          query = query.limit(200);
         } else {
-          // Specific past day
-          const start = new Date(filterDate);
-          start.setHours(0,0,0,0);
-          const end = new Date(filterDate);
-          end.setHours(23,59,59,999);
+          const targetDateStr = filterMode === 'today'
+            ? currentLocalDate
+            : filterMode === 'yesterday'
+            ? getYesterdayDateString()
+            : filterDate;
+
+          const [y, m, d] = targetDateStr.split('-').map(Number);
+          const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+          const end = new Date(y, m - 1, d, 23, 59, 59, 999);
           query = query.gte('date', start.toISOString()).lte('date', end.toISOString());
         }
 
@@ -47,6 +106,7 @@ export default function OrdersManager() {
         // Map snake_case from DB to camelCase for UI
         const mappedOrders = (data || []).map(order => ({
           ...order,
+          dateRaw: order.date,
           date: new Date(order.date).toLocaleString(),
           paymentMethod: order.paymentmethod,
           paymentStatus: order.paymentstatus,
@@ -69,7 +129,7 @@ export default function OrdersManager() {
     };
     
     loadOrders();
-  }, [filterDate]);
+  }, [filterMode, filterDate, currentLocalDate]);
   
   // Modal de detalles
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -369,10 +429,49 @@ export default function OrdersManager() {
     }
   };
 
-  const filteredOrders = orders.filter(o => 
-    o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    o.customer.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = useMemo(() => {
+    const result = orders.filter(o => 
+      o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (o.customer || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return result.sort((a, b) => {
+      const timeA = a.dateRaw ? new Date(a.dateRaw).getTime() : 0;
+      const timeB = b.dateRaw ? new Date(b.dateRaw).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [orders, searchTerm]);
+
+  const dayStats = useMemo(() => {
+    let totalUsd = 0;
+    let pendingCount = 0;
+    let preparingCount = 0;
+    let dispatchedCount = 0;
+    let deliveredCount = 0;
+
+    filteredOrders.forEach((o) => {
+      if (o.status !== 'Cancelado') {
+        totalUsd += Number(o.total || 0);
+      }
+      if (o.status === 'Pendiente') pendingCount++;
+      else if (o.status === 'Preparando') preparingCount++;
+      else if (o.status === 'Enviado') dispatchedCount++;
+      else if (o.status === 'Entregado') deliveredCount++;
+    });
+
+    const validCount = filteredOrders.filter(o => o.status !== 'Cancelado').length;
+    const avgTicketUsd = validCount > 0 ? totalUsd / validCount : 0;
+
+    return {
+      totalUsd,
+      totalOrders: filteredOrders.length,
+      pendingCount,
+      preparingCount,
+      dispatchedCount,
+      deliveredCount,
+      avgTicketUsd
+    };
+  }, [filteredOrders]);
 
   if (isLoading) return <div className="p-8 text-center font-bold text-slate-500">Cargando pedidos...</div>;
 
@@ -387,8 +486,8 @@ export default function OrdersManager() {
         </div>
         
         <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-60">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:w-60 min-w-[180px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={17} />
               <input 
                 type="text"
@@ -399,16 +498,76 @@ export default function OrdersManager() {
               />
             </div>
             
-            <div className="relative shrink-0">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-              <input 
-                type="date"
-                value={filterDate}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="pl-9 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/40 cursor-pointer shadow-sm"
-                title="Filtrar por fecha"
-              />
+            {/* Filtro Hoy / Ayer / Todos + Calendario */}
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('today');
+                  setFilterDate(currentLocalDate);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filterMode === 'today'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Ver pedidos de hoy"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('yesterday');
+                  setFilterDate(getYesterdayDateString());
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filterMode === 'yesterday'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Ver pedidos de ayer"
+              >
+                Ayer
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filterMode === 'all'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Ver todos los pedidos sin filtro de fecha"
+              >
+                Todos
+              </button>
+
+              <div className="relative flex items-center pl-1 border-l border-slate-200 dark:border-slate-700">
+                <Calendar className="absolute left-2.5 text-slate-400 pointer-events-none" size={14} />
+                <input 
+                  type="date"
+                  value={filterDate}
+                  max={currentLocalDate}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) {
+                      setFilterDate(val);
+                      if (val === currentLocalDate) {
+                        setFilterMode('today');
+                      } else if (val === getYesterdayDateString()) {
+                        setFilterMode('yesterday');
+                      } else {
+                        setFilterMode('specific');
+                      }
+                    }
+                  }}
+                  className={`pl-7 pr-2 py-1 bg-transparent border-none text-xs font-bold outline-none cursor-pointer font-mono ${
+                    filterMode === 'specific' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                  title="Seleccionar fecha específica en el calendario"
+                />
+              </div>
             </div>
           </div>
           
@@ -421,6 +580,48 @@ export default function OrdersManager() {
             <QrCode size={16} className="shrink-0" />
             <span>App de Picking</span>
           </button>
+        </div>
+      </div>
+
+      {/* MINI-BARRA DE ESTADÍSTICAS Y MÉTRICAS DE LA JORNADA */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 px-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-wider">
+              {filterMode === 'today' ? '📅 Hoy' : filterMode === 'yesterday' ? '📅 Ayer' : filterMode === 'all' ? '🌐 Histórico' : `📅 ${filterDate}`}:
+            </span>
+            <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+              ${dayStats.totalUsd.toFixed(2)}
+            </span>
+          </div>
+
+          <div className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-800" />
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              📦 Pedidos: <strong className="text-slate-900 dark:text-white">{dayStats.totalOrders}</strong>
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+              ⏳ Nuevos: <strong>{dayStats.pendingCount}</strong>
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
+              🧑‍🍳 Prep: <strong>{dayStats.preparingCount}</strong>
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50">
+              🛵 Delivery: <strong>{dayStats.dispatchedCount}</strong>
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+              ✅ Entregados: <strong>{dayStats.deliveredCount}</strong>
+            </span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+              🎯 Ticket Prom: <strong className="text-slate-900 dark:text-white">${dayStats.avgTicketUsd.toFixed(2)}</strong>
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+          <Clock size={13} className="text-amber-500" />
+          <span>Auto-cierre: <strong className="text-slate-700 dark:text-slate-200">00:00 hrs</strong> (medianoche)</span>
         </div>
       </div>
 
@@ -495,7 +696,7 @@ export default function OrdersManager() {
                       {order.isMobile ? <Smartphone size={12} className="inline mr-1" /> : null}
                       {order.customer}
                     </p>
-                    <p className="text-xs text-slate-500 mb-2">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • {order.date}</p>
+                    <p className="text-xs text-slate-500 mb-2">{order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'artículo' : 'artículos'} • 🕒 {formatOrderTime(order.dateRaw || order.date)}</p>
                     
                     {/* Badge de Trazabilidad del Picker / Empacador */}
                     {(col.id === 'Preparando' || col.id === 'Enviado') && (

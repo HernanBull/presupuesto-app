@@ -4,8 +4,8 @@ echo ========================================================
 echo  [AxonMarket] Actualizando repositorio a Cloudflare Pages
 echo ========================================================
 
-set MSG=%*
-if "%MSG%"=="" set MSG=feat(storefront): sincronizacion rapida Cloudflare
+set "MSG=%~1"
+if "%MSG%"=="" set "MSG=feat: sincronizacion rapida Cloudflare"
 
 git add .
 git commit -m "%MSG%"
