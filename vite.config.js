@@ -11,11 +11,18 @@ const generateVersionFile = () => {
     name: 'generate-version-file',
     writeBundle() {
       const version = Date.now().toString()
-      const versionInfo = { version }
-      fs.writeFileSync(
-        path.resolve(__dirname, 'dist', 'version.json'),
-        JSON.stringify(versionInfo, null, 2)
-      )
+      const versionInfo = { version, buildTime: new Date().toISOString() }
+      
+      const distPath = path.resolve(process.cwd(), 'dist', 'version.json')
+      const publicPath = path.resolve(process.cwd(), 'public', 'version.json')
+      
+      try {
+        fs.writeFileSync(distPath, JSON.stringify(versionInfo, null, 2))
+      } catch (e) {}
+      try {
+        fs.writeFileSync(publicPath, JSON.stringify(versionInfo, null, 2))
+      } catch (e) {}
+
       console.log('Version file generated with version:', version)
     }
   }
