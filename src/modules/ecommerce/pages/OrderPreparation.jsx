@@ -151,9 +151,12 @@ export default function OrderPreparation() {
         };
       });
       
-      // Alerta sonora para nuevos pedidos entrantes
-      const newOrders = safeData.filter(o => !knownOrderIdsRef.current.has(o.id));
-      if (newOrders.length > 0 && knownOrderIdsRef.current.size > 0) {
+      // Alerta sonora para nuevos pedidos entrantes APROBADOS por el comerciante para empaque
+      const newApprovedOrders = safeData.filter(o => {
+        const s = (o.status || '').toLowerCase();
+        return (s === 'preparando' || s === 'accepted') && !knownOrderIdsRef.current.has(o.id);
+      });
+      if (newApprovedOrders.length > 0 && knownOrderIdsRef.current.size > 0) {
         triggerHaptic([100, 80, 150]);
         playBeep(980, 0.15);
       }
@@ -451,10 +454,17 @@ export default function OrderPreparation() {
   const currentWorkerId = activeWorker?.id;
 
   // Clasificación de Pedidos con Historial Separado por Trabajador
-  const pendingOrders = orders.filter(o => o.status === 'Preparando' || o.status === 'ACCEPTED' || o.status === 'Pendiente');
+  // REGLA OPERATIVA FUNDAMENTAL:
+  // La comanda móvil de picking SOLO recibe pedidos cuyo pago ya fue verificado y aprobado por el comerciante.
+  // Los pedidos nuevos en estado 'Pendiente' (sin verificación bancaria) NO se muestran al empacador.
+  const pendingOrders = orders.filter(o => {
+    const s = (o.status || '').toLowerCase();
+    return s === 'preparando' || s === 'accepted';
+  });
   
   const inProgressOrders = orders.filter(o => {
-    if (o.status !== 'Preparando') return false;
+    const s = (o.status || '').toLowerCase();
+    if (s !== 'preparando' && s !== 'accepted') return false;
     const hasPicked = o.items.some(i => i.picked);
     const allPicked = o.items.every(i => i.picked) && fiscalInvoicePicked[o.id];
     const isUnderPrep = hasPicked && !allPicked;
@@ -468,7 +478,8 @@ export default function OrderPreparation() {
   });
 
   const packedOrders = orders.filter(o => {
-    const isPacked = o.status === 'Enviado' || o.status === 'Entregado' || o.status === 'COMPLETED';
+    const s = (o.status || '').toLowerCase();
+    const isPacked = s === 'enviado' || s === 'dispatched' || s === 'entregado' || s === 'completed';
     if (!isPacked) return false;
 
     const orderWorkerId = o.packedById || o.pickerId || o.shippingInfo?.packed_by_id || o.shippingInfo?.picker_id;
@@ -1940,7 +1951,7 @@ export default function OrderPreparation() {
               No hay pedidos en esta sección
             </div>
             <p style={{ fontSize: '12px', margin: '4px 0 0' }}>
-              Los pedidos nuevos de AxonMarket aparecerán aquí automáticamente en tiempo real.
+              Los pedidos validados y aprobados por el comerciante aparecerán aquí automáticamente en tiempo real.
             </p>
           </div>
         ) : (
