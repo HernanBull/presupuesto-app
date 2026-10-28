@@ -283,14 +283,16 @@ export default function OrderPreparation() {
     const workerName = activeWorker?.fullName || activeWorker?.full_name || 'SuperAdmin';
     const workerPin = activeWorker?.pinCode || '';
 
-    if (!order.pickerName && !order.shippingInfo?.picker_name) {
-      const updatedShipping = {
-        ...(order.shippingInfo || {}),
-        picker_id: workerId,
-        picker_name: workerName,
-        picker_pin: workerPin
-      };
+    const assignedPickerId = order.pickerId || order.shippingInfo?.picker_id || workerId;
+    const assignedPickerName = order.pickerName || order.shippingInfo?.picker_name || workerName;
+    const updatedShipping = {
+      ...(order.shippingInfo || {}),
+      picker_id: assignedPickerId,
+      picker_name: assignedPickerName,
+      picker_pin: workerPin
+    };
 
+    if (!order.pickerName || !order.shippingInfo?.picker_name) {
       try {
         supabase.from('ecommerce_orders_v2')
           .update({ 
@@ -301,25 +303,26 @@ export default function OrderPreparation() {
           .then(() => {});
       } catch (e) {}
 
-      if (channel) {
-        channel.send({
-          type: 'broadcast',
-          event: 'PICKER_ASSIGNED',
-          payload: {
-            orderId: order.id,
-            orderNumber: order.order_number || order.orderNumber,
-            pickerName: workerName,
-            pickerId: workerId
-          }
-        });
-      }
-
       setOrders(prev => prev.map(o => o.id === order.id ? {
         ...o,
-        pickerId: workerId,
-        pickerName: workerName,
+        pickerId: assignedPickerId,
+        pickerName: assignedPickerName,
         shippingInfo: updatedShipping
       } : o));
+    }
+
+    // Siempre emitir el broadcast a picking-sync para que AxonPOS y OrdersManager sincronicen al instante
+    if (channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'PICKER_ASSIGNED',
+        payload: {
+          orderId: order.id,
+          orderNumber: order.order_number || order.orderNumber || order.id,
+          pickerName: assignedPickerName,
+          pickerId: assignedPickerId
+        }
+      });
     }
   };
 
