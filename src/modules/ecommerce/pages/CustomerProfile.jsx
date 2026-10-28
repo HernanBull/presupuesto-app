@@ -310,9 +310,9 @@ export default function CustomerProfile() {
             return;
           }
         }
-        navigate('/');
+        navigate('/explorar');
       }).catch(() => {
-        navigate('/');
+        navigate('/explorar');
       });
     }
 
@@ -878,7 +878,7 @@ export default function CustomerProfile() {
     }
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('activeWorkspace');
-    navigate('/');
+    navigate('/explorar');
   };
   
   const submitRating = () => {
@@ -939,7 +939,7 @@ export default function CustomerProfile() {
       {/* Navbar Premium Claro */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-2xl border-b border-slate-200/80 shadow-xs">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/explorar')}>
             <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl flex items-center justify-center text-slate-950 shadow-sm group-hover:shadow-md transition-all">
               <ShoppingBag size={20} className="stroke-[2.5]" />
             </div>
@@ -948,9 +948,15 @@ export default function CustomerProfile() {
           
           <div className="flex items-center">
             <button 
-              onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-slate-600 hover:text-amber-600 bg-slate-100/90 hover:bg-slate-200/90 px-3.5 py-2 rounded-full transition-colors"
-              title="Volver a la tienda"
+              onClick={() => {
+                if (location.state?.from && location.state.from !== '/' && location.state.from !== '/profile') {
+                  navigate(location.state.from);
+                } else {
+                  navigate('/explorar');
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase text-slate-600 hover:text-amber-600 bg-slate-100/90 hover:bg-slate-200/90 px-3.5 py-2 rounded-full transition-colors cursor-pointer"
+              title="Volver a los comercios"
             >
               <ArrowLeft size={16} /> 
               <span>Volver</span>
@@ -1415,7 +1421,7 @@ export default function CustomerProfile() {
                     <Heart size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900">Personalizando recomendaciones...</h3>
                     <p className="text-slate-500 text-sm mt-2">Visita tiendas y guarda productos para recibir recomendaciones personalizadas.</p>
-                    <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
+                    <button onClick={() => navigate('/explorar')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
                       Explorar Marketplace
                     </button>
                   </div>
@@ -1676,7 +1682,7 @@ export default function CustomerProfile() {
                         <Package size={48} className="mx-auto text-slate-300 mb-4" />
                         <h3 className="text-lg font-bold text-slate-900">{orders.length > 0 ? "No hay pedidos con estos filtros" : "No tienes pedidos"}</h3>
                         <p className="text-slate-500 text-sm mt-2">{orders.length > 0 ? "Prueba cambiando el estado o la fecha." : "Tus futuras compras aparecerán aquí."}</p>
-                        {orders.length === 0 && <button onClick={() => navigate('/')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold shadow-xs hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
+                        {orders.length === 0 && <button onClick={() => navigate('/explorar')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold shadow-xs hover:bg-amber-400 transition-all">Explorar Marketplace</button>}
                       </div>
                     );
                   }
@@ -1916,7 +1922,7 @@ export default function CustomerProfile() {
                       <h3 className="text-lg font-bold text-slate-900">Aún no sigues tiendas</h3>
                       <p className="text-slate-500 text-sm mt-2">Navega por el marketplace o el feed y guarda los comercios que más te gusten.</p>
                       <button 
-                        onClick={() => navigate('/')} 
+                        onClick={() => navigate('/explorar')} 
                         className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
                       >
                         Explorar Directorio
@@ -1959,7 +1965,7 @@ export default function CustomerProfile() {
                       <h3 className="text-lg font-bold text-slate-900">No tienes publicaciones guardadas</h3>
                       <p className="text-slate-500 text-sm mt-2">Guarda publicaciones desde el feed con el botón de guardar para verlas cuando desees.</p>
                       <button 
-                        onClick={() => navigate('/')} 
+                        onClick={() => navigate('/explorar')} 
                         className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
                       >
                         Ver Feed Social
@@ -2009,7 +2015,7 @@ export default function CustomerProfile() {
                                 Visitar Vitrina
                               </button>
                               <button 
-                                onClick={() => navigate('/')}
+                                onClick={() => navigate('/explorar')}
                                 className="text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
                               >
                                 Ver en Feed

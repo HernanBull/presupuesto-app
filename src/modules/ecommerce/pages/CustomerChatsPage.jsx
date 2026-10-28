@@ -246,7 +246,7 @@ export default function CustomerChatsPage() {
             <div className="bg-zinc-900 border-b border-white/5 pt-safe-top">
               <div className="h-16 px-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <button onClick={() => navigate('/')} className="p-2 text-zinc-400 hover:text-white transition-colors rounded-full active:bg-white/10">
+                  <button onClick={() => navigate('/explorar')} className="p-2 text-zinc-400 hover:text-white transition-colors rounded-full active:bg-white/10" title="Volver a los comercios">
                     <ArrowLeft size={24} />
                   </button>
                   <h1 className="text-xl font-bold text-white tracking-wide">Chats</h1>
