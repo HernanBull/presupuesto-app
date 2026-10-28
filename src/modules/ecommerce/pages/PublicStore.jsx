@@ -649,6 +649,34 @@ export default function PublicStore() {
     try {
       const { error } = await supabase.from('ecommerce_orders_v2').insert([orderData]);
       if (!error) {
+        // Disparo Realtime instantaneo a AxonPOS
+        try {
+          const storeCh = supabase.channel('store-' + workspaceId + '-orders');
+          storeCh.subscribe(async (st) => {
+            if (st === 'SUBSCRIBED') {
+              await storeCh.send({
+                type: 'broadcast',
+                event: 'NEW_ORDER',
+                payload: { orderId: orderData.id, workspaceId }
+              });
+              storeCh.unsubscribe();
+            }
+          });
+
+          const pickingCh = supabase.channel('picking-sync');
+          pickingCh.subscribe(async (st) => {
+            if (st === 'SUBSCRIBED') {
+              await pickingCh.send({
+                type: 'broadcast',
+                event: 'NEW_ECOMMERCE_ORDER',
+                payload: { order: orderData, workspaceId }
+              });
+              pickingCh.unsubscribe();
+            }
+          });
+        } catch (broadErr) {
+          console.warn('[PublicStore Realtime] Error emitiendo broadcast a terminales:', broadErr);
+        }
         setCart({});
         setIsCartOpen(false);
         setIsCheckoutMode(false);
@@ -1786,7 +1814,52 @@ export default function PublicStore() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className={`min-h-screen w-full flex flex-col bg-slate-50 text-slate-900 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}>
+    <div className={`min-h-screen w-full flex flex-col items-center bg-slate-100/70 text-slate-900 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}>
+      
+      {/* Background ambient light for Desktop view */}
+      <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-amber-500/10 blur-[140px] rounded-full"></div>
+        <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[140px] rounded-full"></div>
+      </div>
+
+      {/* Lateral Izquierdo: Branding Decorativo Profesional AxonMarket */}
+      <div className="hidden lg:flex fixed left-6 xl:left-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+            <ShoppingBag size={18} className="stroke-[2.5]" />
+          </div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+            AXON<span className="text-amber-600">MARKET</span>
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+            MARKETPLACE LOCAL
+          </span>
+        </div>
+        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+      </div>
+
+      {/* Lateral Derecho: Branding Decorativo Profesional AxonMarket */}
+      <div className="hidden lg:flex fixed right-6 xl:right-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+            <ShoppingBag size={18} className="stroke-[2.5]" />
+          </div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+            AXON<span className="text-amber-600">MARKET</span>
+          </span>
+          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+            VENEZUELA
+          </span>
+        </div>
+        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+      </div>
+
+      {/* Centered Mobile-First App Shell (Mismas dimensiones que MarketplaceDirectory) */}
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] min-h-[100dvh] bg-slate-50 md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
       
       {isMerchantOwner && (
         <div className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 z-[100] relative shadow-md">
@@ -4081,7 +4154,7 @@ export default function PublicStore() {
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
-          className="md:hidden fixed bottom-5 left-4 z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+          className="fixed bottom-5 left-4 md:left-[calc(50%-330px)] z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
           style={{
             backgroundColor: 'rgba(10, 10, 10, 0.85)',
             backdropFilter: 'blur(20px)',
@@ -4103,7 +4176,7 @@ export default function PublicStore() {
       {/* Mobile Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
       {isBottomNavOpen && (
         <nav 
-          className="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
           style={{
             backgroundColor: 'rgba(12, 12, 14, 0.82)',
             backdropFilter: 'blur(24px)',
@@ -4170,9 +4243,10 @@ export default function PublicStore() {
         </nav>
       )}
 
-      {/* Spacer for mobile bottom nav */}
-      <div className="md:hidden h-16" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
-  </div>
+      {/* Spacer for bottom nav */}
+      <div className="h-20" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
+      </div> {/* Fin del Contenedor Central Móvil */}
+    </div> {/* Fin del Wrapper de Escritorio */}
   </GoogleOAuthProvider>
   );
 }
