@@ -1806,63 +1806,85 @@ export default function PublicStore() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         className="md:max-w-md border border-zinc-200 shadow-2xl bg-white"
-        contentClassName="p-8 relative bg-white rounded-[32px]"
+        contentClassName="p-5 sm:p-7 relative bg-white rounded-t-[28px] md:rounded-[28px] overflow-y-auto max-h-[85dvh]"
       >
-        <div className="absolute top-0 left-0 w-full h-1 z-10 rounded-t-[32px]" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
+        <div className="absolute top-0 left-0 w-full h-1 z-10 rounded-t-[28px]" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
         
-        <div className="flex justify-center mb-8 pt-2">
-          <div className="w-20 h-20 rounded-[24px] flex items-center justify-center border border-zinc-200 bg-zinc-50 relative group shadow-sm">
-            <div className="absolute inset-0 blur-xl opacity-30 group-hover:opacity-50 transition-opacity rounded-[24px]" style={{ backgroundColor: primaryColor }}></div>
-            <Lock size={32} className="text-zinc-800 relative z-10" />
-          </div>
-        </div>
-
-        <h1 className="text-2xl font-bold text-zinc-900 text-center mb-2 tracking-tight">Accede Privado</h1>
-        <p className="text-zinc-500 text-center text-sm font-medium mb-8">
-          Inicia sesión o regístrate para acceder a los precios de <span className="text-zinc-900 font-bold capitalize">{storeName}</span>.
-        </p>
-
-        <div className="flex bg-zinc-100 rounded-full p-1 mb-8 border border-zinc-200 shadow-inner">
-          <button onClick={() => setAuthGateMode('login')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'login' ? 'bg-white text-zinc-900 shadow-md border border-zinc-200' : 'text-zinc-500 hover:text-zinc-800'}`} style={{ color: authGateMode === 'login' ? primaryColor : '' }}>Ingresar</button>
-          <button onClick={() => setAuthGateMode('register')} className={`flex-1 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${authGateMode === 'register' ? 'bg-white text-zinc-900 shadow-md border border-zinc-200' : 'text-zinc-500 hover:text-zinc-800'}`} style={{ color: authGateMode === 'register' ? primaryColor : '' }}>Crear Cuenta</button>
+        {/* Selector Ingresar / Crear Cuenta compacto y directo */}
+        <div className="flex bg-zinc-100 rounded-full p-1 mb-5 mt-1 border border-zinc-200 shadow-inner">
+          <button 
+            type="button"
+            onClick={() => setAuthGateMode('login')} 
+            className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
+              authGateMode === 'login' 
+                ? 'bg-white text-amber-600 shadow-md border border-zinc-200' 
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            Ingresar
+          </button>
+          <button 
+            type="button"
+            onClick={() => setAuthGateMode('register')} 
+            className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
+              authGateMode === 'register' 
+                ? 'bg-white text-amber-600 shadow-md border border-zinc-200' 
+                : 'text-zinc-500 hover:text-zinc-800'
+            }`}
+          >
+            Crear Cuenta
+          </button>
         </div>
 
         <form onSubmit={async (e) => {
           const success = authGateMode === 'login' ? await handleLogin(e) : await handleRegister(e);
           if (success) setShowAuthModal(false);
-        }} className="space-y-4">
+        }} className="space-y-3.5">
           {authGateMode === 'register' && (
             <div>
-              <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Nombre Completo</label>
-              <input type="text" required value={authForm.name} onChange={e => setAuthForm({...authForm, name: e.target.value})} className="w-full bg-white border border-zinc-200 rounded-2xl px-5 py-4 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm" placeholder="Tu nombre" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'}/>
+              <label className="block text-[11px] font-bold text-zinc-600 mb-1">Nombre Completo</label>
+              <input 
+                type="text" 
+                required 
+                value={authForm.name} 
+                onChange={e => setAuthForm({...authForm, name: e.target.value})} 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-zinc-400 shadow-xs" 
+                placeholder="Tu nombre" 
+              />
             </div>
           )}
+
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">
-              {authGateMode === 'login' ? 'Correo Electrónico o Cédula / RIF' : 'Correo Electrónico'}
+            <label className="block text-[11px] font-bold text-zinc-600 mb-1">
+              Tu Correo
             </label>
             <input 
-              type={authGateMode === 'login' ? 'text' : 'email'} 
+              type="text" 
               required 
               value={authForm.email} 
               onChange={e => setAuthForm({...authForm, email: e.target.value})} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
-              placeholder={authGateMode === 'login' ? 'tu@correo.com o V-12345678' : 'tu@correo.com'} 
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-xs" 
+              placeholder="tu@correo.com" 
             />
           </div>
+
           <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña</label>
+            <label className="block text-[11px] font-bold text-zinc-600 mb-1">Contraseña</label>
             <div className="relative">
               <input 
                 type={showAuthPassword ? "text" : "password"} 
                 required 
                 value={authForm.password} 
                 onChange={e => setAuthForm({...authForm, password: e.target.value})} 
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-11 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-xs" 
                 placeholder="••••••••" 
               />
-              <button type="button" onClick={() => setShowAuthPassword(!showAuthPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
-                {showAuthPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              <button 
+                type="button" 
+                onClick={() => setShowAuthPassword(!showAuthPassword)} 
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors p-1"
+              >
+                {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
@@ -1870,20 +1892,31 @@ export default function PublicStore() {
           {authGateMode === 'register' && (
             <>
               <PasswordRequirements password={authForm.password} />
-              <div className="mt-4">
-                <label className="block text-[10px] font-bold text-zinc-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+              <div>
+                <label className="block text-[11px] font-bold text-zinc-600 mb-1">Confirmar Contraseña</label>
                 <div className="relative">
-                  <input type={showAuthConfirmPassword ? "text" : "password"} required value={authConfirmPassword} onChange={e => setAuthConfirmPassword(e.target.value)} className={`w-full bg-white border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-400' : 'border-zinc-200'} rounded-2xl px-5 py-4 pr-12 text-zinc-900 focus:outline-none transition-colors font-medium placeholder-zinc-400 focus:bg-zinc-50 shadow-sm`} placeholder="••••••••" onFocus={(e) => e.target.style.borderColor = primaryColor} onBlur={(e) => e.target.style.borderColor = 'rgba(0,0,0,0.1)'} />
-                  <button type="button" onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors" onMouseOver={(e) => e.currentTarget.style.color = primaryColor} onMouseOut={(e) => e.currentTarget.style.color = ''}>
-                    {showAuthConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  <input 
+                    type={showAuthConfirmPassword ? "text" : "password"} 
+                    required 
+                    value={authConfirmPassword} 
+                    onChange={e => setAuthConfirmPassword(e.target.value)} 
+                    className={`w-full bg-slate-50 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 pr-11 text-sm text-zinc-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-zinc-400 shadow-xs`} 
+                    placeholder="••••••••" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-amber-500 transition-colors p-1"
+                  >
+                    {showAuthConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
                 {authConfirmPassword && authConfirmPassword !== authForm.password && (
-                  <p className="text-red-500 text-xs mt-2 font-medium">Las contraseñas no coinciden.</p>
+                  <p className="text-red-500 text-xs mt-1 font-medium">Las contraseñas no coinciden.</p>
                 )}
               </div>
               
-              <div className="flex items-start gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl p-4 mt-4">
+              <div className="flex items-start gap-2.5 bg-zinc-50 border border-zinc-200 rounded-xl p-3">
                 <input
                   type="checkbox"
                   id="store-terms-checkbox"
@@ -1891,33 +1924,32 @@ export default function PublicStore() {
                   onChange={e => setTermsAccepted(e.target.checked)}
                   className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
                 />
-                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-600 leading-relaxed cursor-pointer font-medium">
-                  He leído y acepto los{' '}
-                  <span className="font-bold transition-colors" style={{ color: primaryColor }}>Términos de Uso</span>
-                  {' '}y la{' '}
-                  <span className="font-bold transition-colors" style={{ color: primaryColor }}>Política de Privacidad</span>
-                  {' '}de AxonMarket.
+                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-600 leading-snug cursor-pointer font-medium">
+                  Acepto los{' '}
+                  <span className="font-bold text-amber-600">Términos</span>
+                  {' '}y{' '}
+                  <span className="font-bold text-amber-600">Privacidad</span>.
                 </label>
               </div>
             </>
           )}
 
           <button
-            type="submit" disabled={authLoading || (authGateMode === 'register' && !termsAccepted)}
-            className="w-full py-4 text-white font-bold text-xs tracking-[0.2em] uppercase rounded-full transition-all hover:-translate-y-0.5 mt-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: primaryColor, boxShadow: `0 10px 30px ${primaryColor}40` }}
+            type="submit" 
+            disabled={authLoading || (authGateMode === 'register' && !termsAccepted)}
+            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-amber-500/20 active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {authLoading ? <Loader2 className="animate-spin text-white" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
+            {authLoading ? <Loader2 className="animate-spin text-slate-950" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
           </button>
         </form>
 
-        <div className="mt-6 flex items-center justify-between text-zinc-400 text-xs font-bold uppercase tracking-widest">
-          <span className="w-1/4 border-b border-zinc-200"></span>
+        <div className="my-4 flex items-center justify-between text-zinc-400 text-[10px] font-bold uppercase tracking-wider">
+          <span className="w-1/3 border-b border-zinc-200"></span>
           <span>o continuar con</span>
-          <span className="w-1/4 border-b border-zinc-200"></span>
+          <span className="w-1/3 border-b border-zinc-200"></span>
         </div>
         
-        <div className="mt-6 flex justify-center">
+        <div className="flex justify-center pb-1">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={() => alert('Fallo al conectar con Google')}
@@ -1927,7 +1959,8 @@ export default function PublicStore() {
           />
         </div>
       </ResponsiveModal>
-    );  };
+    );
+  };
 
   const recentProducts = products.slice(0, 8);
   const offerProducts = products.filter(p => !!p.is_offer);
