@@ -62,23 +62,43 @@ const resolveImageUrl = (url) => {
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
-const PasswordRequirements = ({ password = '' }) => {
-  const reqs = [
-    { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
-    { label: 'Una mayúscula', met: /[A-Z]/.test(password) },
-    { label: 'Una minúscula', met: /[a-z]/.test(password) },
-    { label: 'Un número', met: /[0-9]/.test(password) },
-    { label: 'Un carácter especial (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
-  ];
-  
+const PasswordStrengthBar = ({ password = '' }) => {
+  if (!password) return null;
+
+  // Cálculo de fuerza de contraseña: Débil, Media, Segura
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8) score += 1;
+  if (/[A-Z]/.test(password) || /[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password) || (/[A-Z]/.test(password) && /[0-9]/.test(password))) score += 1;
+
+  let label = 'Débil';
+  let color = 'bg-red-500 text-red-600';
+  let width = 'w-1/4';
+
+  if (score === 2) {
+    label = 'Aceptable';
+    color = 'bg-amber-500 text-amber-600';
+    width = 'w-2/4';
+  } else if (score === 3) {
+    label = 'Buena';
+    color = 'bg-emerald-500 text-emerald-600';
+    width = 'w-3/4';
+  } else if (score >= 4) {
+    label = 'Segura y fuerte';
+    color = 'bg-emerald-600 text-emerald-600';
+    width = 'w-full';
+  }
+
   return (
-    <div className="bg-zinc-950 border border-white/5 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-      {reqs.map((req, i) => (
-        <div key={i} className="flex items-center gap-2">
-          {req.met ? <CheckCircle size={14} className="text-amber-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
-          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-500'}`}>{req.label}</span>
-        </div>
-      ))}
+    <div className="mt-1.5 space-y-1">
+      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+        <div className={`h-full transition-all duration-300 ${width} ${color.split(' ')[0]}`} />
+      </div>
+      <div className="flex justify-between items-center text-[10px] font-bold">
+        <span className="text-slate-400">Seguridad:</span>
+        <span className={color.split(' ')[1]}>{label}</span>
+      </div>
     </div>
   );
 };
@@ -1887,11 +1907,13 @@ export default function PublicStore() {
                 {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+            {authGateMode === 'register' && (
+              <PasswordStrengthBar password={authForm.password} />
+            )}
           </div>
           
           {authGateMode === 'register' && (
             <>
-              <PasswordRequirements password={authForm.password} />
               <div>
                 <label className="block text-[11px] font-bold text-zinc-600 mb-1">Confirmar Contraseña</label>
                 <div className="relative">
