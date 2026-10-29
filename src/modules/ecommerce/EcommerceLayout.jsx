@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, LogOut, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper, Share2, Package } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, LogOut, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper, Share2, Package, ExternalLink } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
@@ -27,17 +27,19 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const fetchNotifications = async () => {
     const slug = localStorage.getItem('storeSlug');
     const wsId = localStorage.getItem('activeWorkspace');
-    if (!slug) return;
+    if (!slug && !wsId) return;
     
     try {
       let apiNotifs = [];
-      try {
-        const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${slug}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) apiNotifs = data;
-        }
-      } catch (e) { console.error("Error fetching API notifs", e); }
+      if (slug) {
+        try {
+          const res = await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${slug}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data)) apiNotifs = data;
+          }
+        } catch (e) { console.error("Error fetching API notifs", e); }
+      }
       
       let virtualNotifs = [];
       if (wsId) {
@@ -50,14 +52,19 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           .in('publish_status', ['Activo', 'Publicado']);
           
         if (lowStock && lowStock.length > 0) {
-          virtualNotifs = lowStock.map(p => ({
-            id: 'virtual-stock-' + p.id,
-            product_id: p.id,
-            is_read: false,
-            type: 'stock_alert',
-            message: `¡Vitrina vaciándose! Quedan ${p.stock_vitrina || 0} uds de "${p.name}". Tienes ${p.stock} uds en el depósito.`,
-            created_at: new Date().toISOString()
-          }));
+          const readIds = JSON.parse(localStorage.getItem(`read_notifs_${wsId}`) || '[]');
+          const dismissedIds = JSON.parse(localStorage.getItem(`dismissed_notifs_${wsId}`) || '[]');
+
+          virtualNotifs = lowStock
+            .filter(p => !dismissedIds.includes('virtual-stock-' + p.id))
+            .map(p => ({
+              id: 'virtual-stock-' + p.id,
+              product_id: p.id,
+              is_read: readIds.includes('virtual-stock-' + p.id),
+              type: 'stock_alert',
+              message: `¡Vitrina vaciándose! Quedan ${p.stock_vitrina || 0} uds de "${p.name}". Tienes ${p.stock} uds en el depósito.`,
+              created_at: new Date().toISOString()
+            }));
         }
       }
       
@@ -70,14 +77,39 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchNotifications();
+    window.addEventListener('notifications_updated', handleUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications_updated', handleUpdate);
+    };
   }, []);
 
-  const markAsRead = (id) => {
-    if (typeof id === 'string' && id.startsWith('virtual-stock-')) return; // No se pueden descartar, deben transferir stock
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' })
-      .then(() => fetchNotifications())
-      .catch(console.error);
+  const markAsRead = async (id) => {
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (typeof id === 'string' && id.startsWith('virtual-stock-')) {
+      if (wsId) {
+        const readIds = JSON.parse(localStorage.getItem(`read_notifs_${wsId}`) || '[]');
+        if (!readIds.includes(id)) {
+          readIds.push(id);
+          localStorage.setItem(`read_notifs_${wsId}`, JSON.stringify(readIds));
+        }
+      }
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      window.dispatchEvent(new Event('notifications_updated'));
+      return;
+    }
+
+    try {
+      await fetch(`https://axonmarket-api.onrender.com/api/ecommerce/notifications/${id}/read`, { method: 'PUT' });
+      try {
+        await supabase.from('ecommerce_notifications').update({ is_read: 1 }).eq('id', id);
+      } catch(e){}
+    } catch(e) {
+      console.error(e);
+    }
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    window.dispatchEvent(new Event('notifications_updated'));
   };
 
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
@@ -164,13 +196,26 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       {/* Sidebar for Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-white/5 z-20 shrink-0 shadow-lg shadow-slate-200/50 dark:shadow-none transition-colors">
         <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-2 rounded-xl text-black shadow-lg shadow-amber-200 dark:shadow-amber-900/20">
+          <div 
+            onClick={() => {
+              const slug = localStorage.getItem('storeSlug');
+              if (slug) window.open(`/${slug}`, '_blank');
+              else alert('No se encontró el enlace de tu tienda.');
+            }}
+            title="Ver mi Vitrina"
+            className="flex items-center gap-3 cursor-pointer group p-1.5 -m-1.5 rounded-2xl hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all select-none"
+          >
+            <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-2 rounded-xl text-black shadow-lg shadow-amber-200 dark:shadow-amber-900/20 group-hover:scale-105 transition-transform">
               <ShoppingBag size={24} />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight tracking-tight line-clamp-1">{storeName}</h1>
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest">E-commerce</span>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight tracking-tight line-clamp-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{storeName}</h1>
+                <ExternalLink size={13} className="text-amber-500 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+              </div>
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                Ver Vitrina
+              </span>
             </div>
           </div>
         </div>
@@ -219,11 +264,25 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 px-4 flex items-center justify-between"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
       >
-        <div className="flex items-center gap-2 max-w-[60%]">
-          <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black shrink-0">
+        <div 
+          onClick={() => {
+            const slug = localStorage.getItem('storeSlug');
+            if (slug) window.open(`/${slug}`, '_blank');
+            else alert('No se encontró el enlace de tu tienda.');
+          }}
+          title="Ver mi Vitrina"
+          className="flex items-center gap-2 max-w-[60%] cursor-pointer group active:scale-95 transition-transform select-none"
+        >
+          <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black shrink-0 group-hover:scale-105 transition-transform shadow-sm">
             <ShoppingBag size={20} />
           </div>
-          <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate">{storeName}</h1>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1">
+              <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{storeName}</h1>
+              <ExternalLink size={11} className="text-amber-500 opacity-70 shrink-0" />
+            </div>
+            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none">Ver Vitrina</span>
+          </div>
         </div>
         <div className="flex items-center gap-3 relative">
           <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-400 hover:text-amber-500 p-2 relative">
@@ -424,11 +483,26 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           >
             {/* Handle + header */}
             <div className="flex items-center justify-between px-5 pt-4 pb-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black">
+              <div 
+                onClick={() => {
+                  const slug = localStorage.getItem('storeSlug');
+                  if (slug) window.open(`/${slug}`, '_blank');
+                  else alert('No se encontró el enlace de tu tienda.');
+                  setShowMoreDrawer(false);
+                }}
+                title="Ver mi Vitrina"
+                className="flex items-center gap-3 cursor-pointer group select-none"
+              >
+                <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black group-hover:scale-105 transition-transform shadow-sm">
                   <ShoppingBag size={18} />
                 </div>
-                <span className="text-sm font-extrabold text-slate-800 dark:text-white truncate max-w-[160px]">{storeName}</span>
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-extrabold text-slate-800 dark:text-white truncate max-w-[160px] group-hover:text-amber-600 transition-colors">{storeName}</span>
+                    <ExternalLink size={12} className="text-amber-500 opacity-70 shrink-0" />
+                  </div>
+                  <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none">Ver Vitrina</span>
+                </div>
               </div>
               <button
                 onClick={() => setShowMoreDrawer(false)}
