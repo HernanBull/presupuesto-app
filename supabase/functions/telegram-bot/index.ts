@@ -650,13 +650,19 @@ async function handleTelegramUpdate(update, supabase) {
       console.error("Error actualizando conductor en ecommerce_orders_v2:", err);
     }
 
-    const storeMapsUrl = pickup?.maps_url || (pickup?.location?.lat ? `https://maps.google.com/?q=${pickup.location.lat},${pickup.location.lng}` : null);
+    const storeMapsUrl = pickup?.maps_url || 
+      (pickup?.location?.lat ? `https://maps.google.com/?q=${pickup.location.lat},${pickup.location.lng}` : 
+      (pickup?.address && pickup.address !== 'Mostrador Principal' ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup.address)}` : null));
     const storeGpsText = storeMapsUrl ? `\n🗺️ <b>Navegación Tienda:</b> ${storeMapsUrl}` : '';
     const storePhoneText = pickup?.phone ? `\n📞 <b>Teléfono Tienda:</b> ${pickup.phone}` : '';
 
     let customerMapsUrl = customerData.maps_url || null;
     if (!customerMapsUrl && customerData.location && typeof customerData.location === 'object' && customerData.location.lat && customerData.location.lng) {
       customerMapsUrl = `https://maps.google.com/?q=${customerData.location.lat},${customerData.location.lng}`;
+    }
+    if (!customerMapsUrl && (customerData.address || customerData.zone)) {
+      const q = customerData.address || customerData.zone;
+      customerMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
     }
     const customerGpsText = customerMapsUrl ? `\n🗺️ <b>Navegación Cliente:</b> ${customerMapsUrl}` : '';
 

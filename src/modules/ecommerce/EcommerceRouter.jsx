@@ -359,6 +359,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       </Route>
       
       <Route path="picking" element={<OrderPreparation />} />
+      <Route path="picker" element={<OrderPreparation />} />
       
       {/* Rutas protegidas exclusivamente para comerciantes */}
       <Route element={<MerchantGuard />}>

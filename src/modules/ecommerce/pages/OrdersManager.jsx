@@ -196,9 +196,13 @@ export default function OrdersManager() {
     }
 
     const customerLocation = order.shippingInfo?.location || order.shipping_info?.location || null;
-    const customerMapsUrl = customerLocation
-      ? (order.shippingInfo?.maps_url || order.shipping_info?.maps_url || `https://maps.google.com/?q=${customerLocation.lat},${customerLocation.lng}`)
-      : null;
+    let customerMapsUrl = order.shippingInfo?.maps_url || order.shipping_info?.maps_url || null;
+    if (!customerMapsUrl && customerLocation?.lat && customerLocation?.lng) {
+      customerMapsUrl = `https://maps.google.com/?q=${customerLocation.lat},${customerLocation.lng}`;
+    }
+    if (!customerMapsUrl && address && address !== 'Dirección del cliente') {
+      customerMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+    }
 
     const customerData = {
       name: `${order.customer} ${docId ? `(C.I: ${docId})` : ''}`.trim(),
@@ -1146,21 +1150,33 @@ export default function OrdersManager() {
           <h3 className="text-lg font-extrabold text-slate-800 dark:text-white mb-2 tracking-tight">Vincular Dispositivo</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono para preparar los pedidos.</p>
           
-          <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-4 relative">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${
-              encodeURIComponent(window.location.protocol + '//' + (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname) + (window.location.port ? ':' + window.location.port : '') + '/picking')
-            }`} alt="QR Code" className="w-48 h-48 object-contain" />
-          </div>
+          {(() => {
+            const currentWs = localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+            const host = (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname);
+            const portPart = window.location.port ? ':' + window.location.port : '';
+            const pickingUrl = `${window.location.protocol}//${host}${portPart}/picking?workspace=${currentWs}&ws=${currentWs}`;
+            return (
+              <>
+                <div className="p-4 bg-white border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm mb-4 relative">
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pickingUrl)}`} 
+                    alt="QR Code" 
+                    className="w-48 h-48 object-contain" 
+                  />
+                </div>
 
-          <a 
-            href="/picking" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-amber-500/20 active:scale-95 transition-all mb-6"
-          >
-            <span>Abrir App de Picking</span>
-            <ExternalLink size={14} />
-          </a>
+                <a 
+                  href={`/picking?workspace=${currentWs}&ws=${currentWs}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs rounded-xl shadow-sm shadow-amber-500/20 active:scale-95 transition-all mb-6"
+                >
+                  <span>Abrir App de Picking</span>
+                  <ExternalLink size={14} />
+                </a>
+              </>
+            );
+          })()}
           
           <div className="w-full p-4 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-medium text-left border border-amber-200 dark:border-amber-500/20">
             <AlertCircle size={14} className="inline mr-1 -mt-0.5" />

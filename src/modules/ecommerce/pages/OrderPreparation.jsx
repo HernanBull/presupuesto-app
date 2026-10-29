@@ -97,21 +97,73 @@ export default function OrderPreparation() {
   const [isStaffLoading, setIsStaffLoading] = useState(false);
   const [selectedWorkerFilter, setSelectedWorkerFilter] = useState('ALL');
 
-  // Habilitar scroll fluido en body y html en móvil
+  // Sincronización y Detección Dinámica del Workspace (Tienda)
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlWs = params.get('workspace') || params.get('workspace_id') || params.get('ws') || params.get('storeId') || params.get('store');
+      if (urlWs && urlWs !== 'null' && urlWs !== 'undefined' && urlWs !== 'default') {
+        localStorage.setItem('activeWorkspace', urlWs);
+        return urlWs;
+      }
+      return localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+    } catch {
+      return localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+    }
+  });
+  const [storeName, setStoreName] = useState('Axon');
+
+  // Habilitar scroll fluido y natural en body y html en móvil (sin bloqueos ni congelamientos)
   useEffect(() => {
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    const prevBodyOverflow = document.body.style.overflow;
-    document.documentElement.style.overflow = 'auto';
-    document.body.style.overflow = 'auto';
+    const prevHtmlOverflow = document.documentElement.style.overflowY;
+    const prevBodyOverflow = document.body.style.overflowY;
+    const prevHtmlHeight = document.documentElement.style.height;
+    const prevBodyHeight = document.body.style.height;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehaviorY;
+    const prevBodyOverscroll = document.body.style.overscrollBehaviorY;
+    const prevBodyTouch = document.body.style.touchAction;
+
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.height = 'auto';
+    document.documentElement.style.overscrollBehaviorY = 'auto';
+
+    document.body.style.overflowY = 'auto';
+    document.body.style.height = 'auto';
+    document.body.style.touchAction = 'pan-y';
+    document.body.style.overscrollBehaviorY = 'auto';
+
     return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflowY = prevHtmlOverflow;
+      document.body.style.overflowY = prevBodyOverflow;
+      document.documentElement.style.height = prevHtmlHeight;
+      document.body.style.height = prevBodyHeight;
+      document.documentElement.style.overscrollBehaviorY = prevHtmlOverscroll;
+      document.body.style.overscrollBehaviorY = prevBodyOverscroll;
+      document.body.style.touchAction = prevBodyTouch;
     };
   }, []);
 
+  // Cargar nombre de la tienda según workspace activo
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      const targetWs = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+      if (!targetWs) return;
+      try {
+        const { data: ws } = await supabase.from('workspaces').select('id, name, config').eq('id', targetWs).maybeSingle();
+        if (ws) {
+          const name = ws.name || ws.config?.expediente?.storeName || 'Axon';
+          setStoreName(name);
+        }
+      } catch (err) {
+        console.warn('Error obteniendo nombre de workspace:', err);
+      }
+    };
+    fetchStoreInfo();
+  }, [activeWorkspaceId]);
+
   const fetchOrders = async () => {
     setIsRefreshing(true);
-    const workspaceId = localStorage.getItem('activeWorkspace');
+    const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
     try {
       let query = supabase.from('ecommerce_orders_v2').select('*');
       if (workspaceId) {
@@ -449,21 +501,27 @@ export default function OrderPreparation() {
 
     // Enviar a Telegram directamente desde Picking
     if (orderToSend) {
-      const wsId = orderToSend.workspace_id || localStorage.getItem('activeWorkspace');
+      const wsId = orderToSend.workspace_id || activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
       const pickupInfo = await resolveStorePickupInfo(wsId);
       if (pickupInfo) {
         pickupInfo.pickup_pin = newPickupPin;
       }
 
-      const customerLocation = orderToSend.shipping_info?.location || null;
-      const customerMapsUrl = customerLocation 
-        ? (orderToSend.shipping_info?.maps_url || `https://maps.google.com/?q=${customerLocation.lat},${customerLocation.lng}`) 
-        : null;
+      const ship = orderToSend.shippingInfo || (typeof orderToSend.shipping_info === 'string' ? JSON.parse(orderToSend.shipping_info || '{}') : orderToSend.shipping_info) || {};
+      const customerLocation = ship?.location || null;
+      let customerMapsUrl = ship?.maps_url || null;
+      if (!customerMapsUrl && customerLocation?.lat && customerLocation?.lng) {
+        customerMapsUrl = `https://maps.google.com/?q=${customerLocation.lat},${customerLocation.lng}`;
+      }
+      const customerAddress = orderToSend.address || ship?.address || 'Dirección del cliente';
+      if (!customerMapsUrl && customerAddress && customerAddress !== 'Dirección del cliente') {
+        customerMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerAddress)}`;
+      }
 
       const customerData = {
         name: orderToSend.customer,
         phone: orderToSend.paymentDetails?.phone || 'Sin número',
-        address: orderToSend.address || 'Dirección del cliente',
+        address: customerAddress,
         location: customerLocation,
         maps_url: customerMapsUrl,
         zone: 'Centro de la ciudad',
@@ -597,7 +655,7 @@ export default function OrderPreparation() {
     // 1. Consultar Workspace config (adminPin y personal configurado en Perfil de Tienda)
     let masterPin = localStorage.getItem('adminPin') || '9999';
     try {
-      const workspaceId = localStorage.getItem('activeWorkspace');
+      const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
       let query = supabase.from('workspaces').select('config');
       if (workspaceId) {
         query = query.eq('id', workspaceId);
@@ -719,7 +777,7 @@ export default function OrderPreparation() {
         }
       });
 
-      const workspaceId = localStorage.getItem('activeWorkspace');
+      const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
       if (workspaceId) {
         const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
         if (ws?.config?.staff && Array.isArray(ws.config.staff)) {
@@ -1699,11 +1757,8 @@ export default function OrderPreparation() {
   return (
     <div
       style={{
-        minHeight: '100dvh',
+        minHeight: '100vh',
         width: '100%',
-        overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
-        touchAction: 'pan-y',
         backgroundColor: '#F8FAFC',
         display: 'flex',
         flexDirection: 'column',
@@ -1731,6 +1786,9 @@ export default function OrderPreparation() {
             Picking
           </span>
           <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#0369A1', backgroundColor: '#E0F2FE', padding: '3px 8px', borderRadius: '9999px', border: '1px solid #BAE6FD', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+            🏪 {storeName || 'Axon'}
+          </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1998,7 +2056,7 @@ export default function OrderPreparation() {
       </div>
 
       {/* Lista de Pedidos E-commerce con Scroll Fluido Holgado */}
-      <main style={{ flex: 1, padding: '16px 16px 100px 16px', display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '720px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+      <main style={{ flex: 1, padding: '16px 16px 140px 16px', display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '720px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {visibleOrders.length === 0 ? (
           <div
             style={{
