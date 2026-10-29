@@ -332,28 +332,44 @@ export default function PublicStore() {
 
     const list = sourceNews.map((news) => {
       const cleanTitle = (news.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+      const rawMedia = news.image_url || storeCover || storeAvatar;
+      const isVid = news.media_type === 'video' || (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia));
       return {
         id: news.id,
         name: storeName,
+        store_name: storeName,
         slug: slug,
+        store_slug: slug,
         avatar: storeAvatar,
-        mediaUrl: news.image_url || storeCover || storeAvatar,
+        store_logo: storeAvatar,
+        mediaUrl: rawMedia,
+        media_url: rawMedia,
+        video_url: isVid ? rawMedia : null,
+        media_type: isVid ? 'video' : 'image',
         caption: cleanTitle ? (news.content ? `${cleanTitle}: ${news.content}` : cleanTitle) : news.content,
         time: formatStatusTime(news.created_at),
-        isVerified: !!config?.is_verified
+        isVerified: !!config?.is_verified,
+        is_verified: !!config?.is_verified
       };
     });
 
     if (list.length === 0) {
+      const fallbackMedia = storeCover || storeAvatar || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80';
       list.push({
         id: `intro-${slug || 'store'}`,
         name: storeName,
+        store_name: storeName,
         slug: slug,
+        store_slug: slug,
         avatar: storeAvatar,
-        mediaUrl: storeCover || storeAvatar || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80',
+        store_logo: storeAvatar,
+        mediaUrl: fallbackMedia,
+        media_url: fallbackMedia,
+        media_type: 'image',
         caption: config?.description || '¡Bienvenidos a nuestra vitrina oficial en AxonMarket!',
         time: 'Hoy',
-        isVerified: !!config?.is_verified
+        isVerified: !!config?.is_verified,
+        is_verified: !!config?.is_verified
       });
     }
 
@@ -2466,16 +2482,26 @@ export default function PublicStore() {
                       className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
                       title={`Ver estado: ${status.caption || status.name}`}
                     >
-                      {/* Imagen de fondo / Preview del Estado */}
-                      <img 
-                        src={resolveImageUrl(status.mediaUrl || status.avatar)} 
-                        alt="" 
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                        onError={(e) => {
-                          e.currentTarget.onerror = null;
-                          e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
-                        }}
-                      />
+                      {/* Imagen o Video de fondo / Preview del Estado */}
+                      {(status.media_type === 'video' || (typeof status.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(status.mediaUrl))) ? (
+                        <video 
+                          src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                          muted 
+                          playsInline 
+                          loop 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                        />
+                      ) : (
+                        <img 
+                          src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                          alt="" 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
+                          }}
+                        />
+                      )}
 
                       {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
@@ -3210,7 +3236,11 @@ export default function PublicStore() {
         onClose={() => setIsStatusViewerOpen(false)}
         statuses={merchantStatuses}
         initialIndex={activeStatusIndex}
-        onNavigateStore={() => {}}
+        onNavigateStore={(storeSlug) => {
+          if (storeSlug && storeSlug !== slug) {
+            navigate(`/${storeSlug}`);
+          }
+        }}
       />
 
                   {/* Product Modal Rediseñado: 100% Blanco y Anaranjado, Elegante y Mobile-Friendly */}

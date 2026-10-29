@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, Store, CheckCircle, ExternalLink, MessageCircle, Play } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Store, CheckCircle, ExternalLink, Volume2, VolumeX, Play } from 'lucide-react';
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
   return `https://axonmarket-api.onrender.com${url}`;
 };
 
@@ -17,7 +18,9 @@ export default function MerchantStatusViewerModal({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const timerRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,31 +30,89 @@ export default function MerchantStatusViewerModal({
     }
   }, [isOpen, initialIndex, statuses.length]);
 
-  // Manejo de avance automático (5 segundos por estado)
+  const currentStatus = statuses[currentIndex] || {};
+
+  const storeName = currentStatus.store_name || currentStatus.name || currentStatus.storeName || 'Comercio';
+  const storeLogo = currentStatus.store_logo || currentStatus.avatar || currentStatus.storeLogo || '';
+  const storeSlug = currentStatus.store_slug || currentStatus.slug || currentStatus.id;
+  const isVerified = Boolean(currentStatus.is_verified ?? currentStatus.isVerified);
+  const caption = currentStatus.caption || currentStatus.title || currentStatus.content || '';
+
+  const rawMedia = currentStatus.video_url || currentStatus.videoUrl || currentStatus.media_url || currentStatus.mediaUrl || currentStatus.image_url || currentStatus.imageUrl || '';
+  const isVideo = Boolean(
+    currentStatus.media_type === 'video' || 
+    currentStatus.mediaType === 'video' || 
+    Boolean(currentStatus.video_url || currentStatus.videoUrl) ||
+    (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia))
+  );
+  const mediaUrl = resolveImageUrl(rawMedia);
+
+  const handleNext = () => {
+    if (currentIndex < statuses.length - 1) {
+      setCurrentIndex((i) => i + 1);
+    } else {
+      onClose();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex((i) => i - 1);
+    }
+  };
+
+  // Reproducir video automáticamente con sonido si es posible
   useEffect(() => {
-    if (!isOpen || statuses.length === 0 || isPaused) return;
+    if (!isOpen || !isVideo) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    video.muted = isMuted;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Fallback: Si el navegador bloquea audio antes de interacción, mutear y reproducir
+        video.muted = true;
+        setIsMuted(true);
+        video.play().catch(e => console.warn('Status video autoplay blocked:', e));
+      });
+    }
+  }, [isOpen, currentIndex, isVideo]);
+
+  // Manejo de avance automático:
+  // Si es video: la barra de progreso avanza con el currentTime / duration del video
+  // Si es imagen: temporizador de 5 segundos
+  useEffect(() => {
+    if (!isOpen || statuses.length === 0) return;
+
+    if (isVideo) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    if (isPaused) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
 
     const intervalTime = 50; // cada 50ms
-    const totalDuration = 5000; // 5 segundos
+    const totalDuration = 5000; // 5 segundos para imágenes
     const step = (intervalTime / totalDuration) * 100;
 
     timerRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          if (currentIndex < statuses.length - 1) {
-            setCurrentIndex((idx) => idx + 1);
-            return 0;
-          } else {
-            onClose();
-            return 100;
-          }
+          handleNext();
+          return 0;
         }
         return prev + step;
       });
     }, intervalTime);
 
     return () => clearInterval(timerRef.current);
-  }, [isOpen, currentIndex, statuses.length, isPaused, onClose]);
+  }, [isOpen, currentIndex, statuses.length, isPaused, isVideo]);
 
   // Reset progress al cambiar de estado
   useEffect(() => {
@@ -70,23 +131,17 @@ export default function MerchantStatusViewerModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, currentIndex, statuses.length]);
 
-  if (!isOpen || statuses.length === 0) return null;
-
-  const currentStatus = statuses[currentIndex] || {};
-
-  const handleNext = () => {
-    if (currentIndex < statuses.length - 1) {
-      setCurrentIndex((i) => i + 1);
+  // Pausar y reanudar video cuando el usuario mantiene presionado
+  useEffect(() => {
+    if (!isVideo || !videoRef.current) return;
+    if (isPaused) {
+      videoRef.current.pause();
     } else {
-      onClose();
+      videoRef.current.play().catch(() => {});
     }
-  };
+  }, [isPaused, isVideo]);
 
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1);
-    }
-  };
+  if (!isOpen || statuses.length === 0) return null;
 
   return (
     <div 
@@ -96,7 +151,7 @@ export default function MerchantStatusViewerModal({
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Contenedor del Estado Estilo WhatsApp */}
+      {/* Contenedor del Estado Estilo WhatsApp / Instagram Stories */}
       <div className="relative w-full h-full max-w-md bg-zinc-950 flex flex-col justify-between overflow-hidden shadow-2xl">
         
         {/* Barras de Progreso Segmentadas en la parte superior */}
@@ -116,23 +171,23 @@ export default function MerchantStatusViewerModal({
         {/* Encabezado del Estado (Perfil del Comercio) */}
         <div className="absolute top-7 inset-x-3 z-30 flex items-center justify-between text-white">
           <div 
-            className="flex items-center gap-2.5 cursor-pointer bg-black/40 backdrop-blur-md py-1 px-2.5 rounded-full border border-white/10"
+            className="flex items-center gap-2.5 cursor-pointer bg-black/50 backdrop-blur-md py-1 px-2.5 rounded-full border border-white/10 max-w-[70%]"
             onClick={() => {
               onClose();
-              if (onNavigateStore) onNavigateStore(currentStatus.store_slug || currentStatus.id);
+              if (onNavigateStore) onNavigateStore(storeSlug);
             }}
           >
             <div className="w-8 h-8 rounded-full overflow-hidden border border-amber-400 bg-amber-500 shrink-0">
-              {currentStatus.store_logo ? (
-                <img src={resolveImageUrl(currentStatus.store_logo)} alt="" className="w-full h-full object-cover" />
+              {storeLogo ? (
+                <img src={resolveImageUrl(storeLogo)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <Store size={16} className="text-black m-auto mt-1.5" />
               )}
             </div>
             <div className="flex flex-col min-w-0 pr-1">
-              <span className="font-bold text-xs flex items-center gap-1 truncate">
-                {currentStatus.store_name}
-                {currentStatus.is_verified && <CheckCircle size={12} className="text-blue-400 fill-blue-400/20" />}
+              <span className="font-bold text-xs flex items-center gap-1 truncate text-white">
+                {storeName}
+                {isVerified && <CheckCircle size={12} className="text-blue-400 fill-blue-400/20 shrink-0" />}
               </span>
               <span className="text-[10px] text-zinc-300 font-medium leading-none">
                 Estado • Promoción activa
@@ -140,14 +195,33 @@ export default function MerchantStatusViewerModal({
             </div>
           </div>
 
-          {/* Botón Cerrar */}
-          <button 
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"
-          >
-            <X size={18} />
-          </button>
+          {/* Botones de Control (Volumen si es video, y Cerrar) */}
+          <div className="flex items-center gap-2">
+            {isVideo && (
+              <button 
+                type="button"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  const nextMuted = !isMuted;
+                  setIsMuted(nextMuted);
+                  if (videoRef.current) videoRef.current.muted = nextMuted;
+                }}
+                className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"
+                title={isMuted ? 'Activar sonido' : 'Silenciar'}
+              >
+                {isMuted ? <VolumeX size={16} className="text-amber-400" /> : <Volume2 size={16} className="text-emerald-400" />}
+              </button>
+            )}
+
+            <button 
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"
+              title="Cerrar estado"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Áreas Táctiles para Navegar Izquierda / Derecha */}
@@ -162,25 +236,39 @@ export default function MerchantStatusViewerModal({
 
         {/* Contenido Visual Central (Foto o Video) */}
         <div className="relative w-full h-full flex items-center justify-center bg-black">
-          {currentStatus.video_url ? (
+          {isVideo && mediaUrl ? (
             <video 
-              src={resolveImageUrl(currentStatus.video_url)} 
+              ref={videoRef}
+              src={mediaUrl} 
               autoPlay 
               playsInline 
-              muted 
-              loop
-              className="w-full h-full object-contain"
+              muted={isMuted}
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (v.duration > 0) {
+                  setProgress((v.currentTime / v.duration) * 100);
+                }
+              }}
+              onEnded={() => handleNext()}
+              className="w-full h-full object-contain" 
             />
-          ) : currentStatus.media_url ? (
+          ) : mediaUrl ? (
             <img 
-              src={resolveImageUrl(currentStatus.media_url)} 
-              alt={currentStatus.store_name} 
+              src={mediaUrl} 
+              alt={storeName} 
               className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = storeLogo ? resolveImageUrl(storeLogo) : '';
+              }}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center gap-3 text-zinc-400">
-              <Store size={48} className="text-amber-500" />
-              <span className="text-sm font-semibold text-white">Promoción de {currentStatus.store_name}</span>
+            <div className="flex flex-col items-center justify-center gap-3 text-zinc-400 p-6 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                <Store size={36} />
+              </div>
+              <span className="text-sm font-bold text-white">Promoción de {storeName}</span>
+              {caption && <p className="text-xs text-zinc-300 max-w-xs">{caption}</p>}
             </div>
           )}
 
@@ -191,9 +279,9 @@ export default function MerchantStatusViewerModal({
         {/* Pie de Estado: Caption y Botón para Visitar / Pedir */}
         <div className="absolute bottom-6 inset-x-4 z-30 flex flex-col gap-3">
           {/* Descripción / Texto del Estado */}
-          {currentStatus.caption && (
+          {caption && (
             <div className="bg-black/70 backdrop-blur-md border border-white/10 p-3 rounded-2xl text-white text-xs leading-relaxed max-h-24 overflow-y-auto">
-              <p className="font-medium">{currentStatus.caption}</p>
+              <p className="font-medium">{caption}</p>
             </div>
           )}
 
@@ -203,12 +291,12 @@ export default function MerchantStatusViewerModal({
             onClick={(e) => {
               e.stopPropagation();
               onClose();
-              if (onNavigateStore) onNavigateStore(currentStatus.store_slug || currentStatus.id);
+              if (onNavigateStore) onNavigateStore(storeSlug);
             }}
             className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
           >
             <Store size={16} />
-            <span>Ver Vitrina de {currentStatus.store_name}</span>
+            <span>Ver Vitrina de {storeName}</span>
             <ExternalLink size={14} />
           </button>
         </div>
