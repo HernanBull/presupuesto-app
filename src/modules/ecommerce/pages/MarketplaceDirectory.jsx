@@ -57,23 +57,41 @@ const formatStatusTime = (dateStr) => {
   }
 };
 
-const PasswordRequirements = ({ password = '' }) => {
-  const reqs = [
-    { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
-    { label: 'Una mayúscula', met: /[A-Z]/.test(password) },
-    { label: 'Una minúscula', met: /[a-z]/.test(password) },
-    { label: 'Un número', met: /[0-9]/.test(password) },
-    { label: 'Un carácter especial (!@#$%^&*)', met: /[^A-Za-z0-9]/.test(password) },
-  ];
-  
+const PasswordStrengthBar = ({ password = '' }) => {
+  if (!password) return null;
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8) score += 1;
+  if (/[A-Z]/.test(password) || /[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password) || (/[A-Z]/.test(password) && /[0-9]/.test(password))) score += 1;
+
+  let label = 'Débil';
+  let color = 'bg-red-500 text-red-600';
+  let width = 'w-1/4';
+
+  if (score === 2) {
+    label = 'Aceptable';
+    color = 'bg-amber-500 text-amber-600';
+    width = 'w-2/4';
+  } else if (score === 3) {
+    label = 'Buena';
+    color = 'bg-emerald-500 text-emerald-600';
+    width = 'w-3/4';
+  } else if (score >= 4) {
+    label = 'Segura y fuerte';
+    color = 'bg-emerald-600 text-emerald-600';
+    width = 'w-full';
+  }
+
   return (
-    <div className="bg-zinc-950 border border-zinc-200 p-3 rounded-xl mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-      {reqs.map((req, i) => (
-        <div key={i} className="flex items-center gap-2">
-          {req.met ? <CheckCircle size={14} className="text-amber-500" /> : <div className="w-3.5 h-3.5 rounded-full border border-zinc-700"></div>}
-          <span className={`text-[10px] font-medium ${req.met ? 'text-amber-500' : 'text-zinc-600'}`}>{req.label}</span>
-        </div>
-      ))}
+    <div className="mt-1.5 space-y-1">
+      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+        <div className={`h-full transition-all duration-300 ${width} ${color.split(' ')[0]}`} />
+      </div>
+      <div className="flex justify-between items-center text-[10px] font-bold">
+        <span className="text-slate-400">Seguridad:</span>
+        <span className={color.split(' ')[1]}>{label}</span>
+      </div>
     </div>
   );
 };
@@ -271,7 +289,7 @@ export default function MarketplaceDirectory() {
   useEffect(() => {
     if (location.state?.openMerchantRegister || location.state?.openMerchantModal) {
       setIsMerchantModalOpen(true);
-      setMerchantAuthMode(location.state?.mode || 'pitch');
+      setMerchantAuthMode(location.state?.mode || 'register');
     }
     if (location.state?.openAuthModal) {
       setIsAuthModalOpen(true);
@@ -376,7 +394,7 @@ export default function MarketplaceDirectory() {
 
     // Auto-open merchant register if navigated from Pricing
     if (location.state && location.state.openMerchantRegister) {
-      setMerchantAuthMode('pitch');
+      setMerchantAuthMode('register');
       setIsMerchantModalOpen(true);
       // Opcional: const selectedPlan = location.state.selectedPlan;
       window.history.replaceState({}, document.title); // clear state to avoid reopening on refresh
@@ -1651,7 +1669,7 @@ export default function MarketplaceDirectory() {
                 ) : (
                   <>
                     <button 
-                      onClick={() => { setMerchantAuthMode('pitch'); setIsMerchantModalOpen(true); }} 
+                      onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} 
                       className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
                       title="Abrir mi Tienda"
                     >
@@ -2199,7 +2217,7 @@ export default function MarketplaceDirectory() {
 
                   {authMode === 'register' && (
                     <>
-                      <PasswordRequirements password={authForm.password} />
+                      <PasswordStrengthBar password={authForm.password} />
                       <div className="mt-4">
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
                         <div className="relative">
@@ -2296,11 +2314,11 @@ export default function MarketplaceDirectory() {
                       <Store size={24} />
                     </div>
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                      {merchantAuthMode === 'pitch' ? 'El Control Total de tu Negocio' : merchantAuthMode === 'register' ? 'Inicia tu Tienda' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
+                      {merchantAuthMode === 'register' ? 'Inicia tu Tienda' : merchantAuthMode === 'login' ? 'Panel Central' : 'Recuperar Acceso'}
                     </h2>
                   </div>
                   <p className="text-slate-500 font-normal text-sm mt-1">
-                    {merchantAuthMode === 'pitch' ? 'Tu propia tienda en la nube con inventario ERP, pagos directos y delivery automatizado.' : merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial de AxonMarket.' : 'Accede a tu infraestructura de ventas.'}
+                    {merchantAuthMode === 'register' ? 'Crea tu tienda y únete a la red comercial de AxonMarket.' : 'Accede a tu infraestructura de ventas.'}
                   </p>
                 </div>
                 <button onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full p-2 transition-colors self-start">
@@ -2308,7 +2326,7 @@ export default function MarketplaceDirectory() {
                 </button>
               </div>
 
-              {merchantAuthMode !== 'pitch' && (merchantAuthMode !== 'register' || merchantRegStep === 1) && (
+              {(merchantAuthMode !== 'register' || merchantRegStep === 1) && (
                 <div className="px-8 pt-4 pb-2">
                   <div className="flex bg-slate-100 rounded-full p-1 border border-slate-200">
                     <button
@@ -2333,86 +2351,6 @@ export default function MarketplaceDirectory() {
                     >
                       Iniciar Sesión
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {merchantAuthMode === 'pitch' && (
-                <div className="p-8 pt-0">
-                  <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-[0_0_30px_rgba(245,158,11,0.1)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-200/50 blur-3xl rounded-full"></div>
-                    
-                    <div className="flex items-center justify-between mb-5 relative z-10">
-                      <span className="text-amber-700 font-black tracking-widest uppercase text-xs bg-amber-200/60 px-3 py-1.5 rounded-full">TODO EN UNO · 0% COMISIÓN</span>
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-end gap-2">
-                          <span className="text-zinc-400 line-through text-sm font-medium">$60</span>
-                          <span className="text-zinc-900 font-black text-4xl leading-none">$40</span>
-                          <span className="text-zinc-500 text-xs font-bold mb-1">/ MES</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4 mb-6 relative z-10">
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-600 font-bold text-sm">✓</span>
-                        </div>
-                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
-                          <strong className="text-zinc-900">0% Comisiones y Pago Móvil Directo:</strong> Las apps tradicionales te quitan hasta un 30%. Aquí el cliente sube su captura y referencia de Pago Móvil, y tú recibes el 100% del dinero directo en tu cuenta bancaria sin retenciones.
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-600 font-bold text-sm">✓</span>
-                        </div>
-                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
-                          <strong className="text-zinc-900">Mini-ERP, Inventario y Analítica en Tiempo Real:</strong> Aloja tu vitrina 24/7 en la nube. Sube productos, controla existencias, lanza ofertas y mide exactamente cuánto estás vendiendo desde un solo panel.
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-600 font-bold text-sm">✓</span>
-                        </div>
-                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
-                          <strong className="text-zinc-900">Despacho Automático con Red de Couriers:</strong> Al verificar el pago del cliente con un clic, nuestra plataforma alerta automáticamente a nuestra red de repartidores aliados con el GPS exacto del comprador.
-                        </p>
-                      </div>
-
-                      <div className="flex gap-3 items-start">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-                          <span className="text-amber-600 font-bold text-sm">✓</span>
-                        </div>
-                        <p className="text-zinc-600 font-light text-sm leading-relaxed">
-                          <strong className="text-zinc-900">Precios de Anaquel = Más Ventas:</strong> Al no pagar comisiones por cada carrito, mantienes tus precios reales sin inflarlos, fidelizando a tus clientes frente a la competencia.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-zinc-100 rounded-2xl p-4 border border-zinc-200 shadow-sm relative z-10">
-                      <p className="text-zinc-600 text-xs leading-relaxed text-justify">
-                        * Tu plan incluye <strong className="text-amber-600 font-bold">500 pedidos mensuales con 0% de comisión</strong> (<strong className="text-amber-600 font-bold">ahorras más de $1,500 USD/mes</strong> frente a otras apps). Al superar las 500 órdenes, solo aplica una micro-tarifa fija de $0.10 por pedido adicional para garantizar tu infraestructura en la nube siempre rápida y en línea.
-                      </p>
-                    </div>
-                    
-                    <button 
-                      onClick={() => setMerchantAuthMode('register')}
-                      className="w-full bg-amber-500 text-black rounded-full py-4 mt-6 font-black text-sm tracking-[0.2em] uppercase transition-all shadow-[0_0_30px_rgba(245,158,11,0.3)] hover:bg-amber-400 hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] flex items-center justify-center gap-3 relative z-10"
-                    >
-                      ACTIVAR MI VITRINA <ArrowRight size={18} />
-                    </button>
-
-                    <p className="text-xs text-neutral-400 text-center mt-4 relative z-10">
-                      🔒 Sin contratos forzosos · Dinero 100% directo a tu banco
-                    </p>
-                    
-                    <div className="mt-4 text-center relative z-10">
-                      <button onClick={() => setMerchantAuthMode('login')} className="text-xs text-zinc-500 hover:text-amber-600 font-medium transition-colors">
-                        Ya tengo una tienda. <span className="text-amber-600 underline font-bold">Iniciar sesión</span>
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -2461,7 +2399,7 @@ export default function MarketplaceDirectory() {
                     </button>
                   </div>
                 </form>
-              ) : merchantAuthMode !== 'pitch' ? (
+              ) : (
                 <form onSubmit={merchantAuthMode === 'register' ? (
                   merchantRegStep === 1 ? handleMerchantRegisterStep1 : 
                   merchantRegStep === 2 ? handleMerchantRegisterStep2 : 
@@ -2503,7 +2441,7 @@ export default function MarketplaceDirectory() {
                             </div>
                           </div>
 
-                          <PasswordRequirements password={merchantForm.password} />
+                          <PasswordStrengthBar password={merchantForm.password} />
 
                           <div>
                             <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
@@ -3115,7 +3053,7 @@ export default function MarketplaceDirectory() {
                     </>
                   )}
                 </form>
-              ) : null}
+              )}
             </div>
           </div>
         )}
