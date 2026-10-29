@@ -380,6 +380,38 @@ export default function PublicStore() {
     return (storeNews || []).some(n => n.status === 'Publicado');
   }, [storeNews]);
 
+  const latestStatusId = useMemo(() => {
+    return merchantStatuses[0]?.id || slug;
+  }, [merchantStatuses, slug]);
+
+  const [hasViewedStatus, setHasViewedStatus] = useState(false);
+
+  useEffect(() => {
+    try {
+      const viewed = localStorage.getItem('axon_viewed_statuses');
+      const viewedArr = viewed ? JSON.parse(viewed) : [];
+      setHasViewedStatus(viewedArr.includes(latestStatusId));
+    } catch {
+      setHasViewedStatus(false);
+    }
+  }, [latestStatusId]);
+
+  const markStatusAsViewed = (idx = 0) => {
+    setActiveStatusIndex(idx);
+    setIsStatusViewerOpen(true);
+    setHasViewedStatus(true);
+    try {
+      const viewed = localStorage.getItem('axon_viewed_statuses');
+      const viewedArr = viewed ? JSON.parse(viewed) : [];
+      if (!viewedArr.includes(latestStatusId)) {
+        viewedArr.push(latestStatusId);
+        localStorage.setItem('axon_viewed_statuses', JSON.stringify(viewedArr));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
@@ -2233,20 +2265,21 @@ export default function PublicStore() {
               {/* Contenido sobre la Portada (Avatar, Nombre, Handle, Calificar/EM y Estadísticas) */}
               <div className="relative z-10 pt-6 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col items-center">
                 
-                {/* Avatar centrado con estilo WhatsApp Stories (Círculo de estados activo) */}
+                {/* Avatar centrado con estilo WhatsApp Stories (Aro naranja activo / Gris visto) */}
                 <div className="flex items-center justify-center w-full mb-3">
                   <div className="relative group">
                     {hasActiveStatuses ? (
-                      /* Estado activo: Círculo luminoso tipo WhatsApp / Instagram Stories */
+                      /* Estado activo: Aro circular tipo WhatsApp (Naranja sin ver, Gris ya visto) */
                       <div 
-                        onClick={() => {
-                          setActiveStatusIndex(0);
-                          setIsStatusViewerOpen(true);
-                        }}
-                        className="relative p-1 md:p-1.5 rounded-full bg-gradient-to-tr from-emerald-500 via-teal-400 to-amber-400 shadow-2xl cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 ring-4 ring-emerald-500/25 hover:ring-emerald-400/50"
-                        title="Toca para ver el estado más reciente de la tienda"
+                        onClick={() => markStatusAsViewed(0)}
+                        className={`relative rounded-full cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 p-[3.5px] ${
+                          hasViewedStatus
+                            ? 'bg-zinc-400'
+                            : 'bg-orange-500 shadow-md shadow-orange-500/25 ring-2 ring-orange-400/20'
+                        }`}
+                        title={hasViewedStatus ? 'Estado ya visto' : 'Toca para ver el estado del comercio'}
                       >
-                        <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-2 md:border-4 border-white overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center shrink-0">
                           {logoUrl ? (
                             <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
                           ) : (
@@ -2254,34 +2287,6 @@ export default function PublicStore() {
                               <Store size={44} />
                             </div>
                           )}
-                        </div>
-
-                        {/* Etiqueta flotante inferior "Ver Estado" */}
-                        <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded-full shadow-lg flex items-center gap-1 border-2 border-white whitespace-nowrap pointer-events-none group-hover:scale-105 transition-transform">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                          <span>Ver Estado</span>
-                        </div>
-                      </div>
-                    ) : isMerchantOwner ? (
-                      /* Comerciante sin estado: opción rápida para crear uno tipo WhatsApp */
-                      <div 
-                        onClick={() => navigate('/social-feed?type=status&create=true')}
-                        className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 group"
-                        title="Toca para publicar tu primer estado"
-                      >
-                        <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white ring-4 ring-white/30 flex items-center justify-center shrink-0">
-                          {logoUrl ? (
-                            <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
-                              <Store size={44} />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-500 text-zinc-950 font-black text-[10px] tracking-wider uppercase px-2.5 py-0.5 rounded-full shadow-lg flex items-center gap-1 border-2 border-white whitespace-nowrap pointer-events-none group-hover:bg-amber-400 transition-colors">
-                          <Plus size={11} strokeWidth={3} />
-                          <span>+ Estado</span>
                         </div>
                       </div>
                     ) : (
@@ -2298,7 +2303,7 @@ export default function PublicStore() {
                     )}
 
                     {config?.is_verified && (
-                      <div className={`absolute bottom-1 ${hasActiveStatuses ? 'right-0' : 'right-1'} bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md`} title="Comercio Verificado">
+                      <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
                         <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                       </div>
                     )}
@@ -2531,10 +2536,7 @@ export default function PublicStore() {
                   {merchantStatuses.map((status, idx) => (
                     <div 
                       key={status.id || idx}
-                      onClick={() => {
-                        setActiveStatusIndex(idx);
-                        setIsStatusViewerOpen(true);
-                      }}
+                      onClick={() => markStatusAsViewed(idx)}
                       className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
                       title={`Ver estado: ${status.caption || status.name}`}
                     >
