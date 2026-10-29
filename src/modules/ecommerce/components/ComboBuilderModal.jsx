@@ -5,6 +5,7 @@ import {
   AlertCircle, DollarSign, Image as ImageIcon, Tag, Search, ArrowRight 
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import MultiImageUploader from './MultiImageUploader';
 
 export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, existingCombo = null, availableProducts = [] }) {
   const workspaceId = localStorage.getItem('activeWorkspace');
@@ -14,39 +15,12 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
   const [comboDescription, setComboDescription] = useState('');
   const [comboPrice, setComboPrice] = useState('');
   const [comboStock, setComboStock] = useState('10');
-  const [comboImage, setComboImage] = useState('');
+  const [comboImages, setComboImages] = useState([]);
   const [selectedBadge, setSelectedBadge] = useState('🎁 COMBO ESPECIAL');
   const [comboItems, setComboItems] = useState([]); // [{ id, name, price, qty, image_url, unit_type }]
   const [productSearch, setProductSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [uploadingImg, setUploadingImg] = useState(false);
-
-  const handleImageFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingImg(true);
-    try {
-      const ext = file.name.split('.').pop() || 'jpg';
-      const path = `combos/${workspaceId || 'general'}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('ecommerce').upload(path, file, { upsert: true });
-      if (!upErr) {
-        const { data } = supabase.storage.from('ecommerce').getPublicUrl(path);
-        if (data?.publicUrl) setComboImage(data.publicUrl);
-      } else {
-        const reader = new FileReader();
-        reader.onload = (re) => setComboImage(re.target.result);
-        reader.readAsDataURL(file);
-      }
-    } catch(err) {
-      console.error('Error subiendo imagen:', err);
-      const reader = new FileReader();
-      reader.onload = (re) => setComboImage(re.target.result);
-      reader.readAsDataURL(file);
-    } finally {
-      setUploadingImg(false);
-    }
-  };
 
   // Inicializar o limpiar
   useEffect(() => {
@@ -55,7 +29,13 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
       setComboDescription(existingCombo.description || '');
       setComboPrice(existingCombo.discount_price ? String(existingCombo.discount_price) : String(existingCombo.price || ''));
       setComboStock(String(existingCombo.stock_vitrina ?? existingCombo.stock ?? '10'));
-      setComboImage(existingCombo.image_url || '');
+      
+      const loadedImages = Array.isArray(existingCombo.images) && existingCombo.images.length > 0
+        ? existingCombo.images
+        : Array.isArray(existingCombo.metadata?.images) && existingCombo.metadata.images.length > 0
+          ? existingCombo.metadata.images
+          : existingCombo.image_url ? [existingCombo.image_url] : [];
+      setComboImages(loadedImages);
       setSelectedBadge(existingCombo.metadata?.combo_badge || '🎁 COMBO ESPECIAL');
       
       const rawItems = existingCombo.metadata?.combo_items || [];
@@ -72,7 +52,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
       setComboDescription('');
       setComboPrice('');
       setComboStock('10');
-      setComboImage('');
+      setComboImages([]);
       setSelectedBadge('🎁 COMBO ESPECIAL');
       setComboItems([]);
       setError(null);
@@ -168,11 +148,13 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
         stock: Number(comboStock) || 10,
         stock_vitrina: Number(comboStock) || 10,
         publish_status: 'Publicado',
-        image_url: comboImage.trim() || comboItems[0]?.image_url || null,
+        image_url: (comboImages && comboImages[0]) ? comboImages[0] : (comboItems[0]?.image_url || null),
+        images: comboImages,
         unit_type: 'combo',
         step_size: 1,
         metadata: {
           ...(existingCombo?.metadata || {}),
+          images: comboImages,
           is_combo: true,
           combo_badge: selectedBadge,
           combo_items: comboItems.map(it => ({
@@ -414,37 +396,30 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
                 )}
               </div>
 
-              {/* Stock y Foto del Combo */}
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                    Stock Disponible del Combo
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={comboStock}
-                    onChange={(e) => setComboStock(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                    Foto del Combo
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer shadow-2xs">
-                      <ImageIcon size={14} className="text-amber-500" />
-                      <span>{uploadingImg ? 'Subiendo...' : comboImage ? 'Cambiar Foto' : 'Subir Foto'}</span>
-                      <input type="file" accept="image/*" onChange={handleImageFile} className="hidden" disabled={uploadingImg} />
-                    </label>
-                    {comboImage && (
-                      <div className="w-9 h-9 rounded-lg border border-amber-300 overflow-hidden shrink-0 bg-white shadow-2xs">
-                        <img src={comboImage} alt="Preview" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                  </div>
-                </div>
+              {/* Stock del Combo */}
+              <div className="pt-1">
+                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                  Stock Disponible del Combo
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={comboStock}
+                  onChange={(e) => setComboStock(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Galería de Fotos del Combo */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                <MultiImageUploader
+                  images={comboImages}
+                  onChange={setComboImages}
+                  folder="combos"
+                  maxImages={5}
+                  title="Fotos del Combo"
+                  subtitle="Sube fotos del combo preparado o presentación."
+                />
               </div>
             </div>
 

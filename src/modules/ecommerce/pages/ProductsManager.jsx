@@ -229,6 +229,15 @@ export default function ProductsManager() {
                       </span>
                     </div>
 
+                    {/* Contador de fotos */}
+                    {((Array.isArray(product.images) && product.images.length > 1) || (Array.isArray(product.metadata?.images) && product.metadata.images.length > 1)) && (
+                      <div className="absolute bottom-3 left-3">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/70 text-white shadow-sm backdrop-blur-xs flex items-center gap-1">
+                          <ImageIcon size={10} /> {(product.images || product.metadata?.images).length} fotos
+                        </span>
+                      </div>
+                    )}
+
                     {/* Badge de Combo */}
                     {(product.metadata?.is_combo || product.category === 'Combos') && (
                       <div className="absolute top-3 right-3">

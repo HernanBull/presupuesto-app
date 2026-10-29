@@ -26,6 +26,13 @@ export default function ProductStudio() {
       supabase.from('ecommerce_products').select('*').eq('id', id).single()
         .then(({ data, error }) => {
           if (!error && data) {
+            const parsedMetadata = data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : {};
+            const loadedImages = Array.isArray(data.images) && data.images.length > 0
+              ? data.images
+              : Array.isArray(parsedMetadata.images) && parsedMetadata.images.length > 0
+                ? parsedMetadata.images
+                : data.image_url ? [data.image_url] : [];
+
             const parsedData = {
               id: data.id,
               sku: data.batch_number || '', // Mapping to old fields for compatibility
@@ -33,7 +40,9 @@ export default function ProductStudio() {
               category: data.category || 'General',
               price_usd: data.price || '',
               stock: data.stock || '',
-              metadata: data.metadata ? (typeof data.metadata === 'string' ? JSON.parse(data.metadata) : data.metadata) : {}
+              image_url: data.image_url || loadedImages[0] || '',
+              images: loadedImages,
+              metadata: parsedMetadata
             };
             setInitialData(parsedData);
             setPreviewData(parsedData);
@@ -60,6 +69,9 @@ export default function ProductStudio() {
         return;
       }
 
+      const cleanImages = Array.isArray(formData.images) ? formData.images : [];
+      const primaryImage = cleanImages[0] || formData.image_url || null;
+
       const payload = {
         name: formData.name,
         category: formData.category,
@@ -67,7 +79,12 @@ export default function ProductStudio() {
         stock: parseInt(formData.stock) || 0,
         cogs: parseFloat(formData.cogs) || 0,
         batch_number: formData.sku,
-        metadata: formData.metadata,
+        image_url: primaryImage,
+        images: cleanImages,
+        metadata: {
+          ...(formData.metadata || {}),
+          images: cleanImages
+        },
         workspace_id: workspaceId
       };
 

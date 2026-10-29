@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, ChevronDown, ChevronUp, Save, FileSpreadsheet, Package, Tag, Hash, DollarSign, Boxes, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import MultiImageUploader from './MultiImageUploader';
 
 export default function UnifiedProductForm({ initialData, onSave, onImportClick, onFormChange }) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
     price_usd: '',
     stock: '',
     category: 'General',
+    images: [],
     metadata: {
       brand: '',
       supplier: '',
@@ -24,9 +26,16 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
 
   useEffect(() => {
     if (initialData) {
+      const initialImages = Array.isArray(initialData.images) && initialData.images.length > 0
+        ? initialData.images
+        : Array.isArray(initialData.metadata?.images) && initialData.metadata.images.length > 0
+          ? initialData.metadata.images
+          : initialData.image_url ? [initialData.image_url] : [];
+
       setFormData(prev => ({
         ...prev,
         ...initialData,
+        images: initialImages,
         metadata: {
           ...prev.metadata,
           ...(initialData.metadata || {})
@@ -34,6 +43,22 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
       }));
     }
   }, [initialData]);
+
+  const handleImagesChange = (newImages) => {
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        images: newImages,
+        image_url: newImages[0] || '',
+        metadata: {
+          ...prev.metadata,
+          images: newImages
+        }
+      };
+      if (onFormChange) onFormChange(next);
+      return next;
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -102,6 +127,18 @@ export default function UnifiedProductForm({ initialData, onSave, onImportClick,
       )}
 
       <form onSubmit={handleSubmit} className="px-4 md:px-6 space-y-6 max-w-4xl mx-auto mt-4">
+        {/* Galería Multimedia de Fotos */}
+        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <MultiImageUploader
+            images={formData.images || []}
+            onChange={handleImagesChange}
+            folder="products"
+            maxImages={8}
+            title="Fotos del Producto"
+            subtitle="Agrega fotos desde distintos ángulos. La primera será la portada principal en tu tienda."
+          />
+        </section>
+
         <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">

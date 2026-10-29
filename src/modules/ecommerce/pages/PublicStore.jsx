@@ -242,6 +242,7 @@ export default function PublicStore() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', docId: '', phone: '', address: '' });
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [modalQty, setModalQty] = useState(1);
   const [authLoading, setAuthLoading] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -1425,6 +1426,7 @@ export default function PublicStore() {
 
   const openProductModal = (p) => {
     setSelectedProduct(p);
+    setActiveImageIndex(0);
     setModalQty(1);
     setReviewRating(5);
     setReviewComment('');
@@ -3153,6 +3155,14 @@ export default function PublicStore() {
                                 <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                               </div>
                             )}
+
+                            {/* Badge de fotos múltiples */}
+                            {((Array.isArray(p.images) && p.images.length > 1) || (Array.isArray(p.metadata?.images) && p.metadata.images.length > 1)) && (
+                              <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                                <ImageIcon size={10} />
+                                <span>{(p.images || p.metadata?.images).length}</span>
+                              </div>
+                            )}
                           </div>
                           
                           {/* Info */}
@@ -3310,32 +3320,119 @@ export default function PublicStore() {
       >
         {selectedProduct && (
           <>
-            {/* Foto del Producto (Fondo claro suave, adaptable en móvil) */}
-            <div className="md:w-5/12 bg-orange-50/40 relative flex items-center justify-center p-4 md:p-8 shrink-0 border-b md:border-b-0 md:border-r border-slate-100 min-h-[200px] md:min-h-[340px]">
-              {selectedProduct.image_url ? (
-                <img 
-                  id={`modal-img-${selectedProduct.id}`} 
-                  src={resolveImageUrl(selectedProduct.image_url)} 
-                  alt={selectedProduct.name} 
-                  className="w-full h-full object-contain max-h-48 md:max-h-64 transition-transform duration-300" 
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-2xl bg-orange-100/60 flex items-center justify-center text-orange-400">
-                  <ImageIcon size={40} />
-                </div>
-              )}
+            {/* Foto del Producto con Soporte Multi-Imagen / Carrusel */}
+            {(() => {
+              const productGallery = (Array.isArray(selectedProduct.images) && selectedProduct.images.length > 0)
+                ? selectedProduct.images
+                : (Array.isArray(selectedProduct.metadata?.images) && selectedProduct.metadata.images.length > 0)
+                  ? selectedProduct.metadata.images
+                  : selectedProduct.image_url ? [selectedProduct.image_url] : [];
 
-              {/* Badge Promocional / Distintivo */}
-              {selectedProduct.metadata?.is_combo ? (
-                <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-[10px] md:text-xs uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
-                  {selectedProduct.metadata?.combo_badge || "🎁 COMBO"}
+              const currentImgUrl = productGallery[activeImageIndex] || selectedProduct.image_url;
+
+              return (
+                <div className="md:w-5/12 bg-orange-50/40 relative flex flex-col items-center justify-between p-4 md:p-6 shrink-0 border-b md:border-b-0 md:border-r border-slate-100 min-h-[260px] md:min-h-[380px] select-none">
+                  {/* Visor Principal con flechas de navegación si hay múltiples imágenes */}
+                  <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden min-h-[190px]">
+                    {currentImgUrl ? (
+                      <img 
+                        id={`modal-img-${selectedProduct.id}`} 
+                        key={currentImgUrl}
+                        src={resolveImageUrl(currentImgUrl)} 
+                        alt={selectedProduct.name} 
+                        className="w-full h-full object-contain max-h-52 md:max-h-64 transition-all duration-300 animate-in fade-in zoom-in-95" 
+                      />
+                    ) : (
+                      <div className="w-24 h-24 rounded-2xl bg-orange-100/60 flex items-center justify-center text-orange-400">
+                        <ImageIcon size={40} />
+                      </div>
+                    )}
+
+                    {/* Flechas de navegación para carrusel */}
+                    {productGallery.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveImageIndex(prev => (prev > 0 ? prev - 1 : productGallery.length - 1));
+                          }}
+                          className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-slate-800 shadow-md flex items-center justify-center hover:bg-white hover:scale-105 transition-all z-20"
+                          title="Foto anterior"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveImageIndex(prev => (prev < productGallery.length - 1 ? prev + 1 : 0));
+                          }}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 text-slate-800 shadow-md flex items-center justify-center hover:bg-white hover:scale-105 transition-all z-20"
+                          title="Siguiente foto"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Badge Promocional / Distintivo */}
+                    {selectedProduct.metadata?.is_combo ? (
+                      <div className="absolute top-1 left-1 bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-[10px] md:text-xs uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
+                        {selectedProduct.metadata?.combo_badge || "🎁 COMBO"}
+                      </div>
+                    ) : Boolean(selectedProduct.is_offer) && (
+                      <div className="absolute top-1 left-1 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
+                        {selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Barra de miniaturas e indicadores de puntos (dots) si hay más de 1 imagen */}
+                  {productGallery.length > 1 && (
+                    <div className="w-full mt-3 flex flex-col items-center gap-2 z-10">
+                      {/* Puntos (Dots) */}
+                      <div className="flex items-center gap-1.5">
+                        {productGallery.map((_, dotIdx) => (
+                          <button
+                            key={dotIdx}
+                            type="button"
+                            onClick={() => setActiveImageIndex(dotIdx)}
+                            className={`transition-all rounded-full ${
+                              activeImageIndex === dotIdx
+                                ? 'w-5 h-1.5 bg-orange-600'
+                                : 'w-1.5 h-1.5 bg-slate-300 hover:bg-slate-400'
+                            }`}
+                          />
+                        ))}
+                      </div>
+
+                      {/* Miniaturas */}
+                      <div className="flex items-center justify-center gap-1.5 overflow-x-auto max-w-full py-1 custom-scrollbar">
+                        {productGallery.map((thumbUrl, tIdx) => (
+                          <button
+                            key={tIdx}
+                            type="button"
+                            onClick={() => setActiveImageIndex(tIdx)}
+                            className={`w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden border-2 transition-all shrink-0 bg-white shadow-2xs ${
+                              activeImageIndex === tIdx
+                                ? 'border-orange-500 ring-2 ring-orange-500/30 scale-105'
+                                : 'border-slate-200 opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img
+                              src={resolveImageUrl(thumbUrl)}
+                              alt={`Miniatura ${tIdx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : Boolean(selectedProduct.is_offer) && (
-                <div className="absolute top-3 left-3 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
-                  {selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH"}
-                </div>
-              )}
-            </div>
+              );
+            })()}
             
             {/* Información del Producto (Blanco y Anaranjado) */}
             <div className="md:w-7/12 p-4 md:p-7 flex flex-col relative overflow-y-auto custom-scrollbar flex-1 bg-white text-slate-900">
