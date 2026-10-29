@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { 
   Plus, Edit2, Trash2, Eye, EyeOff, Search, Loader2, Image as ImageIcon, 
@@ -33,9 +34,11 @@ const SUGGESTED_HASHTAGS = [
 ];
 
 export default function MerchantSocialFeedPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'posts' | 'statuses'
   const [storeData, setStoreData] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
@@ -66,8 +69,10 @@ export default function MerchantSocialFeedPage() {
     title: '',
     content: '',
     image_url: '',
+    media_type: 'image',
     status: 'Publicado',
-    badge: '🔥 Oferta Exclusiva'
+    badge: '🔥 Oferta Exclusiva',
+    post_type: 'post' // 'post' o 'status'
   });
 
   const workspaceId = localStorage.getItem('activeWorkspace');
@@ -335,17 +340,31 @@ export default function MerchantSocialFeedPage() {
     }
   };
 
-  const handleOpenModal = (newsItem = null) => {
+  // Auto-apertura si se accede desde "Nuevo estado" en la Vitrina
+  useEffect(() => {
+    const shouldCreate = searchParams.get('create') === 'true';
+    const reqType = searchParams.get('type') || 'post';
+    if (shouldCreate) {
+      handleOpenModal(null, reqType);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
+
+  const handleOpenModal = (newsItem = null, defaultType = 'post') => {
     if (newsItem) {
       const isVid = newsItem.media_type === 'video' || (newsItem.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(newsItem.image_url));
+      const isStatus = newsItem.post_type === 'status' || (newsItem.title && newsItem.title.startsWith('[ESTADO]'));
+      const cleanTitle = (newsItem.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+
       setFormData({
         id: newsItem.id,
-        title: newsItem.title || '',
+        title: cleanTitle,
         content: newsItem.content || '',
         image_url: newsItem.image_url || '',
         media_type: isVid ? 'video' : 'image',
         status: newsItem.status || 'Publicado',
-        badge: newsItem.badge || '🔥 Oferta Exclusiva'
+        badge: newsItem.badge || '🔥 Oferta Exclusiva',
+        post_type: isStatus ? 'status' : 'post'
       });
     } else {
       setFormData({
@@ -355,7 +374,8 @@ export default function MerchantSocialFeedPage() {
         image_url: '',
         media_type: 'image',
         status: 'Publicado',
-        badge: '🔥 Oferta Exclusiva'
+        badge: '🔥 Oferta Exclusiva',
+        post_type: defaultType
       });
     }
     setIsModalOpen(true);
@@ -375,13 +395,18 @@ export default function MerchantSocialFeedPage() {
     setIsSubmitting(true);
     try {
       const isVideo = Boolean(formData.media_type === 'video' || (formData.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(formData.image_url)));
+      const isStatus = formData.post_type === 'status';
+      const cleanTitle = formData.title.trim().replace(/^\[ESTADO\]\s*/i, '');
+      const finalTitle = isStatus ? `[ESTADO] ${cleanTitle}` : cleanTitle;
+
       const payload = {
         workspace_id: workspaceId,
-        title: formData.title.trim(),
+        title: finalTitle,
         content: formData.content.trim(),
         image_url: formData.image_url?.trim() || null,
         media_type: isVideo ? 'video' : 'image',
-        status: formData.status || 'Publicado'
+        status: formData.status || 'Publicado',
+        post_type: isStatus ? 'status' : 'post'
       };
 
       let opError = null;
@@ -398,6 +423,18 @@ export default function MerchantSocialFeedPage() {
         opError = error;
       }
 
+      // Si falla por columna post_type inexistente en BD, reintentar sin ella
+      if (opError && opError.message?.toLowerCase().includes('post_type')) {
+        delete payload.post_type;
+        if (formData.id) {
+          const { error } = await supabase.from('ecommerce_store_news').update(payload).eq('id', formData.id);
+          opError = error;
+        } else {
+          const { error } = await supabase.from('ecommerce_store_news').insert([payload]);
+          opError = error;
+        }
+      }
+
       // Si falla por columna media_type inexistente en BD no migrada, reintentar sin ella
       if (opError && opError.message?.toLowerCase().includes('media_type')) {
         delete payload.media_type;
@@ -412,7 +449,11 @@ export default function MerchantSocialFeedPage() {
 
       if (opError) throw opError;
 
-      toast.success(formData.id ? 'Publicación actualizada en el feed' : '¡Publicado en Axon Market exitosamente!');
+      toast.success(
+        formData.id 
+          ? (isStatus ? 'Estado de vitrina actualizado' : 'Publicación actualizada en el feed') 
+          : (isStatus ? '¡Estado publicado en tu vitrina exitosamente!' : '¡Publicado en Axon Market exitosamente!')
+      );
 
       // Notificar al feed global para actualización instantánea
       window.dispatchEvent(new CustomEvent('axon_social_updated'));
@@ -421,7 +462,7 @@ export default function MerchantSocialFeedPage() {
       fetchNews();
     } catch (error) {
       console.error('Error saving news:', error);
-      toast.error(error.message || 'Error al guardar la publicación');
+      toast.error(error.message || 'Error al guardar');
     } finally {
       setIsSubmitting(false);
     }
@@ -480,10 +521,24 @@ export default function MerchantSocialFeedPage() {
     return Math.max(postSum, storeTotalComments);
   }, [postInteractions, storeTotalComments]);
 
-  const filteredNews = news.filter(n => 
-    n.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    n.content?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const isItemStatus = (item) => item.post_type === 'status' || (item.title && item.title.startsWith('[ESTADO]'));
+
+  const postsCount = useMemo(() => news.filter(n => !isItemStatus(n)).length, [news]);
+  const statusesCount = useMemo(() => news.filter(n => isItemStatus(n)).length, [news]);
+
+  const filteredNews = useMemo(() => {
+    return news.filter(n => {
+      const isStatus = isItemStatus(n);
+      if (activeFilterTab === 'posts' && isStatus) return false;
+      if (activeFilterTab === 'statuses' && !isStatus) return false;
+
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      const cleanTitle = (n.title || '').replace(/^\[ESTADO\]\s*/i, '').toLowerCase();
+      const cleanContent = (n.content || '').toLowerCase();
+      return cleanTitle.includes(term) || cleanContent.includes(term);
+    });
+  }, [news, activeFilterTab, searchTerm]);
 
   const storeLogo = storeData?.config?.logoUrl || storeData?.config?.storefront?.logoUrl;
   const storeName = storeData?.name || 'Mi Comercio';
@@ -503,25 +558,36 @@ export default function MerchantSocialFeedPage() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-            Feed de Redes Sociales
+            Feed Social y Estados de Vitrina
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl leading-relaxed">
-            Publica novedades, fotos y promociones directamente en el feed de <span className="font-bold text-amber-600 dark:text-amber-400">Axon Market</span>. Los compradores podrán dar like, comentar y seguir tu tienda en tiempo real.
+            Publica novedades en el <span className="font-bold text-amber-600 dark:text-amber-400">Feed Global de Axon Market</span> o crea <span className="font-bold text-emerald-600 dark:text-emerald-400">Estados para el carrusel de tu vitrina</span>.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => window.open('/', '_blank')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200 text-sm font-semibold transition-all shadow-xs"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-700 dark:text-gray-200 text-xs sm:text-sm font-semibold transition-all shadow-xs"
+            title="Abrir el feed público de clientes"
           >
             <ExternalLink size={16} />
             Ver Feed Axon
           </button>
           
           <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 text-sm"
+            onClick={() => handleOpenModal(null, 'status')}
+            className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95 text-xs sm:text-sm"
+            title="Crear un estado que se muestra en el carrusel de historias de tu vitrina pública"
+          >
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            + Nuevo Estado
+          </button>
+
+          <button
+            onClick={() => handleOpenModal(null, 'post')}
+            className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-amber-500/20 active:scale-95 text-xs sm:text-sm"
+            title="Crear una publicación que aparece en el feed principal de clientes de Axon Market"
           >
             <Plus size={18} strokeWidth={2.5} />
             Nueva Publicación
@@ -599,20 +665,59 @@ export default function MerchantSocialFeedPage() {
         </div>
       </div>
 
-      {/* Barra de Búsqueda y Filtros */}
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-white/5 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Buscar en tus publicaciones..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-800/60 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-          />
+      {/* Barra de Búsqueda y Filtros de Pestaña */}
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200 dark:border-white/5 p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Pestañas de Filtro */}
+        <div className="flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-zinc-800/80 rounded-xl w-full md:w-auto">
+          <button
+            onClick={() => setActiveFilterTab('all')}
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              activeFilterTab === 'all'
+                ? 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-white shadow-xs'
+                : 'text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Todos ({news.length})
+          </button>
+          <button
+            onClick={() => setActiveFilterTab('posts')}
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeFilterTab === 'posts'
+                ? 'bg-amber-500 text-zinc-950 shadow-xs'
+                : 'text-gray-500 dark:text-zinc-400 hover:text-amber-500'
+            }`}
+          >
+            <Share2 size={12} />
+            Publicaciones ({postsCount})
+          </button>
+          <button
+            onClick={() => setActiveFilterTab('statuses')}
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              activeFilterTab === 'statuses'
+                ? 'bg-emerald-500 text-white shadow-xs'
+                : 'text-gray-500 dark:text-zinc-400 hover:text-emerald-500'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Estados Vitrina ({statusesCount})
+          </button>
         </div>
-        <div className="text-xs text-gray-500 dark:text-zinc-400">
-          Mostrando <span className="font-bold text-gray-900 dark:text-white">{filteredNews.length}</span> publicación(es)
+
+        {/* Búsqueda */}
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Buscar por título o texto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-zinc-800 rounded-xl bg-gray-50 dark:bg-zinc-800/60 text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          <div className="text-xs text-gray-500 dark:text-zinc-400 whitespace-nowrap hidden sm:block">
+            <span className="font-bold text-gray-900 dark:text-white">{filteredNews.length}</span> elemento(s)
+          </div>
         </div>
       </div>
 
@@ -620,7 +725,7 @@ export default function MerchantSocialFeedPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <Loader2 className="animate-spin text-amber-500 mb-3" size={36} />
-          <p className="text-sm">Cargando publicaciones sociales...</p>
+          <p className="text-sm">Cargando contenido social y estados...</p>
         </div>
       ) : filteredNews.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-3xl border border-gray-200 dark:border-white/5 p-8">
@@ -628,23 +733,41 @@ export default function MerchantSocialFeedPage() {
             <Share2 size={32} />
           </div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-            Aún no has creado publicaciones
+            {activeFilterTab === 'statuses'
+              ? 'Aún no tienes estados en tu vitrina'
+              : activeFilterTab === 'posts'
+              ? 'Aún no has creado publicaciones en el feed'
+              : 'Aún no has creado publicaciones ni estados'}
           </h3>
           <p className="text-sm text-gray-500 dark:text-zinc-400 max-w-md mx-auto mb-6">
-            Comparte tus ofertas, promociones y fotos de productos. Llegarás a miles de clientes en la pantalla principal de Axon Market.
+            {activeFilterTab === 'statuses'
+              ? 'Los estados aparecen en el carrusel superior de tu vitrina pública para mostrar ofertas rápidas a tus visitantes.'
+              : 'Comparte tus ofertas y productos. Llegarás a miles de clientes en el feed principal de Axon Market.'}
           </p>
-          <button
-            onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 py-3 rounded-xl transition-all shadow-md active:scale-95 text-sm"
-          >
-            <Plus size={18} />
-            Crear mi Primera Publicación
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => handleOpenModal(null, 'status')}
+              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+            >
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              Crear Nuevo Estado
+            </button>
+            <button
+              onClick={() => handleOpenModal(null, 'post')}
+              className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 text-xs sm:text-sm"
+            >
+              <Plus size={18} />
+              Crear Publicación
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNews.map((item) => {
             const stats = postInteractions[item.id] || { likes: 0, commentsCount: 0, savedCount: 0 };
+            const isStatus = isItemStatus(item);
+            const cleanTitle = (item.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+
             return (
               <div 
                 key={item.id} 
@@ -669,7 +792,7 @@ export default function MerchantSocialFeedPage() {
                     ) : (
                       <img 
                         src={item.image_url} 
-                        alt={item.title} 
+                        alt={cleanTitle} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                       />
                     )
@@ -680,15 +803,26 @@ export default function MerchantSocialFeedPage() {
                     </div>
                   )}
 
-                  {/* Estado Badge */}
-                  <div className="absolute top-3 left-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md shadow-sm flex items-center gap-1.5 ${
+                  {/* Badges de Tipo y Estado */}
+                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+                    {isStatus ? (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-md shadow-sm flex items-center gap-1.5 bg-emerald-500/95 text-white">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        Estado Vitrina
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-md shadow-sm flex items-center gap-1.5 bg-amber-500/95 text-zinc-950">
+                        <Share2 size={11} strokeWidth={2.5} />
+                        Feed Global
+                      </span>
+                    )}
+
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold backdrop-blur-md shadow-sm ${
                       item.status === 'Publicado' 
-                        ? 'bg-emerald-500/90 text-white' 
-                        : 'bg-zinc-900/80 text-zinc-300'
+                        ? 'bg-black/60 text-white' 
+                        : 'bg-zinc-800/80 text-zinc-300'
                     }`}>
-                      <span className={`w-2 h-2 rounded-full ${item.status === 'Publicado' ? 'bg-white animate-pulse' : 'bg-zinc-500'}`} />
-                      {item.status === 'Publicado' ? 'En el Feed' : 'Borrador'}
+                      {item.status === 'Publicado' ? 'Visible' : 'Borrador'}
                     </span>
                   </div>
 
@@ -704,7 +838,7 @@ export default function MerchantSocialFeedPage() {
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
                     <h3 className="font-bold text-base text-gray-900 dark:text-white line-clamp-1 mb-1.5">
-                      {item.title}
+                      {cleanTitle}
                     </h3>
                     <p className="text-xs text-gray-600 dark:text-zinc-400 line-clamp-3 leading-relaxed mb-4">
                       {item.content}
@@ -802,16 +936,36 @@ export default function MerchantSocialFeedPage() {
             
             {/* Header del Modal */}
             <div className="p-5 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center">
-                  <Share2 size={18} />
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  formData.post_type === 'status'
+                    ? 'bg-emerald-500/20 text-emerald-500'
+                    : 'bg-amber-500/20 text-amber-500'
+                }`}>
+                  {formData.post_type === 'status' ? (
+                    <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                  ) : (
+                    <Share2 size={18} />
+                  )}
                 </div>
                 <div>
-                  <h2 className="font-bold text-lg text-gray-900 dark:text-white">
-                    {formData.id ? 'Editar Publicación' : 'Crear Publicación para Axon Market'}
+                  <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                    {formData.id 
+                      ? (formData.post_type === 'status' ? 'Editar Estado de Vitrina' : 'Editar Publicación') 
+                      : (formData.post_type === 'status' ? 'Nuevo Estado para tu Vitrina' : 'Crear Publicación para Axon Market')
+                    }
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      formData.post_type === 'status'
+                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    }`}>
+                      {formData.post_type === 'status' ? 'Carrusel Vitrina' : 'Feed Global'}
+                    </span>
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-zinc-400">
-                    Tu post aparecerá directamente en el feed principal de clientes
+                    {formData.post_type === 'status'
+                      ? 'Se mostrará en la sección "Estados y Promociones" de tu tienda online'
+                      : 'Tu post aparecerá en el feed interactivo estilo TikTok de clientes de Axon Market'}
                   </p>
                 </div>
               </div>
@@ -828,17 +982,61 @@ export default function MerchantSocialFeedPage() {
               
               {/* Formulario */}
               <form onSubmit={handleSubmit} className="lg:col-span-7 p-6 space-y-5 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-zinc-800">
+                {/* Selector de Tipo: Publicación vs Estado de Vitrina */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider">
+                    ¿Dónde deseas mostrar este contenido?
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 bg-gray-100 dark:bg-zinc-800/80 p-1.5 rounded-2xl border border-gray-200/80 dark:border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, post_type: 'post' }))}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                        formData.post_type === 'post'
+                          ? 'bg-amber-500 text-zinc-950 shadow-md font-extrabold'
+                          : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Share2 size={14} />
+                      Publicación (Feed Global)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, post_type: 'status' }))}
+                      className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                        formData.post_type === 'status'
+                          ? 'bg-emerald-500 text-white shadow-md font-extrabold'
+                          : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      Estado (Carrusel Vitrina)
+                    </button>
+                  </div>
+                  <div className="text-[11px] px-1">
+                    {formData.post_type === 'status' ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        🟢 Aparecerá en el carrusel superior de historias de tu vitrina pública para fidelizar a los visitantes.
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400 font-medium">
+                        🌐 Se mostrará en el feed principal de clientes de Axon Market para captar nuevos compradores.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Título */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-zinc-300 uppercase tracking-wider mb-1.5">
-                    Título o Asunto de la Publicación *
+                    {formData.post_type === 'status' ? 'Título del Estado / Promo *' : 'Título de la Publicación *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Ej: ¡Nuevo cargamento de víveres y 20% off en combos!"
+                    placeholder={formData.post_type === 'status' ? 'Ej: ¡Solo por hoy 2x1 en frutas frescas!' : 'Ej: ¡Nuevo cargamento de víveres y 20% off en combos!'}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -1015,7 +1213,9 @@ export default function MerchantSocialFeedPage() {
                     className="w-4 h-4 text-amber-500 rounded border-gray-300 focus:ring-amber-500"
                   />
                   <label htmlFor="modal-status" className="text-xs font-semibold text-gray-700 dark:text-zinc-300 select-none">
-                    Transmitir en vivo inmediatamente en el feed de Axon Market
+                    {formData.post_type === 'status'
+                      ? 'Activar inmediatamente en el carrusel de mi vitrina'
+                      : 'Transmitir en vivo inmediatamente en el feed de Axon Market'}
                   </label>
                 </div>
 
@@ -1031,10 +1231,18 @@ export default function MerchantSocialFeedPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 active:scale-95"
+                    className={`flex items-center gap-2 px-6 py-2.5 font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 active:scale-95 ${
+                      formData.post_type === 'status'
+                        ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                        : 'bg-amber-500 hover:bg-amber-400 text-zinc-950'
+                    }`}
                   >
                     {isSubmitting && <Loader2 size={14} className="animate-spin" />}
-                    {formData.id ? 'Guardar Cambios' : 'Publicar en Axon Market'}
+                    {formData.id 
+                      ? 'Guardar Cambios' 
+                      : formData.post_type === 'status' 
+                      ? 'Publicar Estado en Vitrina' 
+                      : 'Publicar en Axon Market'}
                   </button>
                 </div>
               </form>
@@ -1045,10 +1253,14 @@ export default function MerchantSocialFeedPage() {
                   <div className="flex items-center justify-between mb-2.5">
                     <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <Eye size={13} className="text-amber-400" />
-                      Vista Previa TikTok (9:16)
+                      Vista Previa {formData.post_type === 'status' ? 'Estado' : 'TikTok'} (9:16)
                     </span>
-                    <span className="text-[10px] font-extrabold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded-full">
-                      Feed AxonMarket
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                      formData.post_type === 'status'
+                        ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30'
+                        : 'text-amber-400 bg-amber-400/10 border-amber-400/30'
+                    }`}>
+                      {formData.post_type === 'status' ? 'Vitrina Pública' : 'Feed AxonMarket'}
                     </span>
                   </div>
 

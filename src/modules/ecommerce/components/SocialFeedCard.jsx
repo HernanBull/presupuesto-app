@@ -69,10 +69,72 @@ export default function SocialFeedCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const videoRef = useRef(null);
+  const containerRef = useRef(null);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
+
+  // Control inteligente de reproducción y audio en Scroll (IntersectionObserver estilo TikTok)
+  useEffect(() => {
+    if (!isVideo || !containerRef.current) return;
+
+    const el = containerRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+            // El video está enfocado en pantalla: reproducir con audio
+            if (videoRef.current) {
+              const playPromise = videoRef.current.play();
+              if (playPromise !== undefined) {
+                playPromise
+                  .then(() => {
+                    setIsPlaying(true);
+                  })
+                  .catch(() => {
+                    // Si el navegador bloquea autoplay con audio antes del primer toque, silenciar temporalmente
+                    if (videoRef.current) {
+                      videoRef.current.muted = true;
+                      setIsMuted(true);
+                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+                    }
+                  });
+              }
+            }
+          } else {
+            // Al scrollear hacia arriba o abajo y salir del viewport: pausar inmediatamente
+            if (videoRef.current) {
+              videoRef.current.pause();
+              setIsPlaying(false);
+            }
+          }
+        });
+      },
+      { threshold: [0, 0.55, 1.0] }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isVideo]);
+
+  // Si el navegador forzó mute, desmutear automáticamente al primer toque del cliente
+  useEffect(() => {
+    if (!isVideo || !isMuted) return;
+    const handleFirstTouch = () => {
+      if (videoRef.current) {
+        videoRef.current.muted = false;
+        setIsMuted(false);
+      }
+    };
+
+    window.addEventListener('click', handleFirstTouch, { once: true });
+    window.addEventListener('touchstart', handleFirstTouch, { once: true });
+    return () => {
+      window.removeEventListener('click', handleFirstTouch);
+      window.removeEventListener('touchstart', handleFirstTouch);
+    };
+  }, [isVideo, isMuted]);
 
   // Cargar estado desde el servidor
   useEffect(() => {
@@ -255,6 +317,7 @@ export default function SocialFeedCard({
   return (
     <div 
       id={`post-${postId}`}
+      ref={containerRef}
       className="tiktok-feed-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end will-change-transform m-0 p-0"
       style={{
         height: '100dvh',

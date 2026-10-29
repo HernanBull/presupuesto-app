@@ -322,16 +322,27 @@ export default function PublicStore() {
     const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
     const storeName = config?.business_name || 'Comercio';
 
-    const list = (storeNews || []).map((news) => ({
-      id: news.id,
-      name: storeName,
-      slug: slug,
-      avatar: storeAvatar,
-      mediaUrl: news.image_url || storeCover || storeAvatar,
-      caption: news.title ? `${news.title}: ${news.content}` : news.content,
-      time: formatStatusTime(news.created_at),
-      isVerified: !!config?.is_verified
-    }));
+    // Priorizar aquellos marcados explícitamente como estado (post_type === 'status' o [ESTADO])
+    const explicitStatuses = (storeNews || []).filter(
+      news => news.post_type === 'status' || (news.title && news.title.startsWith('[ESTADO]'))
+    );
+
+    // Si existen estados explícitos creados por el comercio, mostrar esos; si no, usar storeNews existentes como fallback
+    const sourceNews = explicitStatuses.length > 0 ? explicitStatuses : (storeNews || []);
+
+    const list = sourceNews.map((news) => {
+      const cleanTitle = (news.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+      return {
+        id: news.id,
+        name: storeName,
+        slug: slug,
+        avatar: storeAvatar,
+        mediaUrl: news.image_url || storeCover || storeAvatar,
+        caption: cleanTitle ? (news.content ? `${cleanTitle}: ${news.content}` : cleanTitle) : news.content,
+        time: formatStatusTime(news.created_at),
+        isVerified: !!config?.is_verified
+      };
+    });
 
     if (list.length === 0) {
       list.push({
@@ -2434,7 +2445,7 @@ export default function PublicStore() {
                   </div>
                   {isMerchantOwner && (
                     <button
-                      onClick={() => navigate('/social-feed')}
+                      onClick={() => navigate('/social-feed?type=status&create=true')}
                       className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors cursor-pointer"
                       style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
                     >
