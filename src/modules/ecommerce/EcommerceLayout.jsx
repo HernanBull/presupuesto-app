@@ -112,24 +112,21 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     { name: 'Pedidos', path: '/orders', icon: ShoppingCart },
     { name: 'Soporte', path: '/support', icon: LifeBuoy },
     { name: 'Preparación', path: '/preparation', icon: Box },
-    { name: 'Reseñas', path: '/reviews', icon: MessageSquare },
-    { name: 'Promociones', path: '/promotions', icon: Tag },
+    // { name: 'Reseñas', path: '/reviews', icon: MessageSquare }, // Oculto temporalmente a solicitud
+    // { name: 'Promociones', path: '/promotions', icon: Tag }, // Oculto temporalmente a solicitud
     { name: 'Ofertas Flash', path: '/offers', icon: Zap },
     { name: 'Red Social', path: '/social-feed', icon: Share2 },
     { name: 'Notificaciones', path: '/notifications', icon: Bell },
     { name: 'Perfil Tienda', path: '/store-profile', icon: Settings },
     { name: 'Ubicación', path: '/location', icon: MapPin },
-
   ];
 
   // Navegación móvil: 4 ítems primarios + botón "Más"
-  const primaryNavItems = [
-    navItems[0], // Dashboard
-    navItems[4], // Pedidos
-    navItems[2], // Productos
-    navItems[3], // Inventario
-  ];
-  const secondaryNavItems = navItems.filter((_, i) => ![0, 4, 2, 3].includes(i));
+  const primaryPaths = ['/dashboard', '/orders', '/products', '/inventory'];
+  const primaryNavItems = primaryPaths
+    .map(p => navItems.find(item => item.path === p))
+    .filter(Boolean);
+  const secondaryNavItems = navItems.filter(item => !primaryPaths.includes(item.path));
 
   if (workspaceStatus === 'Pendiente') {
     return (

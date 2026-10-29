@@ -3585,7 +3585,8 @@ export default function PublicStore() {
                           )}
                         </div>
 
-                        {/* Cupón de Descuento */}
+                        {/* Cupón / Promoción de Descuento — Oculto temporalmente a solicitud */}
+                        {/*
                         <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs">
                           <label className="text-xs font-black uppercase tracking-wider text-slate-700 block">
                             ¿Tienes un código de descuento?
@@ -3625,6 +3626,7 @@ export default function PublicStore() {
                           )}
                           {discountError && <p className="text-red-500 text-xs font-semibold mt-1">{discountError}</p>}
                         </div>
+                        */}
                       </div>
                     ) : (
                       <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
@@ -4412,7 +4414,8 @@ export default function PublicStore() {
                 })}
               </div>
 
-              {/* Discount Input */}
+              {/* Discount Input — Oculto temporalmente a solicitud */}
+              {/*
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -4429,6 +4432,7 @@ export default function PublicStore() {
                   Aplicar
                 </button>
               </div>
+              */}
 
               {/* Totals */}
               <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-4 border border-amber-200/80 dark:border-amber-900/40">
