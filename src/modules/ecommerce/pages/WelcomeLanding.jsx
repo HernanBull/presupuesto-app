@@ -118,9 +118,16 @@ export default function WelcomeLanding() {
           background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
       >
-        {/* Barra Superior Minimalista (Top-Right: Iniciar Sesión únicamente, limpio como DoorDash) */}
+        {/* Barra Superior Minimalista */}
         <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
-          <div>
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <button 
+              onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
+              className="hidden sm:inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+            >
+              <Store size={14} className="text-amber-300" />
+              <span>Probá gratis 14 días</span>
+            </button>
             {currentCustomer ? (
               <button 
                 onClick={() => navigate('/explorar')}
@@ -166,18 +173,48 @@ export default function WelcomeLanding() {
           </h1>
           
           {/* Subtítulo Comercial Atractivo */}
-          <p className="hero-white-title text-sm sm:text-base font-semibold mb-8 max-w-lg">
+          <p className="hero-white-title text-sm sm:text-base font-semibold mb-6 max-w-lg">
             Tus tiendas, restaurantes y bodegones favoritos en un solo lugar
           </p>
 
-          {/* Único Botón Principal: Abrir aplicación */}
-          <button 
-            onClick={() => navigate('/explorar')}
-            className="w-full max-w-xs py-3.5 px-8 font-black text-base rounded-full shadow-2xl active:scale-95 transition-all text-center mb-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/20"
-            style={{ color: '#ffffff' }}
-          >
-            Abrir aplicación
-          </button>
+          {/* Grupo de Botones de Acción (Abrir app + Probá gratis 14 días para comerciantes) */}
+          <div className="w-full max-w-md flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+            <button 
+              onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
+              className="w-full sm:w-auto flex-1 py-3.5 px-6 font-black text-sm sm:text-base rounded-full shadow-2xl active:scale-95 transition-all text-center bg-white hover:bg-zinc-100 text-zinc-950 border border-white/60 flex items-center justify-center gap-2 group cursor-pointer"
+            >
+              <span>Probá gratis 14 días</span>
+              <ArrowRight size={16} className="text-zinc-900 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            <button 
+              onClick={() => navigate('/explorar')}
+              className="w-full sm:w-auto flex-1 py-3.5 px-6 font-black text-sm sm:text-base rounded-full shadow-2xl active:scale-95 transition-all text-center bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/20 cursor-pointer"
+              style={{ color: '#ffffff' }}
+            >
+              Abrir aplicación
+            </button>
+          </div>
+
+          {/* Chips de Beneficios Comerciales estilo Commercy */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-6 max-w-xl mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
+              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+              <span>Plan gratis para empezar</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
+              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+              <span>Sin tarjeta</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
+              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+              <span>0% de comisión por venta</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
+              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+              <span>Cancelás cuando quieras</span>
+            </div>
+          </div>
 
           {/* Única Cápsula de Búsqueda blanca y limpia con lupa integrada */}
           <form 
