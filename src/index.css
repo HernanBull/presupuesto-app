@@ -182,6 +182,105 @@
     color: var(--text-main) !important;
     font-weight: 600;
   }
+
+  /* ====================================================
+     SUPERADMIN: ALTO CONTRASTE Y LEGIBILIDAD PREMIUM
+     Evita letras blancas invisibles sobre fondos claros
+     ==================================================== */
+  .superadmin-container {
+    background-color: #F8FAFC !important;
+    color: #0F172A !important;
+  }
+
+  .superadmin-container header {
+    background-color: #FFFFFF !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Forzar que los textos blancos sean carbón de alto contraste */
+  .superadmin-container .text-white,
+  .superadmin-container p.text-white,
+  .superadmin-container span.text-white,
+  .superadmin-container td.text-white,
+  .superadmin-container th.text-white,
+  .superadmin-container h1.text-white,
+  .superadmin-container h2.text-white,
+  .superadmin-container h3.text-white,
+  .superadmin-container h4.text-white {
+    color: #0F172A !important;
+  }
+
+  /* Excepciones: Botones y etiquetas que tienen fondos de color vivos (rojo, verde, azul, naranja, violeta) */
+  .superadmin-container button[class*="bg-red-"],
+  .superadmin-container button[class*="bg-blue-"],
+  .superadmin-container button[class*="bg-amber-"],
+  .superadmin-container button[class*="bg-emerald-"],
+  .superadmin-container button[class*="bg-indigo-"],
+  .superadmin-container button[class*="bg-orange-"],
+  .superadmin-container [class*="bg-red-600"],
+  .superadmin-container [class*="bg-blue-600"],
+  .superadmin-container [class*="bg-amber-600"],
+  .superadmin-container [class*="bg-emerald-600"],
+  .superadmin-container [class*="bg-indigo-600"],
+  .superadmin-container [class*="bg-orange-500"],
+  .superadmin-container [class*="bg-orange-600"],
+  .superadmin-container .badge-white-text {
+    color: #FFFFFF !important;
+  }
+
+  /* Textos secundarios que eran zinc-300 / 400 / 500 pasan a ser oscuros y nítidos */
+  .superadmin-container .text-zinc-500,
+  .superadmin-container .text-slate-500 {
+    color: #475569 !important; /* Slate 600 */
+  }
+
+  .superadmin-container .text-zinc-400,
+  .superadmin-container .text-slate-400 {
+    color: #334155 !important; /* Slate 700 */
+  }
+
+  .superadmin-container .text-zinc-300,
+  .superadmin-container .text-slate-300 {
+    color: #1E293B !important; /* Slate 800 */
+  }
+
+  /* Pestañas inactivas con buen contraste y hover */
+  .superadmin-container button.bg-zinc-900:not([class*="bg-red-"]):not([class*="bg-blue-"]):not([class*="bg-amber-"]) {
+    background-color: #F1F5F9 !important;
+    color: #334155 !important;
+    border: 1px solid #CBD5E1 !important;
+  }
+
+  .superadmin-container button.bg-zinc-900:not([class*="bg-red-"]):not([class*="bg-blue-"]):not([class*="bg-amber-"]):hover {
+    background-color: #E2E8F0 !important;
+    color: #0F172A !important;
+  }
+
+  /* Inputs y selects de SuperAdmin */
+  .superadmin-container input,
+  .superadmin-container select,
+  .superadmin-container textarea {
+    background-color: #F8FAFC !important;
+    color: #0F172A !important;
+    border: 1px solid #CBD5E1 !important;
+  }
+
+  .superadmin-container input::placeholder,
+  .superadmin-container textarea::placeholder {
+    color: #94A3B8 !important;
+  }
+
+  /* Bordes de tablas en SuperAdmin */
+  .superadmin-container .border-white\/10,
+  .superadmin-container .border-white\/5 {
+    border-color: #E2E8F0 !important;
+  }
+
+  .superadmin-container tr.hover\:bg-white\/5:hover,
+  .superadmin-container tr.hover\:bg-white\/\[0\.02\]:hover {
+    background-color: #F8FAFC !important;
+  }
 }
 
 @keyframes shimmer {

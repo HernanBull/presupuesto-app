@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, ArrowRight, Truck, ShieldCheck, ShieldBan, Save } from 'lucide-react';
+import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -550,36 +550,36 @@ export default function SuperAdminDashboard({ superKey }) {
   );
 
   return (
-    <div className="min-h-screen bg-black text-slate-50 font-sans flex flex-col">
+    <div className="superadmin-container min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
       {/* Header */}
-      <header className="bg-zinc-950 border-b border-red-500/20 px-8 py-5 flex items-center justify-between sticky top-0 z-40 shadow-[0_4px_30px_rgba(239,68,68,0.1)]">
+      <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="p-2 bg-red-500/10 text-red-500 rounded-lg">
+          <div className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-200 shadow-xs">
             <ShieldAlert size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-black uppercase tracking-widest text-white">Super Admin</h1>
-            <p className="text-xs text-red-400 font-bold tracking-widest uppercase">Centro Analítico y Control</p>
+            <h1 className="text-xl font-black uppercase tracking-widest text-slate-950">Super Admin</h1>
+            <p className="text-xs text-red-600 font-black tracking-widest uppercase">Centro Analítico y Control</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => { setIsKeyModalOpen(true); setKeyError(''); setNewKeyInput(''); }}
-            className="p-2 bg-zinc-900 border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 hover:text-slate-950 hover:bg-slate-200 transition-colors shadow-xs"
             title="Cambiar Clave Maestra"
           >
             <Key size={18} />
           </button>
           <button 
             onClick={() => { setIs2faModalOpen(true); fetch2FaSetup(); }}
-            className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 hover:text-white hover:bg-indigo-500 transition-colors"
+            className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-600 hover:bg-indigo-100 transition-colors shadow-xs"
             title="Configurar Google Authenticator (2FA)"
           >
             <QrCode size={18} />
           </button>
           <button 
             onClick={() => { localStorage.removeItem('superadmin_key'); window.location.reload(); }}
-            className="px-4 py-2 border border-white/10 rounded-full text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors uppercase tracking-widest"
+            className="px-4 py-2.5 bg-slate-100 border border-slate-300 rounded-full text-xs font-black text-slate-700 hover:text-slate-950 hover:bg-slate-200 transition-colors uppercase tracking-widest shadow-xs"
           >
             Cerrar Sesión
           </button>
@@ -593,72 +593,72 @@ export default function SuperAdminDashboard({ superKey }) {
         <div className="flex gap-4 mb-8 overflow-x-auto pb-2 scrollbar-hide">
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'dashboard' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'dashboard' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <BarChart3 size={18} /> Dashboard
           </button>
           <button 
             onClick={() => setActiveTab('monitor')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'monitor' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'monitor' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <Radio size={18} /> Monitor
           </button>
           <button 
             onClick={() => setActiveTab('delivery_fleet')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'delivery_fleet' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'delivery_fleet' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <Truck size={18} /> Flota Delivery
           </button>
           <button 
             onClick={() => setActiveTab('delivery_bot')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'delivery_bot' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'delivery_bot' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <Truck size={18} /> Delivery Bot
           </button>
           <button 
             onClick={() => setActiveTab('pending_merchants')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'pending_merchants' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'pending_merchants' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <ShieldAlert size={18} /> Pre-registros
           </button>
           <button 
             onClick={() => setActiveTab('merchants')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'merchants' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'merchants' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <Store size={18} /> Tiendas
           </button>
           <button 
             onClick={() => setActiveTab('security')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'security' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'security' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <ShieldCheck size={18} /> Terminales & Anti-Piratería
           </button>
           <button 
             onClick={() => setActiveTab('billing')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'billing' ? 'bg-amber-600 text-white shadow-[0_0_20px_rgba(217,119,6,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'billing' ? 'bg-amber-600 text-white shadow-[0_0_20px_rgba(217,119,6,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <span className="text-amber-500">💸</span> Facturación
           </button>
           <button 
             onClick={() => setActiveTab('customers')}
-            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap ${
-              activeTab === 'customers' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-white'
+            className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'customers' ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
             }`}
           >
             <Users size={18} /> Clientes
@@ -666,7 +666,7 @@ export default function SuperAdminDashboard({ superKey }) {
         </div>
 
         {/* Content Box */}
-        <div className="bg-zinc-950 border border-white/5 rounded-3xl p-6 min-h-[500px]">
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 min-h-[500px] shadow-xs">
           {loading ? (
             <div className="h-full flex items-center justify-center min-h-[400px]">
               <Loader2 size={40} className="animate-spin text-red-500" />
@@ -675,41 +675,41 @@ export default function SuperAdminDashboard({ superKey }) {
             <div className="space-y-8">
               {/* KPIs */}
               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1">
-                  <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-full mb-2"><DollarSign size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Volumen (GMV)</h3>
-                  <p className="text-xl font-mono font-black text-white">${stats.totalGMV.toFixed(2)}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 shadow-xs">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-full mb-2 border border-emerald-200"><DollarSign size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Volumen (GMV)</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">${stats.totalGMV.toFixed(2)}</p>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1">
-                  <div className="p-2 bg-blue-500/10 text-blue-500 rounded-full mb-2"><Activity size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Ticket Prom.</h3>
-                  <p className="text-xl font-mono font-black text-white">${stats.aov.toFixed(2)}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 shadow-xs">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-full mb-2 border border-blue-200"><Activity size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Ticket Prom.</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">${stats.aov.toFixed(2)}</p>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                  <div className="p-2 bg-amber-500/10 text-amber-500 rounded-full mb-2"><Store size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Tiendas</h3>
-                  <p className="text-xl font-mono font-black text-white">{stats.totalMerchants}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
+                  <div className="p-2 bg-amber-50 text-amber-600 rounded-full mb-2 border border-amber-200"><Store size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Tiendas</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">{stats.totalMerchants}</p>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                  <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-full mb-2"><Users size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Clientes</h3>
-                  <p className="text-xl font-mono font-black text-white">{stats.totalCustomers}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
+                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-full mb-2 border border-indigo-200"><Users size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Clientes</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">{stats.totalCustomers}</p>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                  <div className="p-2 bg-purple-500/10 text-purple-500 rounded-full mb-2"><Package size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Pedidos Tot.</h3>
-                  <p className="text-xl font-mono font-black text-white">{stats.totalOrders}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
+                  <div className="p-2 bg-purple-50 text-purple-600 rounded-full mb-2 border border-purple-200"><Package size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Pedidos Tot.</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">{stats.totalOrders}</p>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                  <div className="p-2 bg-pink-500/10 text-pink-500 rounded-full mb-2"><ShoppingBag size={20} /></div>
-                  <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-1">Prods. Reg.</h3>
-                  <p className="text-xl font-mono font-black text-white">{stats.totalProducts}</p>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-xs">
+                  <div className="p-2 bg-pink-50 text-pink-600 rounded-full mb-2 border border-pink-200"><ShoppingBag size={20} /></div>
+                  <h3 className="text-slate-600 text-[10px] font-black uppercase tracking-widest mb-1">Prods. Reg.</h3>
+                  <p className="text-xl font-mono font-black text-slate-950">{stats.totalProducts}</p>
                 </div>
               </div>
 
               {/* Main Chart */}
-              <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xs">
+                <h3 className="text-slate-950 font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
                   <Activity size={18} className="text-red-500"/> Ventas Últimos 7 Días
                 </h3>
                 <div className="h-[250px] w-full">
@@ -727,8 +727,8 @@ export default function SuperAdminDashboard({ superKey }) {
 
               {/* Pie Charts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-6 text-center">Métodos de Pago</h3>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-slate-950 font-black uppercase tracking-widest text-sm mb-6 text-center">Métodos de Pago</h3>
                   <div className="h-[200px] w-full">
                     {stats.paymentMethodsChart && stats.paymentMethodsChart.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
@@ -739,17 +739,17 @@ export default function SuperAdminDashboard({ superKey }) {
                             ))}
                           </Pie>
                           <Tooltip content={<CustomPieTooltip />} />
-                          <Legend wrapperStyle={{ fontSize: '10px', color: '#a1a1aa' }} />
+                          <Legend wrapperStyle={{ fontSize: '11px', color: '#334155', fontWeight: 'bold' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                       <div className="flex items-center justify-center h-full text-zinc-600 text-sm">Sin datos de pagos</div>
+                       <div className="flex items-center justify-center h-full text-slate-500 font-medium text-sm">Sin datos de pagos</div>
                     )}
                   </div>
                 </div>
                 
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-6 text-center">Estado de Pedidos</h3>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-slate-950 font-black uppercase tracking-widest text-sm mb-6 text-center">Estado de Pedidos</h3>
                   <div className="h-[200px] w-full">
                     {stats.orderStatusesChart && stats.orderStatusesChart.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
@@ -760,11 +760,11 @@ export default function SuperAdminDashboard({ superKey }) {
                             ))}
                           </Pie>
                           <Tooltip content={<CustomPieTooltip />} />
-                          <Legend wrapperStyle={{ fontSize: '10px', color: '#a1a1aa' }} />
+                          <Legend wrapperStyle={{ fontSize: '11px', color: '#334155', fontWeight: 'bold' }} />
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
-                       <div className="flex items-center justify-center h-full text-zinc-600 text-sm">Sin datos de pedidos</div>
+                       <div className="flex items-center justify-center h-full text-slate-500 font-medium text-sm">Sin datos de pedidos</div>
                     )}
                   </div>
                 </div>
@@ -772,34 +772,34 @@ export default function SuperAdminDashboard({ superKey }) {
 
               {/* Leaderboards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-6">Top 5 Tiendas (GMV)</h3>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-slate-950 font-black uppercase tracking-widest text-sm mb-6">Top 5 Tiendas (GMV)</h3>
                   <div className="space-y-4">
                     {stats.topMerchants.map((m, idx) => (
                       <div key={idx} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500">{idx+1}</span>
-                          <span className="text-sm font-medium text-white">{m.name}</span>
+                          <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 shadow-xs">{idx+1}</span>
+                          <span className="text-sm font-bold text-slate-950">{m.name}</span>
                         </div>
-                        <span className="text-emerald-400 font-mono text-sm">${m.sales.toFixed(2)}</span>
+                        <span className="text-emerald-600 font-mono text-sm font-bold">${m.sales.toFixed(2)}</span>
                       </div>
                     ))}
-                    {stats.topMerchants.length === 0 && <p className="text-zinc-600 text-sm">Sin datos suficientes</p>}
+                    {stats.topMerchants.length === 0 && <p className="text-slate-500 text-sm font-medium">Sin datos suficientes</p>}
                   </div>
                 </div>
-                <div className="bg-zinc-900 border border-white/5 rounded-2xl p-6">
-                  <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-6">Top 5 Productos Vendidos</h3>
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xs">
+                  <h3 className="text-slate-950 font-black uppercase tracking-widest text-sm mb-6">Top 5 Productos Vendidos</h3>
                   <div className="space-y-4">
                     {stats.topProducts.map((p, idx) => (
                       <div key={idx} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500">{idx+1}</span>
-                          <span className="text-sm font-medium text-white max-w-[200px] truncate">{p.name}</span>
+                          <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 shadow-xs">{idx+1}</span>
+                          <span className="text-sm font-bold text-slate-950 max-w-[200px] truncate">{p.name}</span>
                         </div>
-                        <span className="text-zinc-400 font-mono text-sm">{p.qty} unid.</span>
+                        <span className="text-slate-600 font-mono text-sm font-semibold">{p.qty} unid.</span>
                       </div>
                     ))}
-                    {stats.topProducts.length === 0 && <p className="text-zinc-600 text-sm">Sin datos suficientes</p>}
+                    {stats.topProducts.length === 0 && <p className="text-slate-500 text-sm font-medium">Sin datos suficientes</p>}
                   </div>
                 </div>
               </div>
@@ -1108,19 +1108,19 @@ export default function SuperAdminDashboard({ superKey }) {
               <div className="mb-6 flex items-center gap-4">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search size={18} className="text-zinc-500" />
+                    <Search size={18} className="text-slate-400" />
                   </div>
                   <input 
                     type="text" 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder={`Buscar en ${activeTab === 'merchants' ? 'Tiendas' : 'Clientes'}...`}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:border-red-500/50 transition-colors"
+                    className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 shadow-xs transition-colors"
                   />
                 </div>
                 <button 
                   onClick={downloadCSV}
-                  className="px-4 py-3 bg-emerald-600/20 text-emerald-500 border border-emerald-500/30 hover:bg-emerald-600/40 rounded-xl font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center gap-2 whitespace-nowrap"
+                  className="px-4 py-3 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-xl font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all flex items-center gap-2 whitespace-nowrap shadow-xs"
                 >
                   <Download size={18} /> Exportar CSV
                 </button>
@@ -1130,15 +1130,15 @@ export default function SuperAdminDashboard({ superKey }) {
                 {/* Mobile Cards */}
                 <div className="md:hidden flex flex-col gap-3">
                   {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).map(item => (
-                    <div key={item.id} className={`bg-zinc-900/50 border border-white/5 rounded-2xl p-4 flex flex-col gap-3 ${item.status === 'Suspendido' ? 'opacity-50 grayscale' : ''}`}>
+                    <div key={item.id} className={`bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shadow-xs ${item.status === 'Suspendido' ? 'opacity-60 grayscale' : ''}`}>
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-bold text-white">{item.name}</p>
-                          <p className="text-[10px] text-zinc-500 font-mono">ID: {item.id.substring(0,8)}...</p>
+                          <p className="font-black text-slate-950 text-base">{item.name}</p>
+                          <p className="text-[11px] text-slate-500 font-mono font-medium">ID: {item.id.substring(0,8)}...</p>
                         </div>
                         {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                            item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                            item.status === 'Suspendido' ? 'bg-amber-50 text-amber-700 border border-amber-300' : item.status === 'Pendiente' ? 'bg-blue-50 text-blue-700 border border-blue-300' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           }`}>
                             {item.status || 'Activo'}
                           </span>
@@ -1149,43 +1149,43 @@ export default function SuperAdminDashboard({ superKey }) {
                         {activeTab === 'merchants' ? (
                           <>
                             <div>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Slug</p>
-                              <p className="text-xs text-zinc-300">{item.store_slug || 'N/A'}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Slug</p>
+                              <p className="text-xs text-slate-800 font-medium">{item.store_slug || 'N/A'}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Registro</p>
-                              <p className="text-xs text-zinc-300">{new Date(item.created_at).toLocaleDateString()}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Registro</p>
+                              <p className="text-xs text-slate-800 font-medium">{new Date(item.created_at).toLocaleDateString()}</p>
                             </div>
                             <div className="col-span-2">
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Email</p>
-                              <p className="text-xs text-zinc-300">{safeParseConfig(item.config).adminEmail || safeParseConfig(item.config).contact?.email || 'No registrado'}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Email</p>
+                              <p className="text-xs text-slate-800 font-medium">{safeParseConfig(item.config).adminEmail || safeParseConfig(item.config).contact?.email || 'No registrado'}</p>
                             </div>
                           </>
                         ) : (
                           <>
                             <div className="col-span-2">
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Email</p>
-                              <p className="text-xs text-zinc-300">{item.email}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Email</p>
+                              <p className="text-xs text-slate-800 font-medium">{item.email}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Teléfono</p>
-                              <p className="text-xs text-zinc-300">{item.phone || 'N/A'}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Teléfono</p>
+                              <p className="text-xs text-slate-800 font-medium">{item.phone || 'N/A'}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Registro</p>
-                              <p className="text-xs text-zinc-300">{new Date(item.join_date).toLocaleDateString()}</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Registro</p>
+                              <p className="text-xs text-slate-800 font-medium">{new Date(item.join_date).toLocaleDateString()}</p>
                             </div>
                           </>
                         )}
                       </div>
                       
-                      <div className="flex items-center justify-end gap-2 border-t border-white/5 pt-3 mt-1">
+                      <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3 mt-1">
                         {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                           <>
                             <button 
                               onClick={() => handleViewDetails(item, 'merchant')}
                               disabled={isActionLoading}
-                              className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"
+                              className="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200"
                             >
                               <Search size={16} />
                             </button>
@@ -1194,8 +1194,8 @@ export default function SuperAdminDashboard({ superKey }) {
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
                                 safeParseConfig(item.config).is_verified
-                                ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30'
-                                : 'bg-zinc-800 text-zinc-400 border-white/5 hover:text-white'
+                                ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                : 'bg-slate-100 text-slate-600 border-slate-200'
                               }`}
                               title={safeParseConfig(item.config).is_verified ? "Quitar Verificación" : "Marcar como Verificada"}
                             >
@@ -1206,15 +1206,15 @@ export default function SuperAdminDashboard({ superKey }) {
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
                                 item.status === 'Suspendido' || item.status === 'Pendiente'
-                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
-                                : 'bg-amber-500/10 text-amber-500 border-amber-500/30'
+                                ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                : 'bg-amber-50 text-amber-600 border-amber-200'
                               }`}
                             >
                               {item.status === 'Suspendido' || item.status === 'Pendiente' ? <Eye size={16} /> : <EyeOff size={16} />}
                             </button>
                             <button 
                               onClick={() => setActiveTab('security')}
-                              className="p-2 bg-amber-500/10 text-amber-500 rounded-lg"
+                              className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-200"
                               title="Terminales y Anti-Piratería"
                             >
                               <Key size={16} />
@@ -1225,7 +1225,7 @@ export default function SuperAdminDashboard({ superKey }) {
                             <button 
                               onClick={() => handleViewDetails(item, 'customer')}
                               disabled={isActionLoading}
-                              className="p-2 bg-blue-500/10 text-blue-500 rounded-lg"
+                              className="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-200"
                             >
                               <Search size={16} />
                             </button>
@@ -1233,7 +1233,7 @@ export default function SuperAdminDashboard({ superKey }) {
                         <button 
                           onClick={() => handleDeleteClick(item, activeTab === 'merchants' ? 'merchant' : 'customer')}
                           disabled={isActionLoading}
-                          className="p-2 bg-red-500/10 text-red-500 rounded-lg"
+                          className="p-2 bg-red-50 text-red-600 rounded-lg border border-red-200"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -1241,38 +1241,38 @@ export default function SuperAdminDashboard({ superKey }) {
                     </div>
                   ))}
                   {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).length === 0 && (
-                    <div className="py-8 text-center text-zinc-500 text-sm border border-white/5 rounded-xl">No se encontraron resultados</div>
+                    <div className="py-8 text-center text-slate-500 text-sm border border-slate-200 rounded-xl bg-white shadow-xs">No se encontraron resultados</div>
                   )}
                 </div>
 
                 {/* Desktop Table */}
-                <div className="hidden md:block overflow-x-auto bg-zinc-900/50 rounded-2xl border border-white/5 p-4">
+                <div className="hidden md:block overflow-x-auto bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
                   <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">ID</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Nombre</th>
-                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Slug</th>}
-                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
-                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Estado</th>}
-                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-center">Verificación</th>}
-                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Email</th>}
-                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</th>}
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500">Creación</th>
-                        <th className="py-4 px-4 text-xs font-bold uppercase tracking-widest text-zinc-500 text-right">Acciones</th>
+                      <tr className="border-b border-slate-200 bg-slate-50/70">
+                        <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">ID</th>
+                        <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-900">Nombre</th>
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Slug</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Email</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Estado</th>}
+                        {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Verificación</th>}
+                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Email</th>}
+                        {activeTab === 'customers' && <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Teléfono</th>}
+                        <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Creación</th>
+                        <th className="py-4 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).map(item => (
-                        <tr key={item.id} className={`border-b border-white/5 transition-colors group ${item.status === 'Suspendido' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:bg-white/5'}`}>
-                          <td className="py-4 px-4 text-sm font-mono text-zinc-500">{item.id.substring(0,8)}...</td>
-                          <td className="py-4 px-4 text-sm font-bold text-white">{item.name}</td>
-                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-zinc-400">{item.store_slug || 'N/A'}</td>}
-                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-zinc-400">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || '—'; } catch(e) { return '—'; } })()}</td>}
+                        <tr key={item.id} className={`border-b border-slate-100 transition-colors group ${item.status === 'Suspendido' ? 'opacity-50 grayscale hover:grayscale-0' : 'hover:bg-slate-50/80'}`}>
+                          <td className="py-4 px-4 text-sm font-mono text-slate-600 font-medium">{item.id.substring(0,8)}...</td>
+                          <td className="py-4 px-4 text-sm font-black text-slate-950">{item.name}</td>
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-slate-700 font-medium">{item.store_slug || 'N/A'}</td>}
+                          {(activeTab === 'merchants' || activeTab === 'pending_merchants') && <td className="py-4 px-4 text-sm text-slate-700 font-medium">{(() => { try { return JSON.parse(item.config || '{}').adminEmail || '—'; } catch(e) { return '—'; } })()}</td>}
                           {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-sm">
-                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                item.status === 'Suspendido' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : item.status === 'Pendiente' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                item.status === 'Suspendido' ? 'bg-amber-50 text-amber-700 border border-amber-300' : item.status === 'Pendiente' ? 'bg-blue-50 text-blue-700 border border-blue-300' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               }`}>
                                 {item.status || 'Activo'}
                               </span>
@@ -1280,16 +1280,16 @@ export default function SuperAdminDashboard({ superKey }) {
                           )}
                           {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-center">
-                              <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                safeParseConfig(item.config).is_verified ? 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20' : 'bg-zinc-800 text-zinc-500'
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                safeParseConfig(item.config).is_verified ? 'bg-amber-50 text-amber-700 border border-amber-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
                               }`}>
                                 {safeParseConfig(item.config).is_verified ? 'Verificada' : 'No'}
                               </span>
                             </td>
                           )}
-                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.email}</td>}
-                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-zinc-400">{item.phone || 'N/A'}</td>}
-                          <td className="py-4 px-4 text-sm text-zinc-500">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
+                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-slate-700 font-medium">{item.email}</td>}
+                          {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-slate-700 font-medium">{item.phone || 'N/A'}</td>}
+                          <td className="py-4 px-4 text-sm text-slate-600 font-medium">{new Date(item.created_at || item.join_date).toLocaleDateString()}</td>
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
@@ -1297,7 +1297,7 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <button 
                                     onClick={() => handleViewDetails(item, 'merchant')}
                                     disabled={isActionLoading}
-                                    className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
+                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-colors border border-blue-200 shadow-xs"
                                     title="Ver Información del Comerciante"
                                   >
                                     <Search size={18} />
@@ -1305,10 +1305,10 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <button 
                                     onClick={() => handleToggleVerification(item)}
                                     disabled={isActionLoading}
-                                    className={`p-2 rounded-lg transition-colors border ${
+                                    className={`p-2 rounded-lg transition-colors border shadow-xs ${
                                       safeParseConfig(item.config).is_verified
-                                      ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 hover:bg-indigo-500 hover:text-white'
-                                      : 'bg-zinc-800 text-zinc-400 border-white/5 hover:bg-zinc-700 hover:text-white'
+                                      ? 'bg-amber-50 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white'
+                                      : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 hover:text-slate-900'
                                     }`}
                                     title={safeParseConfig(item.config).is_verified ? "Quitar Verificación" : "Marcar como Verificada"}
                                   >
@@ -1317,10 +1317,10 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <button 
                                     onClick={() => handleToggleSuspend(item)}
                                     disabled={isActionLoading}
-                                    className={`p-2 rounded-lg transition-colors border ${
+                                    className={`p-2 rounded-lg transition-colors border shadow-xs ${
                                       item.status === 'Suspendido' || item.status === 'Pendiente'
-                                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500 hover:text-white'
-                                      : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500 hover:text-white'
+                                      ? 'bg-emerald-50 text-emerald-600 border-emerald-300 hover:bg-emerald-600 hover:text-white'
+                                      : 'bg-amber-50 text-amber-600 border-amber-300 hover:bg-amber-500 hover:text-white'
                                     }`}
                                     title={item.status === 'Suspendido' ? "Reactivar Tienda" : item.status === 'Pendiente' ? "Aprobar Tienda (Activar)" : "Suspender Tienda (Ocultar)"}
                                   >
@@ -1328,7 +1328,7 @@ export default function SuperAdminDashboard({ superKey }) {
                                   </button>
                                   <button 
                                     onClick={() => setActiveTab('security')}
-                                    className="p-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-colors border border-amber-500/30 opacity-70 hover:opacity-100"
+                                    className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg transition-colors border border-amber-300 shadow-xs"
                                     title="Control de Terminales Físicas y API Key (HWID)"
                                   >
                                     <Key size={18} />
@@ -1339,7 +1339,7 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <button 
                                     onClick={() => handleViewDetails(item, 'customer')}
                                     disabled={isActionLoading}
-                                    className="p-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors border border-blue-500/30 opacity-70 hover:opacity-100"
+                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-colors border border-blue-200 shadow-xs"
                                     title="Ver Detalles del Cliente"
                                   >
                                     <Search size={18} />
@@ -1348,7 +1348,7 @@ export default function SuperAdminDashboard({ superKey }) {
                               <button 
                                 onClick={() => handleDeleteClick(item, activeTab === 'merchants' ? 'merchant' : 'customer')}
                                 disabled={isActionLoading}
-                                className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/20 opacity-50 group-hover:opacity-100 disabled:opacity-30"
+                                className="p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg transition-colors border border-red-200 shadow-xs disabled:opacity-30"
                                 title="Eliminar Definitivamente (Destructivo)"
                               >
                                 <Trash2 size={18} />
@@ -1359,7 +1359,7 @@ export default function SuperAdminDashboard({ superKey }) {
                       ))}
                       {((activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers).length === 0 && (
                         <tr>
-                          <td colSpan="8" className="py-12 text-center text-zinc-500">No se encontraron resultados</td>
+                          <td colSpan="8" className="py-12 text-center text-slate-500 font-medium">No se encontraron resultados</td>
                         </tr>
                       )}
                     </tbody>
@@ -1375,34 +1375,34 @@ export default function SuperAdminDashboard({ superKey }) {
       <AnimatePresence>
         {isConfirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-zinc-950 border border-red-500/30 rounded-3xl p-8 max-w-md w-full relative z-10 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-              <button onClick={() => setIsConfirmOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X size={24} /></button>
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-white border border-red-200 rounded-3xl p-8 max-w-md w-full relative z-10 shadow-2xl">
+              <button onClick={() => setIsConfirmOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><X size={24} /></button>
               
-              <div className="flex justify-center mb-4 text-red-500">
+              <div className="flex justify-center mb-4 text-red-600">
                 <ShieldAlert size={48} />
               </div>
-              <h2 className="text-xl font-black text-center text-white uppercase tracking-widest mb-2">Peligro: Borrado Irreversible</h2>
+              <h2 className="text-xl font-black text-center text-slate-950 uppercase tracking-widest mb-2">Peligro: Borrado Irreversible</h2>
               
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-                <p className="text-sm text-red-400 text-center">
-                  Estás a punto de eliminar {itemToDelete?.type === 'merchant' ? 'la tienda' : 'el cliente'} <strong className="text-white">{itemToDelete?.name}</strong>.
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <p className="text-sm text-red-900 text-center">
+                  Estás a punto de eliminar {itemToDelete?.type === 'merchant' ? 'la tienda' : 'el cliente'} <strong className="text-slate-950 font-bold">{itemToDelete?.name}</strong>.
                   {itemToDelete?.type === 'merchant' && " Esto borrará TODOS sus productos, pedidos y configuraciones para siempre."}
                 </p>
                 {itemToDelete?.type === 'merchant' && (
-                  <p className="text-xs text-amber-400 mt-3 text-center border-t border-amber-500/20 pt-2">
+                  <p className="text-xs text-amber-800 mt-3 text-center border-t border-amber-200 pt-2 font-medium">
                     💡 <strong>TIP:</strong> Si solo quieres ocultarla del público, considera usar el botón de "Suspender" en lugar de eliminarla.
                   </p>
                 )}
               </div>
 
               <div className="mb-6">
-                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Para confirmar, escribe "ELIMINAR"</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">Para confirmar, escribe "ELIMINAR"</label>
                 <input 
                   type="text" 
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  className="w-full bg-black border border-red-500/30 rounded-xl px-4 py-3 text-center text-white uppercase tracking-widest focus:outline-none focus:border-red-500 transition-colors"
+                  className="w-full bg-slate-50 border border-red-200 rounded-xl px-4 py-3 text-center text-slate-950 font-black uppercase tracking-widest focus:outline-none focus:border-red-500 transition-colors"
                   placeholder="ELIMINAR"
                 />
               </div>
@@ -1410,7 +1410,7 @@ export default function SuperAdminDashboard({ superKey }) {
               <button 
                 onClick={confirmDelete}
                 disabled={confirmText.trim().toUpperCase() !== 'ELIMINAR' || isActionLoading}
-                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
               >
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <><Trash2 size={18} /> Destruir Registro</>}
               </button>
@@ -1423,34 +1423,34 @@ export default function SuperAdminDashboard({ superKey }) {
       <AnimatePresence>
         {isKeyModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-zinc-950 border border-red-500/30 rounded-3xl p-8 max-w-md w-full relative z-10 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-              <button onClick={() => setIsKeyModalOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X size={24} /></button>
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full relative z-10 shadow-2xl">
+              <button onClick={() => setIsKeyModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><X size={24} /></button>
               
-              <div className="flex justify-center mb-4 text-red-500">
+              <div className="flex justify-center mb-4 text-red-600">
                 <Key size={48} />
               </div>
-              <h2 className="text-xl font-black text-center text-white uppercase tracking-widest mb-2">Seguridad Maestra</h2>
-              <p className="text-sm text-zinc-400 text-center mb-6">Modifica la clave de acceso al panel SuperAdmin.</p>
+              <h2 className="text-xl font-black text-center text-slate-950 uppercase tracking-widest mb-2">Seguridad Maestra</h2>
+              <p className="text-sm text-slate-600 text-center mb-6">Modifica la clave de acceso al panel SuperAdmin.</p>
 
               <div className="mb-6 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Nueva Clave Maestra</label>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest mb-2">Nueva Clave Maestra</label>
                   <input 
                     type="text" 
                     value={newKeyInput}
                     onChange={(e) => { setNewKeyInput(e.target.value); setKeyError(''); }}
-                    className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-center text-white tracking-[0.2em] focus:outline-none focus:border-red-500 transition-colors"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-center text-slate-950 font-bold tracking-[0.2em] focus:outline-none focus:border-red-500 transition-colors"
                     placeholder="Escribe la nueva clave..."
                   />
                 </div>
-                {keyError && <p className="text-red-500 text-xs font-bold text-center uppercase tracking-widest">{keyError}</p>}
+                {keyError && <p className="text-red-600 text-xs font-bold text-center uppercase tracking-widest">{keyError}</p>}
               </div>
 
               <button 
                 onClick={handleChangeKey}
                 disabled={!newKeyInput || isActionLoading}
-                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-full font-bold text-xs uppercase tracking-[0.2em] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
               >
                 {isActionLoading ? <Loader2 size={18} className="animate-spin" /> : <>Actualizar Clave <ArrowRight size={18}/></>}
               </button>
@@ -1463,18 +1463,18 @@ export default function SuperAdminDashboard({ superKey }) {
       <AnimatePresence>
         {isDetailsOpen && selectedDetails && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-zinc-950 border border-white/10 rounded-3xl p-8 max-w-lg w-full relative z-10 shadow-2xl">
-              <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X size={24} /></button>
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-white border border-slate-200 rounded-3xl p-8 max-w-lg w-full relative z-10 shadow-2xl">
+              <button onClick={() => setIsDetailsOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"><X size={24} /></button>
               
-              <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-white/10 pb-4">
-                <Search className="text-blue-500" /> Detalles de {selectedDetails.type === 'merchant' ? 'Tienda' : 'Cliente'}
+              <h2 className="text-xl font-black text-slate-950 uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-slate-200 pb-4">
+                <Search className="text-blue-600" /> Detalles de {selectedDetails.type === 'merchant' ? 'Tienda' : 'Cliente'}
               </h2>
               
               <div className="space-y-4">
-                <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                  <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Nombre</p>
-                  <p className="text-sm text-white font-medium">{selectedDetails.name}</p>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Nombre</p>
+                  <p className="text-sm text-slate-950 font-bold">{selectedDetails.name}</p>
                 </div>
                 
                 {selectedDetails.type === 'merchant' && (() => {
@@ -1482,17 +1482,17 @@ export default function SuperAdminDashboard({ superKey }) {
                   
                   return (
                     <>
-                      <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Email Administrador</p>
-                        <p className="text-sm text-white font-medium">{config.adminEmail || config.contact?.email || 'No registrado'}</p>
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Administrador</p>
+                        <p className="text-sm text-slate-900 font-semibold">{config.adminEmail || config.contact?.email || 'No registrado'}</p>
                       </div>
-                      <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Teléfono</p>
-                        <p className="text-sm text-white font-medium">{config.contact?.phone || config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Teléfono</p>
+                        <p className="text-sm text-slate-900 font-semibold">{config.contact?.phone || config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
                       </div>
-                      <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Dueño / Propietario</p>
-                        <p className="text-sm text-white font-medium">{config.expediente?.ownerName || selectedDetails.name || 'No registrado'}</p>
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Dueño / Propietario</p>
+                        <p className="text-sm text-slate-900 font-semibold">{config.expediente?.ownerName || selectedDetails.name || 'No registrado'}</p>
                       </div>
                     </>
                   )
@@ -1500,17 +1500,17 @@ export default function SuperAdminDashboard({ superKey }) {
 
                 {selectedDetails.type === 'customer' && (
                   <>
-                    <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Email</p>
-                      <p className="text-sm text-white font-medium">{selectedDetails.email || 'No registrado'}</p>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email</p>
+                      <p className="text-sm text-slate-900 font-semibold">{selectedDetails.email || 'No registrado'}</p>
                     </div>
-                    <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Teléfono</p>
-                      <p className="text-sm text-white font-medium">{selectedDetails.phone || 'No registrado'}</p>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Teléfono</p>
+                      <p className="text-sm text-slate-900 font-semibold">{selectedDetails.phone || 'No registrado'}</p>
                     </div>
-                    <div className="bg-zinc-900 rounded-xl p-4 border border-white/5">
-                      <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Cédula / Documento</p>
-                      <p className="text-sm text-white font-medium">{selectedDetails.doc_id || 'No registrado'}</p>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Cédula / Documento</p>
+                      <p className="text-sm text-slate-900 font-semibold">{selectedDetails.doc_id || 'No registrado'}</p>
                     </div>
                   </>
                 )}

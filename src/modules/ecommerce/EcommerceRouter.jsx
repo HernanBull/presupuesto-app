@@ -35,6 +35,7 @@ import OrderPreparation from './pages/OrderPreparation';
 import LegalPage from './pages/LegalPage';
 import AuthCallback from './pages/AuthCallback';
 import MerchantLandingPage from './pages/MerchantLandingPage';
+import MerchantTrialPage from './pages/MerchantTrialPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -348,6 +349,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
         <Route path="profile" element={<CustomerProfile />} />
         <Route path="chats" element={<CustomerChatsPage />} />
         <Route path="comerciantes" element={<MerchantLandingPage />} />
+        <Route path="registro-comerciante" element={<MerchantTrialPage />} />
+        <Route path="probar-gratis" element={<MerchantTrialPage />} />
         <Route path="merchants" element={<MerchantLandingPage />} />
         <Route path="negocios" element={<MerchantLandingPage />} />
         <Route path="funciones-comercios" element={<Navigate to="/comerciantes" replace />} />

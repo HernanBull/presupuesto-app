@@ -12,9 +12,12 @@ import {
   MerchantStoreIllustration, 
   MobileAppIllustration 
 } from '../components/LandingIllustrations';
+import MerchantTrialAuthModal from '../components/MerchantTrialAuthModal';
 
 export default function WelcomeLanding() {
   const navigate = useNavigate();
+  const [showMerchantTrialModal, setShowMerchantTrialModal] = useState(false);
+  const [merchantTrialInitialMode, setMerchantTrialInitialMode] = useState('register');
   const [addressInput, setAddressInput] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [showTopBanner, setShowTopBanner] = useState(true);
@@ -122,8 +125,11 @@ export default function WelcomeLanding() {
         <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button 
-              onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
-              className="hidden sm:inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95"
+              onClick={() => {
+                setMerchantTrialInitialMode('register');
+                setShowMerchantTrialModal(true);
+              }}
+              className="hidden sm:inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
             >
               <Store size={14} className="text-amber-300" />
               <span>Probá gratis 14 días</span>
@@ -180,7 +186,10 @@ export default function WelcomeLanding() {
           {/* Grupo de Botones de Acción (Abrir app + Probá gratis 14 días para comerciantes) */}
           <div className="w-full max-w-md flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
             <button 
-              onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'register' } })}
+              onClick={() => {
+                setMerchantTrialInitialMode('register');
+                setShowMerchantTrialModal(true);
+              }}
               className="w-full sm:w-auto flex-1 py-3.5 px-6 font-black text-sm sm:text-base rounded-full shadow-2xl active:scale-95 transition-all text-center bg-white hover:bg-zinc-100 text-zinc-950 border border-white/60 flex items-center justify-center gap-2 group cursor-pointer"
             >
               <span>Probá gratis 14 días</span>
@@ -695,8 +704,14 @@ export default function WelcomeLanding() {
               </h4>
               <ul className="space-y-2 text-zinc-600">
                 <li>
-                  <button onClick={() => navigate('/comerciantes')} className="hover:text-amber-600 transition-colors">
-                    Registrar mi Comercio
+                  <button 
+                    onClick={() => {
+                      setMerchantTrialInitialMode('register');
+                      setShowMerchantTrialModal(true);
+                    }} 
+                    className="hover:text-amber-600 transition-colors cursor-pointer font-medium"
+                  >
+                    Registrar mi Comercio (14 días gratis)
                   </button>
                 </li>
                 <li>
@@ -705,8 +720,14 @@ export default function WelcomeLanding() {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigate('/dashboard')} className="hover:text-amber-600 transition-colors">
-                    Portal Comerciante (Admin)
+                  <button 
+                    onClick={() => {
+                      setMerchantTrialInitialMode('login');
+                      setShowMerchantTrialModal(true);
+                    }} 
+                    className="hover:text-amber-600 transition-colors cursor-pointer"
+                  >
+                    Portal Comerciante (Iniciar sesión)
                   </button>
                 </li>
               </ul>
@@ -756,6 +777,13 @@ export default function WelcomeLanding() {
 
         </div>
       </footer>
+
+      {/* Modal Rediseñado de Prueba 14 Días y Registro de Comerciante (Split-Screen Naranja) */}
+      <MerchantTrialAuthModal
+        isOpen={showMerchantTrialModal}
+        onClose={() => setShowMerchantTrialModal(false)}
+        initialMode={merchantTrialInitialMode}
+      />
 
     </div>
   );

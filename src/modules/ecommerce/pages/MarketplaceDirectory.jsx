@@ -15,6 +15,7 @@ import { BUSINESS_TYPES } from '../../../config/businessTypes';
 import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
 import { registerUser, loginUser } from '../../../supabaseAuth';
+import MerchantTrialAuthModal from '../components/MerchantTrialAuthModal';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -2301,7 +2302,13 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-      {isMerchantModalOpen && (
+      {isMerchantModalOpen && (merchantAuthMode === 'register' || merchantAuthMode === 'login') && merchantRegStep === 1 ? (
+        <MerchantTrialAuthModal 
+          isOpen={true} 
+          onClose={() => setIsMerchantModalOpen(false)} 
+          initialMode={merchantAuthMode} 
+        />
+      ) : isMerchantModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
           <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-slate-200 animate-in zoom-in-95 duration-150">

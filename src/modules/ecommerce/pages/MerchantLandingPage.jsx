@@ -8,9 +8,12 @@ import {
   ChevronRight, ArrowUpRight, Flame, Layers, Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MerchantTrialAuthModal from '../components/MerchantTrialAuthModal';
 
 export default function MerchantLandingPage() {
   const navigate = useNavigate();
+  const [showTrialModal, setShowTrialModal] = useState(false);
+  const [trialModalMode, setTrialModalMode] = useState('register');
 
   // Resetear scroll al inicio de la página al montar
   React.useEffect(() => {
@@ -116,18 +119,18 @@ export default function MerchantLandingPage() {
           {/* Acciones: Login y Botón Empezar */}
           <div className="flex items-center gap-3 sm:gap-4">
             <button 
-              onClick={() => navigate('/explorar', { state: { openMerchantRegister: true, mode: 'login' } })}
-              className="text-xs sm:text-sm font-bold text-zinc-700 hover:text-orange-600 transition-colors px-3 py-2"
+              onClick={() => { setTrialModalMode('login'); setShowTrialModal(true); }}
+              className="text-xs sm:text-sm font-bold text-zinc-700 hover:text-orange-600 transition-colors px-3 py-2 cursor-pointer"
             >
               Iniciar sesión
             </button>
-            <a 
-              href="#registro"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-black text-xs sm:text-sm px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95"
+            <button 
+              onClick={() => { setTrialModalMode('register'); setShowTrialModal(true); }}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-black text-xs sm:text-sm px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
               style={{ color: '#ffffff' }}
             >
-              Empezar
-            </a>
+              Probar 14 días
+            </button>
           </div>
 
         </div>
@@ -861,6 +864,13 @@ export default function MerchantLandingPage() {
           </p>
         </div>
       </footer>
+
+      {/* Modal Rediseñado de Prueba 14 Días y Registro de Comerciante */}
+      <MerchantTrialAuthModal
+        isOpen={showTrialModal}
+        onClose={() => setShowTrialModal(false)}
+        initialMode={trialModalMode}
+      />
 
     </div>
   );
