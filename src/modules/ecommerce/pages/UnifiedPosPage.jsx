@@ -1011,26 +1011,26 @@ export default function UnifiedPosPage() {
           BARRA SUPERIOR CONTINUA IDÉNTICA A COMMERCY (IMAGE 1)
           ======================================================== */}
       {activeTab === 'pos' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center pb-2.5 shrink-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center pb-2 shrink-0">
           
-          {/* Lado Izquierdo (8 Cols si carrito abierto, 12 si cerrado): Buscador, Categorías y Vistas */}
+          {/* Lado Izquierdo: Buscador y Salir */}
           <div className={`${isCartOpen ? 'lg:col-span-8' : 'lg:col-span-9'} flex items-center gap-2 transition-all`}>
-            {/* Botón Salir al Menú / Dashboard (Estilo Commercy) */}
+            {/* Botón Salir al Menú / Dashboard */}
             <button
               onClick={() => navigate('/dashboard')}
-              className="lg:hidden p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-colors cursor-pointer shadow-2xs shrink-0 flex items-center justify-center"
+              className="lg:hidden p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-colors cursor-pointer shadow-2xs shrink-0 flex items-center justify-center"
               title="Volver al menú principal"
             >
               <ArrowLeft size={16} />
             </button>
 
             {/* Input Buscador con scanner */}
-            <div className="flex items-center gap-2 flex-1 min-w-[240px] bg-white dark:bg-zinc-900 px-3.5 py-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-2xs focus-within:ring-2 focus-within:ring-orange-500/30">
+            <div className="flex items-center gap-2 flex-1 min-w-0 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-2xs focus-within:ring-2 focus-within:ring-orange-500/30">
               <Search size={15} className="text-slate-400 shrink-0" />
               <input 
                 ref={searchInputRef}
                 type="text"
-                placeholder="Buscar producto o escanear código..."
+                placeholder="Buscar producto o escanear..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
@@ -1172,34 +1172,75 @@ export default function UnifiedPosPage() {
               onSortChange={setSortBy}
             />
 
-            {/* CONTENEDOR FLEX: PANEL LATERAL DE SUBCATEGORÍAS + GRID CENTRAL DE PRODUCTOS */}
+            {/* MÓVIL Y TABLET (lg:hidden): CINTA HORIZONTAL DE SUBCATEGORÍAS EN CHIPS */}
+            {activeSubcategories.length > 0 && (
+              <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 shrink-0 [scrollbar-width:none]">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubcategory('ALL')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                    selectedSubcategory === 'ALL'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:border-orange-300'
+                  }`}
+                >
+                  <span>Todos</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    selectedSubcategory === 'ALL' ? 'bg-white/25 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-500'
+                  }`}>
+                    {selectedMainCategory === 'ALL' ? products.length : (mainCategoryCounts[selectedMainCategory] || 0)}
+                  </span>
+                </button>
+
+                {activeSubcategories.map((sub) => {
+                  const isSelected = selectedSubcategory === sub.id;
+                  const count = subcategoryCounts[sub.id] || 0;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => setSelectedSubcategory(sub.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange-600 text-white shadow-xs'
+                          : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-slate-300 border border-slate-200/80 dark:border-white/10 hover:border-orange-300'
+                      }`}
+                    >
+                      <span className="truncate max-w-[120px]">{sub.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isSelected ? 'bg-white/25 text-white' : 'bg-slate-100 dark:bg-zinc-800 text-slate-500'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* CONTENEDOR FLEX: PANEL LATERAL DE SUBCATEGORÍAS (DESKTOP) + GRID CENTRAL DE PRODUCTOS */}
             <div className="flex flex-1 min-h-0 overflow-hidden gap-2.5">
-              {/* NIVEL 2: SIDEBAR VERTICAL DE SUBCATEGORÍAS CIRCULARES (IMAGE 2) */}
+              {/* NIVEL 2: SIDEBAR VERTICAL DE SUBCATEGORÍAS CIRCULARES (SOLO DESKTOP) */}
               {activeSubcategories.length > 0 && (
-                <SubcategorySidebar
-                  subcategories={activeSubcategories}
-                  selectedSubcategoryId={selectedSubcategory}
-                  onSelectSubcategory={(subId) => setSelectedSubcategory(subId)}
-                  productCounts={subcategoryCounts}
-                  totalCount={
-                    selectedMainCategory === 'ALL'
-                      ? products.length
-                      : mainCategoryCounts[selectedMainCategory] || 0
-                  }
-                  activeAccentColor="#E11D48"
-                />
+                <div className="hidden lg:flex shrink-0">
+                  <SubcategorySidebar
+                    subcategories={activeSubcategories}
+                    selectedSubcategoryId={selectedSubcategory}
+                    onSelectSubcategory={(subId) => setSelectedSubcategory(subId)}
+                    productCounts={subcategoryCounts}
+                    totalCount={
+                      selectedMainCategory === 'ALL'
+                        ? products.length
+                        : mainCategoryCounts[selectedMainCategory] || 0
+                    }
+                    activeAccentColor="#EA580C"
+                  />
+                </div>
               )}
 
-              {/* NIVEL 3: ÁREA CENTRAL - GRID DE PRODUCTOS VISUALES AXONPOS */}
-              <div className="flex-1 overflow-y-auto pr-1 h-full [scrollbar-width:thin] bg-[#F8FAFC] dark:bg-zinc-950 rounded-xl border border-slate-200/80 dark:border-white/10 p-3 pb-20 lg:pb-3">
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-                    gap: '12px',
-                    alignContent: 'start'
-                  }}
-                >
+              {/* NIVEL 3: ÁREA CENTRAL - GRID DE PRODUCTOS VISUALES AXONPOS (2 COLUMNAS EN MÓVIL) */}
+              <div className="flex-1 overflow-y-auto pr-1 h-full [scrollbar-width:thin] bg-[#F8FAFC] dark:bg-zinc-950 rounded-xl border border-slate-200/80 dark:border-white/10 p-2 sm:p-3 pb-24 lg:pb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 content-start">
                   {visualFilteredProducts.map((product) => (
                     <VisualProductCard
                       key={product.id}
@@ -1208,7 +1249,7 @@ export default function UnifiedPosPage() {
                       quantityInCart={cartQuantityMap[product.id] || 0}
                       onAddToCart={() => handleUpdateCartQuantity(product, 1)}
                       onUpdateCartQuantity={handleUpdateCartQuantity}
-                      activeAccentColor="#E11D48"
+                      activeAccentColor="#EA580C"
                     />
                   ))}
                 </div>

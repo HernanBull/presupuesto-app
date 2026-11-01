@@ -50,99 +50,51 @@ export const HierarchicalCategoryBar = ({
   return (
     <>
       {/* BARRA PRINCIPAL COMPACTA Y MODERNA */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          borderRadius: '12px',
-          padding: '8px 14px',
-          width: '100%',
-          minWidth: 0,
-          boxSizing: 'border-box',
-          gap: 12,
-          flexWrap: 'wrap',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2 sm:p-2.5 w-full shadow-2xs gap-2 shrink-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
           {/* BOTÓN PRINCIPAL PARA ABRIR EL CUADRO DE CATEGORÍAS */}
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
             title="Abrir panel con todas las categorías en cuadrícula"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 16px',
-              borderRadius: '10px',
-              backgroundColor: '#FFF7ED',
-              border: '1.5px solid #FDBA74',
-              color: '#9A3412',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: 700,
-              boxShadow: '0 1px 3px rgba(234, 88, 12, 0.08)',
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#FFEDD5';
-              e.currentTarget.style.borderColor = '#FB923C';
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(234, 88, 12, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#FFF7ED';
-              e.currentTarget.style.borderColor = '#FDBA74';
-              e.currentTarget.style.boxShadow = '0 1px 3px rgba(234, 88, 12, 0.08)';
-            }}
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-950 dark:text-orange-200 hover:bg-orange-100 transition-all cursor-pointer font-bold text-xs sm:text-sm shrink-0"
           >
-            <LayoutGrid size={18} color="#EA580C" />
-            <span>Ver Todas las Categorías</span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '1px 7px',
-                borderRadius: '10px',
-                backgroundColor: '#EA580C',
-                color: '#FFFFFF'
-              }}
-            >
+            <LayoutGrid size={16} className="text-orange-600 shrink-0" />
+            <span className="hidden sm:inline">Ver Todas las Categorías</span>
+            <span className="sm:hidden">Categorías</span>
+            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-orange-500 text-white leading-none">
               {categories.length}
             </span>
-            <ChevronDown size={16} color="#EA580C" />
+            <ChevronDown size={14} className="text-orange-600 shrink-0" />
           </button>
 
+          {/* Categoría Seleccionada Pill (si no es ALL) */}
+          {selectedCategory && (
+            <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-bold truncate">
+              <span className="truncate">{selectedCategory.name}</span>
+              <button
+                type="button"
+                onClick={() => onSelectCategory && onSelectCategory('ALL')}
+                className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* SELECTOR DE ORDENAMIENTO */}
         {onSortChange && (
-          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <div className="flex items-center shrink-0">
             <select
               value={sortBy || 'name'}
               onChange={(e) => onSortChange(e.target.value)}
               title="Ordenar catálogo"
-              style={{
-                height: 34,
-                padding: '0 10px',
-                borderRadius: '10px',
-                border: '1px solid #CBD5E1',
-                backgroundColor: '#F8FAFC',
-                color: '#334155',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                outline: 'none',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
-              }}
+              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer outline-none shadow-2xs"
             >
-              <option value="name">Ordenar: Nombre (A-Z)</option>
-              <option value="price_asc">Precio: Menor a Mayor</option>
-              <option value="price_desc">Precio: Mayor a Menor</option>
+              <option value="name">Nombre (A-Z)</option>
+              <option value="price_asc">Menor Precio</option>
+              <option value="price_desc">Mayor Precio</option>
             </select>
           </div>
         )}
