@@ -184,9 +184,9 @@ export const RegisterWizard = () => {
         id,
         name: formData.businessName,
         store_slug: generatedSlug,
+        status: 'Pendiente',
         map_address: resolvedAddress,
         config: config,
-        owner_email: formData.email,
         created_at: new Date().toISOString()
       };
 

@@ -837,11 +837,11 @@ export default function MarketplaceDirectory() {
           console.warn('Supabase signInWithIdToken omitido:', authErr);
         }
 
-        // Verificar si la tienda ya existe (por adminEmail o owner_email)
+        // Verificar si la tienda ya existe (por adminEmail)
         let { data: wsData } = await supabase
           .from('workspaces')
           .select('*')
-          .or(`config->>adminEmail.ilike.${cleanEmail},owner_email.ilike.${cleanEmail}`)
+          .ilike('config->>adminEmail', cleanEmail)
           .maybeSingle();
 
         if (wsData) {

@@ -100,8 +100,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         id: userId,
         name: 'Mi Tienda',
         store_slug: generatedSlug,
-        status: 'Activo',
-        owner_email: cleanEmail,
+        status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
           trialActive: true,
@@ -110,7 +109,10 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         }
       };
 
-      await supabase.from('workspaces').upsert([newWorkspace]);
+      const { error: wsError } = await supabase.from('workspaces').upsert([newWorkspace]);
+      if (wsError && wsError.code !== '23505') {
+        console.warn('Workspace upsert notice:', wsError);
+      }
 
       localStorage.setItem('activeWorkspace', userId);
       localStorage.setItem('storeSlug', generatedSlug);
@@ -191,8 +193,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         id: userId,
         name: businessName.trim(),
         store_slug: generatedSlug,
-        status: 'Activo',
-        owner_email: cleanEmail,
+        status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
           trialActive: true,
@@ -255,13 +256,25 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       const authData = await loginUser(cleanEmail, password);
 
       // Buscar workspace asociado
-      const { data: wsData, error: wsErr } = await supabase
+      let wsData = null;
+      const { data: byId } = await supabase
         .from('workspaces')
         .select('*')
-        .or(`id.eq.${authData.user.id},owner_email.ilike.${cleanEmail},config->>adminEmail.ilike.${cleanEmail}`)
+        .eq('id', authData.user.id)
         .maybeSingle();
 
-      if (wsErr || !wsData) {
+      if (byId) {
+        wsData = byId;
+      } else {
+        const { data: byEmail } = await supabase
+          .from('workspaces')
+          .select('*')
+          .ilike('config->>adminEmail', cleanEmail)
+          .maybeSingle();
+        if (byEmail) wsData = byEmail;
+      }
+
+      if (!wsData) {
         throw new Error('No se encontró una tienda asociada a este correo. Regístrate para comenzar tus 7 días gratis.');
       }
 
@@ -301,7 +314,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       const { data: wsData } = await supabase
         .from('workspaces')
         .select('*')
-        .or(`config->>adminEmail.ilike.${cleanEmail},owner_email.ilike.${cleanEmail}`)
+        .ilike('config->>adminEmail', cleanEmail)
         .maybeSingle();
 
       if (wsData) {
@@ -320,7 +333,9 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 7);
       const generatedSlug = `tienda-${Date.now().toString().slice(-4)}`;
-      const newWsId = `g_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
+      const newWsId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : ('00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0'));
 
       setCreatedWorkspaceId(newWsId);
       const initialOwner = payload.name || '';
@@ -332,8 +347,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         id: newWsId,
         name: initialStore,
         store_slug: generatedSlug,
-        status: 'Activo',
-        owner_email: cleanEmail,
+        status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
           trialActive: true,
