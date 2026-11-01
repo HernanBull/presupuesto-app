@@ -76,10 +76,10 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
 
   // Auto-llenar imagen con la del primer producto si no tiene imagen propia
   useEffect(() => {
-    if (!comboImage && comboItems.length > 0 && comboItems[0].image_url) {
-      setComboImage(comboItems[0].image_url);
+    if ((!comboImages || comboImages.length === 0) && comboItems.length > 0 && comboItems[0].image_url) {
+      setComboImages([comboItems[0].image_url]);
     }
-  }, [comboItems, comboImage]);
+  }, [comboItems, comboImages]);
 
   // Manejo de Items
   const handleAddItem = (product) => {

@@ -1,6 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, ShoppingCart, Settings, ArrowLeft, LogOut, Sun, Moon, Tag, MonitorSmartphone, BarChart3, MessageSquare, PackageSearch, Box, Zap, MapPin, Bell, CheckCheck, LifeBuoy, Menu, X, ShieldAlert, Newspaper, Share2, Package, ExternalLink } from 'lucide-react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  ShoppingBag, ShoppingCart, Settings, ArrowLeft, LogOut, 
+  Sun, Moon, Tag, BarChart3, PackageSearch, 
+  Box, Zap, Bell, CheckCheck, Menu, X, ShieldAlert, 
+  Share2, ExternalLink, Search, Rocket, ChevronDown, ChevronUp,
+  Building2, Users, Gift, LayoutGrid, ArrowUpDown, CreditCard,
+  Store, Globe, MonitorSmartphone, DollarSign, Layers,
+  Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
+  FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
+  HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList
+} from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
@@ -11,10 +21,42 @@ function cn(...inputs) {
 
 export default function EcommerceLayout({ theme, toggleTheme }) {
   const navigate = useNavigate();
-  const [storeName, setStoreName] = useState('Tienda');
+  const location = useLocation();
+  const [storeName, setStoreName] = useState(() => localStorage.getItem('merchant_store_name') || 'Carlosvip');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef(null);
+
+  // Estados de acordeón para submenús desplegables estilo Commercy (Image 4)
+  const [openMenus, setOpenMenus] = useState({
+    ventas: true,       // Abierto por defecto como en la captura
+    inventario: false,
+    precios: false,
+    clientes: false
+  });
+
+  const toggleSubmenu = (menuKey) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
+
+  // Auto-expandir el menú correspondiente a la ruta actual
+  useEffect(() => {
+    const path = location.pathname;
+    if (['/orders', '/invoicing', '/returns', '/pos', '/shifts', '/coupons'].includes(path)) {
+      setOpenMenus(prev => ({ ...prev, ventas: true }));
+    } else if (['/inventory', '/stock', '/categories', '/suggestions', '/migrations'].includes(path)) {
+      setOpenMenus(prev => ({ ...prev, inventario: true }));
+    } else if (['/prices', '/goods-receipt', '/promotions', '/offers'].includes(path)) {
+      setOpenMenus(prev => ({ ...prev, precios: true }));
+    } else if (['/leads', '/customers', '/abandoned-carts', '/campaigns', '/audiences', '/credits'].includes(path)) {
+      setOpenMenus(prev => ({ ...prev, clientes: true }));
+    }
+  }, [location.pathname]);
 
   const handleLogout = () => {
     if (window.confirm('¿Deseas cerrar sesión de tu tienda?')) {
@@ -120,12 +162,24 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       supabase.from('workspaces').select('name, status').eq('id', wsId).single()
         .then(({ data, error }) => {
           if (!error && data) {
-            setStoreName(data.name || 'Tienda');
+            setStoreName(data.name || 'Carlosvip');
             setWorkspaceStatus(data.status || 'Activo');
           }
         })
         .catch(err => console.error("Error fetching store info:", err));
     }
+  }, []);
+
+  // Atajo de teclado global Cmd+K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -136,35 +190,126 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     }
   }, [theme]);
 
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, exact: true },
-    { name: 'Analítica', path: '/analytics', icon: BarChart3 },
-    { name: 'Combos', path: '/products', icon: Package },
-    { name: 'Inventario', path: '/inventory', icon: PackageSearch },
-    { name: 'Pedidos', path: '/orders', icon: ShoppingCart },
-    { name: 'Soporte', path: '/support', icon: LifeBuoy },
-    { name: 'Preparación', path: '/preparation', icon: Box },
-    // { name: 'Reseñas', path: '/reviews', icon: MessageSquare }, // Oculto temporalmente a solicitud
-    // { name: 'Promociones', path: '/promotions', icon: Tag }, // Oculto temporalmente a solicitud
-    { name: 'Ofertas Flash', path: '/offers', icon: Zap },
-    { name: 'Red Social', path: '/social-feed', icon: Share2 },
-    { name: 'Notificaciones', path: '/notifications', icon: Bell },
-    { name: 'Perfil Tienda', path: '/store-profile', icon: Settings },
-    { name: 'Ubicación', path: '/location', icon: MapPin },
+  // Estructura exacta solicitada por el usuario (Menú multinivel Commercy)
+  const menuSections = [
+    {
+      id: 'setup',
+      name: 'Puesta en marcha',
+      path: '/setup',
+      icon: Rocket,
+      badge: '4/4',
+      exact: true
+    },
+    {
+      id: 'dashboard',
+      name: 'Estadísticas',
+      path: '/dashboard',
+      icon: BarChart3
+    },
+    {
+      id: 'ventas',
+      name: 'Ventas',
+      icon: ShoppingCart,
+      isDropdown: true,
+      items: [
+        { name: 'Órdenes', path: '/orders' },
+        { name: 'Facturación', path: '/invoicing' },
+        { name: 'Arrepentimientos', path: '/returns' },
+        { name: 'POS Kiosco', path: '/pos', isPos: true },
+        { name: 'Caja', path: '/shifts' },
+        { name: 'Cupones', path: '/coupons' },
+      ]
+    },
+    {
+      id: 'inventario',
+      name: 'Inventario',
+      icon: PackageSearch,
+      isDropdown: true,
+      items: [
+        { name: 'Productos', path: '/inventory' },
+        { name: 'Stock', path: '/stock' },
+        { name: 'Combos & Paquetes', path: '/combos' },
+        { name: 'Categorías', path: '/categories' },
+        { name: 'Sugerencias de ficha', path: '/suggestions' },
+        { name: 'Migraciones', path: '/migrations' },
+      ]
+    },
+    {
+      id: 'precios',
+      name: 'Precios',
+      icon: Tag,
+      isDropdown: true,
+      items: [
+        { name: 'Centro de precios', path: '/prices' },
+        { name: 'Ofertas Flash', path: '/offers' },
+        { name: 'Ingresar mercadería', path: '/goods-receipt' },
+        { name: 'Promociones', path: '/promotions' },
+      ]
+    },
+    {
+      id: 'clientes',
+      name: 'Clientes',
+      icon: Users,
+      isDropdown: true,
+      items: [
+        { name: 'Base de leads', path: '/leads' },
+        { name: 'Clientes', path: '/customers' },
+        { name: 'Carritos y estadísticas', path: '/abandoned-carts' },
+        { name: 'Campañas', path: '/campaigns' },
+        { name: 'Audiencias', path: '/audiences' },
+      ]
+    },
+    {
+      id: 'tareas',
+      name: 'Tareas',
+      path: '/preparation',
+      icon: Box
+    }
   ];
 
-  // Navegación móvil: 4 ítems primarios + botón "Más"
-  const primaryPaths = ['/dashboard', '/orders', '/products', '/inventory'];
-  const primaryNavItems = primaryPaths
-    .map(p => navItems.find(item => item.path === p))
-    .filter(Boolean);
-  const secondaryNavItems = navItems.filter(item => !primaryPaths.includes(item.path));
+  // Filtro en vivo para la barra de búsqueda ⌘K
+  const filteredSections = useMemo(() => {
+    if (!searchQuery.trim()) return menuSections;
+    const q = searchQuery.toLowerCase().trim();
+    return menuSections
+      .map(sec => {
+        if (sec.isDropdown) {
+          const matchingItems = sec.items.filter(sub => sub.name.toLowerCase().includes(q));
+          if (matchingItems.length > 0 || sec.name.toLowerCase().includes(q)) {
+            return {
+              ...sec,
+              items: matchingItems.length > 0 ? matchingItems : sec.items,
+              forceOpen: true
+            };
+          }
+          return null;
+        } else {
+          return sec.name.toLowerCase().includes(q) ? sec : null;
+        }
+      })
+      .filter(Boolean);
+  }, [searchQuery, menuSections]);
+
+  // Enlaces secundarios inferiores
+  const bottomUtilityItems = [
+    { name: 'Sucursales', path: '/location', icon: Building2 },
+    { name: 'Equipo', path: '/support', icon: Users },
+    { name: 'Referidos', path: '/promotions', icon: Gift },
+    { name: 'Apps', path: '/storefront', icon: LayoutGrid },
+    { name: 'Configuración', path: '/store-profile', icon: Settings },
+  ];
+
+  const handleOpenVitrina = () => {
+    const slug = localStorage.getItem('storeSlug');
+    if (slug) window.open(`/${slug}`, '_blank');
+    else alert('No se encontró el enlace de tu tienda.');
+  };
 
   if (workspaceStatus === 'Pendiente') {
     return (
       <div className="min-h-screen h-[100dvh] flex flex-col bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 font-sans items-center justify-center p-4 sm:p-6 text-center">
         <div className="max-w-md w-full bg-white border border-slate-200/90 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
             <ShieldAlert size={32} />
           </div>
           <h2 className="text-2xl font-extrabold text-slate-900 mb-3 tracking-tight">
@@ -173,9 +318,9 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <p className="text-sm text-slate-600 mb-6 leading-relaxed">
             Tu tienda ha sido pre-registrada con éxito. Para proteger la seguridad de nuestros clientes, un representante de AxonMarket verificará tu negocio y procesará tu suscripción.
           </p>
-          <div className="bg-amber-50/70 border border-amber-200/60 rounded-2xl p-4 mb-6 text-left flex items-start gap-3">
-            <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-            <p className="text-xs text-amber-900 leading-relaxed font-medium">
+          <div className="bg-orange-50/70 border border-orange-200/60 rounded-2xl p-4 mb-6 text-left flex items-start gap-3">
+            <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 shrink-0" />
+            <p className="text-xs text-orange-950 leading-relaxed font-medium">
               Nos pondremos en contacto contigo pronto por correo o teléfono para activar tu vitrina oficial.
             </p>
           </div>
@@ -190,192 +335,492 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     );
   }
 
+  const isPosRoute = location.pathname === '/pos';
+
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#f4f7fb] dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
       
-      {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-white/5 z-20 shrink-0 shadow-lg shadow-slate-200/50 dark:shadow-none transition-colors">
-        <div className="p-6 flex items-center justify-between">
-          <div 
-            onClick={() => {
-              const slug = localStorage.getItem('storeSlug');
-              if (slug) window.open(`/${slug}`, '_blank');
-              else alert('No se encontró el enlace de tu tienda.');
-            }}
-            title="Ver mi Vitrina"
-            className="flex items-center gap-3 cursor-pointer group p-1.5 -m-1.5 rounded-2xl hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all select-none"
-          >
-            <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-2 rounded-xl text-black shadow-lg shadow-amber-200 dark:shadow-amber-900/20 group-hover:scale-105 transition-transform">
-              <ShoppingBag size={24} />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-lg font-extrabold text-slate-800 dark:text-white leading-tight tracking-tight line-clamp-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{storeName}</h1>
-                <ExternalLink size={13} className="text-amber-500 opacity-70 group-hover:opacity-100 transition-opacity shrink-0" />
+      {/* ========================================================
+          SIDEBAR COMMERCY ULTRA-COMPACTO (IMAGEN 1) EN MODO POS
+          ======================================================== */}
+      {isPosRoute ? (
+        <aside className="hidden md:flex flex-col items-center justify-between w-20 bg-white dark:bg-zinc-900 border-r border-slate-200/80 dark:border-white/10 z-30 shrink-0 select-none py-4 font-sans shadow-xs h-screen">
+          
+          {/* 1. Top: Logo Oficial AxonMarket + Indicador de Estado de Caja */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div 
+              onClick={() => navigate('/dashboard')}
+              title="AxonMarket · Volver al Panel de Control"
+              className="w-12 h-12 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all select-none"
+            >
+              <img 
+                src="/axonmarket-logo-icon.png" 
+                alt="AxonMarket" 
+                className="w-full h-full object-contain rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement.querySelector('.fallback-logo');
+                  if (fallback) fallback.style.display = 'flex';
+                }}
+              />
+              <div className="fallback-logo hidden w-full h-full rounded-2xl bg-[#ea580c] items-center justify-center text-white shadow-sm">
+                <Store size={22} className="text-white" />
               </div>
-              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest flex items-center gap-1">
+            </div>
+
+            {/* Indicador de Caja Abierta */}
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300">Caja</span>
+            </div>
+          </div>
+
+          {/* 2. Middle: Botones Principales Centrados Verticalmente (Vender, Pedidos, Caja Única) */}
+          {(() => {
+            const searchParams = new URLSearchParams(location.search);
+            const currentView = searchParams.get('view') || 'pos';
+
+            return (
+              <div className="flex flex-col items-center justify-center gap-3 w-full px-2 my-auto">
+                {/* Vender (Mostrador POS) */}
+                <button
+                  onClick={() => navigate('/pos?view=pos')}
+                  title="Vender · Mostrador POS"
+                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    currentView === 'pos'
+                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-xl ${currentView === 'pos' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400'}`}>
+                    <Calculator size={20} strokeWidth={2.2} />
+                  </div>
+                  <span className={`text-[11px] font-bold ${currentView === 'pos' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                    Vender
+                  </span>
+                </button>
+
+                {/* Pedidos (Tablero Kanban de Pedidos) */}
+                <button
+                  onClick={() => navigate('/pos?view=orders')}
+                  title="Pedidos y Entregas"
+                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group ${
+                    currentView === 'orders'
+                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <Receipt size={20} className="group-hover:scale-110 transition-transform text-slate-600 dark:text-zinc-400" />
+                  <span className={`text-[11px] font-bold ${currentView === 'orders' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                    Pedidos
+                  </span>
+                </button>
+
+                {/* Caja Única & Turnos (Icono de Dólar) */}
+                <button
+                  onClick={() => navigate('/pos?view=shifts')}
+                  title="Caja, Turnos y Arqueos"
+                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group ${
+                    currentView === 'shifts'
+                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <DollarSign size={20} className="group-hover:scale-110 transition-transform text-slate-600 dark:text-zinc-400" />
+                  <span className={`text-[11px] font-bold ${currentView === 'shifts' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                    Caja
+                  </span>
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* 3. Bottom: Video y Botón Salir */}
+          <div className="flex flex-col items-center gap-3 w-full px-2">
+            <button
+              onClick={() => toast('Tutorial de uso de POS Kiosco', { icon: '📹' })}
+              title="Video Tutorial"
+              className="w-full py-2 rounded-xl flex flex-col items-center justify-center gap-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
+            >
+              <PlayCircle size={20} strokeWidth={2} />
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Video</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/dashboard')}
+              title="Salir al Panel de AxonMarket"
+              className="w-full py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer font-bold group"
+            >
+              <LogOut size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+              <span className="text-[11px] font-extrabold text-red-600">Salir</span>
+            </button>
+          </div>
+
+        </aside>
+      ) : (
+        <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#ea580c] via-[#ea580c] to-[#c2410c] text-white z-20 shrink-0 select-none shadow-2xl shadow-orange-950/20 font-sans border-r border-orange-700/40">
+        
+        {/* 1. Header: Logo comerciante / AxonMarket */}
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xs border border-white/20">
+              <ShoppingBag size={18} className="text-white" />
+            </div>
+            <span className="text-xl font-black tracking-tight text-white lowercase">
+              axonmarket
+            </span>
+          </div>
+        </div>
+
+        {/* 2. Workspace Selector Card (Jhonvip / Profesional) */}
+        <div className="px-4 py-2">
+          <div 
+            onClick={handleOpenVitrina}
+            title="Ver Vitrina Pública"
+            className="bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md rounded-2xl p-2.5 flex items-center justify-between transition-all cursor-pointer group shadow-xs"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-sm shrink-0 border border-white/20 group-hover:scale-105 transition-transform">
+                <Store size={18} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-extrabold text-white truncate leading-tight">
+                  {storeName}
+                </h2>
+                <span className="text-[11px] text-white/75 font-medium block truncate">
+                  Profesional
+                </span>
+              </div>
+            </div>
+            <ExternalLink size={14} className="text-white/60 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+          </div>
+        </div>
+
+        {/* 3. Search Bar [ Buscar... ⌘K ] */}
+        <div className="px-4 py-2">
+          <div className="bg-white/10 hover:bg-white/15 border border-white/20 rounded-xl px-3 py-2 flex items-center justify-between text-xs text-white placeholder-white/60 transition-all focus-within:ring-2 focus-within:ring-white/40 focus-within:bg-white/20">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Search size={14} className="text-white/60 shrink-0" />
+              <input 
+                ref={searchInputRef}
+                type="text"
+                placeholder="Buscar..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border-none outline-none text-xs text-white placeholder-white/60 w-full min-w-0"
+              />
+            </div>
+            <kbd className="bg-white/20 text-white/90 text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 border border-white/10">
+              ⌘ K
+            </kbd>
+          </div>
+        </div>
+
+        {/* 4. Main Nav List con Acordeones Desplegables Estilo Commercy (Image 4) */}
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2">
+          {filteredSections.map((sec) => {
+            // Caso 1: Ítem con submenú desplegable (Ventas, Inventario, Precios, Clientes)
+            if (sec.isDropdown) {
+              const isOpen = sec.forceOpen || openMenus[sec.id];
+              const isChildActive = sec.items.some(item => location.pathname === item.path);
+
+              return (
+                <div key={sec.id} className="space-y-1">
+                  {/* Encabezado del Menú Desplegable */}
+                  <button
+                    onClick={() => toggleSubmenu(sec.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 select-none cursor-pointer group",
+                      isChildActive && !isOpen 
+                        ? "bg-white/15 text-white" 
+                        : "text-white/85 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <sec.icon size={17} strokeWidth={2.2} className="shrink-0 text-white" />
+                      <span className="truncate">{sec.name}</span>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp size={15} className="text-white/70 group-hover:text-white transition-transform" />
+                    ) : (
+                      <ChevronDown size={15} className="text-white/70 group-hover:text-white transition-transform" />
+                    )}
+                  </button>
+
+                  {/* Sub-ítems (Idéntico a Image 4: Píldora blanca con texto azul/naranja cuando está activo) */}
+                  {isOpen && (
+                    <div className="pl-6 pr-1 space-y-1 pt-0.5 pb-1 animate-in slide-in-from-top-1 duration-150">
+                      {sec.items.map((sub) => {
+                        const isSubActive = location.pathname === sub.path;
+                        return (
+                          <NavLink
+                            key={sub.name}
+                            to={sub.path}
+                            className={cn(
+                              "block px-3.5 py-2 rounded-xl text-xs transition-all duration-150 font-semibold",
+                              isSubActive 
+                                ? "bg-white text-orange-600 font-extrabold shadow-sm" 
+                                : "text-white/80 hover:text-white hover:bg-white/10"
+                            )}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="truncate">{sub.name}</span>
+                              {sub.isPos && (
+                                <span className={cn(
+                                  "text-[9px] font-black px-1.5 py-0.2 rounded-full",
+                                  isSubActive ? "bg-orange-100 text-orange-600" : "bg-white/20 text-white"
+                                )}>
+                                  POS
+                                </span>
+                              )}
+                            </div>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Caso 2: Ítem simple (Puesta en marcha, Estadísticas, Tareas)
+            const isSetupActive = sec.path === '/setup' && (location.pathname === '/setup' || location.pathname === '/puesta-en-marcha');
+            return (
+              <NavLink
+                key={sec.name}
+                to={sec.path}
+                end={sec.exact}
+                className={({ isActive }) => {
+                  const active = isActive || isSetupActive;
+                  return cn(
+                    "flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group",
+                    active 
+                      ? "bg-white/20 text-white shadow-inner backdrop-blur-md" 
+                      : "text-white/80 hover:text-white hover:bg-white/10"
+                  );
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <sec.icon size={17} strokeWidth={2.2} className="shrink-0 text-white" />
+                  <span className="truncate">{sec.name}</span>
+                </div>
+                {sec.badge && (
+                  <span className="text-[10px] font-extrabold text-white/90 bg-white/20 px-2 py-0.5 rounded-full border border-white/15 shrink-0">
+                    {sec.badge}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* 5. Bottom Section: Trial Card + Utilities + User Card */}
+        <div className="shrink-0 pt-2 pb-3 border-t border-white/15 bg-black/5 backdrop-blur-xs">
+          
+          {/* Trial Progress Card (Prueba · 13 días [Activar]) */}
+          <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md">
+            <div className="flex items-center justify-between text-xs font-bold text-white mb-2">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                Prueba · 13 días
+              </span>
+              <button 
+                onClick={() => navigate('/store-profile')}
+                className="bg-white hover:bg-slate-50 text-orange-600 font-extrabold text-[10px] px-3 py-1 rounded-full shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Activar
+              </button>
+            </div>
+            <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+              <div className="w-3/4 h-full bg-white rounded-full transition-all duration-500" />
+            </div>
+          </div>
+
+          {/* Secondary Utility Links (Sucursales, Equipo, Referidos, Apps, Configuración) */}
+          <div className="px-3.5 space-y-0.5 mb-2">
+            {bottomUtilityItems.map((u) => (
+              <NavLink
+                key={u.name}
+                to={u.path}
+                className={({ isActive }) => cn(
+                  "flex items-center gap-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                  isActive 
+                    ? "bg-white/20 text-white font-bold" 
+                    : "text-white/75 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <u.icon size={15} className="shrink-0 text-white/80" />
+                <span className="truncate">{u.name}</span>
+              </NavLink>
+            ))}
+          </div>
+
+          {/* User Profile Footer Card */}
+          <div className="mx-3.5 pt-2 border-t border-white/15 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative shrink-0">
+                <div className="w-8 h-8 rounded-full bg-white text-orange-600 font-black text-xs flex items-center justify-center shadow-xs border border-white/30">
+                  {storeName.charAt(0).toUpperCase()}
+                </div>
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-orange-600" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white leading-tight truncate">
+                  {storeName}
+                </p>
+                <p className="text-[10px] text-white/75 truncate">
+                  Admin · {storeName}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                onClick={handleOpenVitrina}
+                title="Ver Vitrina"
+                className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <ArrowUpDown size={15} />
+              </button>
+              <button 
+                onClick={handleLogout}
+                title="Cerrar sesión"
+                className="p-1.5 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
+                <LogOut size={15} />
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </aside>
+      )}
+
+      {/* ========================================================
+          MOBILE HEADER (Oculto en Terminal POS, Dashboard y Más para estética Commercy)
+          ======================================================== */}
+      {!isPosRoute && location.pathname !== '/dashboard' && location.pathname !== '/more' && (
+        <header 
+          className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 px-4 flex items-center justify-between"
+          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
+        >
+          <div 
+            onClick={handleOpenVitrina}
+            title="Ver mi Vitrina"
+            className="flex items-center gap-2 max-w-[60%] cursor-pointer group active:scale-95 transition-transform select-none"
+          >
+            <div className="bg-gradient-to-tr from-orange-500 to-amber-600 p-1.5 rounded-lg text-white shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+              <ShoppingBag size={20} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-1">
+                <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate group-hover:text-orange-600 transition-colors">
+                  {storeName}
+                </h1>
+                <ExternalLink size={11} className="text-orange-500 opacity-70 shrink-0" />
+              </div>
+              <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest leading-none">
                 Ver Vitrina
               </span>
             </div>
           </div>
-        </div>
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              end={item.exact}
-              className={({ isActive }) => cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300",
-                isActive 
-                  ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 shadow-sm" 
-                  : "text-slate-600 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-white"
+          <div className="flex items-center gap-2.5 relative">
+            <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-500 hover:text-orange-500 p-2 relative">
+              <Bell size={18} />
+              {notifications.filter(n => !n.is_read).length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               )}
+            </button>
+            <button onClick={toggleTheme} className="text-slate-500 hover:text-orange-500 p-2">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button 
+              onClick={handleLogout} 
+              title="Cerrar sesión"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95"
             >
-              <item.icon size={18} strokeWidth={2.5} />
-              {item.name}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-slate-200 dark:border-white/5 space-y-3">
-          <button 
-            onClick={() => {
-              const slug = localStorage.getItem('storeSlug');
-              if (slug) window.open(`/${slug}`, '_blank');
-              else alert('No se encontró el enlace de tu tienda.');
-            }}
-            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 hover:bg-amber-200 dark:hover:bg-amber-500/20 transition-colors text-sm font-semibold rounded-xl"
-          >
-            <MonitorSmartphone size={16} /> Ver mi Vitrina
-          </button>
-          <button 
-            onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 rounded-xl transition-colors text-sm font-semibold active:scale-[0.98]"
-          >
-            <LogOut size={16} /> Cerrar Sesión
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Header */}
-      <header 
-        className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 px-4 flex items-center justify-between"
-        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
-      >
-        <div 
-          onClick={() => {
-            const slug = localStorage.getItem('storeSlug');
-            if (slug) window.open(`/${slug}`, '_blank');
-            else alert('No se encontró el enlace de tu tienda.');
-          }}
-          title="Ver mi Vitrina"
-          className="flex items-center gap-2 max-w-[60%] cursor-pointer group active:scale-95 transition-transform select-none"
-        >
-          <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-            <ShoppingBag size={20} />
+              <LogOut size={14} />
+              <span>Salir</span>
+            </button>
           </div>
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-1">
-              <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{storeName}</h1>
-              <ExternalLink size={11} className="text-amber-500 opacity-70 shrink-0" />
-            </div>
-            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none">Ver Vitrina</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 relative">
-          <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-400 hover:text-amber-500 p-2 relative">
-            <Bell size={18} />
-            {notifications.filter(n => !n.is_read).length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            )}
-          </button>
-          <button onClick={toggleTheme} className="text-slate-400 hover:text-amber-500 p-2">
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button 
-            onClick={handleLogout} 
-            title="Cerrar sesión de la tienda"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95"
-          >
-            <LogOut size={14} />
-            <span>Salir</span>
-          </button>
-          
-          {showNotifications && (
-            <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
-              <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
-                <h3 className="font-bold text-slate-800 dark:text-white">Notificaciones</h3>
-                <span className="text-xs font-bold text-amber-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 dark:text-zinc-500 text-sm">No tienes notificaciones.</div>
-                ) : (
-                  notifications.map(n => (
-                    <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
-                      onClick={() => {
-                        markAsRead(n.id);
-                        if(n.type === 'stock_alert') {
-                          navigate('/inventory');
-                        } else if(n.product_id) {
-                          navigate(`/product-studio/${n.product_id}`);
-                        }
-                        setShowNotifications(false);
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-amber-600 font-bold'}`}>
-                            {n.type === 'stock_alert' ? '⚠️ Alerta de Stock' : 'Notificación'}
-                          </p>
-                          <p className="text-sm text-slate-700 dark:text-zinc-300 leading-tight">{n.message}</p>
-                          <span className="text-[10px] text-slate-400 mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
-                        </div>
-                        {!n.is_read && (
-                          <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-amber-500" title="Marcar como leída">
-                            <CheckCheck size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
+        </header>
+      )}
+
+      {/* ========================================================
+          MAIN CONTENT AREA - AIRY COMMERCY BACKGROUND & CARDS
+          ======================================================== */}
+      <main className={cn(
+        "flex-1 overflow-y-auto w-full custom-scrollbar bg-[#f4f7fb] dark:bg-zinc-950 relative",
+        isPosRoute ? "p-0 pb-0 overflow-hidden" : "pb-24 md:pb-8"
+      )}>
+        
+        {/* Desktop Top Bar Controls (Oculto en /pos para terminal limpia) */}
+        {!isPosRoute && (
+          <div className="sticky top-0 z-40 bg-[#f4f7fb]/80 dark:bg-zinc-950/80 backdrop-blur-md px-6 md:px-10 py-3.5 hidden md:flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 mb-2">
+            
+            <div className="flex items-center gap-2">
+              <NavLink
+                to="/setup"
+                className={({ isActive }) => cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5",
+                  (isActive || location.pathname === '/puesta-en-marcha')
+                    ? "bg-orange-500 text-white shadow-xs"
+                    : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/60 dark:border-white/10"
                 )}
-                  </div>
-                  <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
-                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
-                      Ver todas las notificaciones
-                    </button>
-                  </div>
-                </div>
-              )}
-        </div>
-      </header>
+              >
+                <Rocket size={13} />
+                Puesta en marcha
+              </NavLink>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto w-full custom-scrollbar bg-slate-50 dark:bg-black relative pb-24 md:pb-6">
-        <div className="absolute top-4 right-6 hidden md:flex items-center gap-3 z-50">
-           <div className="relative">
-             <button onClick={() => setShowNotifications(!showNotifications)} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors relative">
+              {/* Botón Destacado para Entrar al POS Kiosco (Mostrador) */}
+              <NavLink
+                to="/pos"
+                className="px-4 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/25 active:scale-95"
+              >
+                <MonitorSmartphone size={14} />
+                Entrar a POS Kiosco (Mostrador)
+              </NavLink>
+
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5",
+                  isActive
+                    ? "bg-orange-500 text-white shadow-xs"
+                    : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/60 dark:border-white/10"
+                )}
+              >
+                <BarChart3 size={13} />
+                Resumen General
+              </NavLink>
+            </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)} 
+                className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/70 dark:border-white/10 text-slate-500 hover:text-orange-600 shadow-xs transition-colors relative cursor-pointer"
+              >
                 <Bell size={18} />
                 {notifications.filter(n => !n.is_read).length > 0 && (
                   <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                 )}
-             </button>
-             
-             {showNotifications && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
                     <h3 className="font-bold text-slate-800 dark:text-white">Notificaciones</h3>
-                    <span className="text-xs font-bold text-amber-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
+                    <span className="text-xs font-bold text-orange-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.length === 0 ? (
                       <div className="p-6 text-center text-slate-500 dark:text-zinc-500 text-sm">No tienes notificaciones.</div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-amber-50 dark:bg-amber-500/5'}`}
+                        <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-orange-50/50 dark:bg-orange-500/5'}`}
                           onClick={() => {
                             markAsRead(n.id);
                             if(n.type === 'stock_alert') {
@@ -388,14 +833,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-amber-600 font-bold'}`}>
+                              <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-orange-600 font-bold'}`}>
                                 {n.type === 'stock_alert' ? '⚠️ Alerta de Stock' : 'Notificación'}
                               </p>
                               <p className="text-sm text-slate-700 dark:text-zinc-300 leading-tight">{n.message}</p>
                               <span className="text-[10px] text-slate-400 mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
                             </div>
                             {!n.is_read && (
-                              <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-amber-500" title="Marcar como leída">
+                              <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-orange-500" title="Marcar como leída">
                                 <CheckCheck size={16} />
                               </button>
                             )}
@@ -405,167 +850,74 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                     )}
                   </div>
                   <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
-                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-amber-100 hover:bg-amber-200 dark:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs rounded-xl transition-colors">
+                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-orange-100 hover:bg-orange-200 dark:bg-orange-500/20 dark:hover:bg-orange-500/30 text-orange-700 dark:text-orange-400 font-bold text-xs rounded-xl transition-colors">
                       Ver todas las notificaciones
                     </button>
                   </div>
                 </div>
               )}
-           </div>
-           
-           <button onClick={toggleTheme} className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 text-slate-400 hover:text-amber-500 shadow-sm transition-colors">
+            </div>
+            
+            <button 
+              onClick={toggleTheme} 
+              className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/70 dark:border-white/10 text-slate-500 hover:text-orange-600 shadow-xs transition-colors cursor-pointer"
+            >
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-           </button>
+            </button>
+          </div>
+
         </div>
+        )}
         
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Nav — 4 primary + "Más" (Fijo al fondo de la pantalla) */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/5 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-      >
-        <div className="flex items-center justify-around px-1 pt-2">
-          {primaryNavItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              end={item.exact}
-              onClick={() => setShowMoreDrawer(false)}
-              className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group"
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <div className="absolute inset-0 bg-amber-50 dark:bg-amber-500/10 rounded-2xl -z-10" />
-                  )}
-                  <div className={cn(
-                    "p-1.5 rounded-xl mb-0.5 transition-all duration-200",
-                    isActive ? "text-amber-600 dark:text-amber-500 scale-110" : "text-slate-400"
-                  )}>
-                    <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-bold tracking-wide transition-colors",
-                    isActive ? "text-amber-600 dark:text-amber-500" : "text-slate-400"
-                  )}>
-                    {item.name}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          ))}
-
-          {/* Botón "Más" */}
-          <button
-            onClick={() => setShowMoreDrawer(true)}
-            className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group active:scale-95"
-          >
-            <div className="p-1.5 rounded-xl mb-0.5 text-slate-400 group-active:text-amber-500 transition-colors">
-              <Menu size={22} strokeWidth={2} />
-            </div>
-            <span className="text-[10px] font-bold tracking-wide text-slate-400">Más</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Drawer "Más" — Bottom Sheet Móvil */}
-      {showMoreDrawer && (
-        <div className="md:hidden fixed inset-0 z-50" onClick={() => setShowMoreDrawer(false)}>
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-
-          {/* Sheet */}
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 rounded-t-3xl border-t border-slate-200 dark:border-white/5 shadow-2xl animate-in slide-in-from-bottom duration-300 overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Handle + header */}
-            <div className="flex items-center justify-between px-5 pt-4 pb-3">
-              <div 
-                onClick={() => {
-                  const slug = localStorage.getItem('storeSlug');
-                  if (slug) window.open(`/${slug}`, '_blank');
-                  else alert('No se encontró el enlace de tu tienda.');
-                  setShowMoreDrawer(false);
-                }}
-                title="Ver mi Vitrina"
-                className="flex items-center gap-3 cursor-pointer group select-none"
+      {/* ========================================================
+          MOBILE BOTTOM NAV (Oculto en /pos y /product-studio para pantalla completa)
+          ======================================================== */}
+      {location.pathname !== '/pos' && !location.pathname.startsWith('/product-studio') && (
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/5 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
+          style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex items-center justify-around px-1 pt-2">
+            {[
+              { name: 'Inicio', path: '/dashboard', icon: Home },
+              { name: 'POS', path: '/pos', icon: ShoppingCart },
+              { name: 'Órdenes', path: '/orders', icon: ClipboardList },
+              { name: 'Inventario', path: '/inventory', icon: PackageSearch },
+              { name: 'Más', path: '/more', icon: Menu }
+            ].map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group"
               >
-                <div className="bg-gradient-to-tr from-amber-400 to-amber-600 p-1.5 rounded-lg text-black group-hover:scale-105 transition-transform shadow-sm">
-                  <ShoppingBag size={18} />
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-extrabold text-slate-800 dark:text-white truncate max-w-[160px] group-hover:text-amber-600 transition-colors">{storeName}</span>
-                    <ExternalLink size={12} className="text-amber-500 opacity-70 shrink-0" />
-                  </div>
-                  <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest leading-none">Ver Vitrina</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowMoreDrawer(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white bg-slate-100 dark:bg-zinc-900 rounded-xl"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="px-4 pb-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Más opciones</p>
-            </div>
-
-            {/* Grid de ítems secundarios */}
-            <div className="grid grid-cols-4 gap-2 px-4 py-3">
-              {secondaryNavItems.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.path}
-                  end={item.exact}
-                  onClick={() => setShowMoreDrawer(false)}
-                  className={({ isActive }) => cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all active:scale-95",
-                    isActive
-                      ? "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500"
-                      : "text-slate-500 dark:text-zinc-400 active:bg-slate-100 dark:active:bg-zinc-900"
-                  )}
-                >
-                  <item.icon size={22} strokeWidth={2} />
-                  <span className="text-[10px] font-bold text-center leading-tight">{item.name}</span>
-                </NavLink>
-              ))}
-            </div>
-
-            {/* Acciones rápidas */}
-            <div
-              className="px-4 pt-3 border-t border-slate-100 dark:border-white/5 space-y-2"
-              style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
-            >
-              <button
-                onClick={() => {
-                  const slug = localStorage.getItem('storeSlug');
-                  if (slug) window.open(`/${slug}`, '_blank');
-                  else alert('No se encontró el enlace de tu tienda.');
-                  setShowMoreDrawer(false);
-                }}
-                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-500 font-semibold text-sm rounded-xl active:bg-amber-200 transition-colors"
-              >
-                <MonitorSmartphone size={16} /> Ver mi Vitrina
-              </button>
-              <button
-                onClick={() => {
-                  setShowMoreDrawer(false);
-                  handleLogout();
-                }}
-                className="flex w-full items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-semibold text-sm rounded-xl border border-red-200/80 dark:border-red-900/40 active:bg-red-100 transition-colors"
-              >
-                <LogOut size={16} /> Cerrar Sesión
-              </button>
-            </div>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <div className="absolute inset-0 bg-orange-50 dark:bg-orange-500/10 rounded-2xl -z-10" />
+                    )}
+                    <div className={cn(
+                      "p-1.5 rounded-xl mb-0.5 transition-all duration-200",
+                      isActive ? "text-orange-600 scale-110" : "text-slate-400"
+                    )}>
+                      <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold tracking-wide transition-colors",
+                      isActive ? "text-orange-600" : "text-slate-400"
+                    )}>
+                      {item.name}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            ))}
           </div>
-        </div>
+        </nav>
       )}
+
     </div>
   );
 }

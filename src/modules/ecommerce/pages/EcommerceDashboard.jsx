@@ -1,18 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, ArrowUpRight, Activity } from 'lucide-react';
+import { 
+  DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
+  ArrowUpRight, Activity, ShoppingBag, Eye, Plus, MoreHorizontal, 
+  FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
+  Rocket, PackageSearch, Tag, Users, Building2, Settings
+} from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 export default function EcommerceDashboard() {
   const navigate = useNavigate();
-  const [summary, setSummary] = useState({ revenue: 0, orders: 0, aov: 0, products: 0, revenueChange: 0, ordersChange: 0, aovChange: 0, productsChange: 0 });
+  const [summary, setSummary] = useState({ 
+    revenue: 0, orders: 0, aov: 0, products: 0, 
+    revenueChange: 0, ordersChange: 0, aovChange: 0, productsChange: 0 
+  });
   const [topSellers, setTopSellers] = useState([]);
   const [salesData, setSalesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
   const [lowStockCount, setLowStockCount] = useState(0);
 
+  // Estados específicos para la vista móvil estilo Commercy (en Naranja Corporativo)
+  const [storeInfo, setStoreInfo] = useState({ name: 'Jhonvip', slug: 'jhonvip' });
+  const [mobilePeriod, setMobilePeriod] = useState('today'); // 'today' | 'month'
+  const [todayMetrics, setTodayMetrics] = useState({
+    sales: 0,
+    orders: 0,
+    pendingOrders: 0,
+    aov: 0,
+    vsYesterdayPercent: 0
+  });
+  const [monthMetrics, setMonthMetrics] = useState({
+    sales: 0,
+    orders: 0,
+    aov: 0
+  });
+  const [newCustomersCount, setNewCustomersCount] = useState(0);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+
+  // Saludo dinámico según la hora local
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const firstName = (storeInfo.name || 'Jhon').trim().split(' ')[0];
+    if (hour < 12) return `Buenos días, ${firstName}`;
+    if (hour < 19) return `Buenas tardes, ${firstName}`;
+    return `Buenas noches, ${firstName}`;
+  };
+
+  // Cargar datos para la vista Desktop y Móvil
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -20,11 +57,34 @@ export default function EcommerceDashboard() {
         const workspaceId = localStorage.getItem('activeWorkspace');
         if (!workspaceId) return;
 
-        // Date ranges
+        // 1. Datos de la tienda (Nombre y Vitrina)
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('name, slug')
+          .eq('id', workspaceId)
+          .maybeSingle();
+        if (wsData) {
+          setStoreInfo({ 
+            name: wsData.name || 'Jhonvip', 
+            slug: wsData.slug || 'jhonvip' 
+          });
+        }
+
+        // 2. Fechas de cálculo
         const now = new Date();
+        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const endToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        const startYesterday = new Date(startToday);
+        startYesterday.setDate(startYesterday.getDate() - 1);
+        const yesterdaySameTime = new Date(now);
+        yesterdaySameTime.setDate(yesterdaySameTime.getDate() - 1);
+
+        const startMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+
+        // Date ranges para gráfica desktop
         const start = new Date();
         let prevStart = new Date();
-        
         if (timeRange === '7d') {
           start.setDate(now.getDate() - 7);
           prevStart.setDate(start.getDate() - 7);
@@ -41,12 +101,14 @@ export default function EcommerceDashboard() {
           .select('*', { count: 'exact', head: true })
           .eq('workspace_id', workspaceId);
 
+        // Consulta de órdenes completa
         const { data: currentOrders } = await supabase
           .from('ecommerce_orders_v2')
           .select('*')
           .eq('workspace_id', workspaceId)
           .gte('date', start.toISOString())
-          .neq('status', 'Cancelado');
+          .neq('status', 'Cancelado')
+          .order('date', { ascending: false });
 
         const { data: prevOrders } = await supabase
           .from('ecommerce_orders_v2')
@@ -78,6 +140,54 @@ export default function EcommerceDashboard() {
           productsChange: 0
         });
 
+        // 3. Métricas precisas para Vista Móvil (Hoy vs Ayer vs Este Mes)
+        const todayOrders = curOrders.filter(o => {
+          const t = new Date(o.date).getTime();
+          return t >= startToday.getTime() && t <= endToday.getTime();
+        });
+
+        const yesterdayOrders = prvOrders.filter(o => {
+          const t = new Date(o.date).getTime();
+          return t >= startYesterday.getTime() && t <= yesterdaySameTime.getTime();
+        });
+
+        const tSales = todayOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const ySales = yesterdayOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const pendingCount = todayOrders.filter(o => o.status === 'Pendiente').length;
+        const tAov = todayOrders.length > 0 ? tSales / todayOrders.length : 0;
+        const vsYesterday = ySales === 0 ? (tSales > 0 ? 100 : 0) : ((tSales - ySales) / ySales) * 100;
+
+        setTodayMetrics({
+          sales: tSales,
+          orders: todayOrders.length,
+          pendingOrders: pendingCount,
+          aov: tAov,
+          vsYesterdayPercent: vsYesterday
+        });
+
+        const monthOrders = curOrders.filter(o => {
+          return new Date(o.date).getTime() >= startMonth.getTime();
+        });
+        const mSales = monthOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const mAov = monthOrders.length > 0 ? mSales / monthOrders.length : 0;
+
+        setMonthMetrics({
+          sales: mSales,
+          orders: monthOrders.length,
+          aov: mAov
+        });
+
+        // 4. Últimas ventas para el feed móvil
+        setRecentOrders(curOrders.slice(0, 4));
+
+        // 5. Clientes nuevos de este mes
+        const { count: custCount } = await supabase
+          .from('ecommerce_customers')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspaceId);
+        setNewCustomersCount(custCount || 0);
+
+        // 6. Gráfico Desktop
         const salesMap = {};
         curOrders.forEach(o => {
           const d = o.date.substring(0, 10);
@@ -108,6 +218,7 @@ export default function EcommerceDashboard() {
            setSalesData(salesArray);
         }
 
+        // 7. Top Sellers
         const productMap = {};
         curOrders.forEach(o => {
           let items = [];
@@ -127,6 +238,7 @@ export default function EcommerceDashboard() {
         const sortedProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
         setTopSellers(sortedProducts);
 
+        // 8. Low Stock
         const { data: lowStock } = await supabase
           .from('ecommerce_products')
           .select('id')
@@ -154,154 +266,542 @@ export default function EcommerceDashboard() {
 
   const stats = [
     { title: 'Ventas Totales', value: `$${(summary.revenue || 0).toFixed(2)}`, change: formatChange(summary.revenueChange), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
-    { title: 'Pedidos', value: (summary.orders || 0).toString(), change: formatChange(summary.ordersChange), icon: ShoppingCart, color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10' },
+    { title: 'Pedidos', value: (summary.orders || 0).toString(), change: formatChange(summary.ordersChange), icon: ShoppingCart, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
     { title: 'Productos', value: (summary.products || 0).toString(), change: formatChange(summary.productsChange), icon: Package, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
     { title: 'Ticket Promedio', value: `$${(summary.aov || 0).toFixed(2)}`, change: formatChange(summary.aovChange), icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
   ];
 
+  // Variables para la vista móvil
+  const currentSales = mobilePeriod === 'today' ? todayMetrics.sales : monthMetrics.sales;
+  const currentOrdersCount = mobilePeriod === 'today' ? todayMetrics.orders : monthMetrics.orders;
+  const currentAov = mobilePeriod === 'today' ? todayMetrics.aov : monthMetrics.aov;
+  const comparisonText = mobilePeriod === 'today' 
+    ? `${todayMetrics.vsYesterdayPercent >= 0 ? '↑' : '↓'} ${Math.abs(todayMetrics.vsYesterdayPercent).toFixed(0)}% vs. ayer a esta hora`
+    : `${summary.revenueChange >= 0 ? '↑' : '↓'} ${Math.abs(summary.revenueChange).toFixed(0)}% vs. mes anterior`;
+
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 pb-24 md:pb-8">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Resumen General</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Métricas clave y alertas del rendimiento de tu tienda.</p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl p-3 md:p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-[10px] md:text-sm font-medium text-slate-500 dark:text-slate-400 leading-tight">{stat.title}</p>
-                <h3 className="text-lg md:text-2xl font-bold text-slate-800 dark:text-white mt-1">{stat.value}</h3>
-              </div>
-              <div className={`p-1.5 md:p-2.5 rounded-lg md:rounded-xl hidden sm:block ${stat.bg}`}>
-                <stat.icon size={20} className={stat.color} />
-              </div>
-            </div>
-            <div className="mt-2 md:mt-4 flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-              <span className={`text-[9px] md:text-xs font-bold px-1.5 py-0.5 rounded-md self-start ${stat.change.startsWith('+') ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}`}>
-                {stat.change}
-              </span>
-              <span className="text-[9px] md:text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:inline">vs mes anterior</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Charts & Alerts Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+    <div className="w-full min-h-screen bg-[#f4f7fb] dark:bg-black font-sans">
+      
+      {/* ========================================================
+          VISTA MÓVIL: ESTÉTICA COMMERCY EN NARANJA CORPORATIVO (IMAGE 1)
+          ======================================================== */}
+      <div className="block md:hidden pb-12">
         
-        {/* Gráfico principal */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col transition-all">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Ingresos vs Pedidos</h3>
-            <select 
-              value={timeRange} 
-              onChange={(e) => setTimeRange(e.target.value)} 
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50 cursor-pointer"
-            >
-              <option value="7d">Últimos 7 días</option>
-              <option value="30d">Últimos 30 días</option>
-              <option value="year">Último año</option>
-            </select>
-          </div>
+        {/* HERO CARD NARANJA CORPORATIVO */}
+        <div className="bg-gradient-to-b from-[#ea580c] via-[#f97316] to-[#ea580c] text-white pt-4 pb-12 px-5 relative overflow-hidden shadow-lg">
           
-          <div className="flex-1 min-h-[300px] w-full mt-4 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
-             {loading ? (
-               <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
-                 <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-                 <p className="text-sm">Analizando datos...</p>
-               </div>
-             ) : salesData.length === 0 ? (
-               <div className="h-full flex items-center justify-center text-slate-400 text-sm">No hay datos en este periodo</div>
-             ) : (
-               <div className="min-w-[600px] h-full">
-                 <ResponsiveContainer width="100%" height={300}>
-                   <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                     <defs>
-                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                         <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                         <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                       </linearGradient>
-                     </defs>
-                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
-                     <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#334155" tickLine={false} axisLine={false} dy={10} />
-                     <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                     <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b'}} stroke="#334155" tickLine={false} axisLine={false} hide={true} />
-                     <Tooltip 
-                       contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid #334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)' }}
-                       itemStyle={{ fontWeight: 600 }}
-                       cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '3 3' }}
-                     />
-                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '15px' }} iconType="circle" />
-                     <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }} />
-                     <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Pedidos" />
-                   </ComposedChart>
-                 </ResponsiveContainer>
-               </div>
-             )}
+          {/* Resplandor decorativo de fondo */}
+          <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-300/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 -left-12 w-40 h-40 bg-orange-700/30 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Fila Superior: Badge Tienda y Ver Vitrina */}
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div 
+              onClick={() => window.open(`/${storeInfo.slug}`, '_blank')}
+              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs"
+              title="Abrir Vitrina Pública"
+            >
+              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-2xs">
+                <ShoppingBag size={11} strokeWidth={2.5} />
+              </div>
+              <span className="text-xs font-black text-white tracking-wide">{storeInfo.name}</span>
+            </div>
+
+            <button
+              onClick={() => window.open(`/${storeInfo.slug}`, '_blank')}
+              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border border-white/20 shadow-xs cursor-pointer"
+              title="Ver vitrina pública"
+            >
+              <Eye size={17} />
+            </button>
           </div>
+
+          {/* Saludo */}
+          <p className="text-white/85 text-sm font-semibold mb-3 relative z-10">
+            {getGreeting()}
+          </p>
+
+          {/* Filtros: Hoy | Este mes */}
+          <div className="flex items-center gap-2 mb-5 relative z-10">
+            <button
+              onClick={() => setMobilePeriod('today')}
+              className={`px-4 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                mobilePeriod === 'today'
+                  ? 'bg-white text-orange-600 shadow-md scale-105'
+                  : 'bg-white/15 text-white/90 hover:bg-white/25 backdrop-blur-sm'
+              }`}
+            >
+              Hoy
+            </button>
+            <button
+              onClick={() => setMobilePeriod('month')}
+              className={`px-4 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                mobilePeriod === 'month'
+                  ? 'bg-white text-orange-600 shadow-md scale-105'
+                  : 'bg-white/15 text-white/90 hover:bg-white/25 backdrop-blur-sm'
+              }`}
+            >
+              Este mes
+            </button>
+          </div>
+
+          {/* Métrica Hero Principal: Vendiste hoy / Vendiste este mes */}
+          <div className="mb-6 relative z-10">
+            <p className="text-xs font-bold text-white/80 uppercase tracking-wider">
+              {mobilePeriod === 'today' ? 'Vendiste hoy' : 'Vendiste este mes'}
+            </p>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-2xl font-black font-mono text-white/90">$</span>
+              <h2 className="text-5xl font-black font-mono tracking-tight text-white leading-none">
+                {currentSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </h2>
+            </div>
+            
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[11px] font-bold border border-white/10">
+              <ArrowUpRight size={13} className="text-emerald-300" />
+              <span>{comparisonText}</span>
+            </div>
+          </div>
+
+          {/* Fila de Botones de Acción (Nueva venta | + Producto | ...) */}
+          <div className="flex items-center gap-2.5 relative z-10">
+            <button
+              onClick={() => navigate('/pos')}
+              className="flex-1 py-3.5 px-4 bg-white text-orange-600 hover:bg-orange-50 font-black rounded-2xl shadow-lg shadow-black/15 flex items-center justify-center gap-2 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer"
+            >
+              <ShoppingCart size={17} strokeWidth={2.5} />
+              <span>Nueva venta</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/product-studio')}
+              className="flex-1 py-3.5 px-4 bg-white/20 hover:bg-white/30 text-white font-black rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer shadow-xs"
+            >
+              <Plus size={17} strokeWidth={2.5} />
+              <span>Producto</span>
+            </button>
+
+            <button
+              onClick={() => setIsMoreActionsOpen(true)}
+              className="py-3.5 px-3.5 bg-white/20 hover:bg-white/30 text-white rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-xs shrink-0"
+              title="Más opciones de gestión"
+            >
+              <MoreHorizontal size={18} />
+            </button>
+          </div>
+
         </div>
 
-        {/* Alertas y Top Sellers */}
-        <div className="space-y-6">
+        {/* CONTENEDOR BLANCO INFERIOR (ESTILO COMMERCY SHEET) */}
+        <div className="bg-[#f4f7fb] dark:bg-black rounded-t-[32px] -mt-6 pt-6 px-4 pb-24 relative z-10 shadow-2xl space-y-6">
           
-          {/* Bajo Stock Alert */}
-          {lowStockCount > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl border border-amber-200 dark:border-amber-500/20 shadow-sm p-5 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-4 opacity-10">
-                 <AlertTriangle size={64} className="text-amber-500" />
-               </div>
-               <div className="flex items-start gap-3 relative z-10">
-                 <div className="p-2 bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-lg shrink-0">
-                   <AlertTriangle size={20} />
-                 </div>
-                 <div>
-                   <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Alerta de Inventario</h3>
-                   <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-1 mb-3">
-                     {lowStockCount} producto(s) están por agotarse en la vitrina.
-                   </p>
-                   <button onClick={() => navigate('/inventory')} className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
-                     Revisar inventario
-                   </button>
-                 </div>
-               </div>
-            </div>
-          )}
+          {/* SECCIÓN 1: Hoy en números */}
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-1">
+              {mobilePeriod === 'today' ? 'Hoy en números' : 'Este mes en números'}
+            </h4>
 
-          {/* Top Sellers */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center justify-between">
-              Top Ventas
-              <button className="p-1.5 text-slate-400 hover:text-violet-500 transition-colors">
-                <ArrowUpRight size={16} />
-              </button>
-            </h3>
-            
-            <div className="space-y-4">
-               {loading ? <p className="text-sm text-slate-400">Cargando...</p> : topSellers.map((product, idx) => (
-                 <div key={product.id} className="flex items-center gap-3">
-                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                     idx === 0 ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-500' : 
-                     idx === 1 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500' : 
-                     'bg-amber-100 dark:bg-amber-900/30 text-amber-500'
-                   }`}>
-                     #{idx + 1}
-                   </div>
-                   <div className="flex-1 min-w-0">
-                     <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{product.name}</p>
-                     <p className="text-xs text-slate-500 truncate">{product.sales} ventas</p>
-                   </div>
-                   <div className="text-right shrink-0">
-                     <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">${product.revenue.toFixed(2)}</p>
-                   </div>
-                 </div>
-               ))}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
+              {/* Item 1: Pedidos */}
+              <div 
+                onClick={() => navigate('/orders')}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">Pedidos</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{todayMetrics.pendingOrders} pendientes</p>
+                  </div>
+                </div>
+                <span className="text-xl font-black font-mono text-slate-900 dark:text-white">
+                  {currentOrdersCount}
+                </span>
+              </div>
+
+              {/* Item 2: Ticket promedio */}
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Banknote size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">Ticket promedio</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">sobre {currentOrdersCount} ventas</p>
+                  </div>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">$</span>
+                  <span className="text-xl font-black font-mono text-slate-900 dark:text-white">
+                    {currentAov.toFixed(0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Item 3: Clientes nuevos */}
+              <div 
+                onClick={() => navigate('/customers')}
+                className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <UserPlus size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">Clientes nuevos</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">este mes</p>
+                  </div>
+                </div>
+                <span className="text-xl font-black font-mono text-slate-900 dark:text-white">
+                  {newCustomersCount}
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* SECCIÓN 2: Últimas ventas > */}
+          <div>
+            <div 
+              onClick={() => navigate('/orders')}
+              className="flex items-center justify-between mb-3 px-1 cursor-pointer group"
+            >
+              <h4 className="text-base font-extrabold text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors flex items-center gap-1">
+                <span>Últimas ventas</span>
+                <ChevronRight size={17} className="text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all" />
+              </h4>
+              <span className="text-xs font-bold text-orange-600 hover:underline">Ver todas</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {recentOrders.length === 0 ? (
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 text-center border border-slate-200/80 dark:border-white/10 shadow-xs">
+                  <ShoppingCart size={28} className="mx-auto text-slate-300 dark:text-zinc-600 mb-2" />
+                  <p className="text-xs font-bold text-slate-500 dark:text-slate-400">No hay ventas registradas aún</p>
+                  <button
+                    onClick={() => navigate('/pos')}
+                    className="mt-3 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold shadow-xs hover:from-orange-600 hover:to-amber-600 transition-all cursor-pointer"
+                  >
+                    Registrar venta en POS
+                  </button>
+                </div>
+              ) : (
+                recentOrders.map((order) => {
+                  const customerName = order.customer || 'Consumidor Final';
+                  const initials = customerName
+                    .split(' ')
+                    .filter(Boolean)
+                    .map(w => w[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase() || 'CF';
+                  
+                  const dObj = new Date(order.dateRaw || order.date);
+                  const orderTime = isNaN(dObj.getTime()) 
+                    ? '15:28' 
+                    : dObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  
+                  const payment = order.paymentMethod || 'Efectivo';
+                  const isDelivered = order.status === 'Entregado';
+                  const statusColor = isDelivered 
+                    ? 'text-emerald-600 dark:text-emerald-400' 
+                    : 'text-amber-600 dark:text-amber-400';
+
+                  return (
+                    <div
+                      key={order.id}
+                      onClick={() => navigate('/orders')}
+                      className="bg-white dark:bg-zinc-900 rounded-2xl p-3.5 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center justify-between gap-3 hover:border-orange-300 transition-all cursor-pointer active:scale-99"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-black text-xs flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-800/40">
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-extrabold text-slate-800 dark:text-white truncate">
+                            {customerName}
+                          </p>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            #{order.id.slice(-7)} · {payment} · {orderTime}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-black font-mono text-slate-900 dark:text-white">
+                          ${Number(order.total || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className={`text-[10px] font-bold ${statusColor}`}>
+                          {order.status || 'Entregado'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* SECCIÓN 3: Análisis del período > */}
+          <div
+            onClick={() => navigate('/analytics')}
+            className="bg-white dark:bg-zinc-900 rounded-3xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center justify-between gap-3 hover:border-orange-300 transition-all cursor-pointer group active:scale-99"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <BarChart2 size={20} />
+              </div>
+              <div>
+                <h5 className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors">
+                  Análisis del período
+                </h5>
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Gráfico, bruto y neto, de 7 a 90 días
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all" />
+          </div>
+
+        </div>
+
+        {/* MODAL / DRAWER DE ACCIONES RÁPIDAS (BOTÓN ···) */}
+        {isMoreActionsOpen && (
+          <div 
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end animate-in fade-in"
+            onClick={() => setIsMoreActionsOpen(false)}
+          >
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-zinc-900 w-full rounded-t-3xl p-5 border-t border-slate-200 dark:border-white/10 shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom"
+            >
+              <div className="w-12 h-1 bg-slate-200 dark:bg-white/20 rounded-full mx-auto" />
+              
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">Accesos Rápidos</h3>
+                <button 
+                  onClick={() => setIsMoreActionsOpen(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { name: 'Puesta en marcha', path: '/setup', icon: Rocket, color: 'text-orange-500' },
+                  { name: 'POS Kiosco', path: '/pos', icon: ShoppingCart, color: 'text-emerald-500' },
+                  { name: 'Inventario & Stock', path: '/inventory', icon: PackageSearch, color: 'text-blue-500' },
+                  { name: 'Precios & Tarifas', path: '/prices', icon: Tag, color: 'text-amber-500' },
+                  { name: 'Clientes & CRM', path: '/customers', icon: Users, color: 'text-orange-500' },
+                  { name: 'Caja & Turnos', path: '/shifts', icon: Banknote, color: 'text-teal-500' },
+                  { name: 'Facturación & SENIAT', path: '/invoicing', icon: FileText, color: 'text-cyan-500' },
+                  { name: 'Perfil de Tienda', path: '/store-profile', icon: Settings, color: 'text-slate-500' },
+                ].map(item => (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      setIsMoreActionsOpen(false);
+                      navigate(item.path);
+                    }}
+                    className="flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-orange-50 dark:hover:bg-orange-500/10 border border-slate-200/60 dark:border-white/5 text-left transition-all cursor-pointer"
+                  >
+                    <item.icon size={18} className={item.color} />
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                      {item.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* ========================================================
+          VISTA DESKTOP: DASHBOARD INTEGRAL CON GRÁFICOS Y TOP SELLERS
+          ======================================================== */}
+      <div className="hidden md:block p-6 md:p-10 max-w-7xl mx-auto space-y-8 pb-24 md:pb-8 animate-in fade-in duration-300">
+        
+        {/* Header Desktop */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              Resumen General
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Métricas clave y alertas del rendimiento en tiempo real de tu tienda.
+            </p>
+          </div>
+
+          <button 
+            onClick={() => navigate('/setup')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-xs transition-all w-fit cursor-pointer group"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Puesta en marcha: 4 de 4 listo</span>
+            <ArrowUpRight size={14} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
+          </button>
+        </div>
+
+        {/* 4 Metric Cards in Commercy Style (Desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {stats.map((stat, idx) => (
+            <div key={idx} className="bg-white dark:bg-zinc-900 rounded-[1.75rem] p-5 md:p-6 border border-slate-200/80 dark:border-white/10 shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs md:text-sm font-semibold text-slate-500 dark:text-slate-400 leading-tight">
+                    {stat.title}
+                  </p>
+                  <h3 className="text-xl md:text-3xl font-extrabold text-slate-900 dark:text-white mt-1.5 tracking-tight">
+                    {stat.value}
+                  </h3>
+                </div>
+                <div className={`p-2.5 rounded-2xl hidden sm:flex items-center justify-center ${stat.bg} shadow-xs`}>
+                  <stat.icon size={20} className={stat.color} />
+                </div>
+              </div>
+              
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full ${
+                  stat.change.startsWith('+') 
+                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200/60' 
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                }`}>
+                  {stat.change}
+                </span>
+                <span className="text-[10px] md:text-xs text-slate-400 dark:text-slate-500 font-medium">
+                  vs mes anterior
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main Charts & Alerts Area (Desktop) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          
+          {/* Gráfico principal */}
+          <div className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-sm p-6 sm:p-7 flex flex-col transition-all">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Ingresos vs Pedidos
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Evolución del flujo comercial
+                </p>
+              </div>
+              <select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)} 
+                className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer shadow-xs"
+              >
+                <option value="7d">Últimos 7 días</option>
+                <option value="30d">Últimos 30 días</option>
+                <option value="year">Último año</option>
+              </select>
+            </div>
+            
+            <div className="flex-1 min-h-[300px] w-full mt-2 min-w-0 overflow-x-auto overflow-y-hidden scrollbar-hide">
+               {loading ? (
+                 <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-3">
+                   <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                   <p className="text-xs font-semibold">Analizando datos comerciales...</p>
+                 </div>
+               ) : salesData.length === 0 ? (
+                 <div className="h-full flex items-center justify-center text-slate-400 text-sm">No hay datos en este periodo</div>
+               ) : (
+                 <div className="min-w-[600px] h-full">
+                   <ResponsiveContainer width="100%" height={300}>
+                     <ComposedChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                       <defs>
+                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
+                           <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                         </linearGradient>
+                       </defs>
+                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.15} />
+                       <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#cbd5e1" tickLine={false} axisLine={false} dy={10} />
+                       <YAxis yAxisId="left" tick={{fontSize: 10, fill: '#64748b'}} stroke="#cbd5e1" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+                       <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fill: '#64748b'}} stroke="#cbd5e1" tickLine={false} axisLine={false} hide={true} />
+                       <Tooltip 
+                         contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '16px', color: '#f8fafc', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}
+                         itemStyle={{ fontWeight: 600 }}
+                         cursor={{ stroke: '#f97316', strokeWidth: 1.5, strokeDasharray: '3 3' }}
+                       />
+                       <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '15px' }} iconType="circle" />
+                       <Area yAxisId="left" type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }} />
+                       <Line yAxisId="right" type="monotone" dataKey="orders" stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }} name="Pedidos" />
+                     </ComposedChart>
+                   </ResponsiveContainer>
+                 </div>
+               )}
+            </div>
+          </div>
+
+          {/* Alertas y Top Sellers (Desktop) */}
+          <div className="space-y-6">
+            
+            {/* Bajo Stock Alert */}
+            {lowStockCount > 0 && (
+              <div className="bg-orange-50/60 dark:bg-orange-500/10 rounded-[2rem] border border-orange-200/80 dark:border-orange-500/20 shadow-sm p-6 relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-4 opacity-10">
+                   <AlertTriangle size={64} className="text-orange-500" />
+                 </div>
+                 <div className="flex items-start gap-3 relative z-10">
+                   <div className="p-2.5 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl shrink-0">
+                     <AlertTriangle size={20} />
+                   </div>
+                   <div>
+                     <h3 className="text-sm font-bold text-orange-950 dark:text-orange-400">Alerta de Inventario</h3>
+                     <p className="text-xs text-orange-900/80 dark:text-orange-400/80 mt-1 mb-3">
+                       {lowStockCount} producto(s) están por agotarse en la vitrina.
+                     </p>
+                     <button onClick={() => navigate('/inventory')} className="text-xs font-bold text-orange-700 dark:text-orange-300 bg-white/80 dark:bg-black/30 hover:bg-white dark:hover:bg-black/50 px-3.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer">
+                       Revisar inventario
+                     </button>
+                   </div>
+                 </div>
+              </div>
+            )}
+
+            {/* Top Sellers */}
+            <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-sm p-6">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
+                Top Ventas
+                <button className="p-1.5 text-slate-400 hover:text-orange-500 transition-colors">
+                  <ArrowUpRight size={18} />
+                </button>
+              </h3>
+              
+              <div className="space-y-4">
+                 {loading ? <p className="text-xs font-semibold text-slate-400">Cargando...</p> : topSellers.map((product, idx) => (
+                   <div key={product.id} className="flex items-center gap-3">
+                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 ${
+                       idx === 0 ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-600' : 
+                       idx === 1 ? 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600' : 
+                       'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-300'
+                     }`}>
+                       #{idx + 1}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{product.name}</p>
+                       <p className="text-[11px] text-slate-400 truncate">{product.sales} ventas</p>
+                     </div>
+                     <div className="text-right shrink-0">
+                       <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">${product.revenue.toFixed(2)}</p>
+                     </div>
+                   </div>
+                 ))}
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
+
     </div>
   );
 }

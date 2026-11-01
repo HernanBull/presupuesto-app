@@ -9,6 +9,7 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import { loginUser, registerUser } from '../../../supabaseAuth';
+import MerchantOnboardingWizard from './MerchantOnboardingWizard';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -18,6 +19,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
   const [step, setStep] = useState(1); // 1: Email + Contraseña, 2: Datos de la tienda
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState(false);
+  const [createdWorkspaceId, setCreatedWorkspaceId] = useState(null);
 
   // Form Fields
   const [email, setEmail] = useState('');
@@ -31,8 +34,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
 
   if (!isOpen) return null;
 
-  // Paso 1: Validación de credenciales
-  const handleStep1Submit = (e) => {
+  // Paso 1: Validación y transición directa al Onboarding Wizard de 8 pasos
+  const handleStep1Submit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -61,11 +64,70 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       return;
     }
 
-    // Si todo está bien, avanzar a step 2 para configurar nombre de tienda
-    setStep(2);
+    setLoading(true);
+    try {
+      let authData;
+      try {
+        authData = await registerUser(cleanEmail, password, {
+          role: 'merchant',
+          business_name: 'Mi Tienda',
+          full_name: 'Comerciante'
+        });
+      } catch (authErr) {
+        if (authErr.message && (authErr.message.includes('already registered') || authErr.message.includes('User already registered'))) {
+          try {
+            authData = await loginUser(cleanEmail, password);
+          } catch (_loginErr) {
+            throw new Error('Este correo ya está registrado con otra contraseña. Por favor inicia sesión.');
+          }
+        } else {
+          throw authErr;
+        }
+      }
+
+      if (!authData?.user) {
+        throw new Error('No se pudo completar el registro. Intenta de nuevo.');
+      }
+
+      const userId = authData.user.id;
+      setCreatedWorkspaceId(userId);
+
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+      const generatedSlug = `tienda-${Date.now().toString().slice(-4)}`;
+
+      const newWorkspace = {
+        id: userId,
+        name: 'Mi Tienda',
+        store_slug: generatedSlug,
+        status: 'Activo',
+        owner_email: cleanEmail,
+        config: {
+          adminEmail: cleanEmail,
+          trialActive: true,
+          trialEndsAt: trialEndsAt.toISOString(),
+          plan: 'Prueba 7 Días Gratis'
+        }
+      };
+
+      await supabase.from('workspaces').upsert([newWorkspace]);
+
+      localStorage.setItem('activeWorkspace', userId);
+      localStorage.setItem('storeSlug', generatedSlug);
+      localStorage.removeItem('ecommerce_current_customer');
+      localStorage.removeItem('ecommerce_user');
+
+      // Abrir el asistente de 8 pasos completo
+      setShowOnboardingWizard(true);
+    } catch (err) {
+      console.error('Error al registrar:', err);
+      setErrorMessage(err.message || 'Error al iniciar el registro. Verifica tus datos.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Paso 2: Crear tienda y activar 14 días gratis
+  // Paso 2: Crear tienda y activar 7 días gratis
   const handleCreateStoreSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -120,9 +182,9 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
 
       const userId = authData.user.id;
 
-      // Calcular fecha fin de prueba de 14 días
+      // Calcular fecha fin de prueba de 7 días
       const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
       // 2. Insertar Workspace de la tienda
       const newWorkspace = {
@@ -135,7 +197,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
           adminEmail: cleanEmail,
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),
-          plan: 'Prueba 14 Días Gratis',
+          plan: 'Prueba 7 Días Gratis',
           contact: {
             phone: contactPhone.trim(),
             email: cleanEmail
@@ -169,7 +231,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       localStorage.removeItem('ecommerce_current_customer');
       localStorage.removeItem('ecommerce_user');
 
-      toast.success('¡Tienda creada exitosamente! Tu prueba de 14 días ha comenzado.', {
+      toast.success('¡Tienda creada exitosamente! Tu prueba de 7 días ha comenzado.', {
         duration: 5000,
         icon: '🎉'
       });
@@ -200,7 +262,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         .maybeSingle();
 
       if (wsErr || !wsData) {
-        throw new Error('No se encontró una tienda asociada a este correo. Regístrate para comenzar tus 14 días gratis.');
+        throw new Error('No se encontró una tienda asociada a este correo. Regístrate para comenzar tus 7 días gratis.');
       }
 
       localStorage.setItem('activeWorkspace', wsData.id);
@@ -254,11 +316,37 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         return;
       }
 
-      // Si no tiene tienda, sugerir nombre y avanzar a step 2
-      const suggestedName = payload.name ? `Tienda de ${payload.name.split(' ')[0]}` : 'Mi Tienda';
-      setBusinessName(suggestedName);
-      setMode('register');
-      setStep(2);
+      // Si no tiene tienda, crear workspace preliminar y abrir el wizard de 8 pasos
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+      const generatedSlug = `tienda-${Date.now().toString().slice(-4)}`;
+      const newWsId = `g_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
+
+      setCreatedWorkspaceId(newWsId);
+      const initialOwner = payload.name || '';
+      const initialStore = payload.name ? `Tienda de ${payload.name.split(' ')[0]}` : 'Mi Tienda';
+      setOwnerName(initialOwner);
+      setBusinessName(initialStore);
+
+      const newWorkspace = {
+        id: newWsId,
+        name: initialStore,
+        store_slug: generatedSlug,
+        status: 'Activo',
+        owner_email: cleanEmail,
+        config: {
+          adminEmail: cleanEmail,
+          trialActive: true,
+          trialEndsAt: trialEndsAt.toISOString(),
+          plan: 'Prueba 7 Días Gratis'
+        }
+      };
+      await supabase.from('workspaces').upsert([newWorkspace]);
+
+      localStorage.setItem('activeWorkspace', newWsId);
+      localStorage.setItem('storeSlug', generatedSlug);
+
+      setShowOnboardingWizard(true);
       setLoading(false);
 
     } catch (err) {
@@ -268,16 +356,35 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
     }
   };
 
+  if (showOnboardingWizard || (step === 2 && mode === 'register')) {
+    return (
+      <MerchantOnboardingWizard
+        isOpen={true}
+        workspaceId={createdWorkspaceId}
+        initialData={{
+          ownerName: ownerName || '',
+          businessName: businessName || '',
+          whatsapp: contactPhone || ''
+        }}
+        onClose={onClose}
+        onComplete={() => {
+          if (onClose) onClose();
+          navigate('/dashboard');
+        }}
+      />
+    );
+  }
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {/* Vista de Pantalla Completa (Edge-to-Edge 100vw x 100vh) */}
-      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen bg-[#F4F6F9] flex flex-col lg:grid lg:grid-cols-2 overflow-y-auto lg:overflow-hidden select-none animate-in fade-in duration-200">
+      {/* Vista de Pantalla Completa en Escritorio (Edge-to-Edge 100vw x 100vh) */}
+      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen bg-[#F4F6F9] grid grid-cols-1 lg:grid-cols-2 overflow-y-auto lg:overflow-hidden select-none animate-in fade-in duration-200">
         
-        {/* Botón Cerrar Flotante de Pantalla Completa */}
+        {/* Botón Cerrar Flotante */}
         {onClose && (
           <button 
             onClick={onClose}
-            className="fixed top-5 right-5 z-50 w-11 h-11 rounded-full bg-zinc-900/10 hover:bg-zinc-900/25 text-zinc-800 lg:text-white lg:bg-white/20 lg:hover:bg-white/35 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95"
+            className="fixed top-4 right-4 sm:top-5 sm:right-5 z-50 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900/10 hover:bg-zinc-900/25 text-zinc-800 lg:text-white lg:bg-white/20 lg:hover:bg-white/35 backdrop-blur-md flex items-center justify-center transition-all cursor-pointer shadow-md active:scale-95 border border-zinc-200/50 lg:border-white/20"
             title="Cerrar y volver"
           >
             <X size={22} className="stroke-[2.5]" />
@@ -285,14 +392,14 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         )}
 
         {/* ========================================================= */}
-        {/* COLUMNA IZQUIERDA (50% ANCHO COMPLETO): TARJETA BLANCA    */}
+        {/* COLUMNA IZQUIERDA: Formulario Blanco (50% pantalla)       */}
         {/* ========================================================= */}
-        <div className="w-full h-full min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4 sm:p-8 lg:p-12 overflow-y-auto order-2 lg:order-1">
+        <div className="w-full h-full min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4 sm:p-8 lg:p-12 overflow-y-auto">
           
-          {/* Tarjeta Blanca Centrada (Exacta como en Commercy) */}
-          <div className="bg-white rounded-3xl sm:rounded-[2rem] p-7 sm:p-10 shadow-xl shadow-slate-200/70 border border-slate-200/80 max-w-[450px] w-full my-auto flex flex-col justify-between">
+          {/* Tarjeta Blanca Centrada dentro del 50% izquierdo */}
+          <div className="bg-white rounded-3xl sm:rounded-[2rem] p-7 sm:p-10 shadow-xl shadow-slate-200/70 border border-slate-200/80 max-w-[460px] w-full my-auto flex flex-col justify-between">
             
-            {/* Header de la tarjeta: Logo AxonMarket */}
+            {/* Header de la tarjeta: Logo Oficial AxonMarket */}
             <div>
               <div className="flex items-center gap-2.5 mb-6">
                 <img 
@@ -301,7 +408,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                   className="w-7 h-7 rounded-lg shadow-xs object-contain" 
                 />
                 <span className="font-extrabold text-xl tracking-tight text-zinc-950 flex items-center">
-                  axon<span className="text-orange-500">market</span>
+                  Axon<span className="text-orange-500 ml-0.5">Market</span>
                 </span>
               </div>
 
@@ -322,8 +429,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                 step === 1 ? (
                   <>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight">
-                      Probá AxonMarket <br />
-                      <span className="text-zinc-900">14 días gratis</span>
+                      Prueba AxonMarket <br />
+                      <span className="text-zinc-900">7 días gratis</span>
                     </h1>
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1.5 mb-6">
                       Sin tarjeta. Facturación e inventario se activan con un plan.
@@ -332,7 +439,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                 ) : (
                   <>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight">
-                      Configurá tu vitrina <br />
+                      Configura tu vitrina <br />
                       <span className="text-orange-600">¡Casi listo!</span>
                     </h1>
                     <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1.5 mb-6">
@@ -343,7 +450,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
               ) : (
                 <>
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight">
-                    Iniciá sesión <br />
+                    Inicia sesión <br />
                     <span className="text-zinc-900">en tu tienda</span>
                   </h1>
                   <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1.5 mb-6">
@@ -424,7 +531,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                     </div>
                     {mode === 'register' && (
                       <p className="text-[11px] text-zinc-500 mt-1.5 font-normal">
-                        Usá al menos 8 caracteres, con letras y números.
+                        Usa al menos 8 caracteres, con letras y números.
                       </p>
                     )}
                   </div>
@@ -479,7 +586,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                   {/* Texto Legal */}
                   {mode === 'register' && (
                     <p className="text-[11px] text-zinc-500 text-center leading-relaxed mt-4">
-                      Al continuar, con tu mail o con Google, aceptás los{' '}
+                      Al continuar con tu correo o con Google, aceptas los{' '}
                       <button 
                         type="button" 
                         onClick={() => { if (onClose) onClose(); navigate('/legal/terminos'); }} 
@@ -500,175 +607,87 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                 </form>
               )}
 
-              {/* ─────────────────────────────────────────────────── */}
-              {/* FORMULARIO STEP 2 (Datos del Comercio)             */}
-              {/* ─────────────────────────────────────────────────── */}
-              {step === 2 && mode === 'register' && (
-                <form onSubmit={handleCreateStoreSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                      Nombre de tu Tienda o Comercio
-                    </label>
-                    <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
-                      <Store size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input 
-                        type="text" 
-                        required
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="Ej. Bodegón Los Samanes"
-                        className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                      Tu Nombre Completo (Dueño / Encargado)
-                    </label>
-                    <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
-                      <User size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input 
-                        type="text" 
-                        required
-                        value={ownerName}
-                        onChange={(e) => setOwnerName(e.target.value)}
-                        placeholder="Ej. Carlos Mendoza"
-                        className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                      Teléfono WhatsApp de Contacto
-                    </label>
-                    <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
-                      <Phone size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                      <input 
-                        type="tel" 
-                        required
-                        value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        placeholder="Ej. 0414-1234567"
-                        className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full mt-3 py-3.5 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg hover:shadow-orange-500/20 transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        <span>Desplegando tu vitrina...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles size={18} />
-                        <span>Comenzar 14 días de prueba</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-              )}
             </div>
 
             {/* Alternador Inferior: Iniciar sesión <-> Registrarse */}
             <div className="text-center mt-6 pt-4 border-t border-zinc-100">
               {mode === 'register' ? (
                 <p className="text-xs text-zinc-600">
-                  ¿Ya tenés cuenta?{' '}
+                  ¿Ya tienes cuenta?{' '}
                   <button
                     type="button"
                     onClick={() => { setMode('login'); setStep(1); setErrorMessage(''); }}
                     className="text-orange-600 hover:text-orange-700 font-bold hover:underline cursor-pointer"
                   >
-                    Iniciá sesión
+                    Inicia sesión
                   </button>
                 </p>
               ) : (
                 <p className="text-xs text-zinc-600">
-                  ¿No tenés cuenta aún?{' '}
+                  ¿No tienes cuenta aún?{' '}
                   <button
                     type="button"
                     onClick={() => { setMode('register'); setStep(1); setErrorMessage(''); }}
                     className="text-orange-600 hover:text-orange-700 font-bold hover:underline cursor-pointer"
                   >
-                    Probá 14 días gratis
+                    Prueba 7 días gratis
                   </button>
                 </p>
               )}
             </div>
-
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* COLUMNA DERECHA (50% ANCHO COMPLETO): BANNER NARANJA AXON */}
+        {/* COLUMNA DERECHA: BANNER NARANJA (50% de pantalla)         */}
         {/* ========================================================= */}
-        <div className="w-full h-full min-h-screen bg-gradient-to-br from-orange-600 via-orange-500 to-amber-600 text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-between overflow-y-auto relative order-1 lg:order-2">
+        <div className="hidden lg:flex w-full h-full min-h-screen bg-gradient-to-br from-orange-600 via-orange-500 to-amber-600 text-white p-8 sm:p-12 lg:p-16 flex-col justify-between overflow-y-auto relative">
           
           {/* Esferas decorativas translúcidas de fondo */}
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-300/20 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Logo oficial AxonMarket en blanco */}
-            <div className="flex items-center gap-2.5 relative z-10 mb-6 lg:mb-0">
-              <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center p-1 shadow-sm">
-                <img 
-                  src="/axonmarket-logo-icon.png" 
-                  alt="Axon" 
-                  className="w-full h-full object-contain filter brightness-110" 
-                />
-              </div>
-              <span className="text-xl font-black tracking-tight text-white drop-shadow-sm">
-                AxonMarket
-              </span>
-            </div>
+          {/* Espaciador superior limpio (sin logo duplicado) */}
+          <div className="h-6" />
 
-            {/* Contenido Central: Titular + 4 Beneficios de Commercy */}
-            <div className="my-auto py-4 sm:py-8 relative z-10">
+          {/* Contenido Central: Titular + 4 Beneficios de Commercy */}
+          <div className="my-auto py-4 sm:py-8 relative z-10">
               <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-2 sm:mb-3 drop-shadow-sm">
-                Probá AxonMarket gratis
+                Prueba AxonMarket gratis
               </h2>
               <p className="text-white/95 text-xs sm:text-base leading-relaxed max-w-md mb-6 sm:mb-8 font-medium">
-                Vendé en tu local y online, facturá y controlá tu stock desde un solo panel.
+                Vende en tu local y online, factura y controla tu inventario desde un solo panel.
               </p>
 
               {/* Lista de 4 Beneficios en cajitas translúcidas (Glassmorphism 1:1) */}
               <div className="space-y-3.5 sm:space-y-4 max-w-md">
                 
-                {/* Beneficio 1: 14 días de prueba */}
+                {/* Beneficio 1: 7 días de prueba */}
                 <div className="flex items-start gap-3.5 group">
                   <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5 group-hover:scale-105 transition-transform">
                     <Calendar size={18} className="stroke-[2.2]" />
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-bold text-white leading-tight">
-                      14 días de prueba
+                      7 días de prueba
                     </h3>
                     <p className="text-[11px] sm:text-xs text-white/85 mt-0.5 leading-relaxed">
-                      Vendés con POS, cargás stock y publicás tu tienda.
+                      Vendes con POS, cargas inventario y publicas tu tienda.
                     </p>
                   </div>
                 </div>
 
-                {/* Beneficio 2: Después seguís gratis */}
+                {/* Beneficio 2: Después continúas gratis */}
                 <div className="flex items-start gap-3.5 group">
                   <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shrink-0 shadow-sm mt-0.5 group-hover:scale-105 transition-transform">
                     <ShieldCheck size={18} className="stroke-[2.2]" />
                   </div>
                   <div>
                     <h3 className="text-xs sm:text-sm font-bold text-white leading-tight">
-                      Después seguís gratis
+                      Después continúas gratis
                     </h3>
                     <p className="text-[11px] sm:text-xs text-white/85 mt-0.5 leading-relaxed">
-                      Tus productos, tus ventas y tu tienda siguen.
+                      Tus productos, tus ventas y tu tienda continúan activos.
                     </p>
                   </div>
                 </div>
@@ -698,7 +717,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                       Facturación fiscal y multimoneda
                     </h3>
                     <p className="text-[11px] sm:text-xs text-white/85 mt-0.5 leading-relaxed">
-                      Cuando quieras facturar, la activás desde el panel.
+                      Cuando desees facturar, la activas directamente desde el panel.
                     </p>
                   </div>
                 </div>
@@ -714,7 +733,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
 
           </div>
 
-        </div>
-      </GoogleOAuthProvider>
-    );
+      </div>
+    </GoogleOAuthProvider>
+  );
 }

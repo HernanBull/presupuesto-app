@@ -135,7 +135,7 @@ export default function CustomersManager() {
           <button className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
             Exportar CSV
           </button>
-          <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
+          <button onClick={() => openEditor()} className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-orange-500/25 cursor-pointer">
             <Plus size={18} />
             Nuevo Cliente
           </button>
@@ -178,9 +178,9 @@ export default function CustomersManager() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
-              type="text"
-              placeholder="Buscar por nombre, correo o teléfono..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 transition-shadow dark:text-white"
+              type="text" 
+              placeholder="Buscar por nombre, correo o teléfono..." 
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-shadow dark:text-white"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -189,7 +189,7 @@ export default function CustomersManager() {
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
             >
               <option value="Todos">Todos los Estados</option>
               <option value="Activo">Activo</option>
@@ -209,7 +209,7 @@ export default function CustomersManager() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                      customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                      customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
                     }`}>
                       {customer.name.charAt(0)}
                     </div>
@@ -279,7 +279,7 @@ export default function CustomersManager() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                          customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400'
+                          customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
                         }`}>
                           {customer.name.charAt(0)}
                         </div>
@@ -321,7 +321,7 @@ export default function CustomersManager() {
                         <button onClick={() => handleDelete(customer.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Eliminar Cliente">
                           <Trash2 size={16} />
                         </button>
-                        <button className="p-1.5 text-slate-400 hover:text-violet-500 rounded-lg hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors" title="Ver Historial (Mock)">
+                        <button className="p-1.5 text-slate-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors" title="Ver Historial (Mock)">
                           <ExternalLink size={16} />
                         </button>
                       </div>
@@ -368,7 +368,7 @@ export default function CustomersManager() {
                      name="name"
                      value={formData.name}
                      onChange={handleInputChange}
-                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
+                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white" 
                    />
                  </div>
 
@@ -379,7 +379,7 @@ export default function CustomersManager() {
                      name="email"
                      value={formData.email}
                      onChange={handleInputChange}
-                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
+                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white" 
                    />
                  </div>
 
@@ -391,7 +391,7 @@ export default function CustomersManager() {
                      value={formData.phone}
                      onChange={handleInputChange}
                      placeholder="+34 600 000 000"
-                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
+                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white" 
                    />
                  </div>
                </section>
@@ -407,7 +407,7 @@ export default function CustomersManager() {
                      name="status"
                      value={formData.status}
                      onChange={handleInputChange}
-                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white"
+                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white"
                    >
                      <option value="Activo">Activo</option>
                      <option value="VIP">VIP (Comprador Frecuente)</option>
@@ -423,7 +423,7 @@ export default function CustomersManager() {
                        name="totalOrders"
                        value={formData.totalOrders}
                        onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
+                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white" 
                      />
                    </div>
                    <div className="space-y-2">
@@ -433,7 +433,7 @@ export default function CustomersManager() {
                        name="ltv"
                        value={formData.ltv}
                        onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
+                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white" 
                      />
                    </div>
                  </div>
@@ -445,7 +445,7 @@ export default function CustomersManager() {
                <button onClick={closeEditor} className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors">
                  Cancelar
                </button>
-               <button onClick={handleSave} className="px-6 py-2 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20">
+               <button onClick={handleSave} className="px-6 py-2 text-sm font-bold bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors shadow-sm shadow-orange-500/25 cursor-pointer">
                  Guardar Perfil
                </button>
             </div>

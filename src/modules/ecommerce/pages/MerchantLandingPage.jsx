@@ -129,7 +129,7 @@ export default function MerchantLandingPage() {
               className="bg-orange-500 hover:bg-orange-600 text-white font-black text-xs sm:text-sm px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer"
               style={{ color: '#ffffff' }}
             >
-              Probar 14 días
+              Probar 7 días
             </button>
           </div>
 
@@ -865,7 +865,7 @@ export default function MerchantLandingPage() {
         </div>
       </footer>
 
-      {/* Modal Rediseñado de Prueba 14 Días y Registro de Comerciante */}
+      {/* Modal Rediseñado de Prueba 7 Días y Registro de Comerciante */}
       <MerchantTrialAuthModal
         isOpen={showTrialModal}
         onClose={() => setShowTrialModal(false)}

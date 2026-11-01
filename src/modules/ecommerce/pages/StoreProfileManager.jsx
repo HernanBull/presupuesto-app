@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
+import BackupManagerModal from '../components/admin/BackupManagerModal';
+import UserManagementModal from '../components/admin/UserManagementModal';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Modales de Administración (AxonPOS ➔ AxonMarket)
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
   
   // Auth User Info
   const [adminEmail, setAdminEmail] = useState('');
@@ -563,15 +569,46 @@ export default function StoreProfileManager() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Perfil de la Tienda</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configura los datos públicos y métodos de cobro.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configura los datos públicos, respaldos ACID y métodos de cobro.</p>
         </div>
-        <button onClick={handleSave} disabled={isSaving} className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-70 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-violet-500/20">
+        <button onClick={handleSave} disabled={isSaving} className="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-70 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-orange-500/20 cursor-pointer">
           <Save size={18} />
           {isSaving ? 'Guardando...' : 'Guardar Perfil'}
         </button>
       </div>
 
       <div className="space-y-6">
+        {/* Centro de Respaldos & Disaster Recovery ACID v4.0 (AxonPOS Módulo 2) */}
+        <section className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-white dark:to-zinc-900 rounded-2xl border border-emerald-200 dark:border-emerald-800/40 shadow-xs p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0">
+                <Database size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                    Centro de Respaldos & Disaster Recovery
+                  </h3>
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    ACID v4.0
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Genera respaldos locales criptográficos (.axonbak), restaura datos ante contingencias o sincroniza con Supabase.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsBackupModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+            >
+              <Database size={15} /> Abrir Respaldos (.axonbak)
+            </button>
+          </div>
+        </section>
+
         {/* Cuenta y Seguridad */}
         <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -1319,6 +1356,18 @@ export default function StoreProfileManager() {
           </div>
         </section>
       </div>
+
+      {/* Modales de Administración (AxonPOS ➔ AxonMarket) */}
+      <BackupManagerModal 
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+      />
+
+      <UserManagementModal 
+        isOpen={isUserManagementModalOpen}
+        onClose={() => setIsUserManagementModalOpen(false)}
+      />
+
     </div>
   );
 }

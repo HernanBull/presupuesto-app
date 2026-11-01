@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye, ChevronRight, AlertCircle, FileImage, CreditCard, Check, X, QrCode, Smartphone, Copy, MapPin, MessageSquare, Calendar, ExternalLink, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 import ResponsiveModal from '../components/ResponsiveModal';
@@ -43,6 +44,7 @@ export const formatOrderTime = (dateInput) => {
 const initialOrders = [];
 
 export default function OrdersManager() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -540,13 +542,24 @@ export default function OrdersManager() {
   if (isLoading) return <div className="p-8 text-center font-bold text-slate-500">Cargando pedidos...</div>;
 
   return (
-    <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6 pb-24 md:pb-8">
+    <div className="p-3.5 sm:p-6 md:p-8 max-w-[1600px] mx-auto space-y-4 sm:space-y-6 pb-32 md:pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Gestión de Pedidos
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Arrastra y suelta las tarjetas para actualizar el estado del envío.</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/pos')}
+            className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-colors cursor-pointer shadow-xs shrink-0 flex items-center justify-center gap-1.5 text-xs font-bold"
+            title="Volver al POS Kiosco"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">POS Kiosco</span>
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
+              Gestión de Pedidos
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Arrastra y suelta las tarjetas para actualizar el estado del envío.</p>
+          </div>
         </div>
         
         <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
@@ -661,23 +674,64 @@ export default function OrdersManager() {
 
           <div className="hidden sm:block w-px h-5 bg-slate-200 dark:bg-slate-800" />
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('Pendiente')}
+              className="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer active:scale-95"
+              title="Ver pedidos"
+            >
               📦 Pedidos: <strong className="text-slate-900 dark:text-white">{dayStats.totalOrders}</strong>
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('Pendiente')}
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer active:scale-95 border ${
+                activeTab === 'Pendiente'
+                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-400 ring-2 ring-amber-400/30 font-extrabold shadow-xs'
+                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
+              }`}
+              title="Ver Nuevos Pedidos"
+            >
               ⏳ Nuevos: <strong>{dayStats.pendingCount}</strong>
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('Preparando')}
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer active:scale-95 border ${
+                activeTab === 'Preparando'
+                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 border-blue-400 ring-2 ring-blue-400/30 font-extrabold shadow-xs'
+                  : 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100'
+              }`}
+              title="Ver Pedidos en Preparación"
+            >
               🧑‍🍳 Prep: <strong>{dayStats.preparingCount}</strong>
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('Enviado')}
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer active:scale-95 border ${
+                activeTab === 'Enviado'
+                  ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-900 dark:text-violet-200 border-violet-400 ring-2 ring-violet-400/30 font-extrabold shadow-xs'
+                  : 'bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-800/50 hover:bg-violet-100'
+              }`}
+              title="Ver Pedidos en Delivery"
+            >
               🛵 Delivery: <strong>{dayStats.dispatchedCount}</strong>
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('Entregado')}
+              className={`text-xs font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer active:scale-95 border ${
+                activeTab === 'Entregado'
+                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border-emerald-400 ring-2 ring-emerald-400/30 font-extrabold shadow-xs'
+                  : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
+              }`}
+              title="Ver Pedidos Entregados"
+            >
               ✅ Entregados: <strong>{dayStats.deliveredCount}</strong>
-            </span>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+            </button>
+            <span className="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
               🎯 Ticket Prom: <strong className="text-slate-900 dark:text-white">${dayStats.avgTicketUsd.toFixed(2)}</strong>
             </span>
           </div>
@@ -689,25 +743,29 @@ export default function OrdersManager() {
         </div>
       </div>
 
-      {/* TABS MÓVIL — selector de columna */}
-      <div className="md:hidden -mx-0 mb-4">
-        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
+      {/* TABS MÓVIL — selector de columna 100% visible sin necesidad de deslizar */}
+      <div className="md:hidden mb-4">
+        <div className="grid grid-cols-2 gap-2">
           {columns.map(col => {
             const count = filteredOrders.filter(o => o.status === col.id).length;
+            const isCurrent = activeTab === col.id;
             return (
               <button
                 key={col.id}
+                type="button"
                 onClick={() => setActiveTab(col.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap shrink-0 transition-all ${
-                  activeTab === col.id
-                    ? `${col.bg} ${col.color} border ${col.border} shadow-sm`
-                    : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800'
+                className={`flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
+                  isCurrent
+                    ? `${col.bg} ${col.color} ${col.border} shadow-sm ring-2 ring-orange-500/20 font-black scale-[1.01]`
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200/80 dark:border-slate-800 hover:border-slate-300'
                 }`}
               >
-                <col.icon size={15} />
-                {col.title}
-                <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${
-                  activeTab === col.id ? 'bg-white/50 dark:bg-black/20' : 'bg-slate-100 dark:bg-slate-800'
+                <div className="flex items-center gap-2 truncate">
+                  <col.icon size={16} className={col.color} />
+                  <span className="truncate">{col.title}</span>
+                </div>
+                <span className={`text-xs font-black px-2 py-0.5 rounded-lg shrink-0 ${
+                  isCurrent ? 'bg-white/80 dark:bg-black/30 shadow-2xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                 }`}>
                   {count}
                 </span>
@@ -727,7 +785,7 @@ export default function OrdersManager() {
           return (
             <div 
               key={col.id} 
-              className={`bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border ${col.border} flex flex-col h-full min-h-[600px] ${
+              className={`bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border ${col.border} flex flex-col h-full min-h-[340px] md:min-h-[600px] ${
                 isHiddenOnMobile ? 'hidden md:flex' : 'flex'
               }`}
               onDragOver={handleDragOver}

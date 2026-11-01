@@ -1,10 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, CheckCircle2, RotateCcw, CalendarDays, DollarSign, Target, TrendingUp, TrendingDown, Layers, Calculator, CreditCard, Factory, LineChart as LineChartIcon, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, 
+  CheckCircle2, RotateCcw, CalendarDays, DollarSign, Target, 
+  TrendingUp, TrendingDown, Layers, Calculator, CreditCard, 
+  Factory, LineChart as LineChartIcon, Bot, ArrowLeft, Users, 
+  Package, ChevronRight, Eye, ShieldCheck, Flame, Zap, ArrowDown
+} from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 import CFOAssistantWizard from '../components/CFOAssistantWizard';
 import { supabase } from '../../../supabaseClient';
 
 export default function AnalyticsManager() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('funnel');
   const [timeRange, setTimeRange] = useState('30d');
   const [loading, setLoading] = useState(true);
@@ -60,17 +68,18 @@ export default function AnalyticsManager() {
           salesMap[dateStr] = (salesMap[dateStr] || 0) + Number(order.total);
           
           totalRevenue += Number(order.total);
-          uniqueCustomers.add(order.customer_email);
+          if (order.customer_email || order.customer) {
+            uniqueCustomers.add(order.customer_email || order.customer);
+          }
           
           let items = [];
           try { items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items; } catch(e){}
           if (Array.isArray(items)) {
             items.forEach(item => {
               if (!productStats[item.id]) productStats[item.id] = { id: item.id, name: item.name, sales: 0, revenue: 0 };
-              productStats[item.id].sales += item.quantity;
-              productStats[item.id].revenue += (item.price * item.quantity);
-              // Simplified COGS calculation (assuming 50% margin if not provided)
-              cogs += (item.price * item.quantity) * 0.5;
+              productStats[item.id].sales += Number(item.quantity) || 1;
+              productStats[item.id].revenue += ((Number(item.price) || 0) * (Number(item.quantity) || 1));
+              cogs += ((Number(item.price) || 0) * (Number(item.quantity) || 1)) * 0.5;
             });
           }
         });
@@ -90,8 +99,12 @@ export default function AnalyticsManager() {
           customersCount: uniqueCustomers.size
         });
 
-        // Dummy data for funnel and carts since we don't track them in Supabase yet
-        setFunnelData({ visitors: uniqueCustomers.size * 3, addedToCart: uniqueCustomers.size * 2, checkoutStarted: Math.round(orders.length * 1.5), purchases: orders.length });
+        setFunnelData({ 
+          visitors: uniqueCustomers.size > 0 ? uniqueCustomers.size * 3 : 0, 
+          addedToCart: uniqueCustomers.size > 0 ? uniqueCustomers.size * 2 : 0, 
+          checkoutStarted: Math.round(orders.length * 1.5), 
+          purchases: orders.length 
+        });
         setTrafficData({ org: 60, soc: 30, dir: 10 });
         setCarts([]);
       }
@@ -103,7 +116,6 @@ export default function AnalyticsManager() {
 
   useEffect(() => {
     fetchAnalytics();
-    // Load finConfig from localstorage
     const saved = localStorage.getItem(`fin_config_${workspaceId}`);
     if (saved) {
       try { setFinConfig(JSON.parse(saved)); } catch(e){}
@@ -158,219 +170,388 @@ export default function AnalyticsManager() {
   const ticketPromedio = finData.ordersCount > 0 ? (rev / finData.ordersCount) : 0;
   const cac = finData.customersCount > 0 ? (mkt / finData.customersCount) : 0;
   
-  // LTV = Ticket Promedio * (Ventas Totales / Clientes Unicos) * lifespan
   const avgPurchasesPerCustomer = finData.customersCount > 0 ? (finData.ordersCount / finData.customersCount) : 1;
   const ltv = ticketPromedio * avgPurchasesPerCustomer * (finConfig.lifespan || 12);
   
-  const operatingCashFlow = netIncome; // Simplified
-  
+  const operatingCashFlow = netIncome;
   const ccc = (finConfig.dio || 0) + (finConfig.dso || 0) - (finConfig.dpo || 0);
-  
   const roe = finConfig.equity > 0 ? (netIncome / finConfig.equity) * 100 : 0;
 
-  // Render Functions
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 pb-24 md:pb-8">
+    <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-32 md:pb-12 font-sans animate-in fade-in duration-300">
+      
+      {/* ========================================================
+          CABECERA PROFESIONAL CON BOTÓN DE RETORNO AL INICIO
+          ======================================================== */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Analítica e Inteligencia Financiera</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Métricas de conversión, inteligencia de negocio y salud financiera.</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-all cursor-pointer shadow-xs shrink-0 flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95"
+            title="Volver a Inicio (Dashboard)"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline">Inicio</span>
+          </button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+              Análisis del Período
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Métricas de conversión, inteligencia de negocio y salud financiera.
+            </p>
+          </div>
         </div>
-        <select 
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-sm font-bold text-slate-800 dark:text-white focus:outline-none"
-        >
-          <option value="7d">Últimos 7 días</option>
-          <option value="30d">Últimos 30 días</option>
-          <option value="year">Este año</option>
-        </select>
+
+        {/* Selector de Período Estilizado */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <select 
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 shadow-xs cursor-pointer"
+          >
+            <option value="7d">Últimos 7 días</option>
+            <option value="30d">Últimos 30 días</option>
+            <option value="year">Este año</option>
+          </select>
+        </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
-        <button onClick={() => setActiveTab('funnel')} className={`px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-colors ${activeTab === 'funnel' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Embudo de Ventas</button>
-        <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-colors ${activeTab === 'products' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Inteligencia de Productos</button>
-        <button onClick={() => setActiveTab('finance')} className={`px-4 py-2 rounded-xl font-bold whitespace-nowrap transition-colors ${activeTab === 'finance' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>Métricas Financieras (CFO)</button>
+      {/* ========================================================
+          SELECTOR DE PESTAÑAS MODERNO EN NARANJA CORPORATIVO (SIN SCROLLBAR RUSTICO)
+          ======================================================== */}
+      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch] pb-1">
+        {[
+          { id: 'funnel', label: 'Embudo de Ventas', icon: Layers },
+          { id: 'products', label: 'Inteligencia de Productos', icon: Package },
+          { id: 'finance', label: 'Métricas Financieras (CFO)', icon: Calculator },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer shadow-xs active:scale-95 ${
+                isActive
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-orange-500/25 ring-2 ring-orange-500/30'
+                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 hover:text-orange-600'
+              }`}
+            >
+              <tab.icon size={15} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20 text-slate-400"><Activity className="animate-spin" size={32} /></div>
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-bold">Calculando indicadores financieros...</p>
+        </div>
       ) : (
         <>
+          {/* ========================================================
+              TAB 1: EMBUDO DE CONVERSIÓN MODERNO
+              ======================================================== */}
           {activeTab === 'funnel' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 relative overflow-hidden">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 relative z-10">
-                  <div className="w-full md:w-1/4 text-center">
-                    <div className="h-24 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center border-b-4 border-indigo-500 mx-4"><span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{visitors.toLocaleString()}</span></div>
-                    <p className="text-sm font-bold mt-3">Visitantes Únicos</p>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* Tarjeta Pipeline de Conversión */}
+              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-5 sm:p-7 relative overflow-hidden">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      Embudo de Conversión de la Tienda
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Recorrido desde la visita del cliente hasta la compra final
+                    </p>
                   </div>
-                  <ArrowRight className="hidden md:block text-slate-300 dark:text-slate-700" />
-                  <div className="w-full md:w-1/4 text-center">
-                    <div className="h-20 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center border-b-4 border-blue-500 mx-8"><span className="text-2xl font-black text-blue-600 dark:text-blue-400">{addedToCart.toLocaleString()}</span></div>
-                    <p className="text-sm font-bold mt-3">Añadieron al Carrito</p>
-                    <p className="text-[10px] font-bold text-emerald-500">{rateAddToCart}% conv.</p>
+                  <span className="text-xs font-bold px-3 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-full border border-orange-200/60 dark:border-orange-500/20">
+                    Tasa Global: {ratePurchase}%
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Paso 1: Visitantes */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+                        <Users size={17} />
+                      </div>
+                      <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Paso 1</span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{visitors.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Visitantes Únicos</p>
+                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-indigo-500 h-full rounded-full w-full" />
+                      </div>
+                    </div>
                   </div>
-                  <ArrowRight className="hidden md:block text-slate-300 dark:text-slate-700" />
-                  <div className="w-full md:w-1/4 text-center">
-                    <div className="h-16 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center border-b-4 border-violet-500 mx-12"><span className="text-2xl font-black text-violet-600 dark:text-violet-400">{checkoutStarted.toLocaleString()}</span></div>
-                    <p className="text-sm font-bold mt-3">Iniciaron Pago</p>
-                    <p className="text-[10px] font-bold text-emerald-500">{rateCheckout}% conv.</p>
+
+                  {/* Paso 2: Carrito */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                        <ShoppingCart size={17} />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {rateAddToCart}%
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{addedToCart.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Añadieron al Carrito</p>
+                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-blue-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(rateAddToCart))}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <ArrowRight className="hidden md:block text-slate-300 dark:text-slate-700" />
-                  <div className="w-full md:w-1/4 text-center">
-                    <div className="h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center border-b-4 border-emerald-500 mx-16 shadow-[0_0_15px_rgba(16,185,129,0.3)]"><span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{purchases.toLocaleString()}</span></div>
-                    <p className="text-sm font-bold mt-3">Compras</p>
-                    <p className="text-[10px] font-bold text-emerald-500">{ratePurchase}% conv.</p>
+
+                  {/* Paso 3: Iniciaron Pago */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                        <CreditCard size={17} />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {rateCheckout}%
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{checkoutStarted.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Iniciaron Pago</p>
+                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(rateCheckout))}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Paso 4: Compras Exitosas */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        <CheckCircle2 size={17} />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        {ratePurchase}%
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{purchases.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Compras Cerradas</p>
+                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(ratePurchase))}%` }} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                  <h3 className="font-bold mb-6 flex items-center gap-2"><PieChart size={18}/> Fuentes de Tráfico</h3>
-                  <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Fuentes de Tráfico */}
+                <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs">
+                  <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
+                    <PieChart size={17} className="text-orange-500" /> Fuentes de Tráfico
+                  </h3>
+                  <div className="space-y-5">
                      <div>
-                       <div className="flex justify-between text-sm mb-1"><span className="font-bold">Orgánico / Google</span><span>{trafficData.org}%</span></div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full"><div className="bg-emerald-500 h-full rounded-full" style={{ width: `${trafficData.org}%` }}></div></div>
+                       <div className="flex justify-between text-xs font-bold mb-1.5">
+                         <span className="text-slate-700 dark:text-slate-300">Búsqueda Orgánica / Google</span>
+                         <span className="font-mono">{trafficData.org}%</span>
+                       </div>
+                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${trafficData.org}%` }} />
+                       </div>
                      </div>
                      <div>
-                       <div className="flex justify-between text-sm mb-1"><span className="font-bold">Redes Sociales</span><span>{trafficData.soc}%</span></div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full"><div className="bg-blue-500 h-full rounded-full" style={{ width: `${trafficData.soc}%` }}></div></div>
+                       <div className="flex justify-between text-xs font-bold mb-1.5">
+                         <span className="text-slate-700 dark:text-slate-300">Redes Sociales (WhatsApp, IG)</span>
+                         <span className="font-mono">{trafficData.soc}%</span>
+                       </div>
+                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-blue-500 h-full rounded-full" style={{ width: `${trafficData.soc}%` }} />
+                       </div>
                      </div>
                      <div>
-                       <div className="flex justify-between text-sm mb-1"><span className="font-bold">Directo / Referidos</span><span>{trafficData.dir}%</span></div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full"><div className="bg-violet-500 h-full rounded-full" style={{ width: `${trafficData.dir}%` }}></div></div>
+                       <div className="flex justify-between text-xs font-bold mb-1.5">
+                         <span className="text-slate-700 dark:text-slate-300">Enlace Directo / Vitrina QR</span>
+                         <span className="font-mono">{trafficData.dir}%</span>
+                       </div>
+                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                         <div className="bg-violet-500 h-full rounded-full" style={{ width: `${trafficData.dir}%` }} />
+                       </div>
                      </div>
                   </div>
                 </section>
-                <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                  <h3 className="font-bold mb-6 flex items-center gap-2"><ShoppingCart size={18}/> Carritos en Riesgo</h3>
-                  <div className="flex justify-between text-sm mb-4">
-                    <span className="text-emerald-500 font-bold">Recuperado: ${recoveredRevenue.toFixed(2)}</span>
-                    <span className="text-rose-500 font-bold">Perdido: ${lostRevenue.toFixed(2)}</span>
-                  </div>
-                  <div className="max-h-[150px] overflow-y-auto space-y-2">
-                    {carts.map(c => (
-                      <div key={c.id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-800 rounded-lg">
-                        <div>
-                          <p className="text-xs font-bold">{c.user}</p>
-                          <p className={`text-[10px] font-bold ${c.status === 'Recuperado' ? 'text-emerald-500' : 'text-rose-500'}`}>{c.status}</p>
-                        </div>
-                        <p className="text-sm font-bold">${c.total.toFixed(2)}</p>
+
+                {/* Carritos en Riesgo */}
+                <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-sm mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
+                      <ShoppingCart size={17} className="text-orange-500" /> Monitoreo de Carritos
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20">
+                        <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Recuperado</p>
+                        <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${recoveredRevenue.toFixed(2)}</p>
                       </div>
-                    ))}
+                      <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/60 dark:border-rose-500/20">
+                        <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">En riesgo</p>
+                        <p className="text-lg font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">${lostRevenue.toFixed(2)}</p>
+                      </div>
+                    </div>
                   </div>
+                  <button 
+                    onClick={() => navigate('/abandoned-carts')}
+                    className="w-full py-2.5 px-4 bg-slate-50 dark:bg-white/5 hover:bg-orange-50 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-bold text-xs rounded-xl border border-slate-200/60 dark:border-white/10 transition-colors text-center cursor-pointer"
+                  >
+                    Ver detalle de carritos abandonados
+                  </button>
                 </section>
               </div>
+
             </div>
           )}
 
+          {/* ========================================================
+              TAB 2: INTELIGENCIA DE PRODUCTOS
+              ======================================================== */}
           {activeTab === 'products' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                <h3 className="font-bold mb-6 flex items-center gap-2"><CalendarDays size={18}/> Días con Más Ventas (Resumen Visual)</h3>
-                <div className="w-full h-[300px] min-w-0">
-                  <ResponsiveContainer width="99%" height={300}>
-                    <AreaChart data={salesData}>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+                <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
+                  <CalendarDays size={17} className="text-orange-500" /> Evolución de Ventas del Período
+                </h3>
+                <div className="w-full h-[280px] min-w-0">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                          <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                      <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => val.substring(5)} stroke="#94a3b8" />
-                      <YAxis tick={{fontSize: 12}} stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }} />
-                      <Area type="monotone" dataKey="revenue" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorRev)" name="Ingresos ($)" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.15} />
+                      <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#cbd5e1" tickLine={false} axisLine={false} dy={10} />
+                      <YAxis tick={{fontSize: 10, fill: '#64748b'}} stroke="#cbd5e1" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
+                      <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '16px', color: '#fff' }} />
+                      <Area type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </section>
 
-              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-                <h3 className="font-bold mb-6 flex items-center gap-2"><Target size={18}/> Top Productos por Ingresos</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+                <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Target size={17} className="text-orange-500" /> Top Productos por Ingresos
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
                   {topProducts.map((p, i) => (
-                    <div key={p.id} className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
-                      <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 flex items-center justify-center font-black text-lg mb-3">#{i+1}</div>
-                      <p className="font-bold text-sm mb-1 line-clamp-2">{p.name}</p>
-                      <p className="text-xs text-slate-500 mb-2">{p.sales} uds vendidas</p>
-                      <p className="text-emerald-600 dark:text-emerald-400 font-black">${p.revenue.toFixed(2)}</p>
+                    <div key={p.id} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/5 flex flex-col items-center text-center">
+                      <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 font-black text-sm flex items-center justify-center mb-2.5 shadow-2xs">
+                        #{i+1}
+                      </div>
+                      <p className="font-bold text-xs text-slate-800 dark:text-white mb-1 line-clamp-2">{p.name}</p>
+                      <p className="text-[11px] text-slate-400 mb-2">{p.sales} uds vendidas</p>
+                      <p className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">${p.revenue.toFixed(2)}</p>
                     </div>
                   ))}
-                  {topProducts.length === 0 && <p className="text-slate-400 text-sm col-span-5 text-center py-10">No hay suficientes datos.</p>}
+                  {topProducts.length === 0 && (
+                    <p className="text-slate-400 text-xs font-semibold col-span-5 text-center py-10">
+                      No hay suficientes ventas registradas en este período.
+                    </p>
+                  )}
                 </div>
               </section>
+
             </div>
           )}
 
+          {/* ========================================================
+              TAB 3: MÉTRICAS FINANCIERAS (CFO)
+              ======================================================== */}
           {activeTab === 'finance' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 relative">
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                  <h3 className="font-bold flex items-center gap-2"><Calculator size={18}/> Configurador Operativo</h3>
+                  <div>
+                    <h3 className="font-extrabold text-sm flex items-center gap-2 text-slate-900 dark:text-white">
+                      <Calculator size={17} className="text-orange-500" /> Configurador Operativo
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                      Ingresa tus datos operativos del período para calcular con precisión métricas como CAC, ROE y Flujo de Efectivo.
+                    </p>
+                  </div>
                   <button 
                     onClick={() => setIsWizardOpen(true)}
-                    className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/30 transition-all w-full sm:w-auto justify-center"
+                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer w-full sm:w-auto justify-center active:scale-95"
                   >
-                    <Bot size={18} /> Entender mis métricas
+                    <Bot size={16} /> Entender mis métricas
                   </button>
                 </div>
-                <p className="text-xs text-slate-500 mb-6 max-w-2xl">Ingresa tus datos operativos del periodo para calcular con precisión métricas como CAC, ROE y Flujo de Efectivo.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Gasto en Marketing ($)</label>
-                    <input type="number" name="marketing" value={finConfig.marketing} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Gasto en Marketing ($)</label>
+                    <input type="number" name="marketing" value={finConfig.marketing} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Costos Fijos Operativos ($)</label>
-                    <input type="number" name="fixedCosts" value={finConfig.fixedCosts} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Costos Fijos Operativos ($)</label>
+                    <input type="number" name="fixedCosts" value={finConfig.fixedCosts} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Patrimonio / Inversión ($)</label>
-                    <input type="number" name="equity" value={finConfig.equity} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Patrimonio / Inversión ($)</label>
+                    <input type="number" name="equity" value={finConfig.equity} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Días Promedio en Cobrar (DSO)</label>
-                    <input type="number" name="dso" value={finConfig.dso} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días Cobro Promedio (DSO)</label>
+                    <input type="number" name="dso" value={finConfig.dso} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Días Promedio en Pagar (DPO)</label>
-                    <input type="number" name="dpo" value={finConfig.dpo} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días Pago Proveedores (DPO)</label>
+                    <input type="number" name="dpo" value={finConfig.dpo} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">Días de Inventario (DIO)</label>
-                    <input type="number" name="dio" value={finConfig.dio} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm font-bold" />
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días de Inventario (DIO)</label>
+                    <input type="number" name="dio" value={finConfig.dio} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
                   </div>
                 </div>
               </section>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard title="Ticket Promedio" value={`$${ticketPromedio.toFixed(2)}`} desc="Ingresos / Pedidos" icon={<ShoppingCart size={16}/>} />
-                <MetricCard title="Margen Bruto" value={`${grossMargin.toFixed(1)}%`} desc="(Ingresos - COGS) / Ingresos" icon={<TrendingUp size={16}/>} />
-                <MetricCard title="M. Contribución" value={`${contributionMarginPct.toFixed(1)}%`} desc="Tras Restar Marketing" icon={<Layers size={16}/>} />
-                <MetricCard title="Margen Neto" value={`${netMargin.toFixed(1)}%`} desc="Ganancia Real (Tras CF)" icon={<DollarSign size={16}/>} color={netMargin >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
+              {/* Grid de KPIs Financieros */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <ModernMetricCard title="Ticket Promedio" value={`$${ticketPromedio.toFixed(2)}`} desc="Ingresos / Pedidos" icon={<ShoppingCart size={16}/>} />
+                <ModernMetricCard title="Margen Bruto" value={`${grossMargin.toFixed(1)}%`} desc="(Ingresos - COGS) / Ingresos" icon={<TrendingUp size={16}/>} />
+                <ModernMetricCard title="M. Contribución" value={`${contributionMarginPct.toFixed(1)}%`} desc="Tras Restar Marketing" icon={<Layers size={16}/>} />
+                <ModernMetricCard title="Margen Neto" value={`${netMargin.toFixed(1)}%`} desc="Ganancia Real (Tras CF)" icon={<DollarSign size={16}/>} color={netMargin >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
                 
-                <MetricCard title="Pto. de Equilibrio" value={`$${breakEvenPoint.toFixed(2)}`} desc="Para cubrir costos fijos" icon={<Target size={16}/>} />
-                <MetricCard title="C.A.C." value={`$${cac.toFixed(2)}`} desc="Costo Adquisición Cliente" icon={<Activity size={16}/>} />
-                <MetricCard title="L.T.V." value={`$${ltv.toFixed(2)}`} desc="Valor Vida (Anualizado)" icon={<LineChartIcon size={16}/>} />
-                <MetricCard title="R.O.E." value={`${roe.toFixed(1)}%`} desc="Retorno sobre Patrimonio" icon={<TrendingUp size={16}/>} color={roe >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
+                <ModernMetricCard title="Pto. Equilibrio" value={`$${breakEvenPoint.toFixed(2)}`} desc="Para cubrir costos fijos" icon={<Target size={16}/>} />
+                <ModernMetricCard title="C.A.C." value={`$${cac.toFixed(2)}`} desc="Costo Adquisición Cliente" icon={<Activity size={16}/>} />
+                <ModernMetricCard title="L.T.V." value={`$${ltv.toFixed(2)}`} desc="Valor Vida (Anualizado)" icon={<LineChartIcon size={16}/>} />
+                <ModernMetricCard title="R.O.E." value={`${roe.toFixed(1)}%`} desc="Retorno sobre Patrimonio" icon={<TrendingUp size={16}/>} color={roe >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col justify-center items-center text-center">
-                   <h3 className="text-slate-400 font-bold text-sm mb-2">Flujo de Efectivo Operativo</h3>
-                   <p className={`text-4xl font-black ${operatingCashFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>${operatingCashFlow.toFixed(2)}</p>
-                   <p className="text-xs text-slate-500 mt-2">Dinero real generado (Ingresos - COGS - MKT - CF)</p>
+                <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-center items-center text-center shadow-xs">
+                   <h4 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Flujo de Efectivo Operativo</h4>
+                   <p className={`text-4xl font-black font-mono ${operatingCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
+                     ${operatingCashFlow.toFixed(2)}
+                   </p>
+                   <p className="text-[11px] text-slate-400 mt-2 max-w-xs">Dinero neto generado tras restar COGS, Marketing y Costos Fijos.</p>
                 </div>
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col justify-center items-center text-center">
-                   <h3 className="text-slate-400 font-bold text-sm mb-2">Ciclo de Conversión (Efectivo)</h3>
-                   <p className="text-4xl font-black text-violet-400">{ccc} días</p>
-                   <p className="text-xs text-slate-500 mt-2">Días que tarda el inventario en volverse liquidez (DIO + DSO - DPO).</p>
+                <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-center items-center text-center shadow-xs">
+                   <h4 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Ciclo de Conversión de Efectivo</h4>
+                   <p className="text-4xl font-black font-mono text-orange-600 dark:text-orange-400">{ccc} días</p>
+                   <p className="text-[11px] text-slate-400 mt-2 max-w-xs">Días que tarda el inventario en convertirse en liquidez (DIO + DSO - DPO).</p>
                 </div>
               </div>
+
             </div>
           )}
         </>
@@ -387,14 +568,15 @@ export default function AnalyticsManager() {
   );
 }
 
-function MetricCard({ title, value, desc, icon, color = 'text-slate-800 dark:text-white' }) {
+function ModernMetricCard({ title, value, desc, icon, color = 'text-slate-900 dark:text-white' }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 hover:border-indigo-500/50 transition-colors">
-      <div className="flex items-center gap-2 text-slate-500 mb-2">
-        {icon} <span className="text-xs font-bold uppercase tracking-wider">{title}</span>
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs hover:border-orange-300 transition-all">
+      <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+        <span className="text-orange-500">{icon}</span>
+        <span className="text-[10px] font-black uppercase tracking-wider truncate">{title}</span>
       </div>
-      <p className={`text-2xl font-black ${color}`}>{value}</p>
-      <p className="text-[10px] font-medium text-slate-400 mt-1">{desc}</p>
+      <p className={`text-xl font-black font-mono ${color}`}>{value}</p>
+      <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{desc}</p>
     </div>
   );
 }

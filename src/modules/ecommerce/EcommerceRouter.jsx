@@ -20,6 +20,7 @@ import CartSettings from './pages/CartSettings';
 import AnalyticsManager from './pages/AnalyticsManager';
 import ReviewsManager from './pages/ReviewsManager';
 import InventoryManager from './pages/InventoryManager';
+import CustomersManager from './pages/CustomersManager';
 
 import StoreProfileManager from './pages/StoreProfileManager';
 import StoreLocationManager from './pages/StoreLocationManager';
@@ -36,6 +37,9 @@ import LegalPage from './pages/LegalPage';
 import AuthCallback from './pages/AuthCallback';
 import MerchantLandingPage from './pages/MerchantLandingPage';
 import MerchantTrialPage from './pages/MerchantTrialPage';
+import OnboardingChecklistPage from './pages/OnboardingChecklistPage';
+import UnifiedPosPage from './pages/UnifiedPosPage';
+import MerchantMorePage from './pages/MerchantMorePage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -370,15 +374,35 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           {/* Rutas Protegidas por PIN de Administrador */}
           <Route element={<AdminGuard />}>
             <Route path="dashboard" element={<EcommerceDashboard />} />
+            <Route path="pos" element={<UnifiedPosPage />} />
+            <Route path="shifts" element={<UnifiedPosPage />} />
+            <Route path="credits" element={<UnifiedPosPage />} />
+            <Route path="setup" element={<OnboardingChecklistPage />} />
+            <Route path="puesta-en-marcha" element={<OnboardingChecklistPage />} />
             <Route path="analytics" element={<AnalyticsManager />} />
             <Route path="store-profile" element={<StoreProfileManager />} />
           </Route>
           <Route path="inventory" element={<InventoryManager />} />
+          <Route path="stock" element={<InventoryManager />} />
+          <Route path="prices" element={<InventoryManager />} />
+          <Route path="goods-receipt" element={<InventoryManager />} />
           <Route path="products" element={<ProductsManager />} />
+          <Route path="combos" element={<ProductsManager />} />
+          <Route path="categories" element={<ProductsManager />} />
+          <Route path="suggestions" element={<ProductStudio />} />
+          <Route path="migrations" element={<UnifiedPosPage />} />
           <Route path="product-studio" element={<ProductStudio />} />
           <Route path="product-studio/:id" element={<ProductStudio />} />
           <Route path="orders" element={<OrdersManager />} />
-        <Route path="support" element={<SupportManager />} />
+          <Route path="invoicing" element={<UnifiedPosPage />} />
+          <Route path="returns" element={<OrdersManager />} />
+          <Route path="coupons" element={<PromotionsManager />} />
+          <Route path="customers" element={<CustomersManager />} />
+          <Route path="leads" element={<CustomersManager />} />
+          <Route path="abandoned-carts" element={<AnalyticsManager />} />
+          <Route path="campaigns" element={<PromotionsManager />} />
+          <Route path="audiences" element={<CustomersManager />} />
+          <Route path="support" element={<SupportManager />} />
           <Route path="preparation" element={<OrderPreparation />} />
           <Route path="reviews" element={<ReviewsManager />} />
           <Route path="promotions" element={<PromotionsManager />} />
@@ -389,6 +413,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="storefront" element={<StorefrontSettings />} />
           <Route path="cart-settings" element={<CartSettings />} />
           <Route path="location" element={<StoreLocationManager />} />
+          <Route path="more" element={<MerchantMorePage />} />
 
         </Route>
       </Route>
