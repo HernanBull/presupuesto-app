@@ -4,6 +4,7 @@ import {
   Truck, Activity, Users, ShieldAlert, CheckCircle2, 
   XCircle, Clock, Search, AlertTriangle, ShieldBan, X
 } from 'lucide-react';
+import AgencySuperuserManager from './AgencySuperuserManager';
 
 export default function DeliveryFleetDashboard() {
   const [drivers, setDrivers] = useState([]);
@@ -144,6 +145,9 @@ export default function DeliveryFleetDashboard() {
           <p className="text-3xl font-black text-white">{activeTrips.length}</p>
         </div>
       </div>
+
+      {/* Directiva y Superusuarios de Agencia (EnMinutos / Control Total) */}
+      <AgencySuperuserManager />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Columna Izquierda: Tabla de Repartidores */}
