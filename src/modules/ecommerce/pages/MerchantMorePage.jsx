@@ -6,7 +6,7 @@ import {
   DollarSign, Receipt, Settings, HelpCircle, LogOut, 
   ExternalLink, Check, Sparkles, X, Globe, Layers,
   ShieldCheck, CreditCard, ShoppingBag, Zap, Package,
-  Database, Wallet, Bell
+  Database, Wallet, Bell, Clock
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -34,6 +34,9 @@ export default function MerchantMorePage() {
   const [trialDaysRemaining, setTrialDaysRemaining] = useState(7);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
   const [workspaceStatus, setWorkspaceStatus] = useState('Pendiente');
+  const [isSubscriptionPaid, setIsSubscriptionPaid] = useState(false);
+  const [subscriptionExpiresAt, setSubscriptionExpiresAt] = useState(null);
+  const [isPendingActivation, setIsPendingActivation] = useState(false);
 
   // Modales de administración crítica (AxonPOS ➔ AxonMarket)
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -42,39 +45,71 @@ export default function MerchantMorePage() {
 
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
+    const storeSlug = localStorage.getItem('storeSlug');
+
+    let query = supabase.from('workspaces').select('id, name, store_slug, config, status, created_at');
     if (wsId) {
-      supabase.from('workspaces').select('id, name, store_slug, config, status').eq('id', wsId).maybeSingle()
-        .then(({ data, error }) => {
-          if (!error && data) {
-            const rawSlug = data.store_slug || localStorage.getItem('storeSlug') || '';
-            const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
-            const ownerOrContact = data.config?.contact?.name || data.config?.ownerName || data.config?.adminName || rawName.split(' ')[0] || 'Comerciante';
+      query = query.eq('id', wsId);
+    } else if (storeSlug) {
+      query = query.eq('store_slug', storeSlug);
+    } else {
+      return;
+    }
 
-            if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
-            if (data.name) localStorage.setItem('merchant_store_name', data.name);
-            setWorkspaceStatus(data.status || 'Activo');
+    query.maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const rawSlug = data.store_slug || storeSlug || '';
+          const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+          const cfg = typeof data.config === 'object' ? (data.config || {}) : (() => { try { return JSON.parse(data.config || '{}'); } catch(e) { return {}; } })();
+          const ownerOrContact = cfg.contact?.name || cfg.ownerName || cfg.adminName || cfg.contact?.ownerName || rawName.split(' ')[0] || 'Comerciante';
 
-            // Calcular días restantes de la prueba gratuita de 7 días
-            const trialEndStr = data.config?.trialEndsAt;
+          if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
+          if (data.name) localStorage.setItem('merchant_store_name', data.name);
+          if (data.id) localStorage.setItem('activeWorkspace', data.id);
+
+          setWorkspaceStatus(data.status || 'Activo');
+
+          const isPaid = Boolean(cfg.subscriptionEndsAt && new Date(cfg.subscriptionEndsAt) > new Date());
+          setIsSubscriptionPaid(isPaid);
+          if (cfg.subscriptionEndsAt) {
+            setSubscriptionExpiresAt(cfg.subscriptionEndsAt);
+          }
+
+          const isPending = data.status === 'Pendiente' || data.status === 'Pre_Registro' || data.status === 'Solicitud';
+          setIsPendingActivation(isPending);
+
+          // Si está en pre-registro/pendiente, la prueba aún no corre
+          if (isPending) {
+            setTrialDaysRemaining(7);
+          } else {
+            // Cuenta activa: calcular días restantes de la prueba de 7 días
+            const trialEndStr = cfg.trialEndsAt;
             if (trialEndStr) {
               const diff = Math.ceil((new Date(trialEndStr) - new Date()) / (1000 * 60 * 60 * 24));
+              setTrialDaysRemaining(Math.max(0, diff));
+            } else if (cfg.trialStartedAt) {
+              const end = new Date(new Date(cfg.trialStartedAt).getTime() + 7 * 24 * 60 * 60 * 1000);
+              const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
               setTrialDaysRemaining(Math.max(0, diff));
             } else if (data.created_at) {
               const end = new Date(new Date(data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
               const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
               setTrialDaysRemaining(Math.max(0, diff));
+            } else {
+              setTrialDaysRemaining(7);
             }
-
-            setStoreInfo({
-              name: rawName,
-              slug: rawSlug,
-              plan: 'Profesional',
-              merchantName: ownerOrContact
-            });
           }
-        })
-        .catch(console.error);
-    }
+
+          setStoreInfo({
+            name: rawName,
+            slug: rawSlug,
+            plan: isPaid ? 'Plan VIP (Suscrito)' : 'Plan VIP (7 Días de Prueba)',
+            merchantName: ownerOrContact
+          });
+        }
+      })
+      .catch(console.error);
   }, []);
 
   const canonicalOrigin = typeof window !== 'undefined' && window.location.origin.includes('localhost')
@@ -324,68 +359,121 @@ export default function MerchantMorePage() {
             ======================================================== */}
         <div 
           onClick={() => navigate('/subscription')}
-          className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in space-y-3.5 cursor-pointer hover:shadow-orange-500/30 transition-all group"
+          className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in space-y-4 cursor-pointer hover:shadow-orange-500/30 transition-all group"
         >
           <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none group-hover:scale-110 transition-transform">
             <Sparkles size={80} />
           </div>
-          <div className="relative z-10 space-y-3">
+
+          <div className="relative z-10 space-y-3.5">
+            {/* Cabecera del Banner: Etiqueta Plan VIP y Badge de Estado */}
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider">
                 <Sparkles size={12} />
                 <span>Plan VIP</span>
               </div>
-              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
-                workspaceStatus === 'Activo' 
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs ${
+                isSubscriptionPaid 
                   ? 'bg-emerald-500 text-white' 
-                  : trialDaysRemaining > 3 
-                    ? 'bg-white/25 text-white' 
-                    : 'bg-red-500 text-white animate-pulse'
+                  : isPendingActivation
+                    ? 'bg-amber-400 text-amber-950 font-extrabold'
+                    : trialDaysRemaining > 2 
+                      ? 'bg-white text-orange-600 font-black' 
+                      : trialDaysRemaining > 0
+                        ? 'bg-amber-300 text-amber-950 font-black animate-pulse'
+                        : 'bg-red-500 text-white animate-pulse'
               }`}>
-                {workspaceStatus === 'Activo' 
+                {isSubscriptionPaid 
                   ? 'Suscripción Activa' 
-                  : trialDaysRemaining > 0 
-                    ? `${trialDaysRemaining} días de prueba` 
-                    : 'Prueba Vencida'}
+                  : isPendingActivation
+                    ? 'Pre-registro (Por Activar)'
+                    : trialDaysRemaining > 0 
+                      ? `⏳ ${trialDaysRemaining} ${trialDaysRemaining === 1 ? 'día restante' : 'días restantes'}` 
+                      : 'Prueba Vencida'}
               </span>
             </div>
 
-            <div>
-              <h4 className="text-base sm:text-lg font-black leading-tight">
-                {workspaceStatus === 'Activo' ? 'Tu comercio cuenta con Plan VIP Activo' : 'Prueba Gratuita de 7 Días'}
-              </h4>
-              <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
-                {workspaceStatus === 'Activo'
-                  ? 'Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo sin límites.'
-                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Entra a ver los planes y reportar tu Pago Móvil BNC.`
-                }
-              </p>
-            </div>
+            {/* TEMPORIZADOR PROMINENTE DE 7 DÍAS (ARRIBA EN LA TARJETA) */}
+            {!isSubscriptionPaid && (
+              <div className="bg-black/20 backdrop-blur-xs rounded-2xl p-3 border border-white/15 space-y-2">
+                <div className="flex items-center justify-between text-xs font-black">
+                  <span className="flex items-center gap-1.5 text-white">
+                    <Clock size={14} className="text-amber-300" />
+                    <span>Temporizador de Prueba (7 Días)</span>
+                  </span>
+                  <span className="font-mono text-[11px] text-amber-200 bg-white/10 px-2 py-0.5 rounded-md">
+                    {isPendingActivation 
+                      ? '7 días listos al activar' 
+                      : trialDaysRemaining > 0 
+                        ? `Día ${Math.min(7, Math.max(1, 8 - trialDaysRemaining))} de 7` 
+                        : 'Culminado'}
+                  </span>
+                </div>
 
-            {/* Temporizador visual de los 7 días */}
-            {workspaceStatus !== 'Activo' && (
-              <div className="space-y-1.5 pt-1">
-                <div className="w-full bg-black/20 h-2.5 rounded-full overflow-hidden p-0.5">
+                <div className="w-full bg-black/30 h-2.5 rounded-full overflow-hidden p-0.5">
                   <div 
-                    className="bg-white h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, Math.max(12, (trialDaysRemaining / 7) * 100))}%` }}
+                    className="bg-gradient-to-r from-amber-300 to-white h-full rounded-full transition-all duration-500 shadow-sm"
+                    style={{ 
+                      width: isPendingActivation 
+                        ? '100%' 
+                        : `${Math.min(100, Math.max(10, (trialDaysRemaining / 7) * 100))}%` 
+                    }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-white/90 font-bold">
-                  <span>Día {Math.max(1, 8 - trialDaysRemaining)} de 7</span>
-                  <span className="font-mono">{trialDaysRemaining > 0 ? `${trialDaysRemaining} días restantes` : 'Culminado'}</span>
+
+                <div className="flex justify-between items-center text-[10px] font-bold text-white/90">
+                  <span>
+                    {isPendingActivation 
+                      ? 'Inicia al ser aprobado por SuperAdmin' 
+                      : 'Cortesía con acceso VIP total'}
+                  </span>
+                  <span className="font-mono text-amber-200">
+                    {isPendingActivation 
+                      ? '7 días completos' 
+                      : trialDaysRemaining > 0 
+                        ? `${trialDaysRemaining} ${trialDaysRemaining === 1 ? 'día restante' : 'días restantes'}` 
+                        : 'Prueba finalizada'}
+                  </span>
                 </div>
               </div>
             )}
 
-            <div className="pt-1 flex items-center justify-between">
+            {/* Texto Descriptivo */}
+            <div>
+              <h4 className="text-base sm:text-lg font-black leading-tight">
+                {isSubscriptionPaid 
+                  ? 'Tu comercio cuenta con Plan VIP Activo' 
+                  : isPendingActivation
+                    ? 'Cuenta en Pre-Registro'
+                    : trialDaysRemaining > 0 
+                      ? 'Plan VIP · 7 Días de Prueba Gratuita' 
+                      : 'Período de Prueba Culminado'}
+              </h4>
+              <p className="text-xs text-white/90 mt-1 leading-relaxed">
+                {isSubscriptionPaid
+                  ? `Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo sin límites. Válido hasta: ${subscriptionExpiresAt ? new Date(subscriptionExpiresAt).toLocaleDateString() : 'Activo'}.`
+                  : isPendingActivation
+                    ? 'Tu comercio fue registrado. Tan pronto como el SuperAdmin active tu cuenta comenzarán a correr tus 7 días de acceso completo.'
+                    : trialDaysRemaining > 0
+                      ? `Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo. Te quedan ${trialDaysRemaining} días de cortesía.`
+                      : 'Tu prueba gratuita de 7 días ha finalizado. Reporta tu Pago Móvil BNC ($30 mensual o $60 trimestral) para continuar.'
+                }
+              </p>
+            </div>
+
+            {/* Botón de Acción a Pantalla Completa de Suscripción */}
+            <div className="pt-0.5 flex items-center justify-between">
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); navigate('/subscription'); }}
                 className="px-5 py-2.5 bg-white hover:bg-orange-50 text-orange-600 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer"
               >
                 <CreditCard size={15} />
-                <span>{workspaceStatus === 'Activo' ? 'Ver Planes & Datos de Pago' : 'Ver Planes VIP & Pagar con BNC'}</span>
+                <span>
+                  {isSubscriptionPaid 
+                    ? 'Ver Planes & Datos de Pago' 
+                    : 'Ver Planes VIP & Pagar con BNC'}
+                </span>
               </button>
               <ChevronRight size={20} className="text-white/80 group-hover:translate-x-1 transition-transform" />
             </div>

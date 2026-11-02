@@ -645,11 +645,26 @@ export default function SuperAdminDashboard({ superKey }) {
 
   const handleToggleSuspend = async (merchant) => {
     setIsActionLoading(true);
-    const newStatus = merchant.status === 'Pendiente' ? 'Activo' : (merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido');
+    const isActivating = merchant.status === 'Pendiente' || merchant.status === 'Pre_Registro' || merchant.status === 'Solicitud';
+    const newStatus = isActivating ? 'Activo' : (merchant.status === 'Suspendido' ? 'Activo' : 'Suspendido');
     try {
-      const { error } = await supabase.from('workspaces').update({ status: newStatus }).eq('id', merchant.id);
+      const cfg = safeParseConfig(merchant.config);
+      // Cuando se activa el comercio (pasa de pre-registro a tiendas activas), inicia el conteo de 7 días de prueba!
+      if (isActivating || (newStatus === 'Activo' && !cfg.trialEndsAt)) {
+        const now = new Date();
+        cfg.trialStartedAt = now.toISOString();
+        cfg.trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+        cfg.trialActive = true;
+      }
+      const { error } = await supabase.from('workspaces').update({ 
+        status: newStatus,
+        config: cfg
+      }).eq('id', merchant.id);
       if (!error) {
         fetchData();
+        if (isActivating) {
+          alert(`¡Comercio "${merchant.name}" activado exitosamente! Ha iniciado su período de 7 días de prueba gratuita.`);
+        }
       } else {
         alert('Error al cambiar estado: ' + error.message);
       }
