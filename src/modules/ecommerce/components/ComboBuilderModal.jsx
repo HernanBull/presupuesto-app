@@ -149,7 +149,6 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
         stock_vitrina: Number(comboStock) || 10,
         publish_status: 'Publicado',
         image_url: (comboImages && comboImages[0]) ? comboImages[0] : (comboItems[0]?.image_url || null),
-        images: comboImages,
         unit_type: 'combo',
         step_size: 1,
         metadata: {
@@ -171,9 +170,18 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
         }
       };
 
-      const { error: dbError } = await supabase
+      let { error: dbError } = await supabase
         .from('ecommerce_products')
         .upsert(payload);
+
+      if (dbError && dbError.message && dbError.message.includes("Could not find the '")) {
+        const match = dbError.message.match(/Could not find the '([^']+)' column/);
+        if (match && match[1] && payload[match[1]] !== undefined) {
+          delete payload[match[1]];
+          const retryRes = await supabase.from('ecommerce_products').upsert(payload);
+          dbError = retryRes.error;
+        }
+      }
 
       if (dbError) throw dbError;
 

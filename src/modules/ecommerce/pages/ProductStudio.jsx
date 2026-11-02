@@ -80,7 +80,6 @@ export default function ProductStudio() {
         cogs: parseFloat(formData.cogs) || 0,
         batch_number: formData.sku,
         image_url: primaryImage,
-        images: cleanImages,
         metadata: {
           ...(formData.metadata || {}),
           images: cleanImages
@@ -94,11 +93,24 @@ export default function ProductStudio() {
         payload.created_at = new Date().toISOString();
       }
 
-      const query = isEditing 
+      let query = isEditing 
         ? supabase.from('ecommerce_products').update(payload).eq('id', id)
         : supabase.from('ecommerce_products').insert([payload]);
 
-      const { error } = await query;
+      let { error } = await query;
+
+      // Resiliencia: si Supabase rechaza alguna columna que no existe en el esquema cache
+      if (error && error.message && error.message.includes("Could not find the '")) {
+        const match = error.message.match(/Could not find the '([^']+)' column/);
+        if (match && match[1] && payload[match[1]] !== undefined) {
+          delete payload[match[1]];
+          const retryQuery = isEditing 
+            ? supabase.from('ecommerce_products').update(payload).eq('id', id)
+            : supabase.from('ecommerce_products').insert([payload]);
+          const retryResult = await retryQuery;
+          error = retryResult.error;
+        }
+      }
       
       if (!error) {
         navigate('/inventory');
