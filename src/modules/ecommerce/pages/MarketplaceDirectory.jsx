@@ -9,6 +9,7 @@ import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAnalyticsModal from '../components/CustomerAnalyticsModal';
 import PwaInstallBanner from '../components/PwaInstallBanner';
 import SocialFeedCard from '../components/SocialFeedCard';
+import { ActiveFeedMediaProvider } from '../context/ActiveFeedMediaContext';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { BUSINESS_TYPES } from '../../../config/businessTypes';
@@ -1539,11 +1540,45 @@ export default function MarketplaceDirectory() {
     return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredStores, storeNews, stores, discoveryFilter]);
 
+  // Carga progresiva uno a uno estilo TikTok / Redes Sociales
+  const [visibleFeedCount, setVisibleFeedCount] = useState(4);
+  const feedSentinelRef = useRef(null);
+
+  // Reiniciar visibleFeedCount cuando cambie categoría, filtro o búsqueda
+  useEffect(() => {
+    setVisibleFeedCount(4);
+  }, [activeCategory, discoveryFilter, searchQuery]);
+
+  // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo
+  useEffect(() => {
+    const el = feedSentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
+        }
+      },
+      { rootMargin: '350px 0px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [feedPosts.length, visibleFeedCount]);
+
+  const visibleFeedPosts = useMemo(() => {
+    return feedPosts.slice(0, visibleFeedCount);
+  }, [feedPosts, visibleFeedCount]);
+
   // Soporte para enlaces compartidos directos (WhatsApp o Copiar Enlace)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const targetPost = params.get('post') || window.location.hash.replace('#post-', '');
     if (targetPost && feedPosts.length > 0) {
+      const targetIndex = feedPosts.findIndex(p => String(p.id) === String(targetPost));
+      if (targetIndex >= 0 && targetIndex >= visibleFeedCount) {
+        setVisibleFeedCount(targetIndex + 2);
+      }
       setTimeout(() => {
         const el = document.getElementById(`post-${targetPost}`);
         if (el) {
@@ -1551,7 +1586,7 @@ export default function MarketplaceDirectory() {
         }
       }, 350);
     }
-  }, [feedPosts.length]);
+  }, [feedPosts.length, visibleFeedCount]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
@@ -1775,54 +1810,66 @@ export default function MarketplaceDirectory() {
           )}
         </div>
 
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Pantalla Completa sin fricción) */}
-        <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black">
-          {feedPosts.length === 0 ? (
-            <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
-              <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
-              <p className="text-sm font-bold text-zinc-300">No hay publicaciones disponibles</p>
-              <p className="text-xs text-zinc-500 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
-              {activeCategory !== 'Todas' && (
-                <button 
-                  onClick={() => setActiveCategory('Todas')} 
-                  className="mt-4 px-4 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-xs cursor-pointer"
-                >
-                  Ver todos los comercios
-                </button>
-              )}
-            </div>
-          ) : (
-            feedPosts.map((post) => (
-              <SocialFeedCard
-                key={post.id}
-                post={post}
-                currentCustomer={currentCustomer}
-                onOpenComments={(target) => setActiveCommentsPost(target)}
-                onRequireAuth={() => setIsAuthModalOpen(true)}
-                onNavigateStore={(slug) => navigate(`/${slug}`)}
-              />
-            ))
-          )}
-
-          {/* Footer App Compacto */}
-          <div className="w-full snap-start shrink-0 py-12 px-4 text-center border-t border-zinc-800 bg-zinc-950 mt-0">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
-                <ShoppingBag size={14} className="stroke-[2.5]" />
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
+        <ActiveFeedMediaProvider>
+          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black">
+            {visibleFeedPosts.length === 0 ? (
+              <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
+                <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
+                <p className="text-sm font-bold text-zinc-300">No hay publicaciones disponibles</p>
+                <p className="text-xs text-zinc-500 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
+                {activeCategory !== 'Todas' && (
+                  <button 
+                    onClick={() => setActiveCategory('Todas')} 
+                    className="mt-4 px-4 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+                  >
+                    Ver todos los comercios
+                  </button>
+                )}
               </div>
-              <span className="font-bold text-xs tracking-widest text-zinc-100">AXON<span className="text-amber-500">MARKET</span></span>
+            ) : (
+              visibleFeedPosts.map((post) => (
+                <SocialFeedCard
+                  key={post.id}
+                  post={post}
+                  currentCustomer={currentCustomer}
+                  onOpenComments={(target) => setActiveCommentsPost(target)}
+                  onRequireAuth={() => setIsAuthModalOpen(true)}
+                  onNavigateStore={(slug) => navigate(`/${slug}`)}
+                />
+              ))
+            )}
+
+            {/* Centinela de carga progresiva infinita suave */}
+            {visibleFeedCount < feedPosts.length && (
+              <div 
+                ref={feedSentinelRef} 
+                className="w-full h-24 flex items-center justify-center text-zinc-500 text-xs py-6 snap-start"
+              >
+                <div className="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+              </div>
+            )}
+
+            {/* Footer App Compacto */}
+            <div className="w-full snap-start shrink-0 py-12 px-4 text-center border-t border-zinc-800 bg-zinc-950 mt-0">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
+                  <ShoppingBag size={14} className="stroke-[2.5]" />
+                </div>
+                <span className="font-bold text-xs tracking-widest text-zinc-100">AXON<span className="text-amber-500">MARKET</span></span>
+              </div>
+              <p className="text-[11px] text-zinc-400">Tu marketplace local en Venezuela</p>
+              <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-400">
+                <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-400">Términos</button>
+                <span>•</span>
+                <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-400">Privacidad</button>
+                <span>•</span>
+                <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-400">Aviso Legal</button>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-2">© {new Date().getFullYear()} AxonMarket</p>
             </div>
-            <p className="text-[11px] text-zinc-400">Tu marketplace local en Venezuela</p>
-            <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-400">
-              <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-400">Términos</button>
-              <span>•</span>
-              <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-400">Privacidad</button>
-              <span>•</span>
-              <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-400">Aviso Legal</button>
-            </div>
-            <p className="text-[10px] text-zinc-500 mt-2">© {new Date().getFullYear()} AxonMarket</p>
           </div>
-        </div>
+        </ActiveFeedMediaProvider>
 
       </div>
 

@@ -17,6 +17,8 @@ import {
   isPostSavedLocally
 } from '../services/socialService';
 import ResponsiveModal from './ResponsiveModal';
+import { useActiveFeedMedia } from '../context/ActiveFeedMediaContext';
+import ProgressiveFeedImage from './ProgressiveFeedImage';
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
@@ -69,62 +71,48 @@ export default function SocialFeedCard({
   const [showMenu, setShowMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const { activeMediaId, setActiveMedia, clearActiveMedia, isMutedGlobal, toggleMutedGlobal } = useActiveFeedMedia();
+  const isActive = activeMediaId === postId;
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
 
-  // Control inteligente de reproducción y audio en Scroll (IntersectionObserver estilo TikTok)
+  // Sincronizar estado isPlaying con isActive coordinado globalmente
   useEffect(() => {
-    if (!isVideo || !containerRef.current) return;
+    if (!isVideo) return;
+    if (isActive) {
+      setIsPlaying(true);
+      if (videoRef.current && videoRef.current.paused) {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {});
+        }
+      }
+    } else {
+      setIsPlaying(false);
+      if (videoRef.current && !videoRef.current.paused) {
+        try {
+          videoRef.current.pause();
+        } catch (e) {}
+      }
+    }
+  }, [isActive, isVideo]);
 
-    const el = containerRef.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-            // El video está enfocado en pantalla: reproducir con audio
-            if (videoRef.current) {
-              const playPromise = videoRef.current.play();
-              if (playPromise !== undefined) {
-                playPromise
-                  .then(() => {
-                    setIsPlaying(true);
-                  })
-                  .catch(() => {
-                    // Si el navegador bloquea autoplay con audio antes del primer toque, silenciar temporalmente
-                    if (videoRef.current) {
-                      videoRef.current.muted = true;
-                      setIsMuted(true);
-                      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-                    }
-                  });
-              }
-            }
-          } else {
-            // Al scrollear hacia arriba o abajo y salir del viewport: pausar inmediatamente
-            if (videoRef.current) {
-              videoRef.current.pause();
-              setIsPlaying(false);
-            }
-          }
-        });
-      },
-      { threshold: [0, 0.55, 1.0] }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [isVideo]);
-
-  // Si el navegador forzó mute, desmutear automáticamente al primer toque del cliente
+  // Sincronizar audio con el estado global de mute
   useEffect(() => {
-    if (!isVideo || !isMuted) return;
+    if (videoRef.current) {
+      videoRef.current.muted = isMutedGlobal;
+    }
+  }, [isMutedGlobal]);
+
+  // Si el usuario interactúa con la pantalla, habilitar audio si estaba silenciado
+  useEffect(() => {
+    if (!isVideo || !isMutedGlobal) return;
     const handleFirstTouch = () => {
       if (videoRef.current) {
         videoRef.current.muted = false;
-        setIsMuted(false);
       }
     };
 
@@ -134,10 +122,49 @@ export default function SocialFeedCard({
       window.removeEventListener('click', handleFirstTouch);
       window.removeEventListener('touchstart', handleFirstTouch);
     };
-  }, [isVideo, isMuted]);
+  }, [isVideo, isMutedGlobal]);
 
-  // Cargar estado desde el servidor
+  // Control inteligente estilo TikTok: solo UN video activo y carga diferida
   useEffect(() => {
+    if (!containerRef.current) return;
+
+    const el = containerRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Activar carga de interacciones de DB tan pronto como entra al área visible
+          if (entry.isIntersecting) {
+            setHasEnteredViewport(true);
+          }
+
+          if (isVideo) {
+            if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+              // El video está enfocado en pantalla (>55% visible): activar reproducción atómica
+              if (videoRef.current) {
+                setActiveMedia(postId, videoRef.current);
+              }
+            } else if (!entry.isIntersecting || entry.intersectionRatio < 0.35) {
+              // Al scrollear y salir del foco: ceder el control inmediatamente
+              clearActiveMedia(postId);
+            }
+          }
+        });
+      },
+      { threshold: [0, 0.35, 0.55, 0.85, 1.0] }
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (isVideo) {
+        clearActiveMedia(postId);
+      }
+    };
+  }, [isVideo, postId, setActiveMedia, clearActiveMedia]);
+
+  // Cargar estado desde el servidor diferido (cuando entra al viewport)
+  useEffect(() => {
+    if (!hasEnteredViewport) return;
     let mounted = true;
 
     const loadInteractions = async () => {
@@ -198,7 +225,7 @@ export default function SocialFeedCard({
       mounted = false;
       window.removeEventListener('axon_social_updated', handleGlobalUpdate);
     };
-  }, [postId, workspaceId, currentCustomer?.id]);
+  }, [postId, workspaceId, currentCustomer?.id, hasEnteredViewport]);
 
   // Manejo de Like
   const handleLike = async (e) => {
@@ -335,17 +362,17 @@ export default function SocialFeedCard({
             src={resolveImageUrl(post.video_url || storeCover)}
             playsInline
             loop
-            muted={isMuted}
-            autoPlay
+            preload="none"
+            muted={isMutedGlobal}
             className="w-full h-full object-cover"
             onClick={(e) => {
               e.stopPropagation();
               if (videoRef.current) {
                 if (videoRef.current.paused) {
-                  videoRef.current.play();
+                  setActiveMedia(postId, videoRef.current);
                   setIsPlaying(true);
                 } else {
-                  videoRef.current.pause();
+                  clearActiveMedia(postId);
                   setIsPlaying(false);
                 }
               }
@@ -360,9 +387,7 @@ export default function SocialFeedCard({
           )}
         </div>
       ) : storeCover ? (
-        <img 
-          loading="lazy" 
-          decoding="async"
+        <ProgressiveFeedImage 
           src={resolveImageUrl(storeCover)} 
           alt={storeName} 
           className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
@@ -382,11 +407,11 @@ export default function SocialFeedCard({
         {isVideo && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+            onClick={(e) => { e.stopPropagation(); toggleMutedGlobal(); }}
             className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-sm"
-            title={isMuted ? "Activar sonido" : "Silenciar"}
+            title={isMutedGlobal ? "Activar sonido" : "Silenciar"}
           >
-            {isMuted ? <VolumeX size={14} className="text-amber-400" /> : <Volume2 size={14} className="text-emerald-400" />}
+            {isMutedGlobal ? <VolumeX size={14} className="text-amber-400" /> : <Volume2 size={14} className="text-emerald-400" />}
           </button>
         )}
 
