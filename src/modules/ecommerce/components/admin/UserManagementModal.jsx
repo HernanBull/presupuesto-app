@@ -25,7 +25,10 @@ import {
   KeyRound,
   X,
   PlusCircle,
-  RotateCcw
+  RotateCcw,
+  QrCode,
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { authService, ROLE_PERMISSIONS, PERMISSION_DEFINITIONS } from '../../services/authService';
 import ChangeMasterPinModal from './ChangeMasterPinModal';
@@ -79,6 +82,9 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
   // Visibilidad de PINes en la tabla
   const [revealedPins, setRevealedPins] = useState({});
+  // Sub-modal para Ver QR / Enlace de Acceso a Caja
+  const [selectedRegisterForQr, setSelectedRegisterForQr] = useState(null);
+  const storeSlug = localStorage.getItem('storeSlug') || '';
 
   useEffect(() => {
     if (isOpen) {
@@ -509,17 +515,27 @@ export default function UserManagementModal({ isOpen, onClose }) {
                     </div>
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => setSelectedRegisterForQr(r)}
+                        className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        title="Generar Código QR o Enlace de Acceso Rápido"
+                      >
+                        <QrCode size={14} />
+                        <span className="hidden sm:inline">QR / Link</span>
+                      </button>
+                      <button
                         onClick={() => {
                           setRegFormData(r);
                           setIsRegisterFormOpen(true);
                         }}
                         className="p-1.5 text-slate-400 hover:text-orange-500"
+                        title="Editar Caja"
                       >
                         <Edit2 size={15} />
                       </button>
                       <button
                         onClick={() => handleDeleteRegister(r)}
                         className="p-1.5 text-slate-400 hover:text-rose-500"
+                        title="Eliminar Caja"
                       >
                         <Trash2 size={15} />
                       </button>
@@ -801,6 +817,94 @@ export default function UserManagementModal({ isOpen, onClose }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-MODAL: CÓDIGO QR Y ENLACE DE ACCESO DIRECTO A CAJA */}
+      {selectedRegisterForQr && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-sm overflow-hidden flex flex-col p-6 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold">
+                  <QrCode size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">
+                    {selectedRegisterForQr.name}
+                  </h4>
+                  <p className="text-[11px] text-slate-400">Acceso Rápido por QR o Link</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedRegisterForQr(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Código QR Generado */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col items-center justify-center">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                  `${window.location.origin}${storeSlug ? `/${storeSlug}` : ''}/caja/${selectedRegisterForQr.id}`
+                )}`}
+                alt="QR Acceso a Caja"
+                className="w-44 h-44 rounded-lg object-contain"
+              />
+              <span className="text-[10px] text-slate-500 font-bold mt-2">
+                Escanea con la cámara del teléfono o tablet
+              </span>
+            </div>
+
+            {/* Enlace Directo Copiable */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Enlace Directo
+              </label>
+              <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-800 p-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs">
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={`${window.location.origin}${storeSlug ? `/${storeSlug}` : ''}/caja/${selectedRegisterForQr.id}`}
+                  className="bg-transparent border-none outline-none text-slate-600 dark:text-zinc-300 w-full text-[11px] font-mono truncate"
+                />
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}${storeSlug ? `/${storeSlug}` : ''}/caja/${selectedRegisterForQr.id}`;
+                    navigator.clipboard.writeText(link);
+                    toast.success('¡Enlace de caja copiado al portapapeles!');
+                  }}
+                  className="p-1.5 bg-white dark:bg-zinc-700 hover:bg-orange-500 hover:text-white text-slate-700 dark:text-zinc-200 rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
+                  title="Copiar Enlace"
+                >
+                  <Copy size={13} />
+                </button>
+                <button
+                  onClick={() => {
+                    const link = `${window.location.origin}${storeSlug ? `/${storeSlug}` : ''}/caja/${selectedRegisterForQr.id}`;
+                    window.open(link, '_blank');
+                  }}
+                  className="p-1.5 bg-white dark:bg-zinc-700 hover:bg-orange-500 hover:text-white text-slate-700 dark:text-zinc-200 rounded-lg shadow-2xs transition-colors shrink-0 cursor-pointer"
+                  title="Abrir en nueva pestaña"
+                >
+                  <ExternalLink size={13} />
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+              El cajero solo necesita escanear este código, elegir su nombre, ingresar su PIN y ya estará listo para cobrar.
+            </p>
+
+            <button
+              onClick={() => setSelectedRegisterForQr(null)}
+              className="w-full py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-white font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Listo
+            </button>
           </div>
         </div>
       )}

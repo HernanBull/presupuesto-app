@@ -39,6 +39,7 @@ import MerchantLandingPage from './pages/MerchantLandingPage';
 import MerchantTrialPage from './pages/MerchantTrialPage';
 import OnboardingChecklistPage from './pages/OnboardingChecklistPage';
 import UnifiedPosPage from './pages/UnifiedPosPage';
+import QuickCashRegisterPage from './pages/QuickCashRegisterPage';
 import MerchantMorePage from './pages/MerchantMorePage';
 import MerchantLoginPage from './pages/MerchantLoginPage';
 import MerchantSubscriptionPage from './pages/MerchantSubscriptionPage';
@@ -368,6 +369,13 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
     <Routes>
       <Route path="auth/callback" element={<AuthCallback />} />
       
+      {/* Acceso Rápido por Código QR o Enlace a Caja Registradora */}
+      <Route path="caja/:registerId" element={<QuickCashRegisterPage />} />
+      <Route path="caja" element={<QuickCashRegisterPage />} />
+      <Route path="pos/caja/:registerId" element={<QuickCashRegisterPage />} />
+      <Route path=":storeSlug/caja/:registerId" element={<QuickCashRegisterPage />} />
+      <Route path=":storeSlug/caja" element={<QuickCashRegisterPage />} />
+
       {/* Portal exclusivo de autenticación para comerciantes */}
       <Route path="merchant/login" element={<MerchantLoginPage />} />
       <Route path="comerciante/login" element={<MerchantLoginPage />} />

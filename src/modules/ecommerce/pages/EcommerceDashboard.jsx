@@ -263,10 +263,11 @@ export default function EcommerceDashboard() {
         setRecentOrders(curOrders.slice(0, 4));
 
         // 5. Clientes nuevos de este mes
+        const startOfMonthIso = startMonth.toISOString();
         const { count: custCount } = await supabase
           .from('ecommerce_customers')
           .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', workspaceId);
+          .gte('join_date', startOfMonthIso);
         setNewCustomersCount(custCount || 0);
 
         // 6. Gráfico Desktop

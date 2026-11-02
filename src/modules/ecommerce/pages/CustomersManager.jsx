@@ -1,25 +1,68 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, User, Mail, Phone, Calendar, ShoppingBag, ExternalLink, Plus, Edit2, Trash2, X } from 'lucide-react';
 
+import { supabase } from '../../../supabaseClient';
+import toast from 'react-hot-toast';
+
 export default function CustomersManager() {
   const [customers, setCustomers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchCustomers = async () => {
+    try {
+      setIsLoading(true);
+      // 1. Obtener clientes de Supabase
+      const { data: custData, error: custErr } = await supabase
+        .from('ecommerce_customers')
+        .select('*')
+        .order('join_date', { ascending: false });
+
+      if (custErr) throw custErr;
+
+      // 2. Obtener pedidos para computar pedidos reales y LTV por cliente
+      const { data: ordersData } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('customer, customer_email, total, status');
+
+      const ordersList = ordersData || [];
+
+      const mapped = (custData || []).map(c => {
+        // Encontrar pedidos asociados por email o por nombre
+        const matchedOrders = ordersList.filter(o => 
+          (c.email && o.customer_email && o.customer_email.toLowerCase() === c.email.toLowerCase()) ||
+          (c.name && o.customer && o.customer.toLowerCase() === c.name.toLowerCase())
+        );
+
+        const totalOrders = matchedOrders.length;
+        const ltv = matchedOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+        return {
+          id: c.id,
+          name: c.name || 'Sin Nombre',
+          email: c.email || '',
+          phone: c.phone || '',
+          docId: c.doc_id || '',
+          address: c.address || '',
+          status: c.status || 'Activo',
+          joinDate: c.join_date ? c.join_date.split('T')[0] : 'Reciente',
+          totalOrders,
+          ltv
+        };
+      });
+
+      setCustomers(mapped);
+    } catch (e) {
+      console.error('Error fetching customers in CRM:', e);
+      toast.error('Error al cargar la lista de clientes.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch(`https://axonmarket-api.onrender.com/api/ecommerce/customers`)
-      .then(res => res.json())
-      .then(data => {
-        if(Array.isArray(data)) {
-          const mapped = data.map(c => ({
-            ...c,
-            joinDate: c.join_date,
-            totalOrders: c.total_orders || 0,
-            ltv: c.ltv || 0
-          }));
-          setCustomers(mapped);
-        }
-      })
-      .catch(console.error);
+    fetchCustomers();
   }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Todos');
 
@@ -30,27 +73,31 @@ export default function CustomersManager() {
     name: '',
     email: '',
     phone: '',
-    status: 'Activo',
-    totalOrders: 0,
-    ltv: 0
+    docId: '',
+    address: '',
+    status: 'Activo'
   });
 
   // Cálculos KPIs
   const { totalCustomers, avgOrders, newThisMonth } = useMemo(() => {
     const total = customers.length;
     const avg = total > 0 ? (customers.reduce((acc, curr) => acc + curr.totalOrders, 0) / total).toFixed(1) : 0;
-    // Simulamos que los creados con 0 pedidos son "Nuevos este mes" o los VIPs para dar movimiento visual
-    const news = customers.filter(c => c.totalOrders <= 1).length;
+    
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const news = customers.filter(c => c.joinDate && c.joinDate.startsWith(currentMonthPrefix)).length;
     
     return { totalCustomers: total, avgOrders: avg, newThisMonth: news };
   }, [customers]);
 
   // Filtros
   const filteredCustomers = customers.filter(customer => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch = 
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm);
+      (customer.name || '').toLowerCase().includes(term) || 
+      (customer.email || '').toLowerCase().includes(term) ||
+      (customer.phone || '').includes(term) ||
+      (customer.docId || '').toLowerCase().includes(term);
       
     const matchesStatus = statusFilter === 'Todos' || customer.status === statusFilter;
     
@@ -61,16 +108,23 @@ export default function CustomersManager() {
   const openEditor = (customer = null) => {
     if (customer) {
       setEditingId(customer.id);
-      setFormData({ ...customer });
+      setFormData({
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        docId: customer.docId || '',
+        address: customer.address || '',
+        status: customer.status || 'Activo'
+      });
     } else {
       setEditingId(null);
       setFormData({
         name: '',
         email: '',
         phone: '',
-        status: 'Activo',
-        totalOrders: 0,
-        ltv: 0
+        docId: '',
+        address: '',
+        status: 'Activo'
       });
     }
     setIsEditorOpen(true);
@@ -88,39 +142,70 @@ export default function CustomersManager() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    if (!formData.name || !formData.email) {
-      alert("Por favor llena los campos requeridos (Nombre, Email).");
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Por favor ingresa el nombre del cliente.");
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0]; // Simular fecha YYYY-MM-DD
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim() || `${formData.name.trim().toLowerCase().replace(/\s+/g, '')}@cliente.axon`,
+      phone: formData.phone.trim(),
+      doc_id: formData.docId.trim(),
+      address: formData.address.trim(),
+      status: formData.status
+    };
 
-    if (editingId) {
-      // Editar
-      setCustomers(customers.map(c => c.id === editingId ? { 
-        ...c, 
-        ...formData, 
-        totalOrders: Number(formData.totalOrders), 
-        ltv: Number(formData.ltv) 
-      } : c));
-    } else {
-      // Crear
-      const newCustomer = {
-        ...formData,
-        id: `CUST-${Date.now().toString().slice(-4)}`,
-        joinDate: today,
-        totalOrders: Number(formData.totalOrders),
-        ltv: Number(formData.ltv)
-      };
-      setCustomers([newCustomer, ...customers]);
+    try {
+      if (editingId) {
+        // Editar en Supabase
+        const { error } = await supabase
+          .from('ecommerce_customers')
+          .update(payload)
+          .eq('id', editingId);
+
+        if (error) throw error;
+        toast.success('Cliente actualizado correctamente');
+      } else {
+        // Crear en Supabase
+        const newId = `CUS-${Date.now().toString().slice(-6)}`;
+        const { error } = await supabase
+          .from('ecommerce_customers')
+          .insert([{
+            ...payload,
+            id: newId,
+            password: 'SUPABASE_AUTH',
+            join_date: new Date().toISOString()
+          }]);
+
+        if (error) throw error;
+        toast.success(`Cliente ${payload.name} registrado con éxito`);
+      }
+
+      await fetchCustomers();
+      closeEditor();
+    } catch (e) {
+      console.error('Error guardando cliente en Supabase:', e);
+      toast.error('No se pudo guardar el cliente en la base de datos.');
     }
-    closeEditor();
   };
 
-  const handleDelete = (id) => {
-    if(window.confirm('¿Estás seguro de eliminar este cliente? Se perderá su historial de compras.')) {
-      setCustomers(customers.filter(c => c.id !== id));
+  const handleDelete = async (id, name) => {
+    if(window.confirm(`¿Estás seguro de eliminar al cliente ${name || ''}? Esta acción no se puede deshacer.`)) {
+      try {
+        const { error } = await supabase
+          .from('ecommerce_customers')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        toast.success('Cliente eliminado con éxito');
+        setCustomers(prev => prev.filter(c => c.id !== id));
+      } catch (e) {
+        console.error('Error eliminando cliente:', e);
+        toast.error('Error al eliminar el cliente.');
+      }
     }
   };
 

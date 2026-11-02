@@ -217,14 +217,39 @@ export default function UnifiedPosPage() {
   // Customer Selector & New Customer Form
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerList, setCustomerList] = useState([
-    { id: 'cf', name: 'Consumidor Final', doc: 'V-00000000', phone: '-' },
-    { id: 'c1', name: 'María Fernández', doc: 'V-18.421.902', phone: '0414-1234567' },
-    { id: 'c2', name: 'Distribuidora Los Andes', doc: 'J-40918231-1', phone: '0424-9876543' },
-    { id: 'c3', name: 'Pedro Castillo', doc: 'V-12.981.332', phone: '0412-5556677' },
+    { id: 'cf', name: 'Consumidor Final', doc: 'V-00000000', phone: '-' }
   ]);
   const [newCustName, setNewCustName] = useState('');
   const [newCustDoc, setNewCustDoc] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
+
+  // Cargar clientes reales desde Supabase
+  useEffect(() => {
+    const fetchPosCustomers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ecommerce_customers')
+          .select('id, name, doc_id, phone')
+          .order('name', { ascending: true });
+        
+        if (!error && Array.isArray(data)) {
+          const mapped = data.map(c => ({
+            id: c.id,
+            name: c.name || 'Sin Nombre',
+            doc: c.doc_id || 'V-00000000',
+            phone: c.phone || '-'
+          }));
+          setCustomerList([
+            { id: 'cf', name: 'Consumidor Final', doc: 'V-00000000', phone: '-' },
+            ...mapped.filter(c => c.name !== 'Consumidor Final')
+          ]);
+        }
+      } catch (e) {
+        console.warn('Error cargando clientes en POS:', e);
+      }
+    };
+    fetchPosCustomers();
+  }, []);
 
   // Hardware Config
   const [hardwareConfig, setHardwareConfig] = useState({
@@ -2746,21 +2771,45 @@ export default function UnifiedPosPage() {
                 className="w-full p-2 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-800 dark:text-white outline-none"
               />
               <button 
-                onClick={() => {
+                onClick={async () => {
                   if (!newCustName.trim()) { toast.error('Indique al menos el nombre'); return; }
+                  const newId = `CUS-${Date.now().toString().slice(-6)}`;
+                  const trimmedName = newCustName.trim();
+                  const trimmedDoc = newCustDoc.trim() || 'V-00000000';
+                  const trimmedPhone = newCustPhone.trim() || '-';
+                  
                   const newObj = {
-                    id: `cust-${Date.now()}`,
-                    name: newCustName.trim(),
-                    doc: newCustDoc.trim() || 'V-00000000',
-                    phone: newCustPhone.trim() || '-'
+                    id: newId,
+                    name: trimmedName,
+                    doc: trimmedDoc,
+                    phone: trimmedPhone
                   };
-                  setCustomerList(prev => [...prev, newObj]);
+
+                  // Optimistic update
+                  setCustomerList(prev => [newObj, ...prev]);
                   setSelectedCustomer(newObj.name);
                   setNewCustName('');
                   setNewCustDoc('');
                   setNewCustPhone('');
                   setIsCustomerModalOpen(false);
-                  toast.success(`Cliente ${newObj.name} guardado y asignado`);
+
+                  // Persistir en Supabase ecommerce_customers
+                  try {
+                    await supabase.from('ecommerce_customers').insert([{
+                      id: newId,
+                      name: trimmedName,
+                      email: `${trimmedName.toLowerCase().replace(/\s+/g, '')}@cliente.axon`,
+                      password: 'SUPABASE_AUTH',
+                      doc_id: trimmedDoc,
+                      phone: trimmedPhone,
+                      status: 'Activo',
+                      join_date: new Date().toISOString()
+                    }]);
+                    toast.success(`Cliente ${newObj.name} guardado en el CRM y asignado`);
+                  } catch (e) {
+                    console.error('Error guardando cliente en base de datos:', e);
+                    toast.success(`Cliente asignado a la venta actual`);
+                  }
                 }}
                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
               >
