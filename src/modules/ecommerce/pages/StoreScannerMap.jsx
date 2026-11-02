@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } 
 import MapSettingsModal from '../components/MapSettingsModal';
 import OfflineMapModal from '../components/OfflineMapModal';
 import { autoCacheZoneIfNeeded } from '../utils/offlineMapService';
+import { buildWhatsAppUrl } from '../utils/whatsappHelper';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { 
@@ -863,7 +864,7 @@ export default function StoreScannerMap() {
                             {/* WhatsApp o Centrar Mapa */}
                             {selectedStore.phone ? (
                               <a 
-                                href={`https://wa.me/${selectedStore.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu tienda ${selectedStore.name} en AxonMarket y quisiera información.`)}`}
+                                href={buildWhatsAppUrl(selectedStore.phone, `Hola, vi tu tienda ${selectedStore.name} en AxonMarket y quisiera información.`)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-center"

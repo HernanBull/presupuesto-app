@@ -8,6 +8,7 @@ import CustomerAuthModal from '../components/CustomerAuthModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
+import { buildWhatsAppUrl, resolveStoreWhatsApp } from '../utils/whatsappHelper';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
@@ -2438,12 +2439,21 @@ export default function PublicStore() {
                   </button>
                   <button 
                     onClick={() => {
-                      if (config?.socialLinks?.whatsapp) {
-                        window.open(`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`, '_blank');
-                      } else if (config?.phone || config?.expediente?.phone) {
-                        window.location.href = `tel:${config?.phone || config?.expediente?.phone}`;
+                      const cleanWaNumber = resolveStoreWhatsApp(config);
+                      if (cleanWaNumber) {
+                        const storeName = config?.business_name || 'la tienda';
+                        const url = buildWhatsAppUrl(cleanWaNumber, `Hola ${storeName}, te contacto desde tu vitrina oficial en AxonMarket y quisiera información.`);
+                        if (url) {
+                          window.open(url, '_blank', 'noopener,noreferrer');
+                          return;
+                        }
+                      }
+                      
+                      const phoneFallback = config?.phone || config?.expediente?.phone;
+                      if (phoneFallback) {
+                        window.location.href = `tel:${phoneFallback}`;
                       } else {
-                        alert('El comercio no tiene teléfono o WhatsApp registrado.');
+                        alert('El comercio no tiene un número telefónico o de WhatsApp registrado.');
                       }
                     }}
                     className="flex-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-800 hover:text-orange-600 py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
@@ -2466,33 +2476,38 @@ export default function PublicStore() {
                       <Camera size={18} />
                     </button>
                     <AnimatePresence>
-                      {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
+                      {showSocialMenu && ((config?.socialLinks && Object.values(config.socialLinks).some(val => val)) || resolveStoreWhatsApp(config)) && (
                         <motion.div 
                           initial={{ opacity: 0, y: 10, scale: 0.95 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 10, scale: 0.95 }}
                           className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 min-w-[190px] z-[100]"
                         >
-                          {config.socialLinks.instagram && (
+                          {config?.socialLinks?.instagram && (
                             <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
                               <span className="text-sm font-bold">Instagram</span>
                             </a>
                           )}
-                          {config.socialLinks.tiktok && (
+                          {config?.socialLinks?.tiktok && (
                             <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
                               <Music2 size={18} className="text-slate-900" />
                               <span className="text-sm font-bold">TikTok</span>
                             </a>
                           )}
-                          {config.socialLinks.facebook && (
+                          {config?.socialLinks?.facebook && (
                             <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
                               <span className="text-sm font-bold">Facebook</span>
                             </a>
                           )}
-                          {config.socialLinks.whatsapp && (
-                            <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                          {(config?.socialLinks?.whatsapp || resolveStoreWhatsApp(config)) && (
+                            <a 
+                              href={buildWhatsAppUrl(config?.socialLinks?.whatsapp || resolveStoreWhatsApp(config), `Hola ${config?.business_name || ''}, te contacto desde tu vitrina oficial en AxonMarket.`)} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600"
+                            >
                               <MessageCircle size={18} className="text-emerald-500" />
                               <span className="text-sm font-bold">WhatsApp</span>
                             </a>
