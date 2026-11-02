@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
-  Store, Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, 
-  Sparkles, ShoppingBag, AlertCircle, Loader2, KeyRound 
+  Store, Lock, Mail, Eye, EyeOff, ArrowRight, 
+  ShoppingBag, AlertCircle, Loader2, KeyRound 
 } from 'lucide-react';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { loginUser } from '../../../supabaseAuth';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
 export default function MerchantLoginPage() {
   const navigate = useNavigate();
@@ -20,6 +23,7 @@ export default function MerchantLoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  // Iniciar sesión con Correo y Contraseña
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -40,11 +44,23 @@ export default function MerchantLoginPage() {
       const userId = authData.user.id;
 
       // Buscar el workspace asociado a este usuario comerciante
-      const { data: ws, error: wsError } = await supabase
+      let ws = null;
+      const { data: byId } = await supabase
         .from('workspaces')
         .select('id, name, store_slug, status')
         .eq('id', userId)
         .maybeSingle();
+
+      if (byId) {
+        ws = byId;
+      } else {
+        const { data: byEmail } = await supabase
+          .from('workspaces')
+          .select('id, name, store_slug, status')
+          .ilike('config->>adminEmail', cleanEmail)
+          .maybeSingle();
+        if (byEmail) ws = byEmail;
+      }
 
       const activeWsId = ws?.id || userId;
       const storeSlug = ws?.store_slug || 'mi-tienda';
@@ -83,6 +99,52 @@ export default function MerchantLoginPage() {
     }
   };
 
+  // Login con Google OAuth
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const base64Url = credentialResponse.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+      const payload = JSON.parse(jsonPayload);
+
+      if (!payload.email) throw new Error('No se pudo obtener el correo de Google.');
+
+      const cleanEmail = payload.email.trim().toLowerCase();
+      setEmail(cleanEmail);
+
+      // Buscar workspace asociado al correo de Google
+      const { data: wsData } = await supabase
+        .from('workspaces')
+        .select('*')
+        .ilike('config->>adminEmail', cleanEmail)
+        .maybeSingle();
+
+      if (wsData) {
+        localStorage.setItem('activeWorkspace', wsData.id);
+        localStorage.setItem('storeSlug', wsData.store_slug || '');
+        if (wsData.name) {
+          localStorage.setItem('merchant_store_name', wsData.name);
+        }
+        localStorage.setItem('merchant_onboarding_completed', 'true');
+        localStorage.removeItem('ecommerce_current_customer');
+        localStorage.removeItem('ecommerce_user');
+
+        toast.success(`¡Bienvenido de nuevo, ${wsData.name}!`, { icon: '👋' });
+        navigate('/pos', { replace: true });
+        return;
+      }
+
+      throw new Error('No se encontró una tienda asociada a este correo de Google. Por favor regístrate primero.');
+    } catch (err) {
+      console.error('Error Google OAuth:', err);
+      setErrorMessage(err.message || 'Hubo un error autenticando con Google. Intenta con correo y contraseña.');
+      setLoading(false);
+    }
+  };
+
+  // Recuperación de Contraseña
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     if (!resetEmail.trim()) {
@@ -105,203 +167,225 @@ export default function MerchantLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-amber-500/30 font-sans relative overflow-hidden">
-      {/* Luces y brillo ambiental premium de fondo */}
-      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-amber-600/10 blur-[130px] rounded-full pointer-events-none" />
-
-      {/* Barra superior con branding */}
-      <header className="w-full px-6 py-5 flex items-center justify-between border-b border-zinc-900/80 bg-zinc-950/60 backdrop-blur-md z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center text-zinc-950 shadow-[0_0_15px_rgba(245,158,11,0.35)] font-black">
-            <ShoppingBag size={18} className="stroke-[2.5]" />
-          </div>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div className="min-h-screen bg-[#F4F6F9] text-zinc-900 flex items-center justify-center p-4 sm:p-8 font-sans select-none animate-in fade-in duration-200">
+        
+        {/* Tarjeta Blanca Centrada Idéntica a la Foto */}
+        <div className="bg-white rounded-3xl sm:rounded-[2rem] p-7 sm:p-10 shadow-xl shadow-slate-200/70 border border-slate-200/80 max-w-[440px] w-full relative flex flex-col justify-between">
+          
           <div>
-            <span className="font-black text-sm tracking-[0.2em] text-white">AXON<span className="text-amber-500">MARKET</span></span>
-            <span className="block text-[9px] font-bold tracking-widest text-amber-400 uppercase">Portal Comerciante</span>
-          </div>
-        </div>
-
-        <Link
-          to="/"
-          className="text-xs font-semibold text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5"
-        >
-          <span>Ir a la vitrina de compras</span>
-          <ArrowRight size={14} />
-        </Link>
-      </header>
-
-      {/* Contenedor Central de Login */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12 z-10">
-        <div className="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-3xl p-8 md:p-10 shadow-2xl backdrop-blur-xl relative">
-          {/* Badge superior */}
-          <div className="flex justify-center mb-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold tracking-wide">
-              <Store size={14} />
-              <span>Acceso a Negocios y POS</span>
-            </div>
-          </div>
-
-          <h1 className="text-2xl font-black text-center text-white mb-2 tracking-tight">
-            Iniciar Sesión
-          </h1>
-          <p className="text-xs text-zinc-400 text-center mb-8">
-            Accede a tu punto de venta, inventario y catálogo de tu comercio
-          </p>
-
-          {errorMessage && (
-            <div className="mb-6 p-3.5 bg-red-950/60 border border-red-800/80 rounded-2xl flex items-start gap-2.5 text-red-200 text-xs animate-in fade-in duration-200">
-              <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-zinc-300 mb-1.5 uppercase tracking-wider">
-                Correo Electrónico
-              </label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@negocio.com"
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-                />
+            {/* Logo Oficial AxonMarket */}
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-sm shadow-orange-500/30">
+                <ShoppingBag size={18} className="stroke-[2.5]" />
               </div>
+              <span className="font-black text-2xl tracking-tight text-zinc-950 flex items-center">
+                Axon<span className="text-orange-500 ml-0.5">Market</span>
+              </span>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                  Contraseña
+            {/* Titular y Subtítulo de Login Normal */}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight leading-tight">
+              Inicia sesión
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-500 font-medium mt-1.5 mb-6">
+              Gestiona tus productos, pedidos y ventas desde el panel central.
+            </p>
+
+            {/* Alerta de Error */}
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2 animate-in fade-in">
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Formulario de Login */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {/* Campo Email */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 mb-1.5">
+                  Email
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsResetOpen(true)}
-                  className="text-xs text-amber-400 hover:text-amber-300 transition-colors font-medium cursor-pointer"
-                >
-                  ¿La olvidaste?
-                </button>
+                <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
+                  <Mail size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input 
+                    type="email" 
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tucorreo@empresa.com"
+                    className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
+                    autoFocus
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-2xl pl-11 pr-11 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none transition-colors"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-2 py-4 px-6 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(245,158,11,0.35)] hover:shadow-[0_0_35px_rgba(245,158,11,0.5)] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  <span>Entrando a tu Tienda...</span>
-                </>
-              ) : (
-                <>
-                  <span>Entrar a mi Panel</span>
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Enlace para registrar nueva tienda */}
-          <div className="mt-8 pt-6 border-t border-zinc-800 text-center">
-            <p className="text-xs text-zinc-400 mb-2.5">
-              ¿Todavía no tienes tu comercio en AxonMarket?
-            </p>
-            <Link
-              to="/registro-comerciante"
-              className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
-            >
-              <Sparkles size={14} />
-              <span>Registra tu negocio y obtén 7 días gratis</span>
-            </Link>
-          </div>
-        </div>
-      </main>
-
-      {/* Modal de Recuperación de Contraseña */}
-      {isResetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl relative">
-            <h3 className="text-lg font-black text-white mb-2 flex items-center gap-2">
-              <KeyRound size={20} className="text-amber-500" />
-              Recuperar Contraseña
-            </h3>
-            <p className="text-xs text-zinc-400 mb-5">
-              Ingresa el correo registrado con tu comercio para recibir un enlace seguro de restablecimiento.
-            </p>
-
-            {resetSuccess ? (
-              <div className="p-4 bg-emerald-950/60 border border-emerald-800/80 rounded-2xl text-center">
-                <p className="text-xs text-emerald-300 font-semibold mb-3">
-                  ¡Correo enviado! Revisa tu bandeja de entrada o spam.
-                </p>
-                <button
-                  onClick={() => { setIsResetOpen(false); setResetSuccess(false); }}
-                  className="px-4 py-2 bg-emerald-500 text-zinc-950 rounded-xl text-xs font-bold"
-                >
-                  Entendido
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handlePasswordReset} className="space-y-4">
-                <input
-                  type="email"
-                  required
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="ejemplo@negocio.com"
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-amber-500 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
-                />
-                <div className="flex gap-2">
+              {/* Campo Contraseña */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-zinc-700">
+                    Contraseña
+                  </label>
                   <button
                     type="button"
-                    onClick={() => setIsResetOpen(false)}
-                    className="flex-1 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-bold"
+                    onClick={() => setIsResetOpen(true)}
+                    className="text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={resetLoading}
-                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
-                  >
-                    {resetLoading ? <Loader2 size={14} className="animate-spin" /> : 'Enviar Enlace'}
+                    ¿Olvidaste tu contraseña?
                   </button>
                 </div>
-              </form>
-            )}
+                <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
+                  <Lock size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 transition-colors p-1 cursor-pointer"
+                    title={showPassword ? 'Ocultar' : 'Mostrar'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-zinc-400 mt-1.5 font-normal">
+                  Usa al menos 8 caracteres, con letras y números.
+                </p>
+              </div>
+
+              {/* Botón Primario: ENTRAR */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full mt-2 py-3.5 px-6 rounded-xl bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-black text-sm sm:text-base shadow-md hover:shadow-lg hover:shadow-orange-500/20 transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Iniciando sesión...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Entrar</span>
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+
+              {/* Separador "o" */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-200"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-white px-3 text-zinc-400 font-medium">o</span>
+                </div>
+              </div>
+
+              {/* Botón Google OAuth */}
+              <div className="w-full flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setErrorMessage('Error al conectar con Google.')}
+                  theme="outline"
+                  shape="pill"
+                  size="large"
+                  width="100%"
+                  text="signin_with"
+                />
+              </div>
+
+              {/* Texto Legal */}
+              <p className="text-[11px] text-zinc-500 text-center leading-relaxed mt-4">
+                Al continuar con tu correo o con Google, aceptas los{' '}
+                <Link to="/legal/terminos" className="text-orange-600 hover:underline font-semibold">
+                  términos
+                </Link>{' '}
+                y la{' '}
+                <Link to="/legal/privacidad" className="text-orange-600 hover:underline font-semibold">
+                  política de privacidad
+                </Link>.
+              </p>
+            </form>
+          </div>
+
+          {/* Enlace Inferior a Registro */}
+          <div className="text-center mt-6 pt-4 border-t border-zinc-100">
+            <p className="text-xs text-zinc-600">
+              ¿No tienes cuenta aún?{' '}
+              <Link
+                to="/registro-comerciante"
+                className="text-orange-600 hover:text-orange-700 font-bold hover:underline"
+              >
+                Regístrate
+              </Link>
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Footer Mínimo */}
-      <footer className="w-full py-4 text-center text-[11px] text-zinc-600 border-t border-zinc-900/60 z-10">
-        © {new Date().getFullYear()} AxonMarket Venezuela • Portal de Comercios y Facturación POS
-      </footer>
-    </div>
+        {/* Modal de Recuperación de Contraseña */}
+        {isResetOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="w-full max-w-sm bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl relative">
+              <h3 className="text-lg font-black text-zinc-950 mb-2 flex items-center gap-2">
+                <KeyRound size={20} className="text-orange-500" />
+                Recuperar Contraseña
+              </h3>
+              <p className="text-xs text-zinc-500 mb-5 leading-relaxed">
+                Ingresa el correo registrado con tu comercio para recibir un enlace seguro de restablecimiento.
+              </p>
+
+              {resetSuccess ? (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
+                  <p className="text-xs text-emerald-800 font-semibold mb-3">
+                    ¡Correo enviado! Revisa tu bandeja de entrada o spam.
+                  </p>
+                  <button
+                    onClick={() => { setIsResetOpen(false); setResetSuccess(false); }}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handlePasswordReset} className="space-y-4">
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="ejemplo@negocio.com"
+                    className="w-full bg-white border border-zinc-200 focus:border-orange-500 rounded-xl px-4 py-3 text-xs text-zinc-900 focus:outline-none shadow-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsResetOpen(false)}
+                      className="flex-1 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {resetLoading ? <Loader2 size={14} className="animate-spin" /> : 'Enviar Enlace'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </GoogleOAuthProvider>
   );
 }
