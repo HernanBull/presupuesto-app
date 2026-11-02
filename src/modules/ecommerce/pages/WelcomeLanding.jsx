@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShoppingBag, Search, MapPin, Bike, Store, Smartphone, ArrowRight, 
-  ShieldCheck, Clock, Truck, ChevronRight, Star, X, ExternalLink, 
-  Compass, LogIn, User, Sparkles, CheckCircle2, Heart, Flame, Gift, Zap
+  ShoppingBag, Store, Smartphone, ArrowRight, 
+  ShieldCheck, Clock, Truck, ExternalLink, CheckCircle2
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
 import { 
   DeliveryRiderIllustration, 
@@ -18,10 +16,6 @@ export default function WelcomeLanding() {
   const navigate = useNavigate();
   const [showMerchantTrialModal, setShowMerchantTrialModal] = useState(false);
   const [merchantTrialInitialMode, setMerchantTrialInitialMode] = useState('register');
-  const [addressInput, setAddressInput] = useState('');
-  const [isLocating, setIsLocating] = useState(false);
-  const [showTopBanner, setShowTopBanner] = useState(true);
-  const [currentCustomer, setCurrentCustomer] = useState(null);
 
   // Redirección inmediata si es comerciante o app instalada
   useEffect(() => {
@@ -65,210 +59,61 @@ export default function WelcomeLanding() {
     fetchBcvRate();
   }, []);
 
-  // Comprobar si el cliente ya está autenticado
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const stored = localStorage.getItem('axon_customer_session');
-        if (stored) {
-          setCurrentCustomer(JSON.parse(stored));
-          return;
-        }
-        const { data } = await supabase.auth.getSession();
-        if (data?.session?.user) {
-          setCurrentCustomer({
-            email: data.session.user.email,
-            name: data.session.user.user_metadata?.name || data.session.user.email?.split('@')[0]
-          });
-        }
-      } catch (e) {
-        console.error('Error checking user session in WelcomeLanding:', e);
-      }
-    };
-    checkUser();
-  }, []);
-
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault();
-    navigate('/explorar', { 
-      state: { searchQuery: addressInput.trim() } 
-    });
-  };
-
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      navigate('/explorar');
-      return;
-    }
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
-        // Lleva al mapa o al directorio con geolocalización
-        navigate('/mapa', {
-          state: { coords: { lat: pos.coords.latitude, lng: pos.coords.longitude } }
-        });
-      },
-      (err) => {
-        setIsLocating(false);
-        navigate('/explorar');
-      },
-      { timeout: 7000 }
-    );
-  };
-
-
-  const popularCategories = [
-    { name: 'Comida Rápida', icon: Flame, tag: 'Comida' },
-    { name: 'Bodegones', icon: ShoppingBag, tag: 'Víveres' },
-    { name: 'Farmacias', icon: ShieldCheck, tag: 'Farmacia' },
-    { name: 'Promos', icon: Gift, tag: 'Ofertas' },
-    { name: 'Moda', icon: Sparkles, tag: 'Ropa' },
-    { name: 'Tecnología', icon: Smartphone, tag: 'Tecnología' },
-  ];
-
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white text-zinc-900 font-sans selection:bg-amber-500 selection:text-zinc-950 flex flex-col">
       
-      {/* 1. HERO SECTION (Estilo DoorDash limpio y organizado sobre imagen gastronómica) */}
+      {/* 1. HERO SECTION (Limpio y enfocado: máxima visibilidad a la foto de fondo) */}
       <section 
-        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[660px] sm:min-h-[720px] md:min-h-[760px] px-4 sm:px-6 pt-6 pb-28 sm:pb-36 md:pb-44"
+        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] md:min-h-[680px] px-4 sm:px-6 pt-6 pb-24 sm:pb-32 md:pb-40"
         style={{
-          background: 'linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.78)), url(/landing-hero.jpg) center center / cover no-repeat',
+          background: 'linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.72)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
       >
-        {/* Barra Superior Minimalista */}
-        <div className="max-w-6xl mx-auto w-full flex items-center justify-end relative z-20">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <button 
-              onClick={() => navigate('/probar-gratis')}
-              className="hidden sm:inline-flex items-center gap-1.5 bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
-            >
-              <Store size={14} className="text-amber-300" />
-              <span>Prueba gratis 7 días</span>
-            </button>
-            {currentCustomer ? (
-              <button 
-                onClick={() => navigate('/explorar')}
-                className="btn-login bg-white/95 hover:bg-white text-zinc-950 px-5 py-2 rounded-full font-bold text-xs sm:text-sm shadow-lg backdrop-blur-sm transition-all active:scale-95 flex items-center gap-2"
-              >
-                <span className="text-dark">{currentCustomer.name}</span>
-                <span className="text-[10px] bg-orange-600 text-white px-2 py-0.5 rounded-full font-black">Feed</span>
-              </button>
-            ) : (
-              <button 
-                onClick={() => navigate('/explorar', { state: { openAuthModal: true } })}
-                className="btn-login bg-white/95 hover:bg-white text-zinc-950 px-5 py-2 sm:px-6 sm:py-2 rounded-full font-bold text-xs sm:text-sm shadow-lg backdrop-blur-sm transition-all active:scale-95"
-              >
-                <span className="text-dark">Iniciar sesión</span>
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Espacio superior limpio (sin botones para dar total foco a la marca) */}
+        <div className="max-w-6xl mx-auto w-full h-4 sm:h-6 relative z-20" />
 
-        {/* Contenido Central (Limpio y Organizado: Logo, Titular Comercial, 1 Botón, 1 Buscador, 1 Enlace, Tasa BCV) */}
-        <div className="max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-6 relative z-20">
+        {/* Contenido Central: Logo, Titular Comercial, Único Botón "Abrir aplicación", Tasa BCV */}
+        <div className="max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center my-auto py-4 relative z-20">
           
-          {/* Logo Central de Marca Elegante y Translúcido (Combina con el Fondo) */}
-          <div className="inline-flex items-center gap-3 mb-5 px-5 py-2.5 rounded-full bg-black/30 backdrop-blur-md shadow-2xl border border-white/20 select-none">
-            {/* Caja / Icono oficial AxonMarket */}
+          {/* Logo Central de Marca Elegante y Translúcido */}
+          <div className="inline-flex items-center gap-3 mb-5 px-5 py-2.5 rounded-full bg-black/35 backdrop-blur-md shadow-2xl border border-white/20 select-none">
             <img 
               src="/axonmarket-logo-icon.png" 
               alt="AxonMarket" 
               className="w-8 h-8 rounded-xl shadow-sm object-contain" 
             />
-            {/* Tipografía de Marca: AXON en blanco y MARKET en dorado/naranja */}
             <span className="text-xl sm:text-2xl font-black tracking-wider flex items-center drop-shadow-md">
               <span className="axon-logo-white">AXON</span>
               <span className="axon-logo-gold ml-0.5">MARKET</span>
             </span>
           </div>
 
-          {/* Gran Titular Comercial en Blanco Puro de Alto Contraste */}
+          {/* Gran Titular Comercial en Blanco Puro */}
           <h1 
             className="hero-white-title text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight leading-[1.08] mb-3"
           >
             TODO LO QUE TE GUSTA, DIRECTO A TU PUERTA
           </h1>
           
-          {/* Subtítulo Comercial Atractivo */}
-          <p className="hero-white-title text-sm sm:text-base font-semibold mb-6 max-w-lg">
+          {/* Subtítulo Comercial */}
+          <p className="hero-white-title text-sm sm:text-base font-semibold mb-8 max-w-lg">
             Tus tiendas, restaurantes y bodegones favoritos en un solo lugar
           </p>
 
-          {/* Grupo de Botones de Acción (Abrir app + Probá gratis 7 días para comerciantes) */}
-          <div className="w-full max-w-md flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
-            <button 
-              onClick={() => navigate('/probar-gratis')}
-              className="w-full sm:w-auto flex-1 py-3.5 px-6 font-black text-sm sm:text-base rounded-full shadow-2xl active:scale-95 transition-all text-center bg-white hover:bg-zinc-100 text-zinc-950 border border-white/60 flex items-center justify-center gap-2 group cursor-pointer"
-            >
-              <span>PRUEBA GRATIS 7 DÍAS</span>
-              <ArrowRight size={16} className="text-zinc-900 group-hover:translate-x-1 transition-transform" />
-            </button>
-
+          {/* Único Botón Principal: Abrir aplicación */}
+          <div className="w-full max-w-sm flex items-center justify-center mb-6">
             <button 
               onClick={() => navigate('/explorar')}
-              className="w-full sm:w-auto flex-1 py-3.5 px-6 font-black text-sm sm:text-base rounded-full shadow-2xl active:scale-95 transition-all text-center bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/20 cursor-pointer"
+              className="w-full py-4 px-8 font-black text-base sm:text-lg rounded-full shadow-2xl active:scale-95 transition-all text-center bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/30 cursor-pointer flex items-center justify-center gap-2 group"
               style={{ color: '#ffffff' }}
             >
-              Abrir aplicación
+              <span>Abrir aplicación</span>
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
 
-          {/* Chips de Beneficios Comerciales estilo Commercy */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-6 max-w-xl mx-auto">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
-              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
-              <span>Plan gratis para empezar</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
-              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
-              <span>Sin tarjeta</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
-              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
-              <span>0% de comisión por venta</span>
-            </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-zinc-900 text-[11px] sm:text-xs font-bold shadow-md">
-              <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
-              <span>Cancelás cuando quieras</span>
-            </div>
-          </div>
-
-          {/* Única Cápsula de Búsqueda blanca y limpia con lupa integrada */}
-          <form 
-            onSubmit={handleSearchSubmit}
-            className="w-full max-w-md relative mb-4 shadow-2xl rounded-full"
-          >
-            <input 
-              type="text" 
-              value={addressInput}
-              onChange={(e) => setAddressInput(e.target.value)}
-              placeholder="Introduzca la dirección de entrega"
-              className="w-full bg-white/95 hover:bg-white focus:bg-white text-zinc-950 placeholder-zinc-500 border border-white/50 focus:border-amber-500 rounded-full py-3.5 pl-6 pr-12 text-sm font-medium transition-all outline-none"
-              style={{ color: '#18181b' }}
-            />
-            <button 
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-all shadow-md"
-            >
-              <Search size={16} />
-            </button>
-          </form>
-
-          {/* Enlace Único: Usar ubicación actual */}
-          <button 
-            type="button"
-            onClick={handleUseCurrentLocation}
-            style={{ color: '#ffffff' }}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold !text-white underline underline-offset-4 hover:text-amber-300 drop-shadow transition-all"
-          >
-            <span>{isLocating ? 'Detectando ubicación...' : 'Usar ubicación actual'}</span>
-            <span className="text-sm">↗</span>
-          </button>
-
-          {/* Tasa Oficial BCV en el Hero (Ubicación cómoda, ergonómica y confiable) */}
-          <div className="mt-5 inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
+          {/* Tasa Oficial BCV en el Hero */}
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -282,26 +127,23 @@ export default function WelcomeLanding() {
 
         </div>
 
-        {/* Separador Vectorial Ondulado Fluido de Tres Capas hacia el Fondo Blanco */}
+        {/* Separador Vectorial Ondulado hacia el Fondo Blanco */}
         <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none z-10 pointer-events-none">
           <svg 
             viewBox="0 0 1440 280" 
             preserveAspectRatio="none" 
             className="relative block w-full h-20 sm:h-28 md:h-36 lg:h-44"
           >
-            {/* Capa posterior suave para dar profundidad de onda */}
             <path 
               d="M0,160 C320,240 420,60 740,140 C1060,220 1200,80 1440,130 L1440,280 L0,280 Z" 
               fill="#ffffff" 
               fillOpacity="0.3" 
             />
-            {/* Capa intermedia ondulada que genera movimiento orgánico */}
             <path 
               d="M0,190 C260,110 520,220 820,130 C1120,40 1300,180 1440,150 L1440,280 L0,280 Z" 
               fill="#ffffff" 
               fillOpacity="0.5" 
             />
-            {/* Capa frontal continua en blanco puro que cubre la foto y transiciona perfectamente */}
             <path 
               d="M0,130 C280,210 460,70 760,150 C1060,230 1260,60 1440,120 L1440,280 L0,280 Z" 
               fill="#ffffff" 
@@ -311,7 +153,7 @@ export default function WelcomeLanding() {
 
       </section>
 
-      {/* 4. TRES PILARES DE SERVICIOS (Ingeniería Inversa 1:1 de DoorDash) */}
+      {/* 2. TRES PILARES DE SERVICIOS (Ecosistema Integral) */}
       <section className="py-16 sm:py-24 bg-white border-b border-zinc-200/80">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
@@ -326,7 +168,7 @@ export default function WelcomeLanding() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-6 lg:gap-8">
             
-            {/* CARD 1: Conviértete en Repartidor (Become a Dasher) */}
+            {/* CARD 1: Conviértete en Repartidor */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
                 <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
@@ -343,7 +185,7 @@ export default function WelcomeLanding() {
               <div>
                 <button 
                   onClick={() => navigate('/delivery')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all mb-4"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all mb-4 cursor-pointer"
                 >
                   <span>Empieza a ganar</span>
                   <ArrowRight size={16} />
@@ -355,7 +197,7 @@ export default function WelcomeLanding() {
               </div>
             </div>
 
-            {/* CARD 2: Abre tu Tienda en AxonMarket (Become a Merchant) */}
+            {/* CARD 2: Conviértete en comerciante (Con botón "Prueba gratis 7 días" y badges) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
                 <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
@@ -364,23 +206,39 @@ export default function WelcomeLanding() {
                 <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight mb-3">
                   Conviértete en comerciante
                 </h3>
-                <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-6">
+                <p className="text-sm text-zinc-600 leading-relaxed font-normal mb-4">
                   Atrae nuevos clientes y multiplica tus ventas en línea. Publica tu catálogo digital y haz crecer tu negocio en tu comunidad.
                 </p>
+
+                {/* Chips de Beneficios Comerciales Reubicados */}
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-zinc-800 text-[11px] font-bold shadow-2xs border border-slate-200/60">
+                    <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+                    <span>Plan gratis para empezar</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-zinc-800 text-[11px] font-bold shadow-2xs border border-slate-200/60">
+                    <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+                    <span>Sin tarjeta</span>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-zinc-800 text-[11px] font-bold shadow-2xs border border-slate-200/60">
+                    <CheckCircle2 size={13} className="text-blue-600 stroke-[2.5]" />
+                    <span>0% de comisión por venta</span>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <button 
-                  onClick={() => navigate('/comerciantes')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
+                  onClick={() => navigate('/probar-gratis')}
+                  className="w-full py-3.5 px-6 font-black text-sm rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer group"
                 >
-                  <span>Conoce más y empieza</span>
-                  <ArrowRight size={16} />
+                  <span>Prueba gratis 7 días</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
             </div>
 
-            {/* CARD 3: Vive la mejor experiencia AxonMarket (Get the best app experience) */}
+            {/* CARD 3: Obtén la mejor experiencia de AxonMarket */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-zinc-200/80 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
               <div>
                 <div className="mb-6 flex items-center justify-start group-hover:scale-105 transition-transform origin-left">
@@ -397,7 +255,7 @@ export default function WelcomeLanding() {
               <div>
                 <button 
                   onClick={() => navigate('/explorar')}
-                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all"
+                  className="inline-flex items-center gap-2 text-sm font-black text-orange-600 hover:text-orange-700 group-hover:translate-x-1.5 transition-all cursor-pointer"
                 >
                   <span>Abrir la App</span>
                   <ArrowRight size={16} />
@@ -410,19 +268,16 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* SECCIÓN LOGÍSTICA: EN MINUTOS (TARJETA CENTRADA - TEMA BLANCO Y NARANJA) */}
+      {/* 3. SECCIÓN LOGÍSTICA: EN MINUTOS (TARJETA CENTRADA - TEMA BLANCO Y NARANJA) */}
       <section className="py-12 sm:py-16 bg-gradient-to-b from-white via-orange-50/25 to-white relative overflow-hidden border-b border-orange-100/70">
-        {/* Efectos sutiles de fondo con iluminación de marca */}
         <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-orange-400/10 blur-3xl pointer-events-none" />
 
         <div className="max-w-md mx-auto px-4 sm:px-6 relative z-10 flex justify-center">
-          {/* Tarjeta Comercial Visual centrada en tonalidades blanco y naranja */}
           <div className="w-full bg-white p-6 sm:p-8 rounded-3xl border border-orange-200/90 shadow-xl shadow-orange-500/5 relative hover:border-orange-300 transition-all">
             
-            {/* Cabecera de la Tarjeta con Logo Insignia Oficial Real de En Minutos */}
+            {/* Cabecera con Logo Insignia Oficial En Minutos */}
             <div className="flex items-center gap-3.5 pb-6 border-b border-orange-100/80">
-              {/* Logotipo Oficial Real */}
               <img 
                 src="/enminutos-logo.png" 
                 alt="Logo Oficial En Minutos" 
@@ -486,175 +341,7 @@ export default function WelcomeLanding() {
         </div>
       </section>
 
-      {/* 5. SECCIONES DESTACADAS EDITORIALES (Estilo DoorDash 1:1) */}
-      <section className="py-16 sm:py-24 bg-[#FCF9F6] border-b border-zinc-200/80">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20 sm:space-y-28">
-
-          {/* BLOQUE 1: Gastronomía Local */}
-          <div className="flex flex-col md:flex-row items-center gap-10 lg:gap-16">
-            {/* Banner Gráfico Gastronómico Provisional */}
-            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-lg bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/25 border border-orange-200/60 flex items-center justify-center group">
-              <div className="absolute inset-0 bg-[radial-gradient(#f97316_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
-              <div className="relative z-10 flex flex-col items-center text-center p-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
-                  <Flame size={48} className="stroke-[2.2]" />
-                </div>
-                <span className="text-xs font-black uppercase tracking-widest text-orange-700 bg-orange-100/90 px-3 py-1 rounded-full mb-2">
-                  Gastronomía Local
-                </span>
-                <p className="text-xs sm:text-sm font-semibold text-zinc-600 max-w-xs">
-                  Pizzas, sushi, hamburguesas, comida china y sabores caseros
-                </p>
-              </div>
-            </div>
-
-            {/* Contenido Editorial */}
-            <div className="w-full md:w-1/2 text-left">
-              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
-                Todo lo que se te antoja, entregado a domicilio.
-              </h2>
-              <h3 className="text-base sm:text-xl font-bold text-zinc-800 mb-3">
-                Tus restaurantes locales favoritos
-              </h3>
-              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
-                Pide a domicilio una porción de pizza crujiente o una hamburguesa gourmet, o disfruta de los platos de comida casera y restaurantes que tanto has querido probar en tu ciudad.
-              </p>
-              <button 
-                onClick={() => navigate('/explorar', { state: { category: 'Comida' } })}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
-                style={{ color: '#ffffff' }}
-              >
-                <span>Buscar restaurantes</span>
-              </button>
-            </div>
-          </div>
-
-          {/* BLOQUE 2: AxonPass (Invertido en Desktop) */}
-          <div className="flex flex-col md:flex-row-reverse items-center gap-10 lg:gap-16">
-            {/* Banner Gráfico AxonPass Provisional */}
-            <div className="w-full md:w-1/2 min-h-[250px] sm:min-h-[280px] md:h-96 rounded-3xl overflow-hidden relative shadow-xl bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950 border border-amber-500/30 flex items-center justify-center p-6 group">
-              <div className="absolute inset-0 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:20px_20px] opacity-15" />
-              {/* Tarjeta AxonPass Compacta y Proporcionada */}
-              <div className="relative z-10 w-full max-w-[300px] sm:max-w-xs rounded-2xl bg-gradient-to-br from-zinc-900/95 to-zinc-950/95 p-5 sm:p-6 border border-amber-400/40 shadow-2xl backdrop-blur-md group-hover:scale-105 transition-transform duration-300">
-                <div className="flex items-center gap-2 mb-6">
-                  <img src="/axonmarket-logo-icon.png" alt="" className="w-7 h-7 rounded-lg shadow-sm" />
-                  <span className="font-black text-lg tracking-wider text-white">AXON<span className="text-amber-400">PASS</span></span>
-                </div>
-                <div className="space-y-1 mb-6">
-                  <div className="text-[11px] uppercase font-bold text-zinc-400 tracking-wider">Beneficios Exclusivos</div>
-                  <div className="text-lg sm:text-xl font-black text-amber-300 tracking-tight leading-snug">Entregas Preferenciales & Ahorro</div>
-                </div>
-                <div className="text-xs text-zinc-400 pt-3 border-t border-white/10 font-medium">
-                  <span>Prueba gratuita 30 días</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Contenido Editorial */}
-            <div className="w-full md:w-1/2 text-left">
-              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
-                AxonPass es entrega a domicilio por menos dinero.
-              </h2>
-              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
-                Los miembros obtienen entregas con tarifa preferencial en pedidos de AxonPass, descuentos especiales en pedidos para recoger en tienda y promociones especiales. Además, pruébalo gratis durante 30 días.
-              </p>
-              <button 
-                onClick={() => navigate('/explorar', { state: { openAxonPass: true } })}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
-                style={{ color: '#ffffff' }}
-              >
-                <span>Obtener AxonPass</span>
-              </button>
-            </div>
-          </div>
-
-          {/* BLOQUE 3: Tiendas de Conveniencia & Bodegones */}
-          <div className="flex flex-col md:flex-row items-center gap-10 lg:gap-16">
-            {/* Banner Gráfico Tiendas / Bodegones Provisional */}
-            <div className="w-full md:w-1/2 h-64 sm:h-80 md:h-96 rounded-3xl overflow-hidden relative shadow-lg bg-gradient-to-br from-emerald-500/15 via-teal-500/20 to-amber-500/20 border border-teal-200/60 flex items-center justify-center group">
-              <div className="absolute inset-0 bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
-              <div className="relative z-10 flex flex-col items-center text-center p-6">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white shadow-xl flex items-center justify-center text-teal-600 mb-4 group-hover:scale-110 transition-transform">
-                  <Store size={48} className="stroke-[2.2]" />
-                </div>
-                <span className="text-xs font-black uppercase tracking-widest text-teal-800 bg-teal-100/90 px-3 py-1 rounded-full mb-2">
-                  Bodegones & Farmacias
-                </span>
-                <p className="text-xs sm:text-sm font-semibold text-zinc-600 max-w-xs">
-                  Snacks, víveres, artículos del hogar y farmacia a domicilio
-                </p>
-              </div>
-            </div>
-
-            {/* Contenido Editorial */}
-            <div className="w-full md:w-1/2 text-left">
-              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-zinc-950 tracking-tight leading-[1.1] mb-4">
-                Tiendas de conveniencia a la puerta de su casa
-              </h2>
-              <p className="text-sm sm:text-base text-zinc-600 leading-relaxed font-normal mb-8 max-w-lg">
-                Abastece tu despensa con snacks, artículos básicos para el hogar, dulces, bebidas o medicamentos esenciales; todo entregado de forma rápida y directa en tu domicilio.
-              </p>
-              <button 
-                onClick={() => navigate('/explorar', { state: { category: 'Víveres' } })}
-                className="bg-orange-500 hover:bg-orange-600 text-white font-black text-sm sm:text-base px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 inline-flex items-center gap-2"
-                style={{ color: '#ffffff' }}
-              >
-                <span>Comprar ahora</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 6. EXPLORACIÓN RÁPIDA: CATEGORÍAS POPULARES */}
-      <section className="py-14 sm:py-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-            <div>
-              <span className="text-xs font-black tracking-widest uppercase text-amber-600 mb-1 block">
-                Descubre por departamento
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">
-                Categorías Populares
-              </h2>
-            </div>
-            <button 
-              onClick={() => navigate('/explorar')}
-              className="text-xs sm:text-sm font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
-            >
-              <span>Ver catálogo completo</span>
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
-            {popularCategories.map((cat, idx) => {
-              const IconComp = cat.icon;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => navigate('/explorar', { state: { category: cat.tag } })}
-                  className="bg-zinc-50 hover:bg-amber-500/10 border border-zinc-200/80 hover:border-amber-500/40 rounded-2xl p-4 flex flex-col items-center text-center gap-2 transition-all active:scale-95 group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-white shadow-xs border border-zinc-100 flex items-center justify-center text-zinc-800 group-hover:text-amber-600 transition-colors">
-                    <IconComp size={22} />
-                  </div>
-                  <span className="text-xs font-bold text-zinc-800 group-hover:text-amber-700 transition-colors">
-                    {cat.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-        </div>
-      </section>
-
-
-
-      {/* 7. FOOTER PROFESIONAL AXONMARKET */}
+      {/* 4. FOOTER PROFESIONAL AXONMARKET */}
       <footer className="bg-white text-zinc-600 text-xs pt-16 pb-12 mt-auto border-t border-zinc-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           
@@ -692,11 +379,6 @@ export default function WelcomeLanding() {
                 <li>
                   <button onClick={() => navigate('/mapa')} className="hover:text-amber-600 transition-colors">
                     Mapa de Tiendas
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigate('/explorar', { state: { openAuthModal: true } })} className="hover:text-amber-600 transition-colors">
-                    Iniciar Sesión / Registro
                   </button>
                 </li>
                 <li>
@@ -784,6 +466,15 @@ export default function WelcomeLanding() {
 
         </div>
       </footer>
+
+      {/* Modal de Registro / Prueba Gratis si se activa */}
+      {showMerchantTrialModal && (
+        <MerchantTrialAuthModal
+          isOpen={showMerchantTrialModal}
+          initialMode={merchantTrialInitialMode}
+          onClose={() => setShowMerchantTrialModal(false)}
+        />
+      )}
     </div>
   );
 }
