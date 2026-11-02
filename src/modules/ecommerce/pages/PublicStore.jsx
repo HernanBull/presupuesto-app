@@ -433,6 +433,75 @@ export default function PublicStore() {
     }
   };
 
+  const [profileSubTab, setProfileSubTab] = useState('info'); // 'info' | 'media'
+  const profileTouchStartX = useRef(0);
+  const handleProfileTouchStart = (e) => {
+    if (e.touches && e.touches[0]) {
+      profileTouchStartX.current = e.touches[0].clientX;
+    }
+  };
+  const handleProfileTouchEnd = (e) => {
+    if (e.changedTouches && e.changedTouches[0]) {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = profileTouchStartX.current - touchEndX;
+      if (diff > 50) {
+        setProfileSubTab('media');
+      } else if (diff < -50) {
+        setProfileSubTab('info');
+      }
+    }
+  };
+
+  const formatViews = (val) => {
+    const num = Number(val) || 0;
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1).replace('.0', '')} mill.`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1).replace('.0', '')} mil`;
+    return num.toString();
+  };
+
+  const merchantVideos = useMemo(() => {
+    const list = [];
+    const seenUrls = new Set();
+
+    (merchantStatuses || []).forEach((st, idx) => {
+      const isVid = st.media_type === 'video' || (typeof st.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(st.mediaUrl));
+      const url = st.mediaUrl || st.video_url;
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        const seed = Math.abs((st.id || `st-${idx}`).toString().split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+        const pseudoViews = Math.floor((seed * 137) % 850 + 15) * 100;
+        list.push({
+          id: st.id || `st-${idx}`,
+          mediaUrl: url,
+          isVideo: isVid,
+          caption: st.caption || st.name,
+          views: st.views || pseudoViews,
+          statusIndex: idx
+        });
+      }
+    });
+
+    (storeNews || []).forEach((n, idx) => {
+      const isVid = n.media_type === 'video' || (typeof n.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.image_url));
+      const url = n.image_url || n.video_url;
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url);
+        const seed = Math.abs((n.id || `news-${idx}`).toString().split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+        const pseudoViews = Math.floor((seed * 243) % 920 + 22) * 100;
+        list.push({
+          id: n.id || `news-${idx}`,
+          mediaUrl: url,
+          isVideo: isVid,
+          caption: n.title ? `${n.title}: ${n.content}` : n.content,
+          views: n.views || pseudoViews,
+          statusIndex: 0
+        });
+      }
+    });
+
+    return list;
+  }, [merchantStatuses, storeNews]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
 
@@ -2300,98 +2369,108 @@ export default function PublicStore() {
               </div>
             </div>
 
-            {/* Hero Cover Header - La foto de portada abarca hasta el renglón de Estadísticas, justo arriba del botón Seguir */}
-            <div className="relative w-full z-0 overflow-hidden pb-5 border-b border-slate-200/60 shadow-xs">
-              {/* Imagen de Portada de Fondo */}
+            {/* Hero Cover Header - Portada 100% Limpia y Visible (Cero elementos en el centro) */}
+            <div className="relative w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs">
               {heroUrl ? (
-                <div className="absolute inset-0 z-0">
-                  <img 
-                    src={resolveImageUrl(heroUrl)} 
-                    alt="Cover" 
-                    className="w-full h-full object-cover object-center block" 
-                  />
-                  {/* Overlay sutil para garantizar contraste y máxima legibilidad sin opacar la foto del fondo */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/15 to-black/55" />
-                </div>
+                <img 
+                  src={resolveImageUrl(heroUrl)} 
+                  alt="Cover" 
+                  className="w-full h-full object-cover object-center block" 
+                />
               ) : (
-                <div className="absolute inset-0 z-0 bg-gradient-to-b from-orange-100/70 via-amber-50/40 to-slate-50">
-                  <div className="absolute inset-0 bg-[radial-gradient(#ea580c_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.08]" />
+                <div className="w-full h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
+                  <Store size={56} className="text-white/40" />
                 </div>
               )}
+            </div>
 
-              {/* Contenido sobre la Portada (Avatar, Nombre, Handle, Calificar/EM y Estadísticas) */}
-              <div className="relative z-10 pt-6 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col items-center">
+            {/* Perfil del Comerciante (Estilo Instagram - Debajo de la Portada) */}
+            <div className="bg-white border-b border-slate-200/80 px-4 md:px-8 pt-3 pb-4 shadow-xs">
+              <div className="max-w-[700px] mx-auto w-full">
                 
-                {/* Avatar centrado con estilo WhatsApp Stories (Aro naranja activo / Gris visto) */}
-                <div className="flex items-center justify-center w-full mb-3">
-                  <div className="relative group">
+                {/* Fila Superior: Avatar a la izquierda, Estadísticas a la derecha */}
+                <div className="flex items-center gap-4 sm:gap-6">
+                  {/* Avatar con aro interactivo tipo WhatsApp / Stories */}
+                  <div className="relative shrink-0 -mt-10 sm:-mt-12">
                     {hasActiveStatuses ? (
-                      /* Estado activo: Aro circular tipo WhatsApp (Naranja sin ver, Gris ya visto) */
                       <div 
                         onClick={() => markStatusAsViewed(0)}
-                        className={`relative rounded-full cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 p-[3.5px] ${
+                        className={`relative rounded-full cursor-pointer hover:scale-105 active:scale-95 transition-all p-[3.5px] ${
                           hasViewedStatus
                             ? 'bg-zinc-400'
-                            : 'bg-orange-500 shadow-md shadow-orange-500/25 ring-2 ring-orange-400/20'
+                            : 'bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 shadow-md shadow-orange-500/20 ring-2 ring-orange-400/20'
                         }`}
                         title={hasViewedStatus ? 'Estado ya visto' : 'Toca para ver el estado del comercio'}
                       >
-                        <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center shrink-0">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center">
                           {logoUrl ? (
                             <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
-                              <Store size={44} />
+                              <Store size={36} />
                             </div>
                           )}
                         </div>
                       </div>
                     ) : (
-                      /* Avatar estándar */
-                      <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white ring-4 ring-white/30 flex items-center justify-center shrink-0">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center">
                         {logoUrl ? (
                           <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
-                            <Store size={44} />
+                            <Store size={36} />
                           </div>
                         )}
                       </div>
                     )}
 
                     {config?.is_verified && (
-                      <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-1 z-20 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
-                        <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
+                      <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
+                        <CheckCircle2 size={14} className="text-white" strokeWidth={3} />
                       </div>
                     )}
                   </div>
+
+                  {/* Estadísticas Horizontales a la derecha (Estilo Instagram) */}
+                  <div className="flex-1 flex justify-around items-center text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
+                        {products.length + (storeNews?.length || 0)}
+                      </span>
+                      <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Publicaciones</span>
+                    </div>
+                    <div 
+                      className="flex flex-col items-center cursor-pointer hover:opacity-75 transition-opacity px-2"
+                      onClick={() => setShowFollowersModal(true)}
+                    >
+                      <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
+                        {followersCount}
+                      </span>
+                      <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Seguidores</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
+                        {likesCount}
+                      </span>
+                      <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Me gusta</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Title & Slug (Blanco brillante y legible en fondos de portada) */}
-                <div className="flex flex-col items-center text-center">
-                  <div className="flex items-center gap-2 justify-center">
-                    <h1 
-                      className="text-2xl md:text-3xl font-black tracking-tight"
-                      style={{ 
-                        color: heroUrl ? '#ffffff' : '#0f172a',
-                        textShadow: heroUrl ? '0 2px 8px rgba(0,0,0,0.9)' : 'none'
-                      }}
-                    >
+                {/* Datos de la Tienda: Nombre, Handle, Calificar, EM, Bio y Dirección */}
+                <div className="mt-2.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
                       {config?.business_name || 'Mi Tienda'}
                     </h1>
                   </div>
-                  <p 
-                    className="font-extrabold text-sm mt-0.5"
-                    style={{ 
-                      color: heroUrl ? '#f8fafc' : '#ea580c',
-                      textShadow: heroUrl ? '0 1px 4px rgba(0,0,0,0.9)' : 'none'
-                    }}
-                  >
+                  <p className="font-extrabold text-xs sm:text-sm text-orange-600">
                     @{slug}
                   </p>
-                  
-                  {/* Rating & Delivery (EM redondeado compacto con su rayito) */}
-                  <div className="flex items-center justify-center gap-2 mt-2.5 mb-3 text-sm font-medium flex-wrap">
+
+                  {/* Rating y Badge EM */}
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <button 
                       onClick={() => {
                         if (!currentCustomer) {
@@ -2400,173 +2479,165 @@ export default function PublicStore() {
                         }
                         setShowReviewModal(true);
                       }} 
-                      className={`inline-flex items-center gap-1.5 ${heroUrl ? 'bg-white/95 backdrop-blur-md text-slate-900 border-white/60 shadow-md hover:bg-white hover:scale-105' : 'bg-white border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-xs hover:bg-orange-50/50'} border px-3.5 py-1.5 rounded-full transition-all cursor-pointer shrink-0`}
+                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-2xs hover:bg-orange-50/50 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer"
                     >
-                      <Star size={14} className="fill-amber-400 text-amber-500" />
-                      <span className="font-bold text-xs">Calificar {storeRatingAvg > 0 && `(${storeRatingAvg})`}</span>
+                      <Star size={13} className="fill-amber-400 text-amber-500" />
+                      <span>Calificar {storeRatingAvg > 0 ? `(${storeRatingAvg})` : ''}</span>
                     </button>
+
                     {config?.has_enminutos_alliance && (
-                      <div 
-                        className="inline-flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md border border-white/30 shrink-0"
-                        style={{ color: '#ffffff' }}
-                      >
+                      <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white px-3 py-1 rounded-full shadow-2xs">
                         <div className="flex items-center font-black tracking-tighter text-xs">
-                          <span className="text-red-500 font-black">E</span>
-                          <span className="text-red-500 font-black">M</span>
-                          <Zap size={13} className="fill-yellow-400 text-yellow-400 ml-0.5" />
+                          <span className="text-red-500">E</span>
+                          <span className="text-red-500">M</span>
+                          <Zap size={11} className="fill-yellow-400 text-yellow-400 ml-0.5" />
                         </div>
-                        <span 
-                          className="text-xs font-black tracking-wide whitespace-nowrap"
-                          style={{ color: '#ffffff' }}
-                        >
-                          en minutos
-                        </span>
+                        <span className="text-[10px] font-black tracking-wide">en minutos</span>
                       </div>
                     )}
                   </div>
+
+                  {/* Descripción / Bio */}
+                  {(config?.description || config?.expediente?.description) && (
+                    <p className="text-xs sm:text-sm text-slate-700 mt-2 leading-relaxed whitespace-pre-line">
+                      {config?.description || config?.expediente?.description}
+                    </p>
+                  )}
+
+                  {/* Dirección */}
+                  {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5 font-medium">
+                      <MapPin size={13} className="text-red-500 shrink-0" />
+                      <span className="truncate">{config?.address || config?.location?.address || config?.expediente?.address}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Estadísticas dentro de la portada, justo arriba del botón Seguir */}
-                <div className="grid grid-cols-3 gap-3 max-w-[340px] mx-auto w-full text-center bg-white/95 backdrop-blur-md border border-white/50 rounded-2xl py-2.5 px-3 shadow-lg mt-1">
-                  <div className="flex flex-col items-center">
-                    <span className="font-black text-lg text-slate-900">{products.length + (storeNews?.length || 0)}</span>
-                    <span className="text-slate-500 text-[11px] font-semibold">Publicaciones</span>
-                  </div>
-                  <div className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity border-x border-slate-200/80 px-2" onClick={() => setShowFollowersModal(true)}>
-                    <span className="font-black text-lg text-slate-900">{followersCount}</span>
-                    <span className="text-slate-500 text-[11px] font-semibold">Seguidores</span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="font-black text-lg text-slate-900">{likesCount}</span>
-                    <span className="text-slate-500 text-[11px] font-semibold">Me gusta</span>
+                {/* Botones de Acción (+ Seguir, Contactar, 🔗, 📷) */}
+                <div className="flex gap-2.5 mt-3.5 w-full">
+                  <button 
+                    onClick={async () => {
+                      if (!currentCustomer && !isMerchantOwner) {
+                        setShowAuthModal(true);
+                        return;
+                      }
+                      if (!currentCustomer || !workspaceId) return;
+                      const newFollowing = !isFollowing;
+                      setIsFollowing(newFollowing);
+                      setFollowersCount(prev => newFollowing ? prev + 1 : Math.max(0, prev - 1));
+                      try {
+                        const res = await toggleFollowStore(workspaceId, currentCustomer.id);
+                        setIsFollowing(res.isFollowing);
+                        setFollowersCount(res.count);
+                        if (showFollowersModal) {
+                          const updatedList = await getStoreFollowersList(workspaceId);
+                          setFollowersList(updatedList);
+                        }
+                      } catch (err) {
+                        setIsFollowing(!newFollowing);
+                        setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
+                      }
+                    }}
+                    className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm shadow-orange-500/25'} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer`}
+                  >
+                    {isFollowing ? (
+                      <>
+                        <CheckCircle2 size={18} className="text-emerald-600" />
+                        <span>Siguiendo</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus size={18} />
+                        <span>Seguir</span>
+                      </>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => {
+                      if (config?.socialLinks?.whatsapp) {
+                        window.open(`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`, '_blank');
+                      } else if (config?.phone || config?.expediente?.phone) {
+                        window.location.href = `tel:${config?.phone || config?.expediente?.phone}`;
+                      } else {
+                        alert('El comercio no tiene teléfono o WhatsApp registrado.');
+                      }
+                    }}
+                    className="flex-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-800 hover:text-orange-600 py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    Contactar
+                  </button>
+                  <button 
+                    className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer" 
+                    onClick={() => { navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }}
+                    title="Copiar enlace"
+                  >
+                    <Link size={18} />
+                  </button>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowSocialMenu(!showSocialMenu)} 
+                      className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                      title="Redes sociales"
+                    >
+                      <Camera size={18} />
+                    </button>
+                    <AnimatePresence>
+                      {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 min-w-[190px] z-[100]"
+                        >
+                          {config.socialLinks.instagram && (
+                            <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                              <span className="text-sm font-bold">Instagram</span>
+                            </a>
+                          )}
+                          {config.socialLinks.tiktok && (
+                            <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                              <Music2 size={18} className="text-slate-900" />
+                              <span className="text-sm font-bold">TikTok</span>
+                            </a>
+                          )}
+                          {config.socialLinks.facebook && (
+                            <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                              <span className="text-sm font-bold">Facebook</span>
+                            </a>
+                          )}
+                          {config.socialLinks.whatsapp && (
+                            <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
+                              <MessageCircle size={18} className="text-emerald-500" />
+                              <span className="text-sm font-bold">WhatsApp</span>
+                            </a>
+                          )}
+                        </motion.div>
+                      )}
+                      {showSocialMenu && (!config?.socialLinks || !Object.values(config.socialLinks).some(val => val)) && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-3 px-4 min-w-[200px] z-[100]"
+                        >
+                          <p className="text-xs text-slate-500 text-center">Este comercio aún no ha registrado redes sociales.</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    {showSocialMenu && (
+                      <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
+                    )}
                   </div>
                 </div>
 
               </div>
             </div>
 
-            {/* Profile Content Container (Debajo de la Portada: Botones de Acción, Acerca de, etc.) */}
+            {/* Profile Content Container (Estados y Sub-Pestañas Inteligentes) */}
             <div className="relative z-10 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col pt-3">
-
-              {/* Botones de Acción */}
-              <div className="flex gap-2.5 mt-2 w-full max-w-[440px] mx-auto">
-                <button 
-                  onClick={async () => {
-                    if (!currentCustomer && !isMerchantOwner) {
-                      setShowAuthModal(true);
-                      return;
-                    }
-                    if (!currentCustomer || !workspaceId) return;
-                    const newFollowing = !isFollowing;
-                    setIsFollowing(newFollowing);
-                    setFollowersCount(prev => newFollowing ? prev + 1 : Math.max(0, prev - 1));
-                    try {
-                      const res = await toggleFollowStore(workspaceId, currentCustomer.id);
-                      setIsFollowing(res.isFollowing);
-                      setFollowersCount(res.count);
-                      if (showFollowersModal) {
-                        const updatedList = await getStoreFollowersList(workspaceId);
-                        setFollowersList(updatedList);
-                      }
-                    } catch (err) {
-                      setIsFollowing(!newFollowing);
-                      setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
-                    }
-                  }}
-                  className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm shadow-orange-500/25'} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer`}
-                >
-                  {isFollowing ? (
-                    <>
-                      <CheckCircle2 size={18} className="text-emerald-600" />
-                      <span>Siguiendo</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={18} />
-                      <span>Seguir</span>
-                    </>
-                  )}
-                </button>
-                <button 
-                  onClick={() => {
-                    if (config?.socialLinks?.whatsapp) {
-                      window.open(`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`, '_blank');
-                    } else if (config?.phone || config?.expediente?.phone) {
-                      window.location.href = `tel:${config?.phone || config?.expediente?.phone}`;
-                    } else {
-                      alert('El comercio no tiene teléfono o WhatsApp registrado.');
-                    }
-                  }}
-                  className="flex-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-800 hover:text-orange-600 py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  Contactar
-                </button>
-                <button 
-                  className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer" 
-                  onClick={() => { navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }}
-                  title="Copiar enlace"
-                >
-                  <Link size={18} />
-                </button>
-                <div className="relative">
-                  <button 
-                    onClick={() => setShowSocialMenu(!showSocialMenu)} 
-                    className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer"
-                    title="Redes sociales"
-                  >
-                    <Camera size={18} />
-                  </button>
-                  <AnimatePresence>
-                    {showSocialMenu && config?.socialLinks && Object.values(config.socialLinks).some(val => val) && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 min-w-[190px] z-[100]"
-                      >
-                        {config.socialLinks.instagram && (
-                          <a href={config.socialLinks.instagram.includes('http') ? config.socialLinks.instagram : `https://instagram.com/${config.socialLinks.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-pink-500"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                            <span className="text-sm font-bold">Instagram</span>
-                          </a>
-                        )}
-                        {config.socialLinks.tiktok && (
-                          <a href={config.socialLinks.tiktok.includes('http') ? config.socialLinks.tiktok : `https://tiktok.com/@${config.socialLinks.tiktok.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
-                            <Music2 size={18} className="text-slate-900" />
-                            <span className="text-sm font-bold">TikTok</span>
-                          </a>
-                        )}
-                        {config.socialLinks.facebook && (
-                          <a href={config.socialLinks.facebook.includes('http') ? config.socialLinks.facebook : `https://facebook.com/${config.socialLinks.facebook}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px] text-blue-500"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                            <span className="text-sm font-bold">Facebook</span>
-                          </a>
-                        )}
-                        {config.socialLinks.whatsapp && (
-                          <a href={`https://wa.me/${config.socialLinks.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-4 py-2.5 hover:bg-orange-50 transition-colors text-slate-700 hover:text-orange-600">
-                            <MessageCircle size={18} className="text-emerald-500" />
-                            <span className="text-sm font-bold">WhatsApp</span>
-                          </a>
-                        )}
-                      </motion.div>
-                    )}
-                    {showSocialMenu && (!config?.socialLinks || !Object.values(config.socialLinks).some(val => val)) && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute bottom-12 right-0 bg-white border border-slate-200 rounded-2xl shadow-xl py-3 px-4 min-w-[200px] z-[100]"
-                      >
-                        <p className="text-xs text-slate-500 text-center">Este comercio aún no ha registrado redes sociales.</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  
-                  {showSocialMenu && (
-                    <div className="fixed inset-0 z-40" onClick={() => setShowSocialMenu(false)}></div>
-                  )}
-                </div>
-              </div>
 
               {/* Sección de Estados del Comercio (Estilo WhatsApp / Stories Cards) */}
               <div className="mt-5 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
@@ -2657,262 +2728,369 @@ export default function PublicStore() {
                 </div>
               </div>
 
-              {/* Acerca de */}
-              <div className="mt-6 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
-                  <Building2 size={18} className="text-orange-600" />
-                  <span>Acerca de</span>
-                </h2>
-                <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
-                  {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
-                      <MapPin size={14} className="text-red-500 shrink-0" />
-                      <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Calificaciones de Clientes */}
-              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                <h2 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
-                  <Star size={18} className="fill-amber-400 text-amber-500" /> 
-                  <span>Calificaciones de los Clientes</span>
-                </h2>
-                {storeReviewsList.length > 0 ? (
-                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                    {storeReviewsList.map(review => (
-                      <div key={review.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 shadow-xs">
-                        <div className="flex justify-between items-start mb-1.5">
-                          <span className="font-bold text-sm text-slate-900">{review.customer_name}</span>
-                          <div className="flex gap-0.5">
-                            {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-500' : 'fill-slate-200 text-slate-300'} />
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-sm text-slate-600 whitespace-pre-line">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-slate-400 italic">No hay calificaciones disponibles aún.</p>
-                )}
-              </div>
-
-              {/* Horario */}
-              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Clock size={18} className="text-orange-600 shrink-0" />
-                    <span>Horario</span>
-                  </h2>
-                  {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
-                    <button 
-                      type="button"
-                      onClick={() => setShowFullSchedule(!showFullSchedule)}
-                      className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
-                    >
-                      {showFullSchedule ? 'Ocultar' : 'Ver todo'}
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    storeSchedule.status === 'closed'
-                      ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                      : storeSchedule.status === 'closing'
-                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                      : storeSchedule.status === 'unknown'
-                      ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full ${
-                      storeSchedule.status === 'closed' ? 'bg-rose-500' : 
-                      storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' : 
-                      storeSchedule.status === 'unknown' ? 'bg-slate-400' : 'bg-emerald-500'
-                    }`}></span>
-                    {storeSchedule.status === 'closed' ? 'Cerrado' : 
-                     storeSchedule.status === 'closing' ? 'Cierra pronto' : 
-                     storeSchedule.status === 'unknown' ? 'No definido' : 'Abierto'}
-                  </span>
-                  <span className="text-slate-600 text-xs sm:text-sm font-medium">
-                    · {storeSchedule.message}
-                  </span>
-                </div>
-
-                {/* Vista Detallada de Horario */}
-                {showFullSchedule && (config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (() => {
-                  const sched = config?.scheduleProfile || config?.schedule;
-                  const currentDayIdx = new Date().getDay();
-                  const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-                  const todayName = daysMap[currentDayIdx];
-                  const weekDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-
-                  return (
-                    <div className="mt-4 flex flex-col gap-1.5 text-sm bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
-                      {weekDays.map(day => {
-                        const isToday = todayName === day;
-                        const isOpen = Boolean(sched?.workDays?.[day]);
-                        return (
-                          <div 
-                            key={day} 
-                            className={`flex justify-between items-center px-3 py-2 rounded-xl transition-colors ${
-                              isToday 
-                                ? 'bg-orange-50 border border-orange-200' 
-                                : 'border-b border-slate-200/50 last:border-0 hover:bg-white'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className={`capitalize text-xs sm:text-sm ${
-                                isToday 
-                                  ? 'font-bold text-orange-900' 
-                                  : 'font-medium text-slate-700'
-                              }`}>
-                                {day}
-                              </span>
-                              {isToday && (
-                                <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-orange-500 text-white leading-none">
-                                  Hoy
-                                </span>
-                              )}
-                            </div>
-                            <span className="tracking-wide">
-                              {isOpen ? (
-                                <span className={`text-xs sm:text-sm font-bold ${
-                                  isToday ? 'text-orange-950' : 'text-slate-900'
-                                }`}>
-                                  {sched.openTime || '08:00'} - {sched.closeTime || '18:00'}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200">
-                                  Cerrado
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Ubicación */}
-              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <MapPin size={18} className="text-orange-600 shrink-0" />
-                    <span>Ubicación</span>
-                  </h2>
-                  <button 
+              {/* SUB-PESTAÑAS INTELIGENTES: 2 ÍCONOS (Información vs Multimedia / Videos) */}
+              <div className="mt-5 border-b border-slate-200 bg-white rounded-t-2xl shadow-xs overflow-hidden">
+                <div className="grid grid-cols-2 max-w-[420px] mx-auto">
+                  {/* Ícono 1: Información del Comerciante */}
+                  <button
                     type="button"
-                    onClick={() => {
-                      const lat = config?.location?.lat || config?.expediente?.gps?.lat;
-                      const lng = config?.location?.lng || config?.expediente?.gps?.lng;
-                      const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
-                      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
-                    }} 
-                    className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
+                    onClick={() => setProfileSubTab('info')}
+                    className={`py-3.5 flex items-center justify-center gap-2 relative transition-all cursor-pointer ${
+                      profileSubTab === 'info' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                    title="Información del Comerciante"
                   >
-                    Abrir en Maps
+                    <div className="flex items-center gap-1.5">
+                      {/* Ícono de 6 barras verticales */}
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="4" y="3" width="2.5" height="7" rx="1" />
+                        <rect x="10.75" y="3" width="2.5" height="7" rx="1" />
+                        <rect x="17.5" y="3" width="2.5" height="7" rx="1" />
+                        <rect x="4" y="14" width="2.5" height="7" rx="1" />
+                        <rect x="10.75" y="14" width="2.5" height="7" rx="1" />
+                        <rect x="17.5" y="14" width="2.5" height="7" rx="1" />
+                      </svg>
+                      <span className="text-xs uppercase tracking-wider font-extrabold">Información</span>
+                    </div>
+                    {profileSubTab === 'info' && (
+                      <motion.div 
+                        layoutId="profileSubTabIndicator"
+                        className="absolute bottom-0 left-6 right-6 h-[2.5px] bg-slate-900 rounded-full" 
+                      />
+                    )}
+                  </button>
+
+                  {/* Ícono 2: Multimedia / Videos */}
+                  <button
+                    type="button"
+                    onClick={() => setProfileSubTab('media')}
+                    className={`py-3.5 flex items-center justify-center gap-2 relative transition-all cursor-pointer ${
+                      profileSubTab === 'media' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                    title="Multimedia y Videos"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Repeat size={18} className="stroke-[2.5]" />
+                      <span className="text-xs uppercase tracking-wider font-extrabold">Videos</span>
+                    </div>
+                    {profileSubTab === 'media' && (
+                      <motion.div 
+                        layoutId="profileSubTabIndicator"
+                        className="absolute bottom-0 left-6 right-6 h-[2.5px] bg-slate-900 rounded-full" 
+                      />
+                    )}
                   </button>
                 </div>
-                {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                  <p className="text-sm text-slate-600 mb-3">{config?.address || config?.location?.address || config?.expediente?.address}</p>
-                )}
-                
-                <div className="w-full h-44 rounded-2xl relative overflow-hidden bg-slate-100 shadow-inner border border-slate-200 z-0 group">
-                  {(config?.location?.lat || config?.expediente?.gps?.lat) && (config?.location?.lng || config?.expediente?.gps?.lng) ? (
-                    <MapContainer 
-                      center={[
-                        Number(config?.location?.lat || config?.expediente?.gps?.lat), 
-                        Number(config?.location?.lng || config?.expediente?.gps?.lng)
-                      ]} 
-                      zoom={15} 
-                      style={{ height: "100%", width: "100%", zIndex: 0 }}
-                      zoomControl={false}
-                      dragging={false}
-                      scrollWheelZoom={false}
-                      doubleClickZoom={false}
-                      attributionControl={false}
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
-                      <Marker position={[
-                        Number(config?.location?.lat || config?.expediente?.gps?.lat), 
-                        Number(config?.location?.lng || config?.expediente?.gps?.lng)
-                      ]} />
-                    </MapContainer>
-                  ) : (
-                    <div 
-                      onClick={() => {
-                        const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
-                      }}
-                      className="w-full h-full cursor-pointer relative bg-slate-100 flex items-center justify-center overflow-hidden group"
-                    >
-                      <div className="relative flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
-                        <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
-                          {config?.logoUrl ? (
-                            <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-orange-500 flex items-center justify-center">
-                              <Store size={16} className="text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-red-600 drop-shadow-md -mt-3 relative z-0">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {(config?.location?.lat || config?.expediente?.gps?.lat) && (
-                    <div 
-                      className="absolute inset-0 z-[1] cursor-pointer" 
-                      onClick={() => {
-                        const lat = config?.location?.lat || config?.expediente?.gps?.lat;
-                        const lng = config?.location?.lng || config?.expediente?.gps?.lng;
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-                      }} 
-                    />
-                  )}
-                </div>
               </div>
 
-              {/* Boletín de Novedades y Noticias */}
-              <div className="mt-4 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs mb-8">
-                <div className="flex justify-between items-center mb-3">
-                  <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                    <Zap size={18} className="text-orange-600" />
-                    <span>Novedades y Noticias</span>
-                  </h2>
-                </div>
-                
-                <div className="flex flex-col gap-4">
-                  {storeNews.length > 0 ? storeNews.map((news) => (
-                    <div key={news.id} className="bg-slate-50 rounded-xl border border-slate-200/70 overflow-hidden">
-                      {news.image_url && (
-                        <img src={news.image_url} alt={news.title} className="w-full h-44 sm:h-56 object-cover" />
-                      )}
-                      <div className="p-4">
-                        <span className="text-xs font-bold text-orange-600 mb-1 block">
-                          {new Date(news.created_at).toLocaleDateString()}
-                        </span>
-                        <h3 className="text-base font-black text-slate-900 mb-1 leading-tight">{news.title}</h3>
-                        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{news.content}</p>
+              {/* Contenedor de Contenido de Pestaña con Soporte para Swipe Táctil Horizontal */}
+              <div 
+                onTouchStart={handleProfileTouchStart}
+                onTouchEnd={handleProfileTouchEnd}
+                className="transition-all"
+              >
+                {profileSubTab === 'info' ? (
+                  <div className="space-y-4 pt-3 pb-8">
+                    {/* Acerca de */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
+                        <Building2 size={18} className="text-orange-600" />
+                        <span>Acerca de</span>
+                      </h2>
+                      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                        {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
+                        {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
+                            <MapPin size={14} className="text-red-500 shrink-0" />
+                            <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )) : (
-                    <div className="text-center py-8 text-slate-400 font-medium border border-dashed border-slate-200 rounded-xl text-sm">
-                      No hay novedades recientes en la tienda
+
+                    {/* Calificaciones de Clientes */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <h2 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
+                        <Star size={18} className="fill-amber-400 text-amber-500" /> 
+                        <span>Calificaciones de los Clientes</span>
+                      </h2>
+                      {storeReviewsList.length > 0 ? (
+                        <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                          {storeReviewsList.map(review => (
+                            <div key={review.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 shadow-xs">
+                              <div className="flex justify-between items-start mb-1.5">
+                                <span className="font-bold text-sm text-slate-900">{review.customer_name}</span>
+                                <div className="flex gap-0.5">
+                                  {[1, 2, 3, 4, 5].map(s => (
+                                    <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-500' : 'fill-slate-200 text-slate-300'} />
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-600 whitespace-pre-line">{review.comment}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-400 italic">No hay calificaciones disponibles aún.</p>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    {/* Horario */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                          <Clock size={18} className="text-orange-600 shrink-0" />
+                          <span>Horario</span>
+                        </h2>
+                        {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
+                          <button 
+                            type="button"
+                            onClick={() => setShowFullSchedule(!showFullSchedule)}
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
+                          >
+                            {showFullSchedule ? 'Ocultar' : 'Ver todo'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                          storeSchedule.status === 'closed'
+                            ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                            : storeSchedule.status === 'closing'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : storeSchedule.status === 'unknown'
+                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${
+                            storeSchedule.status === 'closed' ? 'bg-rose-500' : 
+                            storeSchedule.status === 'closing' ? 'bg-amber-500 animate-pulse' : 
+                            storeSchedule.status === 'unknown' ? 'bg-slate-400' : 'bg-emerald-500'
+                          }`}></span>
+                          {storeSchedule.status === 'closed' ? 'Cerrado' : 
+                           storeSchedule.status === 'closing' ? 'Cierra pronto' : 
+                           storeSchedule.status === 'unknown' ? 'No definido' : 'Abierto'}
+                        </span>
+                        <span className="text-slate-600 text-xs sm:text-sm font-medium">
+                          · {storeSchedule.message}
+                        </span>
+                      </div>
+
+                      {/* Vista Detallada de Horario */}
+                      {showFullSchedule && (config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (() => {
+                        const sched = config?.scheduleProfile || config?.schedule;
+                        const currentDayIdx = new Date().getDay();
+                        const daysMap = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+                        const todayName = daysMap[currentDayIdx];
+                        const weekDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
+                        return (
+                          <div className="mt-4 flex flex-col gap-1.5 text-sm bg-slate-50 p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
+                            {weekDays.map(day => {
+                              const isToday = todayName === day;
+                              const isOpen = Boolean(sched?.workDays?.[day]);
+                              return (
+                                <div 
+                                  key={day} 
+                                  className={`flex justify-between items-center px-3 py-2 rounded-xl transition-colors ${
+                                    isToday 
+                                      ? 'bg-orange-50 border border-orange-200' 
+                                      : 'border-b border-slate-200/50 last:border-0 hover:bg-white'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`capitalize text-xs sm:text-sm ${
+                                      isToday 
+                                        ? 'font-bold text-orange-900' 
+                                        : 'font-medium text-slate-700'
+                                    }`}>
+                                      {day}
+                                    </span>
+                                    {isToday && (
+                                      <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-orange-500 text-white leading-none">
+                                        Hoy
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="tracking-wide">
+                                    {isOpen ? (
+                                      <span className={`text-xs sm:text-sm font-bold ${
+                                        isToday ? 'text-orange-950' : 'text-slate-900'
+                                      }`}>
+                                        {sched.openTime || '08:00'} - {sched.closeTime || '18:00'}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200">
+                                        Cerrado
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Ubicación */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <div className="flex justify-between items-center mb-3">
+                        <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                          <MapPin size={18} className="text-orange-600 shrink-0" />
+                          <span>Ubicación</span>
+                        </h2>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const lat = config?.location?.lat || config?.expediente?.gps?.lat;
+                            const lng = config?.location?.lng || config?.expediente?.gps?.lng;
+                            const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
+                            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
+                          }} 
+                          className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
+                        >
+                          Abrir en Maps
+                        </button>
+                      </div>
+                      {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                        <p className="text-sm text-slate-600 mb-3">{config?.address || config?.location?.address || config?.expediente?.address}</p>
+                      )}
+                      
+                      <div className="w-full h-44 rounded-2xl relative overflow-hidden bg-slate-100 shadow-inner border border-slate-200 z-0 group">
+                        {(config?.location?.lat || config?.expediente?.gps?.lat) && (config?.location?.lng || config?.expediente?.gps?.lng) ? (
+                          <MapContainer 
+                            center={[
+                              Number(config?.location?.lat || config?.expediente?.gps?.lat), 
+                              Number(config?.location?.lng || config?.expediente?.gps?.lng)
+                            ]} 
+                            zoom={15} 
+                            style={{ height: "100%", width: "100%", zIndex: 0 }}
+                            zoomControl={false}
+                            dragging={false}
+                            scrollWheelZoom={false}
+                            doubleClickZoom={false}
+                            attributionControl={false}
+                          >
+                            <TileLayer
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            <Marker position={[
+                              Number(config?.location?.lat || config?.expediente?.gps?.lat), 
+                              Number(config?.location?.lng || config?.expediente?.gps?.lng)
+                            ]} />
+                          </MapContainer>
+                        ) : (
+                          <div 
+                            onClick={() => {
+                              const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
+                              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
+                            }}
+                            className="w-full h-full cursor-pointer relative bg-slate-100 flex items-center justify-center overflow-hidden group"
+                          >
+                            <div className="relative flex flex-col items-center group-hover:scale-110 transition-transform duration-300 z-10">
+                              <div className="w-10 h-10 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white mb-1 relative z-10">
+                                {config?.logoUrl ? (
+                                  <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-orange-500 flex items-center justify-center">
+                                    <Store size={16} className="text-white" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-red-600 drop-shadow-md -mt-3 relative z-0">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {(config?.location?.lat || config?.expediente?.gps?.lat) && (
+                          <div 
+                            className="absolute inset-0 z-[1] cursor-pointer" 
+                            onClick={() => {
+                              const lat = config?.location?.lat || config?.expediente?.gps?.lat;
+                              const lng = config?.location?.lng || config?.expediente?.gps?.lng;
+                              window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+                            }} 
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* PESTAÑA MULTIMEDIA / VIDEOS: Cuadrícula Vertical de 3 Columnas (Estilo TikTok / Reels - Imagen 2) */
+                  <div className="pt-3 pb-8">
+                    {merchantVideos.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+                        {merchantVideos.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            onClick={() => markStatusAsViewed(item.statusIndex)}
+                            className="relative aspect-[9/16] rounded-xl overflow-hidden bg-zinc-900 group cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 transition-all select-none"
+                            title={item.caption || 'Ver video'}
+                          >
+                            {/* Video o Imagen de Fondo */}
+                            {item.isVideo ? (
+                              <video 
+                                src={resolveImageUrl(item.mediaUrl)} 
+                                muted 
+                                playsInline 
+                                loop 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                              />
+                            ) : (
+                              <img 
+                                src={resolveImageUrl(item.mediaUrl)} 
+                                alt="" 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
+                                }}
+                              />
+                            )}
+
+                            {/* Degradado inferior para resaltar métrica de reproducciones estilo TikTok */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent pointer-events-none" />
+
+                            {/* Badge Play en la esquina superior derecha */}
+                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center text-white/90">
+                              <Play size={10} fill="currentColor" className="text-white translate-x-[0.5px]" />
+                            </div>
+
+                            {/* Contador de Reproducciones en la esquina inferior izquierda (Estilo TikTok: ▶ 84,4 mil) */}
+                            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1 text-white">
+                              <Play size={11} fill="white" className="text-white shrink-0 drop-shadow-md" />
+                              <span className="text-[11px] font-black tracking-tight drop-shadow-md truncate">
+                                {formatViews(item.views)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 px-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+                        <div className="w-14 h-14 mx-auto rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3">
+                          <Play size={24} className="fill-orange-500 translate-x-0.5" />
+                        </div>
+                        <h4 className="text-base font-bold text-slate-800">No hay videos publicados aún</h4>
+                        <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
+                          Este comercio aún no ha subido videos o reels a su vitrina.
+                        </p>
+                        {isMerchantOwner && (
+                          <button
+                            onClick={() => navigate('/social-feed?type=status&create=true')}
+                            className="mt-4 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus size={14} />
+                            <span>Publicar nuevo video</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>
