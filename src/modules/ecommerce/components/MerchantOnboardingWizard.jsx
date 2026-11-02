@@ -66,7 +66,7 @@ export default function MerchantOnboardingWizard({
   const logoInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
-  // Estados de Instalación PWA (Paso 7 Final)
+  // Estados de Instalación PWA (Pantalla Final)
   const [isStandalone, setIsStandalone] = useState(() => isAppStandalone());
   const [deferredPrompt, setDeferredPrompt] = useState(() => (typeof window !== 'undefined' ? window.deferredPwaPrompt : null));
   const [isInstalledJustNow, setIsInstalledJustNow] = useState(false);
@@ -110,7 +110,7 @@ export default function MerchantOnboardingWizard({
   }, []);
 
   // -------------------------------------------------------------
-  // FORM STATES: Datos Reales de la Tienda Completa
+  // FORM STATES: Datos Reales de la Tienda y Onboarding Completo
   // -------------------------------------------------------------
 
   // Paso 1: Identidad y Expediente Fiscal
@@ -121,13 +121,22 @@ export default function MerchantOnboardingWizard({
   const [rifPrefix, setRifPrefix] = useState('V');
   const [rifNumber, setRifNumber] = useState('');
 
-  // Paso 2: Dirección y Ubicación Física
+  // Paso 2: ¿Por dónde vendes? (Commercy step)
+  const [salesChannels, setSalesChannels] = useState(['local']);
+
+  // Paso 3: ¿Con qué te manejas hoy? (Commercy step)
+  const [currentSystems, setCurrentSystems] = useState(['excel']);
+
+  // Paso 4: ¿Cómo prefieres que te ayudemos? (Commercy step)
+  const [supportPreference, setSupportPreference] = useState('whatsapp');
+
+  // Paso 5: Dirección y Ubicación Física
   const [addressState, setAddressState] = useState('');
   const [addressCity, setAddressCity] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [gpsCoords, setGpsCoords] = useState(null);
 
-  // Paso 3: Horarios de Atención Comercial
+  // Paso 6: Horarios de Atención Comercial
   const [scheduleActive, setScheduleActive] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState('08:00');
   const [scheduleClose, setScheduleClose] = useState('18:00');
@@ -142,18 +151,18 @@ export default function MerchantOnboardingWizard({
     domingo: false
   });
 
-  // Paso 4: Pago Móvil / Número de Cuenta para Cobrar
+  // Paso 7: Pago Móvil / Número de Cuenta para Cobrar
   const [pagoMovilBank, setPagoMovilBank] = useState('0102 - Banco de Venezuela');
   const [pagoMovilPhone, setPagoMovilPhone] = useState('');
   const [pagoMovilId, setPagoMovilId] = useState('');
 
-  // Paso 5: Identidad Visual (Logotipo y Portada)
+  // Paso 8: Identidad Visual (Logotipo y Portada)
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
 
-  // Paso 6: Precarga de catálogo
+  // Paso 9: Precarga de catálogo
   const [preloadCatalog, setPreloadCatalog] = useState(true);
 
   if (!isOpen) return null;
@@ -180,6 +189,17 @@ export default function MerchantOnboardingWizard({
     { id: 'distribuidora', name: 'Distribuidora', icon: Truck },
     { id: 'otro', name: 'Otro', icon: MoreHorizontal }
   ];
+
+  // Helper de selección múltiple
+  const toggleMultiSelect = (state, setState, value) => {
+    if (state.includes(value)) {
+      if (state.length > 1) {
+        setState(state.filter(item => item !== value));
+      }
+    } else {
+      setState([...state, value]);
+    }
+  };
 
   // Detección automática por GPS
   const handleDetectGPS = () => {
@@ -245,7 +265,6 @@ export default function MerchantOnboardingWizard({
   };
 
   const handleNext = () => {
-    // Validaciones por paso
     if (step === 1) {
       if (!ownerName.trim()) {
         toast.error('Por favor ingresa tu nombre');
@@ -263,17 +282,17 @@ export default function MerchantOnboardingWizard({
         toast.error('El RIF o cédula debe tener al menos 6 dígitos');
         return;
       }
-    } else if (step === 2) {
+    } else if (step === 5) {
       if (!gpsCoords && (!addressState.trim() || !addressCity.trim() || !addressLine.trim())) {
         toast.error('Ingresa al menos estado, ciudad y dirección, o detecta el GPS.');
         return;
       }
-    } else if (step === 3) {
+    } else if (step === 6) {
       if (!scheduleOpen || !scheduleClose) {
         toast.error('Por favor define la hora de apertura y cierre.');
         return;
       }
-    } else if (step === 4) {
+    } else if (step === 7) {
       if (!pagoMovilBank) {
         toast.error('Por favor selecciona el banco para recibir pagos.');
         return;
@@ -366,6 +385,14 @@ export default function MerchantOnboardingWizard({
             logoUrl: uploadedLogoUrl || prevConfig.storefront?.logoUrl || null,
             coverUrl: uploadedCoverUrl || prevConfig.storefront?.coverUrl || null,
             heroUrl: uploadedCoverUrl || prevConfig.storefront?.heroUrl || null
+          },
+          onboarding: {
+            sales_channels: salesChannels,
+            current_systems: currentSystems,
+            support_preference: supportPreference,
+            owner_name: ownerName.trim(),
+            business_name: businessName.trim(),
+            rubro
           },
           paymentProfile: {
             paymentMobile: true,
@@ -469,7 +496,7 @@ export default function MerchantOnboardingWizard({
       console.error('Error al finalizar onboarding:', err);
     } finally {
       setLoading(false);
-      setStep(7); // Avanzar a pantalla final de éxito / instalación
+      setStep(10); // Avanzar a pantalla final de éxito / instalación
     }
   };
 
@@ -566,9 +593,9 @@ export default function MerchantOnboardingWizard({
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA PASO 7: PANTALLA DE ÉXITO CON INSTALACIÓN PWA O ENTRAR AL POS       */}
+      {/* VISTA FINAL (PASO 10): PANTALLA DE ÉXITO CON INSTALACIÓN PWA O ABRIR POS  */}
       {/* ========================================================================= */}
-      {step === 7 ? (
+      {step === 10 ? (
         <div className="relative z-20 bg-white rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200/90 max-w-4xl w-full p-6 sm:p-10 my-auto animate-in zoom-in-95 duration-200 m-4">
           
           <div className="text-center max-w-2xl mx-auto mb-6">
@@ -735,7 +762,7 @@ export default function MerchantOnboardingWizard({
         </div>
       ) : (
         /* ========================================================================= */
-        /* VISTA PRINCIPAL: PASOS 1 AL 6 CON FORMULARIO COMPLETO                    */
+        /* VISTA PRINCIPAL: PASOS 1 AL 9 CON ONBOARDING COMPLETO                    */
         /* ========================================================================= */
         <div className="relative z-20 bg-white rounded-t-[32px] sm:rounded-3xl lg:rounded-[2.5rem] shadow-2xl border border-slate-200/80 max-w-[480px] lg:max-w-[960px] w-full overflow-hidden my-auto flex flex-col lg:grid lg:grid-cols-12 max-h-[96vh] sm:max-h-[90vh]">
           
@@ -760,7 +787,7 @@ export default function MerchantOnboardingWizard({
 
                 <div className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-white/95 shrink-0">
                   <span className="bg-white/20 px-2 py-0.5 rounded-full font-bold">
-                    Paso {step} de 6
+                    Paso {step} de 9
                   </span>
                   <span className="text-white/60">·</span>
                   <span className="text-white/80">≈2 minutos</span>
@@ -770,21 +797,27 @@ export default function MerchantOnboardingWizard({
               {/* Títulos dinámicos de cada paso */}
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight mt-1 lg:mt-0 mb-1.5 lg:mb-3">
                 {step === 1 && 'Cuéntanos sobre tu negocio'}
-                {step === 2 && 'Dirección y Ubicación Física'}
-                {step === 3 && 'Horarios de Atención Comercial'}
-                {step === 4 && 'Datos de Cobro y Pago Móvil'}
-                {step === 5 && 'Logotipo y Foto de Portada'}
-                {step === 6 && `Comienza con 30 productos de ${catalog.rubroName}`}
+                {step === 2 && '¿Por dónde vendes?'}
+                {step === 3 && '¿Con qué te manejas hoy?'}
+                {step === 4 && '¿Cómo prefieres que te ayudemos?'}
+                {step === 5 && 'Dirección y Ubicación Física'}
+                {step === 6 && 'Horarios de Atención Comercial'}
+                {step === 7 && 'Datos de Cobro y Pago Móvil'}
+                {step === 8 && 'Logotipo y Foto de Portada'}
+                {step === 9 && `Comienza con 30 productos de ${catalog.rubroName}`}
               </h2>
 
               {/* Subtítulo explicativo */}
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed mb-3 lg:mb-6">
                 {step === 1 && 'Ingresa tu información de contacto, rubro y expediente fiscal.'}
-                {step === 2 && 'Tus clientes podrán ubicarte en el mapa y para calcular tus despachos.'}
-                {step === 3 && 'Controla cuándo tu tienda está abierta y disponible para compras.'}
-                {step === 4 && 'Configura tu cuenta bancaria nacional para recibir pagos directos.'}
-                {step === 5 && 'Sube las fotos oficiales de tu marca para personalizar tu tienda.'}
-                {step === 6 && 'Fotos y precios de referencia en USD y Bs listos para vender o editar.'}
+                {step === 2 && 'Así te mostramos primero lo que usas. Elige todas las que correspondan.'}
+                {step === 3 && 'Si vienes de otro sistema, te ayudamos a pasar tus productos y datos.'}
+                {step === 4 && 'Un asesor especialista de AxonMarket te acompañará durante tus primeros días.'}
+                {step === 5 && 'Tus clientes podrán ubicarte en el mapa y para calcular tus despachos.'}
+                {step === 6 && 'Controla cuándo tu tienda está abierta y disponible para compras.'}
+                {step === 7 && 'Configura tu cuenta bancaria nacional para recibir pagos directos.'}
+                {step === 8 && 'Sube las fotos oficiales de tu marca para personalizar tu tienda.'}
+                {step === 9 && 'Fotos y precios de referencia en USD y Bs listos para vender o editar.'}
               </p>
             </div>
 
@@ -793,7 +826,7 @@ export default function MerchantOnboardingWizard({
               <div className="w-full bg-white/30 h-1.5 rounded-full overflow-hidden">
                 <div 
                   className="bg-white h-full rounded-full transition-all duration-300 ease-out" 
-                  style={{ width: `${(step / 6) * 100}%` }}
+                  style={{ width: `${(step / 9) * 100}%` }}
                 />
               </div>
             </div>
@@ -807,7 +840,7 @@ export default function MerchantOnboardingWizard({
             <div className="py-1">
               
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 1: Identidad, Rubro, WhatsApp y RIF                          */}
+              {/* PASO 1: Identidad, Rubro, WhatsApp y RIF (con selector desplegable)*/}
               {/* ----------------------------------------------------------------- */}
               {step === 1 && (
                 <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
@@ -887,7 +920,7 @@ export default function MerchantOnboardingWizard({
                     </div>
                   </div>
 
-                  {/* RIF o Cédula Fiscal */}
+                  {/* RIF o Cédula Fiscal con Selector Desplegable para dar máximo espacio al número */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-xs font-bold text-slate-800">
@@ -895,29 +928,26 @@ export default function MerchantOnboardingWizard({
                       </label>
                       <span className="text-[10px] text-slate-400 font-semibold">Mínimo 6 dígitos</span>
                     </div>
-                    <div className="flex gap-2">
-                      <div className="flex bg-slate-100 rounded-2xl p-1 border border-slate-200 shrink-0">
-                        {['J', 'V', 'G', 'E'].map(type => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => setRifPrefix(type)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                              rifPrefix === type 
-                                ? 'bg-white text-orange-600 shadow-xs' 
-                                : 'text-slate-500 hover:text-slate-800'
-                            }`}
-                          >
-                            {type}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="flex gap-2 items-center">
+                      {/* Desplegable vertical compacto */}
+                      <select 
+                        value={rifPrefix} 
+                        onChange={e => setRifPrefix(e.target.value)} 
+                        className="w-24 sm:w-28 px-3 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-xs sm:text-sm font-bold bg-white text-slate-800 outline-none shadow-xs cursor-pointer shrink-0"
+                      >
+                        <option value="V">V - Natural</option>
+                        <option value="J">J - Jurídico</option>
+                        <option value="G">G - Gobierno</option>
+                        <option value="E">E - Extranjero</option>
+                      </select>
+                      
+                      {/* Input amplio con máximo espacio para los números */}
                       <input 
                         type="text"
                         value={rifNumber}
                         onChange={e => setRifNumber(e.target.value.replace(/[^0-9-]/g, '').slice(0, 11))}
-                        placeholder="12345678 o 12345678-9"
-                        className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                        placeholder="Ej: 12345678-9"
+                        className="flex-1 min-w-0 px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
                       />
                     </div>
                   </div>
@@ -925,9 +955,152 @@ export default function MerchantOnboardingWizard({
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 2: Dirección y Ubicación Física con GPS                       */}
+              {/* PASO 2: ¿Por dónde vendes? (Commercy step exacto)                */}
               {/* ----------------------------------------------------------------- */}
               {step === 2 && (
+                <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-150">
+                  {[
+                    { id: 'local', letter: 'A', title: 'En mi local', subtitle: 'Mostrador, caja y factura', icon: Store },
+                    { id: 'online', letter: 'B', title: 'Tienda online', subtitle: 'Tu propia web con carrito', icon: Globe },
+                    { id: 'social', letter: 'C', title: 'Redes y WhatsApp', subtitle: 'Instagram, Facebook y mensajes', icon: MessageCircle },
+                    { id: 'wholesale', letter: 'D', title: 'A otros comercios', subtitle: 'Mayorista o distribuidora', icon: Truck },
+                    { id: 'starting', letter: 'E', title: 'Todavía no vendo', subtitle: 'Estoy arrancando', icon: Rocket },
+                  ].map(item => {
+                    const Icon = item.icon;
+                    const isChecked = salesChannels.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleMultiSelect(salesChannels, setSalesChannels, item.id)}
+                        className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isChecked 
+                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
+                            isChecked ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.letter}
+                          </span>
+                          <Icon size={18} className={isChecked ? 'text-orange-600' : 'text-slate-400'} />
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
+                            <p className="text-[11px] sm:text-xs text-slate-500 truncate">{item.subtitle}</p>
+                          </div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                          isChecked ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-300 bg-white'
+                        }`}>
+                          {isChecked && <Check size={13} className="stroke-[3]" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ----------------------------------------------------------------- */}
+              {/* PASO 3: ¿Con qué te manejas hoy? (Commercy step exacto)            */}
+              {/* ----------------------------------------------------------------- */}
+              {step === 3 && (
+                <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 animate-in fade-in duration-150">
+                  {[
+                    { id: 'excel', letter: 'A', title: 'Excel o cuaderno', subtitle: 'Planillas o anotaciones a mano' },
+                    { id: 'tango', letter: 'B', title: 'Saint Enterprise / A2 Softway', subtitle: 'Gestión o Punto de Venta administrativo' },
+                    { id: 'valery', letter: 'C', title: 'Valery / Premium Soft', subtitle: 'Facturación y control de inventario' },
+                    { id: 'tiendanube', letter: 'D', title: 'Tiendanube / Shopify / WooCommerce', subtitle: 'Tu tienda online existente' },
+                    { id: 'pos', letter: 'E', title: 'Otro sistema POS', subtitle: 'Puntos de venta y cajas' },
+                    { id: 'other', letter: 'F', title: 'Otro sistema', subtitle: 'Contanos cuál después' },
+                    { id: 'none', letter: 'G', title: 'Nada todavía', subtitle: 'Arranco de cero' },
+                  ].map(item => {
+                    const isChecked = currentSystems.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => toggleMultiSelect(currentSystems, setCurrentSystems, item.id)}
+                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isChecked 
+                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className={`w-6 h-6 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
+                            isChecked ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.letter}
+                          </span>
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
+                            <p className="text-[11px] text-slate-500 truncate">{item.subtitle}</p>
+                          </div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
+                          isChecked ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-300 bg-white'
+                        }`}>
+                          {isChecked && <Check size={13} className="stroke-[3]" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ----------------------------------------------------------------- */}
+              {/* PASO 4: ¿Cómo prefieres que te ayudemos? (Commercy step exacto)   */}
+              {/* ----------------------------------------------------------------- */}
+              {step === 4 && (
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  {[
+                    { id: 'whatsapp', letter: 'A', title: 'WhatsApp', subtitle: whatsapp ? `Te escribimos al ${whatsapp}` : 'Te escribimos a tu número celular', icon: MessageCircle },
+                    { id: 'call', letter: 'B', title: 'Llamada telefónica', subtitle: 'Te llamamos en horario comercial', icon: Phone },
+                    { id: 'email', letter: 'C', title: 'Correo electrónico', subtitle: 'Te escribimos con guías detalladas', icon: Mail },
+                    { id: 'none', letter: 'D', title: 'No hace falta', subtitle: 'Tengo la ayuda y los tutoriales en el panel', icon: Ban },
+                  ].map(item => {
+                    const Icon = item.icon;
+                    const isSelected = supportPreference === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSupportPreference(item.id)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isSelected 
+                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
+                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {item.letter}
+                          </span>
+                          <Icon size={18} className={isSelected ? 'text-orange-600' : 'text-slate-400'} />
+                          <div>
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
+                            <p className="text-[11px] sm:text-xs text-slate-500">{item.subtitle}</p>
+                          </div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                          isSelected ? 'border-orange-500' : 'border-slate-300'
+                        }`}>
+                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ----------------------------------------------------------------- */}
+              {/* PASO 5: Dirección y Ubicación Física con GPS                       */}
+              {/* ----------------------------------------------------------------- */}
+              {step === 5 && (
                 <div className="space-y-4 animate-in fade-in duration-150">
                   {/* Tarjeta GPS */}
                   <div className="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-4 text-center space-y-2.5">
@@ -997,9 +1170,9 @@ export default function MerchantOnboardingWizard({
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 3: Horarios de Atención Comercial                            */}
+              {/* PASO 6: Horarios de Atención Comercial                            */}
               {/* ----------------------------------------------------------------- */}
-              {step === 3 && (
+              {step === 6 && (
                 <div className="space-y-4 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
                     <div>
@@ -1084,9 +1257,9 @@ export default function MerchantOnboardingWizard({
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 4: Datos de Cobro y Pago Móvil                               */}
+              {/* PASO 7: Datos de Cobro y Pago Móvil                               */}
               {/* ----------------------------------------------------------------- */}
-              {step === 4 && (
+              {step === 7 && (
                 <div className="space-y-3.5 animate-in fade-in duration-150">
                   <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
                     <CreditCard size={18} className="text-amber-600 shrink-0 mt-0.5" />
@@ -1143,9 +1316,9 @@ export default function MerchantOnboardingWizard({
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 5: Identidad Visual (Logotipo y Portada)                      */}
+              {/* PASO 8: Identidad Visual (Logotipo y Portada)                      */}
               {/* ----------------------------------------------------------------- */}
-              {step === 5 && (
+              {step === 8 && (
                 <div className="space-y-4 animate-in fade-in duration-150">
                   {/* Logotipo Cuadrado 1:1 */}
                   <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4">
@@ -1217,9 +1390,9 @@ export default function MerchantOnboardingWizard({
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 6: Catálogo Inicial de 30 Productos                          */}
+              {/* PASO 9: Catálogo Inicial de 30 Productos                          */}
               {/* ----------------------------------------------------------------- */}
-              {step === 6 && (
+              {step === 9 && (
                 <div className="space-y-4 animate-in fade-in duration-150">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
                     {catalog.items.slice(0, 6).map((prod, idx) => (
@@ -1262,7 +1435,7 @@ export default function MerchantOnboardingWizard({
                 </button>
               ) : null}
 
-              {step < 6 ? (
+              {step < 9 ? (
                 <div className="flex items-center gap-2 w-full justify-end">
                   {step > 1 && (
                     <button
