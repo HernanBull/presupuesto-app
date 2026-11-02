@@ -4,6 +4,7 @@ import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRi
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
+import CustomerAuthModal from '../components/CustomerAuthModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
@@ -1891,165 +1892,21 @@ export default function PublicStore() {
     if (!showAuthModal) return null;
     const storeName = config?.business_name || slug || 'la tienda';
     return (
-      <ResponsiveModal 
+      <CustomerAuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
-        className="md:max-w-md border border-zinc-200 shadow-2xl bg-white"
-        contentClassName="p-5 sm:p-7 relative bg-white rounded-t-[28px] md:rounded-[28px] overflow-y-auto max-h-[85dvh]"
-      >
-        <div className="absolute top-0 left-0 w-full h-1 z-10 rounded-t-[28px]" style={{ background: `linear-gradient(90deg, transparent, ${primaryColor}, transparent)` }}></div>
-        
-        {/* Selector Ingresar / Crear Cuenta compacto y directo */}
-        <div className="flex bg-zinc-100 rounded-full p-1 mb-5 mt-1 border border-zinc-200 shadow-inner">
-          <button 
-            type="button"
-            onClick={() => setAuthGateMode('login')} 
-            className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
-              authGateMode === 'login' 
-                ? 'bg-white text-amber-600 shadow-md border border-zinc-200' 
-                : 'text-zinc-500 hover:text-zinc-800'
-            }`}
-          >
-            Ingresar
-          </button>
-          <button 
-            type="button"
-            onClick={() => setAuthGateMode('register')} 
-            className={`flex-1 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all ${
-              authGateMode === 'register' 
-                ? 'bg-white text-amber-600 shadow-md border border-zinc-200' 
-                : 'text-zinc-500 hover:text-zinc-800'
-            }`}
-          >
-            Crear Cuenta
-          </button>
-        </div>
-
-        <form onSubmit={async (e) => {
-          const success = authGateMode === 'login' ? await handleLogin(e) : await handleRegister(e);
-          if (success) setShowAuthModal(false);
-        }} className="space-y-3.5">
-          {authGateMode === 'register' && (
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-600 mb-1">Nombre Completo</label>
-              <input 
-                type="text" 
-                required 
-                value={authForm.name} 
-                onChange={e => setAuthForm({...authForm, name: e.target.value})} 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-zinc-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-zinc-400 shadow-xs" 
-                placeholder="Tu nombre" 
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-[11px] font-bold text-zinc-600 mb-1">
-              Tu Correo
-            </label>
-            <input 
-              type="text" 
-              required 
-              value={authForm.email} 
-              onChange={e => setAuthForm({...authForm, email: e.target.value})} 
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-xs" 
-              placeholder="tu@correo.com" 
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold text-zinc-600 mb-1">Contraseña</label>
-            <div className="relative">
-              <input 
-                type={showAuthPassword ? "text" : "password"} 
-                required 
-                value={authForm.password} 
-                onChange={e => setAuthForm({...authForm, password: e.target.value})} 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-11 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-xs" 
-                placeholder="••••••••" 
-              />
-              <button 
-                type="button" 
-                onClick={() => setShowAuthPassword(!showAuthPassword)} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors p-1"
-              >
-                {showAuthPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-            {authGateMode === 'register' && (
-              <PasswordStrengthBar password={authForm.password} />
-            )}
-          </div>
-          
-          {authGateMode === 'register' && (
-            <>
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-600 mb-1">Confirmar Contraseña</label>
-                <div className="relative">
-                  <input 
-                    type={showAuthConfirmPassword ? "text" : "password"} 
-                    required 
-                    value={authConfirmPassword} 
-                    onChange={e => setAuthConfirmPassword(e.target.value)} 
-                    className={`w-full bg-slate-50 border ${authConfirmPassword && authConfirmPassword !== authForm.password ? 'border-red-400' : 'border-slate-200'} rounded-xl px-4 py-2.5 pr-11 text-sm text-zinc-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-zinc-400 shadow-xs`} 
-                    placeholder="••••••••" 
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setShowAuthConfirmPassword(!showAuthConfirmPassword)} 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-amber-500 transition-colors p-1"
-                  >
-                    {showAuthConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                {authConfirmPassword && authConfirmPassword !== authForm.password && (
-                  <p className="text-red-500 text-xs mt-1 font-medium">Las contraseñas no coinciden.</p>
-                )}
-              </div>
-              
-              <div className="flex items-start gap-2.5 bg-zinc-50 border border-zinc-200 rounded-xl p-3">
-                <input
-                  type="checkbox"
-                  id="store-terms-checkbox"
-                  checked={termsAccepted}
-                  onChange={e => setTermsAccepted(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
-                />
-                <label htmlFor="store-terms-checkbox" className="text-xs text-zinc-600 leading-snug cursor-pointer font-medium">
-                  Acepto los{' '}
-                  <span className="font-bold text-amber-600">Términos</span>
-                  {' '}y{' '}
-                  <span className="font-bold text-amber-600">Privacidad</span>.
-                </label>
-              </div>
-            </>
-          )}
-
-          <button
-            type="submit" 
-            disabled={authLoading || (authGateMode === 'register' && !termsAccepted)}
-            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-amber-500/20 active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {authLoading ? <Loader2 className="animate-spin text-slate-950" size={16} /> : (authGateMode === 'login' ? 'Acceder al Comercio' : 'Crear Cuenta y Entrar')}
-          </button>
-        </form>
-
-        <div className="my-4 flex items-center justify-between text-zinc-400 text-[10px] font-bold uppercase tracking-wider">
-          <span className="w-1/3 border-b border-zinc-200"></span>
-          <span>o continuar con</span>
-          <span className="w-1/3 border-b border-zinc-200"></span>
-        </div>
-        
-        <div className="flex justify-center pb-1">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => alert('Fallo al conectar con Google')}
-            theme="outline"
-            shape="pill"
-            text="continue_with"
-          />
-        </div>
-      </ResponsiveModal>
+        initialMode={authGateMode || 'login'}
+        storeName={storeName}
+        onSuccess={(user) => {
+          setCurrentCustomer(user);
+          setShowAuthModal(false);
+          const cleanPhone = (user.phone || '').replace(/\D/g, '');
+          const cleanDoc = (user.docId || user.doc_id || '').replace(/\D/g, '');
+          if (!user.name || user.name === user.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !user.address) {
+            setIsWizardOpen(true);
+          }
+        }}
+      />
     );
   };
 
