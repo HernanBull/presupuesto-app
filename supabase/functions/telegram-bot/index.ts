@@ -485,7 +485,7 @@ async function handleTelegramUpdate(update, supabase) {
     }
 
     // Consulta por fecha personalizada (ej: 01/11/2026, 31/10, 2026-11-01, /gerencia 01/11/2026)
-    const dateMatch = extractDateFromString(rawText);
+    const dateMatch = parseDateString(rawText);
     if (dateMatch) {
       const range = getVenezuelaDateRange('custom', `${dateMatch.year}-${dateMatch.month}-${dateMatch.day}`);
       if (range) {
@@ -996,6 +996,20 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   }
 }
 
+async function editMessageText(chatId: string, messageId: number, text: string, replyMarkup = undefined) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: replyMarkup })
+    });
+    return await res.json();
+  } catch (e) {
+    console.error("Error editando mensaje Telegram:", e);
+    return { ok: false };
+  }
+}
+
 async function isUserInGroup(userId, groupId) {
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember?chat_id=${groupId}&user_id=${userId}`);
@@ -1033,25 +1047,35 @@ async function handleSuperuserGreeting({ telegramUserId, message }: any, supabas
   });
 }
 
+let cachedSuperusers: any[] | null = null;
+let lastSuperusersFetch = 0;
+
 async function getAgencySuperusers(supabase: any) {
+  const now = Date.now();
+  if (cachedSuperusers && (now - lastSuperusersFetch < 30000)) {
+    return cachedSuperusers;
+  }
+
   let list: any[] = [];
   try {
-    const { data, error } = await supabase.from('delivery_agency_superusers').select('*').eq('is_active', true);
-    if (!error && data && data.length > 0) {
-      list = data;
+    const { data: set } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_agency_superusers').maybeSingle();
+    if (set && set.value) {
+      const parsed = JSON.parse(set.value);
+      list = parsed.filter((u: any) => u.is_active !== false);
     }
   } catch (e) {}
 
   if (list.length === 0) {
     try {
-      const { data: set } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_agency_superusers').maybeSingle();
-      if (set && set.value) {
-        const parsed = JSON.parse(set.value);
-        list = parsed.filter((u: any) => u.is_active !== false);
+      const { data, error } = await supabase.from('delivery_agency_superusers').select('*').eq('is_active', true);
+      if (!error && data && data.length > 0) {
+        list = data;
       }
     } catch (e) {}
   }
 
+  cachedSuperusers = list;
+  lastSuperusersFetch = now;
   return list;
 }
 
@@ -1170,7 +1194,7 @@ function getVenezuelaDateRange(type: string, customDateStr?: string) {
 }
 
 // 1. Reporte Gerencial por Período/Fecha (/gerencia hoy, ayer, antier, custom)
-async function sendGerenciaReport(chatId: string, superuser: any, range: any, supabase: any) {
+async function sendGerenciaReport(chatId: string, superuser: any, range: any, supabase: any, editMessageId?: number) {
   if (!range) {
     await sendMessageToChat(chatId, "⚠️ Formato de fecha no válido. Usa <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>).");
     return new Response("OK", { headers: corsHeaders });
@@ -1248,6 +1272,13 @@ ${topDrivers || '  <i>(Sin entregas completadas en esta fecha)</i>'}
 ━━━━━━━━━━━━━━━━━━━━━━
 <i>👇 Selecciona otro período o escribe una fecha (ej. 01/11/2026):</i>`;
 
+  if (editMessageId) {
+    const editRes = await editMessageText(chatId, editMessageId, msg, DATE_SELECTOR_INLINE_KEYBOARD);
+    if (editRes && editRes.ok) {
+      return new Response("OK", { headers: corsHeaders });
+    }
+  }
+
   await sendMessageToChat(chatId, msg, DATE_SELECTOR_INLINE_KEYBOARD);
   return new Response("OK", { headers: corsHeaders });
 }
@@ -1263,14 +1294,16 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
   const data = callbackQuery.data || '';
   const fromUserId = callbackQuery.from?.id?.toString();
   const chatId = callbackQuery.message?.chat?.id?.toString() || fromUserId;
+  const messageId = callbackQuery.message?.message_id;
+
+  // 1. Responder de inmediato al callback para que Telegram quite el loader del botón
+  await answerCallbackQuery(callbackQueryId);
 
   const agencySuperuser = await isAgencySuperuser(fromUserId, supabase);
   if (!agencySuperuser) {
-    await answerCallbackQuery(callbackQueryId, "⛔ Acceso exclusivo para Directores de la Agencia.");
+    await sendMessageToChat(chatId, "⛔ Acceso exclusivo para Directores de la Agencia.");
     return new Response("OK", { headers: corsHeaders });
   }
-
-  await answerCallbackQuery(callbackQueryId);
 
   if (data.startsWith('rep_date:')) {
     const action = data.replace('rep_date:', '');
@@ -1283,7 +1316,7 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
 
     const range = getVenezuelaDateRange(action);
     if (range) {
-      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase, messageId);
     }
   }
 
