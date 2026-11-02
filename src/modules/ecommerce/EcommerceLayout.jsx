@@ -46,6 +46,58 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     }));
   };
 
+  // Detección de Rol y Modo Cajero para Terminal Exclusiva
+  const [activeUserRole, setActiveUserRole] = useState(() => {
+    return localStorage.getItem('axonpos_active_user_role') || 'MASTER';
+  });
+  const [activeUserName, setActiveUserName] = useState(() => {
+    return localStorage.getItem('axonpos_active_user_name') || '';
+  });
+  const isCashier = activeUserRole === 'CASHIER' || localStorage.getItem('axon_cashier_mode') === 'true';
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  // Escuchar cambios de sesión y modo cajero
+  useEffect(() => {
+    const syncRole = () => {
+      setActiveUserRole(localStorage.getItem('axonpos_active_user_role') || 'MASTER');
+      setActiveUserName(localStorage.getItem('axonpos_active_user_name') || '');
+    };
+    window.addEventListener('storage', syncRole);
+    return () => window.removeEventListener('storage', syncRole);
+  }, []);
+
+  // Consultar pedidos pendientes para la terminal
+  useEffect(() => {
+    const fetchPendingOrders = async () => {
+      try {
+        const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+        const { count, error } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('*', { count: 'exact', head: true })
+          .eq('workspace_id', workspaceId)
+          .in('status', ['Pendiente', 'Preparando']);
+        
+        if (!error && typeof count === 'number') {
+          setPendingOrdersCount(count);
+        }
+      } catch (e) {}
+    };
+
+    fetchPendingOrders();
+    const interval = setInterval(fetchPendingOrders, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Bloqueo estricto de rutas administrativas para Cajero (Solo POS, Pedidos y Turno)
+  useEffect(() => {
+    if (isCashier) {
+      const allowedPaths = ['/pos', '/orders', '/shifts'];
+      if (!allowedPaths.includes(location.pathname)) {
+        navigate('/pos?view=pos', { replace: true });
+      }
+    }
+  }, [isCashier, location.pathname, navigate]);
+
   // Auto-expandir el menú correspondiente a la ruta actual
   useEffect(() => {
     const path = location.pathname;
@@ -440,8 +492,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           {/* 1. Top: Logo Oficial AxonMarket + Indicador de Estado de Caja */}
           <div className="flex flex-col items-center gap-1.5 w-full">
             <div 
-              onClick={() => navigate('/dashboard')}
-              title="AxonMarket · Volver al Panel de Control"
+              onClick={() => {
+                if (!isCashier) navigate('/dashboard');
+              }}
+              title={isCashier ? "Estación de Caja Activa" : "AxonMarket · Volver al Panel de Control"}
               className="w-12 h-12 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all select-none"
             >
               <img 
@@ -462,7 +516,9 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             {/* Indicador de Caja Abierta */}
             <div className="flex items-center gap-1 mt-0.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300">Caja</span>
+              <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300">
+                {isCashier ? (activeUserName ? activeUserName.split(' ')[0] : 'Caja') : 'Caja'}
+              </span>
             </div>
           </div>
 
@@ -495,13 +551,18 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                 <button
                   onClick={() => navigate('/pos?view=orders')}
                   title="Pedidos y Entregas"
-                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group ${
+                  className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group relative ${
                     currentView === 'orders'
                       ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
                       : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
                   }`}
                 >
                   <Receipt size={20} className="group-hover:scale-110 transition-transform text-slate-600 dark:text-zinc-400" />
+                  {pendingOrdersCount > 0 && (
+                    <span className="absolute top-2 right-3 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
+                      {pendingOrdersCount}
+                    </span>
+                  )}
                   <span className={`text-[11px] font-bold ${currentView === 'orders' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                     Pedidos
                   </span>
@@ -538,12 +599,23 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             </button>
 
             <button
-              onClick={() => navigate('/dashboard')}
-              title="Salir al Panel de AxonMarket"
+              onClick={() => {
+                if (isCashier) {
+                  if (window.confirm('¿Deseas bloquear la estación de caja y volver a la pantalla de PIN?')) {
+                    localStorage.removeItem('axon_cashier_mode');
+                    localStorage.removeItem('axonpos_active_user_role');
+                    const slug = localStorage.getItem('storeSlug');
+                    navigate(slug ? `/${slug}/caja` : '/pos');
+                  }
+                } else {
+                  navigate('/dashboard');
+                }
+              }}
+              title={isCashier ? "Bloquear Estación de Caja" : "Salir al Panel de AxonMarket"}
               className="w-full py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer font-bold group"
             >
               <LogOut size={20} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-[11px] font-extrabold text-red-600">Salir</span>
+              <span className="text-[11px] font-extrabold text-red-600">{isCashier ? 'Bloquear' : 'Salir'}</span>
             </button>
           </div>
 
@@ -801,48 +873,78 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           className="md:hidden sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/5 shrink-0 px-4 flex items-center justify-between"
           style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
         >
-          <div 
-            onClick={handleOpenVitrina}
-            title="Ver mi Vitrina"
-            className="flex items-center gap-2 max-w-[60%] cursor-pointer group active:scale-95 transition-transform select-none"
-          >
-            <div className="bg-gradient-to-tr from-orange-500 to-amber-600 p-1.5 rounded-lg text-white shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-              <ShoppingBag size={20} />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-1">
-                <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate group-hover:text-orange-600 transition-colors">
+          {isCashier ? (
+            <div className="flex items-center gap-2 max-w-[65%] select-none">
+              <div className="bg-gradient-to-tr from-orange-500 to-amber-600 p-1.5 rounded-lg text-white shrink-0 shadow-sm">
+                <Store size={20} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-sm font-black text-slate-800 dark:text-white truncate">
                   {storeName}
                 </h1>
-                <ExternalLink size={11} className="text-orange-500 opacity-70 shrink-0" />
+                <span className="text-[10px] font-bold text-orange-600 truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                  Caja: {activeUserName || 'Cajero'}
+                </span>
               </div>
-              <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest leading-none">
-                Ver Vitrina
-              </span>
             </div>
-          </div>
+          ) : (
+            <div 
+              onClick={handleOpenVitrina}
+              title="Ver mi Vitrina"
+              className="flex items-center gap-2 max-w-[60%] cursor-pointer group active:scale-95 transition-transform select-none"
+            >
+              <div className="bg-gradient-to-tr from-orange-500 to-amber-600 p-1.5 rounded-lg text-white shrink-0 group-hover:scale-105 transition-transform shadow-sm">
+                <ShoppingBag size={20} />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1">
+                  <h1 className="text-base font-extrabold text-slate-800 dark:text-white truncate group-hover:text-orange-600 transition-colors">
+                    {storeName}
+                  </h1>
+                  <ExternalLink size={11} className="text-orange-500 opacity-70 shrink-0" />
+                </div>
+                <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest leading-none">
+                  Ver Vitrina
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2.5 relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)} 
-              className="text-slate-500 hover:text-orange-500 p-2 relative cursor-pointer"
-              title="Notificaciones"
-            >
-              <Bell size={18} />
-              {notifications.filter(n => !n.is_read).length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              )}
-            </button>
+            {!isCashier && (
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)} 
+                className="text-slate-500 hover:text-orange-500 p-2 relative cursor-pointer"
+                title="Notificaciones"
+              >
+                <Bell size={18} />
+                {notifications.filter(n => !n.is_read).length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                )}
+              </button>
+            )}
             <button onClick={toggleTheme} className="text-slate-500 hover:text-orange-500 p-2 cursor-pointer">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button 
-              onClick={handleLogout} 
-              title="Cerrar sesión"
+              onClick={() => {
+                if (isCashier) {
+                  if (window.confirm('¿Deseas bloquear la estación de caja y volver a la pantalla de PIN?')) {
+                    localStorage.removeItem('axon_cashier_mode');
+                    localStorage.removeItem('axonpos_active_user_role');
+                    const slug = localStorage.getItem('storeSlug');
+                    navigate(slug ? `/${slug}/caja` : '/pos');
+                  }
+                } else {
+                  handleLogout();
+                }
+              }} 
+              title={isCashier ? "Bloquear Estación de Caja" : "Cerrar sesión"}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <LogOut size={14} />
-              <span>Salir</span>
+              <span>{isCashier ? 'Bloquear' : 'Salir'}</span>
             </button>
 
             {/* Dropdown de Notificaciones Mobile */}
@@ -1023,39 +1125,83 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         >
           <div className="flex items-center justify-around px-1 pt-2">
-            {[
-              { name: 'Inicio', path: '/dashboard', icon: Home },
-              { name: 'POS', path: '/pos', icon: ShoppingCart },
-              { name: 'Órdenes', path: '/orders', icon: ClipboardList },
-              { name: 'Inventario', path: '/inventory', icon: PackageSearch },
-              { name: 'Más', path: '/more', icon: Menu }
-            ].map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group"
-              >
-                {({ isActive }) => (
-                  <>
+            {isCashier ? (
+              // Barra Exclusiva de Terminal de Caja (Sin Inicio, Sin Inventario, Sin Más)
+              [
+                { name: 'Caja POS', path: '/pos?view=pos', icon: ShoppingCart },
+                { name: 'Pedidos', path: '/pos?view=orders', icon: ClipboardList, badge: pendingOrdersCount },
+                { name: 'Turno', path: '/pos?view=shifts', icon: DollarSign },
+              ].map((item) => {
+                const searchParams = new URLSearchParams(location.search);
+                const currentView = searchParams.get('view') || 'pos';
+                const isActive = (item.path.includes('view=orders') && (currentView === 'orders' || location.pathname === '/orders')) ||
+                                 (item.path.includes('view=shifts') && (currentView === 'shifts' || location.pathname === '/shifts')) ||
+                                 (item.path.includes('view=pos') && location.pathname === '/pos' && currentView === 'pos');
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.path)}
+                    className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[5rem] group cursor-pointer"
+                  >
                     {isActive && (
                       <div className="absolute inset-0 bg-orange-50 dark:bg-orange-500/10 rounded-2xl -z-10" />
                     )}
                     <div className={cn(
-                      "p-1.5 rounded-xl mb-0.5 transition-all duration-200",
+                      "p-1.5 rounded-xl mb-0.5 transition-all duration-200 relative",
                       isActive ? "text-orange-600 scale-110" : "text-slate-400"
                     )}>
                       <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                      {item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
                     </div>
                     <span className={cn(
                       "text-[10px] font-bold tracking-wide transition-colors",
-                      isActive ? "text-orange-600" : "text-slate-400"
+                      isActive ? "text-orange-600" : "text-slate-500 dark:text-zinc-400"
                     )}>
                       {item.name}
                     </span>
-                  </>
-                )}
-              </NavLink>
-            ))}
+                  </button>
+                );
+              })
+            ) : (
+              // Barra Completa para Propietario / Administrador
+              [
+                { name: 'Inicio', path: '/dashboard', icon: Home },
+                { name: 'POS', path: '/pos', icon: ShoppingCart },
+                { name: 'Órdenes', path: '/orders', icon: ClipboardList },
+                { name: 'Inventario', path: '/inventory', icon: PackageSearch },
+                { name: 'Más', path: '/more', icon: Menu }
+              ].map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.path}
+                  className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4rem] group"
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <div className="absolute inset-0 bg-orange-50 dark:bg-orange-500/10 rounded-2xl -z-10" />
+                      )}
+                      <div className={cn(
+                        "p-1.5 rounded-xl mb-0.5 transition-all duration-200",
+                        isActive ? "text-orange-600 scale-110" : "text-slate-400"
+                      )}>
+                        <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold tracking-wide transition-colors",
+                        isActive ? "text-orange-600" : "text-slate-400"
+                      )}>
+                        {item.name}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              ))
+            )}
           </div>
         </nav>
       )}

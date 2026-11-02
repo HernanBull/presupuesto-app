@@ -163,6 +163,9 @@ export default function QuickCashRegisterPage() {
   const proceedToFloatStep = () => {
     setPinVerified(true);
     authService.saveCurrentUser(selectedStaff);
+    localStorage.setItem('axonpos_active_user_role', selectedStaff.role || 'CASHIER');
+    localStorage.setItem('axonpos_active_user_name', selectedStaff.fullName || 'Cajero');
+    localStorage.setItem('axon_cashier_mode', selectedStaff.role === 'MASTER' ? 'false' : 'true');
     toast.success(`Identidad verificada: ${selectedStaff.fullName}`);
     setStep(2);
   };
@@ -197,6 +200,11 @@ export default function QuickCashRegisterPage() {
 
       await offlineDb.cash_shifts.put(newShift);
       localStorage.setItem('axon_active_shift', JSON.stringify(newShift));
+      localStorage.setItem('axon_cashier_mode', selectedStaff?.role === 'MASTER' ? 'false' : 'true');
+      localStorage.setItem('axonpos_active_user_role', selectedStaff?.role || 'CASHIER');
+      localStorage.setItem('axonpos_active_user_name', selectedStaff?.fullName || 'Cajero');
+      localStorage.setItem('axon_active_register_id', currentRegister?.id || 'caja-1');
+      localStorage.setItem('axon_active_register_name', currentRegister?.name || 'Caja Mostrador');
 
       // Sincronizar en Supabase cash_shifts para la Caja Maestra del SuperAdmin
       try {

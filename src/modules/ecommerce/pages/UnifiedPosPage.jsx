@@ -44,6 +44,12 @@ export default function UnifiedPosPage() {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+
+  // Rol de usuario actual y modo cajero
+  const [isCashier, setIsCashier] = useState(() => {
+    return localStorage.getItem('axonpos_active_user_role') === 'CASHIER' || 
+           localStorage.getItem('axon_cashier_mode') === 'true';
+  });
   
   // Modales Administrativos Críticos (AxonPOS ➔ AxonMarket)
   const [isCashShiftModalOpen, setIsCashShiftModalOpen] = useState(
@@ -1247,14 +1253,16 @@ export default function UnifiedPosPage() {
           
           {/* Lado Izquierdo: Buscador y Salir */}
           <div className={`${isCartOpen ? 'lg:col-span-8' : 'lg:col-span-9'} flex items-center gap-2 transition-all`}>
-            {/* Botón Salir al Menú / Dashboard */}
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="lg:hidden p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-colors cursor-pointer shadow-2xs shrink-0 flex items-center justify-center"
-              title="Volver al menú principal"
-            >
-              <ArrowLeft size={16} />
-            </button>
+            {/* Botón Salir al Menú / Dashboard (Solo Visible para Dueño/Admin, no para Cajero) */}
+            {!isCashier && (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="lg:hidden p-2 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-colors cursor-pointer shadow-2xs shrink-0 flex items-center justify-center"
+                title="Volver al menú principal"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
 
             {/* Input Buscador con scanner */}
             <div className="flex items-center gap-2 flex-1 min-w-0 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200/80 dark:border-white/10 shadow-2xs focus-within:ring-2 focus-within:ring-orange-500/30">
@@ -1286,19 +1294,25 @@ export default function UnifiedPosPage() {
           <div className={`${isCartOpen ? 'lg:col-span-4' : 'lg:col-span-3'} flex items-center justify-end gap-1.5 transition-all`}>
             {/* Botón de Gestión de Pedidos Online (Tablero Kanban) */}
             <button
-              onClick={() => navigate('/orders')}
-              className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs relative shrink-0"
-              title="Gestión de Pedidos en línea (Tablero Kanban)"
+              onClick={() => {
+                if (activeTab === 'orders') {
+                  navigate('/pos?view=pos');
+                } else {
+                  navigate('/pos?view=orders');
+                }
+              }}
+              className={`flex items-center gap-1.5 border px-2.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs relative shrink-0 ${
+                activeTab === 'orders'
+                  ? 'bg-orange-500 text-white border-orange-600 shadow-orange-500/20'
+                  : 'bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-orange-400 hover:text-orange-600'
+              }`}
+              title="Atender Pedidos Virtuales / Tienda Online"
             >
-              <Package size={14} className="text-orange-500 shrink-0" />
-              <span>Pedidos</span>
-              {pendingOrdersCount > 0 ? (
+              <Package size={14} className={activeTab === 'orders' ? 'text-white shrink-0' : 'text-orange-500 shrink-0'} />
+              <span>{activeTab === 'orders' ? 'Mostrador' : 'Pedidos'}</span>
+              {pendingOrdersCount > 0 && (
                 <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black text-white bg-gradient-to-r from-orange-500 to-amber-500 rounded-full shadow-2xs animate-pulse">
                   {pendingOrdersCount}
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-full">
-                  0
                 </span>
               )}
             </button>
@@ -1346,25 +1360,29 @@ export default function UnifiedPosPage() {
               <Settings size={15} />
             </button>
 
-            {/* Centro de Control Maestro: Equipo & Cajas Registradoras */}
-            <button 
-              onClick={() => setIsUserManagementModalOpen(true)}
-              className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Equipo, Permisos y Cajas Registradoras (QR y PIN)"
-            >
-              <Users size={14} className="text-orange-500 shrink-0" />
-              <span className="hidden sm:inline">Equipo & Cajas</span>
-            </button>
+            {/* Centro de Control Maestro: Equipo & Cajas Registradoras (Solo visible para Dueño/Admin) */}
+            {!isCashier && (
+              <button 
+                onClick={() => setIsUserManagementModalOpen(true)}
+                className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Equipo, Permisos y Cajas Registradoras (QR y PIN)"
+              >
+                <Users size={14} className="text-orange-500 shrink-0" />
+                <span className="hidden sm:inline">Equipo & Cajas</span>
+              </button>
+            )}
 
-            {/* Centro de Respaldos ACID .axonbak (AxonPOS Módulo 2) */}
-            <button 
-              onClick={() => setIsBackupModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Centro de Respaldos & Disaster Recovery (.axonbak)"
-            >
-              <Database size={14} className="text-emerald-500 shrink-0" />
-              <span className="hidden 2xl:inline">Respaldo</span>
-            </button>
+            {/* Centro de Respaldos ACID .axonbak (Solo visible para Dueño/Admin) */}
+            {!isCashier && (
+              <button 
+                onClick={() => setIsBackupModalOpen(true)}
+                className="hidden md:flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
+                title="Centro de Respaldos & Disaster Recovery (.axonbak)"
+              >
+                <Database size={14} className="text-emerald-500 shrink-0" />
+                <span className="hidden 2xl:inline">Respaldo</span>
+              </button>
+            )}
           </div>
 
         </div>
