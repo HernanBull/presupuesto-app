@@ -1036,7 +1036,8 @@ export default function CustomerProfile() {
         
         {/* Mobile/Desktop Menu List Claro */}
         <div className={`${activeTab === 'menu' ? 'block' : 'hidden'} md:block md:col-span-1 space-y-4`}>
-          {/* Group 1 */}
+          {/* Group 1: Niveles y Logros (Oculto temporalmente a solicitud del usuario) */}
+          {/*
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
             <button 
               className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'niveles' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} 
@@ -1055,6 +1056,7 @@ export default function CustomerProfile() {
                </div>
             </button>
           </div>
+          */}
           
           {/* Group 2 */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
