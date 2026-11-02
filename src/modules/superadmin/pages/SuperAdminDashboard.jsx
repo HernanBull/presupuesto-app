@@ -39,6 +39,7 @@ export default function SuperAdminDashboard({ superKey }) {
   const [trialMerchants, setTrialMerchants] = useState([]);
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [copiedRef, setCopiedRef] = useState(null);
+  const [previewReceiptUrl, setPreviewReceiptUrl] = useState(null);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -136,6 +137,8 @@ export default function SuperAdminDashboard({ superKey }) {
                 payment_date: lastPay.payment_date || lastPay.created_at || ws.created_at,
                 contact_phone: lastPay.contact_phone || contactMap[ws.id]?.phone || cfg.contact?.phone || '-',
                 status: lastPay.status || (ws.status === 'Pago_En_Revision' ? 'Pendiente' : 'Aprobado'),
+                receipt_url: lastPay.receipt_url || lastPay.screenshot_url || null,
+                plan_type: lastPay.plan_type || (Number(lastPay.amount_usd) >= 50 ? 'trimestral' : 'mensual'),
                 created_at: lastPay.created_at || ws.created_at
               };
             }
@@ -1256,6 +1259,33 @@ export default function SuperAdminDashboard({ superKey }) {
                               </div>
                             </div>
 
+                            {pay.receipt_url && (
+                              <div className="flex items-center justify-between bg-orange-50/70 border border-orange-200/80 rounded-xl px-3 py-2">
+                                <div className="flex items-center gap-1.5 text-xs font-black text-orange-950">
+                                  <Eye size={14} className="text-orange-600" />
+                                  <span>Comprobante Adjunto</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewReceiptUrl(pay.receipt_url)}
+                                    className="text-[11px] font-black bg-orange-600 text-white px-2.5 py-1 rounded-lg hover:bg-orange-700 transition-colors shadow-2xs"
+                                  >
+                                    Ver Captura
+                                  </button>
+                                  <a
+                                    href={pay.receipt_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 text-orange-600 hover:text-orange-800"
+                                    title="Abrir en pestaña nueva"
+                                  >
+                                    <ExternalLink size={13} />
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="flex items-center justify-between border-t border-slate-100 pt-3">
                               {pay.contact_phone && (
                                 <a 
@@ -1344,6 +1374,27 @@ export default function SuperAdminDashboard({ superKey }) {
                                       {copiedRef === pay.reference ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                                     </button>
                                   </div>
+                                  {pay.receipt_url && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewReceiptUrl(pay.receipt_url)}
+                                        className="inline-flex items-center gap-1 text-[11px] font-black text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200/80 px-2 py-0.5 rounded transition-colors"
+                                        title="Ver comprobante adjunto"
+                                      >
+                                        <Eye size={12} /> Comprobante
+                                      </button>
+                                      <a
+                                        href={pay.receipt_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-slate-400 hover:text-orange-600"
+                                        title="Abrir en pestaña nueva"
+                                      >
+                                        <ExternalLink size={11} />
+                                      </a>
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="py-3.5 px-4 text-xs font-bold text-slate-800">
                                   {pay.bank_origin || 'BNC'}
@@ -2296,6 +2347,80 @@ export default function SuperAdminDashboard({ superKey }) {
                     </div>
                   </>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Preview de Comprobante / Captura */}
+      <AnimatePresence>
+        {previewReceiptUrl && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200"
+            >
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <Eye className="text-orange-600" size={18} />
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    Comprobante de Pago Móvil BNC
+                  </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={previewReceiptUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-200 transition-colors"
+                    title="Abrir en pestaña nueva"
+                  >
+                    <ExternalLink size={18} />
+                  </a>
+                  <button
+                    onClick={() => setPreviewReceiptUrl(null)}
+                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-zinc-950/5 min-h-[300px]">
+                {previewReceiptUrl.startsWith('data:application/pdf') || previewReceiptUrl.endsWith('.pdf') ? (
+                  <iframe 
+                    src={previewReceiptUrl} 
+                    className="w-full h-[70vh] rounded-xl border border-slate-200"
+                    title="Comprobante PDF"
+                  />
+                ) : (
+                  <img
+                    src={previewReceiptUrl}
+                    alt="Comprobante de pago"
+                    className="max-h-[75vh] w-auto object-contain rounded-xl shadow-md border border-slate-200 bg-white"
+                  />
+                )}
+              </div>
+
+              <div className="p-3 border-t border-slate-100 bg-white flex justify-end gap-2">
+                <a
+                  href={previewReceiptUrl}
+                  download="comprobante_pago"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5"
+                >
+                  <Download size={14} /> Descargar
+                </a>
+                <button
+                  onClick={() => setPreviewReceiptUrl(null)}
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cerrar
+                </button>
               </div>
             </motion.div>
           </div>

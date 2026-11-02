@@ -41,6 +41,7 @@ import OnboardingChecklistPage from './pages/OnboardingChecklistPage';
 import UnifiedPosPage from './pages/UnifiedPosPage';
 import MerchantMorePage from './pages/MerchantMorePage';
 import MerchantLoginPage from './pages/MerchantLoginPage';
+import MerchantSubscriptionPage from './pages/MerchantSubscriptionPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -441,6 +442,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="cart-settings" element={<CartSettings />} />
           <Route path="location" element={<StoreLocationManager />} />
           <Route path="more" element={<MerchantMorePage />} />
+          <Route path="subscription" element={<MerchantSubscriptionPage />} />
+          <Route path="plan-vip" element={<MerchantSubscriptionPage />} />
 
         </Route>
       </Route>

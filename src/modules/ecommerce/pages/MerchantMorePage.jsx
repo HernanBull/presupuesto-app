@@ -276,35 +276,6 @@ export default function MerchantMorePage() {
       </div>
 
       <div className="px-5 space-y-5 mt-2">
-        
-        {/* ========================================================
-            SECCIÓN: PARA EMPEZAR
-            ======================================================== */}
-        <div>
-          <p className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 px-1">
-            Para empezar
-          </p>
-          <div
-            onClick={() => navigate('/setup')}
-            className="bg-white dark:bg-zinc-900 rounded-3xl p-4 border border-slate-200/80 dark:border-white/10 shadow-xs flex items-center justify-between gap-3 hover:border-orange-400 transition-all cursor-pointer group active:scale-99"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                <Rocket size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-orange-600 transition-colors">
-                  Puesta en marcha
-                </h3>
-                <p className="text-xs text-slate-400 font-medium">
-                  4 de 4 pasos completados
-                </p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all" />
-          </div>
-        </div>
-
         {/* ========================================================
             BLOQUE DE PERFIL DEL COMERCIANTE (CENTRAL COMMERCY)
             ======================================================== */}
@@ -349,17 +320,20 @@ export default function MerchantMorePage() {
         </div>
 
         {/* ========================================================
-            BANNER: PLANES PROFESIONALES & CONTADOR DE TRIAL 7 DÍAS
+            BANNER: PLAN VIP & TEMPORIZADOR DE TRIAL 7 DÍAS
             ======================================================== */}
-        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in space-y-4">
-          <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none">
+        <div 
+          onClick={() => navigate('/subscription')}
+          className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in space-y-3.5 cursor-pointer hover:shadow-orange-500/30 transition-all group"
+        >
+          <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none group-hover:scale-110 transition-transform">
             <Sparkles size={80} />
           </div>
           <div className="relative z-10 space-y-3">
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider">
                 <Sparkles size={12} />
-                <span>Planes Profesionales</span>
+                <span>Plan VIP</span>
               </div>
               <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                 workspaceStatus === 'Activo' 
@@ -378,71 +352,43 @@ export default function MerchantMorePage() {
 
             <div>
               <h4 className="text-base sm:text-lg font-black leading-tight">
-                {workspaceStatus === 'Activo' ? 'Tu comercio cuenta con acceso completo' : 'Prueba Gratuita de 7 Días'}
+                {workspaceStatus === 'Activo' ? 'Tu comercio cuenta con Plan VIP Activo' : 'Prueba Gratuita de 7 Días'}
               </h4>
               <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
                 {workspaceStatus === 'Activo'
-                  ? 'Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo.'
-                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Paga mensualmente $30 o aprovecha la promo trimestral de $60 (¡1 mes gratis!).`
+                  ? 'Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo sin límites.'
+                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Entra a ver los planes y reportar tu Pago Móvil BNC.`
                 }
               </p>
             </div>
 
-            {/* Opciones de Planes Destacadas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <div className="bg-black/15 backdrop-blur-md rounded-2xl p-3 border border-white/15">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span>Plan Mensual</span>
-                  <span className="font-mono text-sm font-black">$30 / mes</span>
-                </div>
-                <p className="text-[10px] text-white/80 mt-0.5">Acceso completo estándar mensual.</p>
-              </div>
-
-              <div className="bg-black/25 backdrop-blur-md rounded-2xl p-3 border-2 border-white/30 relative">
-                <span className="absolute -top-2 right-2 bg-emerald-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs">
-                  Paga 2 Lleva 3
-                </span>
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span>Plan Trimestral</span>
-                  <span className="font-mono text-sm font-black text-amber-200">$60 (3 meses)</span>
-                </div>
-                <p className="text-[10px] text-white/90 mt-0.5">¡1 mes GRATIS! Ahorras $30.</p>
-              </div>
-            </div>
-
-            {/* Mención Cashea Próximamente */}
-            <div className="bg-white/15 backdrop-blur-md rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2 border border-white/20">
-              <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
-                <span>💳 Próximamente: Paga en cuotas sin interés con Cashea</span>
-              </span>
-              <span className="text-[9px] uppercase font-black bg-white/25 px-2 py-0.5 rounded-full">
-                Pronto
-              </span>
-            </div>
-
-            {/* Barra de progreso visual de los 7 días */}
+            {/* Temporizador visual de los 7 días */}
             {workspaceStatus !== 'Activo' && (
-              <div className="space-y-1 pt-1">
-                <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden p-0.5">
+              <div className="space-y-1.5 pt-1">
+                <div className="w-full bg-black/20 h-2.5 rounded-full overflow-hidden p-0.5">
                   <div 
                     className="bg-white h-full rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, Math.max(12, (trialDaysRemaining / 7) * 100))}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-[10px] text-white/80 font-bold">
+                <div className="flex justify-between text-[10px] text-white/90 font-bold">
                   <span>Día {Math.max(1, 8 - trialDaysRemaining)} de 7</span>
-                  <span>{trialDaysRemaining > 0 ? `${trialDaysRemaining} días restantes` : 'Culminado'}</span>
+                  <span className="font-mono">{trialDaysRemaining > 0 ? `${trialDaysRemaining} días restantes` : 'Culminado'}</span>
                 </div>
               </div>
             )}
 
-            <button
-              onClick={() => setIsSubscriptionModalOpen(true)}
-              className="mt-1 w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-orange-50 text-orange-600 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <CreditCard size={15} />
-              <span>{workspaceStatus === 'Activo' ? 'Ver Datos de Pago Móvil' : 'Ver Planes & Pagar con BNC'}</span>
-            </button>
+            <div className="pt-1 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); navigate('/subscription'); }}
+                className="px-5 py-2.5 bg-white hover:bg-orange-50 text-orange-600 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer"
+              >
+                <CreditCard size={15} />
+                <span>{workspaceStatus === 'Activo' ? 'Ver Planes & Datos de Pago' : 'Ver Planes VIP & Pagar con BNC'}</span>
+              </button>
+              <ChevronRight size={20} className="text-white/80 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
         </div>
 
