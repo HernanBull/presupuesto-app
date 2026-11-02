@@ -20,6 +20,7 @@ export default function EcommerceDashboard() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [bcvRate, setBcvRate] = useState(888.89);
 
   // Ocultar montos / divisas (tipo app bancaria)
   const [hideFinancials, setHideFinancials] = useState(() => {
@@ -136,6 +137,19 @@ export default function EcommerceDashboard() {
             slug: rawSlug,
             merchantName: ownerName || ''
           });
+
+          // Extraer tasa BCV configurada o consultar API oficial
+          if (wsData?.config?.bcvRate) {
+            setBcvRate(Number(wsData.config.bcvRate));
+          }
+          fetch('https://axonmarket-api.onrender.com/api/bcv')
+            .then(res => res.json())
+            .then(bcvRes => {
+              if (bcvRes?.rate && !wsData?.config?.manualBcv) {
+                setBcvRate(Number(bcvRes.rate));
+              }
+            })
+            .catch(() => {});
         }
 
         // 2. Fechas de cálculo
@@ -336,7 +350,15 @@ export default function EcommerceDashboard() {
   const storeUrl = storeSlug ? `/${storeSlug}` : '/';
 
   const stats = [
-    { title: 'Ventas Totales', value: hideFinancials ? '••••' : `$${(summary.revenue || 0).toFixed(2)}`, change: formatChange(summary.revenueChange), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { 
+      title: 'Ventas Totales', 
+      value: hideFinancials ? '••••' : `$${(summary.revenue || 0).toFixed(2)}`, 
+      subValue: hideFinancials ? '••••' : `Bs. ${((summary.revenue || 0) * bcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: formatChange(summary.revenueChange), 
+      icon: DollarSign, 
+      color: 'text-emerald-500', 
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10' 
+    },
     { title: 'Pedidos', value: (summary.orders || 0).toString(), change: formatChange(summary.ordersChange), icon: ShoppingCart, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
     { title: 'Productos', value: (summary.products || 0).toString(), change: formatChange(summary.productsChange), icon: Package, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
     { title: 'Ticket Promedio', value: hideFinancials ? '••••' : `$${(summary.aov || 0).toFixed(2)}`, change: formatChange(summary.aovChange), icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
@@ -344,6 +366,7 @@ export default function EcommerceDashboard() {
 
   // Variables para la vista móvil
   const currentSales = mobilePeriod === 'today' ? todayMetrics.sales : monthMetrics.sales;
+  const currentSalesVes = currentSales * bcvRate;
   const currentOrdersCount = mobilePeriod === 'today' ? todayMetrics.orders : monthMetrics.orders;
   const currentAov = mobilePeriod === 'today' ? todayMetrics.aov : monthMetrics.aov;
   const comparisonText = mobilePeriod === 'today' 
@@ -421,14 +444,31 @@ export default function EcommerceDashboard() {
 
           {/* Métrica Hero Principal: Vendiste hoy / Vendiste este mes */}
           <div className="mb-6 relative z-10">
-            <p className="text-xs font-bold text-white/80 uppercase tracking-wider">
-              {mobilePeriod === 'today' ? 'Vendiste hoy' : 'Vendiste este mes'}
-            </p>
-            <div className="flex items-baseline gap-1 mt-1">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-white/80 uppercase tracking-wider">
+                {mobilePeriod === 'today' ? 'Vendiste hoy' : 'Vendiste este mes'}
+              </p>
+              {bcvRate > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm border border-white/20">
+                  Tasa BCV: {bcvRate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/$
+                </span>
+              )}
+            </div>
+
+            {/* Monto en Divisas ($) */}
+            <div className="flex items-baseline gap-1 mt-1.5">
               <span className="text-2xl font-black font-mono text-white/90">$</span>
               <h2 className="text-5xl font-black font-mono tracking-tight text-white leading-none">
                 {hideFinancials ? '••••' : currentSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </h2>
+            </div>
+
+            {/* Conversión Oficial a Bolívares (Bs.) */}
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-white/75 uppercase tracking-wide">Equivalente:</span>
+              <span className="text-lg font-black font-mono text-amber-200 tracking-tight drop-shadow-xs">
+                {hideFinancials ? '••••••••' : `Bs. ${currentSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </span>
             </div>
             
             <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[11px] font-bold border border-white/10">
@@ -743,6 +783,11 @@ export default function EcommerceDashboard() {
                   <h3 className="text-xl md:text-3xl font-extrabold text-slate-900 dark:text-white mt-1.5 tracking-tight">
                     {stat.value}
                   </h3>
+                  {stat.subValue && (
+                    <p className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-1 font-mono">
+                      ≈ {stat.subValue}
+                    </p>
+                  )}
                 </div>
                 <div className={`p-2.5 rounded-2xl hidden sm:flex items-center justify-center ${stat.bg} shadow-xs`}>
                   <stat.icon size={20} className={stat.color} />
