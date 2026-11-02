@@ -225,15 +225,7 @@ export default function MerchantMorePage() {
       color: 'text-amber-500',
       bg: 'bg-amber-50 dark:bg-amber-500/10'
     },
-    {
-      id: 'caja',
-      name: 'Caja & Turnos (F9)',
-      desc: 'Arqueos ciegos, aperturas y reportes Z',
-      onClick: () => setIsCashShiftModalOpen(true),
-      icon: Wallet,
-      color: 'text-emerald-500',
-      bg: 'bg-emerald-50 dark:bg-emerald-500/10'
-    },
+
     {
       id: 'facturacion',
       name: 'Facturación & SENIAT',

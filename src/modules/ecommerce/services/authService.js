@@ -635,11 +635,35 @@ class AuthService {
     return updated;
   }
 
-  // Cajas Registradoras aisladas por Workspace
+  saveCurrentUser(user) {
+    this.setCurrentUser(user);
+  }
+
+  // Cajas Registradoras aisladas por Workspace (sincronizadas con Supabase workspaces.config)
   async getCashRegisters(wsId) {
     const workspaceId = wsId || getActiveWorkspaceId();
     await ensureMasterUser(workspaceId);
-    return await offlineDb.cash_registers.where('workspace_id').equals(workspaceId).toArray();
+    let regs = await offlineDb.cash_registers.where('workspace_id').equals(workspaceId).toArray();
+
+    // Sincronizar desde workspaces.config.cashRegisters en Supabase
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      if (ws?.config?.cashRegisters && Array.isArray(ws.config.cashRegisters)) {
+        const regMap = new Map();
+        regs.forEach(r => regMap.set(r.id, r));
+        for (const cloudReg of ws.config.cashRegisters) {
+          if (!regMap.has(cloudReg.id)) {
+            const mappedReg = { ...cloudReg, workspace_id: workspaceId };
+            regs.push(mappedReg);
+            await offlineDb.cash_registers.put(mappedReg);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[authService] Error sincronizando cajas desde Supabase:', e);
+    }
+
+    return regs;
   }
 
   async saveCashRegister(register, performedBy = 'Propietario', wsId) {
@@ -659,6 +683,23 @@ class AuthService {
       createdAt: register.createdAt || new Date().toISOString()
     };
     await offlineDb.cash_registers.put(record);
+
+    // Sincronizar en Supabase workspaces.config.cashRegisters
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const currentConfig = ws?.config || {};
+      const currentRegs = currentConfig.cashRegisters || [];
+      const updatedRegs = currentRegs.filter(r => r.id !== record.id);
+      updatedRegs.push(record);
+      await supabase.from('workspaces').update({
+        config: {
+          ...currentConfig,
+          cashRegisters: updatedRegs
+        }
+      }).eq('id', workspaceId);
+    } catch (e) {
+      console.warn('[authService] Error persistiendo caja en Supabase:', e);
+    }
 
     await this.addAuditLog(
       isNew ? 'REGISTER_CREATED' : 'REGISTER_UPDATED',

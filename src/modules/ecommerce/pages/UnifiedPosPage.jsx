@@ -1346,25 +1346,14 @@ export default function UnifiedPosPage() {
               <Settings size={15} />
             </button>
 
-            {/* Control de Caja & Turnos F9 (AxonPOS Módulo 3) */}
-            <button 
-              onClick={() => setIsCashShiftModalOpen(true)}
-              className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Control de Caja, Turnos y Arqueo Ciego (Atajo F9)"
-            >
-              <Wallet size={14} className="text-orange-500 shrink-0" />
-              <span className="hidden xl:inline">Caja</span>
-              <kbd className="hidden sm:inline bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border border-orange-200 dark:border-orange-800">F9</kbd>
-            </button>
-
-            {/* Centro de Control Maestro: Personal & Cajas (AxonPOS Módulo 1) */}
+            {/* Centro de Control Maestro: Equipo & Cajas Registradoras */}
             <button 
               onClick={() => setIsUserManagementModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-              title="Centro de Control Maestro: Personal & PINes"
+              className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
+              title="Equipo, Permisos y Cajas Registradoras (QR y PIN)"
             >
-              <Users size={14} className="text-amber-500 shrink-0" />
-              <span className="hidden 2xl:inline">Personal</span>
+              <Users size={14} className="text-orange-500 shrink-0" />
+              <span className="hidden sm:inline">Equipo & Cajas</span>
             </button>
 
             {/* Centro de Respaldos ACID .axonbak (AxonPOS Módulo 2) */}
