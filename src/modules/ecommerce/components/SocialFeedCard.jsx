@@ -76,17 +76,41 @@ export default function SocialFeedCard({
   const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const userPausedRef = useRef(false);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
+
+  // Control manual de Play/Pausa al tocar el video
+  const togglePlayPause = (e) => {
+    e?.stopPropagation();
+    if (!isVideo || !videoRef.current) return;
+
+    if (videoRef.current.paused || !isPlaying) {
+      userPausedRef.current = false;
+      setActiveMedia(postId, videoRef.current);
+      setIsPlaying(true);
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {});
+      }
+    } else {
+      userPausedRef.current = true;
+      videoRef.current.pause();
+      setIsPlaying(false);
+      clearActiveMedia(postId);
+    }
+  };
 
   // Sincronizar estado isPlaying con isActive coordinado globalmente
   useEffect(() => {
     if (!isVideo) return;
     if (isActive) {
-      setIsPlaying(true);
-      if (videoRef.current && videoRef.current.paused) {
-        const playPromise = videoRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {});
+      if (!userPausedRef.current) {
+        setIsPlaying(true);
+        if (videoRef.current && videoRef.current.paused) {
+          const playPromise = videoRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {});
+          }
         }
       }
     } else {
@@ -138,12 +162,13 @@ export default function SocialFeedCard({
 
           if (isVideo) {
             if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-              // El video está enfocado en pantalla (>55% visible): activar reproducción atómica
-              if (videoRef.current) {
+              // El video está enfocado en pantalla (>55% visible): activar reproducción solo si el usuario no lo pausó manualmente
+              if (videoRef.current && !userPausedRef.current) {
                 setActiveMedia(postId, videoRef.current);
               }
             } else if (!entry.isIntersecting || entry.intersectionRatio < 0.35) {
-              // Al scrollear y salir del foco: ceder el control inmediatamente
+              // Al scrollear y salir del foco: ceder el control y resetear pausa manual
+              userPausedRef.current = false;
               clearActiveMedia(postId);
             }
           }
@@ -156,6 +181,7 @@ export default function SocialFeedCard({
     return () => {
       observer.disconnect();
       if (isVideo) {
+        userPausedRef.current = false;
         clearActiveMedia(postId);
       }
     };
@@ -355,7 +381,10 @@ export default function SocialFeedCard({
     >
       {/* Background Media - 100% Pantalla Completa TikTok */}
       {isVideo ? (
-        <div className="absolute inset-0 w-full h-full bg-black z-0">
+        <div 
+          className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer"
+          onClick={togglePlayPause}
+        >
           <video
             ref={videoRef}
             src={resolveImageUrl(post.video_url || storeCover)}
@@ -363,23 +392,11 @@ export default function SocialFeedCard({
             loop
             preload="none"
             muted={isMutedGlobal}
-            className="w-full h-full object-cover"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (videoRef.current) {
-                if (videoRef.current.paused) {
-                  setActiveMedia(postId, videoRef.current);
-                  setIsPlaying(true);
-                } else {
-                  clearActiveMedia(postId);
-                  setIsPlaying(false);
-                }
-              }
-            }}
+            className="w-full h-full object-cover pointer-events-none"
           />
           {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl">
+              <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl transition-transform active:scale-95">
                 <Play size={32} fill="currentColor" className="translate-x-0.5 text-amber-400" />
               </div>
             </div>

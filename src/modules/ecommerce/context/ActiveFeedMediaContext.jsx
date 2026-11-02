@@ -13,6 +13,11 @@ export const ActiveFeedMediaProvider = ({ children }) => {
   const [activeMediaId, setActiveMediaId] = useState(null);
   const [isMutedGlobal, setIsMutedGlobal] = useState(false);
   const currentVideoRef = useRef(null);
+  const activeMediaIdRef = useRef(null);
+  const isMutedGlobalRef = useRef(false);
+
+  activeMediaIdRef.current = activeMediaId;
+  isMutedGlobalRef.current = isMutedGlobal;
 
   const setActiveMedia = useCallback((id, videoEl) => {
     // Si ya hay un video reproduciéndose y es diferente, pausarlo de inmediato
@@ -27,7 +32,7 @@ export const ActiveFeedMediaProvider = ({ children }) => {
 
     // Reproducir atómicamente el video enfocado
     if (videoEl) {
-      videoEl.muted = isMutedGlobal;
+      videoEl.muted = isMutedGlobalRef.current;
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
@@ -37,10 +42,10 @@ export const ActiveFeedMediaProvider = ({ children }) => {
         });
       }
     }
-  }, [isMutedGlobal]);
+  }, []);
 
   const clearActiveMedia = useCallback((id) => {
-    if (activeMediaId === id) {
+    if (activeMediaIdRef.current === id) {
       if (currentVideoRef.current) {
         try {
           currentVideoRef.current.pause();
@@ -49,7 +54,7 @@ export const ActiveFeedMediaProvider = ({ children }) => {
       currentVideoRef.current = null;
       setActiveMediaId(null);
     }
-  }, [activeMediaId]);
+  }, []);
 
   const toggleMutedGlobal = useCallback(() => {
     setIsMutedGlobal(prev => {
