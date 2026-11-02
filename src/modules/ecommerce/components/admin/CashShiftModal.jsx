@@ -24,6 +24,7 @@ import {
   RotateCcw,
   Tag
 } from 'lucide-react';
+import { supabase } from '../../../../supabaseClient';
 import { offlineDb } from '../../services/offlineSyncService';
 import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
@@ -139,6 +140,30 @@ export default function CashShiftModal({
     await offlineDb.cash_shifts.put(newShift);
     localStorage.setItem('axon_active_shift', JSON.stringify(newShift));
     if (onShiftChange) onShiftChange(newShift);
+
+    // Sincronizar en Supabase cash_shifts para la Caja Maestra
+    try {
+      const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
+      const storeSlug = localStorage.getItem('storeSlug') || '';
+      await supabase.from('cash_shifts').insert([{
+        branch_id: storeSlug || activeWs,
+        register_name: openRegisterName,
+        cashier_name: openCashierName,
+        opened_at: newShift.openedAt,
+        initial_usd: newShift.initialUsd,
+        initial_ves: newShift.initialVes,
+        expected_usd: newShift.initialUsd,
+        expected_ves: newShift.initialVes,
+        status: 'OPEN',
+        notes: JSON.stringify({
+          bcvRate: Number(bcvRate) || 888.89,
+          storeName
+        })
+      }]);
+    } catch (errDb) {
+      console.warn('Advertencia sincronizando turno a Supabase:', errDb);
+    }
+
     toast.success(`Turno abierto con éxito en ${openRegisterName}`);
     setActiveTab('status');
   };
@@ -200,6 +225,31 @@ export default function CashShiftModal({
     await offlineDb.cash_shifts.put(closedShift);
     localStorage.removeItem('axon_active_shift');
     if (onShiftChange) onShiftChange(null);
+
+    // Actualizar en Supabase cash_shifts
+    try {
+      const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
+      const storeSlug = localStorage.getItem('storeSlug') || '';
+      await supabase
+        .from('cash_shifts')
+        .update({
+          closed_at: closedShift.closedAt,
+          actual_usd: actUsd,
+          actual_ves: actVes,
+          expected_usd: expectedUsd,
+          expected_ves: expectedVes,
+          difference_usd: diffUsd,
+          difference_ves: diffVes,
+          status: 'CLOSED'
+        })
+        .match({
+          branch_id: storeSlug || activeWs,
+          status: 'OPEN'
+        });
+    } catch (errDb) {
+      console.warn('Advertencia cerrando turno en Supabase:', errDb);
+    }
+
     toast.success('Turno cerrado y archivado con éxito.');
     onClose();
   };

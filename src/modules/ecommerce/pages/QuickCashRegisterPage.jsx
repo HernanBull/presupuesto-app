@@ -188,6 +188,29 @@ export default function QuickCashRegisterPage() {
 
       await offlineDb.cash_shifts.put(newShift);
       localStorage.setItem('axon_active_shift', JSON.stringify(newShift));
+
+      // Sincronizar en Supabase cash_shifts para la Caja Maestra del SuperAdmin
+      try {
+        const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
+        await supabase.from('cash_shifts').insert([{
+          branch_id: storeSlug || activeWs,
+          register_name: currentRegister?.name || 'Caja 1',
+          cashier_name: selectedStaff?.fullName || 'Cajero',
+          opened_at: newShift.openedAt,
+          initial_usd: parsedUsd,
+          initial_ves: parsedVes,
+          expected_usd: parsedUsd,
+          expected_ves: parsedVes,
+          status: 'OPEN',
+          notes: JSON.stringify({
+            registerCode: currentRegister?.code || 'CAJA-01',
+            bcvRate: Number(bcvRate) || 888.89,
+            storeName
+          })
+        }]);
+      } catch (errDb) {
+        console.warn('Advertencia sincronizando turno a Supabase:', errDb);
+      }
       
       toast.success(`¡Turno abierto en ${currentRegister?.name}! Listo para cobrar.`);
       navigate('/pos');

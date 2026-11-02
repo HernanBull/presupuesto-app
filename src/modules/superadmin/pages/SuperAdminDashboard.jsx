@@ -4,7 +4,8 @@ import {
   Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, 
   BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, 
   ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check, Clock, CreditCard, 
-  Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw 
+  Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw,
+  Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -13,6 +14,7 @@ import DeliveryFleetDashboard from './DeliveryFleetDashboard';
 import BotControlPanel from './BotControlPanel';
 import HardwareSecurityPanel from './HardwareSecurityPanel';
 import AgencySuperuserManager from './AgencySuperuserManager';
+import GlobalCashMasterView from './GlobalCashMasterView';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -978,6 +980,17 @@ export default function SuperAdminDashboard({ superKey }) {
           >
             <Users size={18} /> Clientes
           </button>
+          <button 
+            onClick={() => setActiveTab('global_cash')}
+            className={`min-w-[170px] flex-1 py-4 px-3 rounded-2xl flex items-center justify-center gap-2.5 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'global_cash' 
+                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-[0_0_25px_rgba(234,88,12,0.4)]' 
+                : 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200/80 shadow-xs'
+            }`}
+          >
+            <Wallet size={18} /> 
+            <span>Caja Maestra Global</span>
+          </button>
         </div>
 
         {/* Content Box */}
@@ -1654,6 +1667,8 @@ export default function SuperAdminDashboard({ superKey }) {
               </div>
 
             </div>
+          ) : activeTab === 'global_cash' ? (
+            <GlobalCashMasterView />
           ) : activeTab === 'security' ? (
             <HardwareSecurityPanel superKey={superKey} />
           ) : activeTab === 'delivery_fleet' ? (
