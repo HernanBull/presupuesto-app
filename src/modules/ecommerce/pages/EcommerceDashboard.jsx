@@ -22,7 +22,11 @@ export default function EcommerceDashboard() {
   const [lowStockCount, setLowStockCount] = useState(0);
 
   // Estados específicos para la vista móvil estilo Commercy (en Naranja Corporativo)
-  const [storeInfo, setStoreInfo] = useState({ name: 'Jhonvip', slug: 'jhonvip' });
+  const [storeInfo, setStoreInfo] = useState(() => ({ 
+    name: localStorage.getItem('merchant_store_name') || 'Mi Comercio', 
+    slug: localStorage.getItem('storeSlug') || '',
+    merchantName: (localStorage.getItem('merchant_store_name') || 'Comerciante').split(' ')[0]
+  }));
   const [mobilePeriod, setMobilePeriod] = useState('today'); // 'today' | 'month'
   const [todayMetrics, setTodayMetrics] = useState({
     sales: 0,
@@ -43,7 +47,7 @@ export default function EcommerceDashboard() {
   // Saludo dinámico según la hora local
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const firstName = (storeInfo.name || 'Jhon').trim().split(' ')[0];
+    const firstName = (storeInfo.merchantName || storeInfo.name || 'Comerciante').trim().split(' ')[0];
     if (hour < 12) return `Buenos días, ${firstName}`;
     if (hour < 19) return `Buenas tardes, ${firstName}`;
     return `Buenas noches, ${firstName}`;
@@ -60,13 +64,21 @@ export default function EcommerceDashboard() {
         // 1. Datos de la tienda (Nombre y Vitrina)
         const { data: wsData } = await supabase
           .from('workspaces')
-          .select('name, slug')
+          .select('name, store_slug, config')
           .eq('id', workspaceId)
           .maybeSingle();
         if (wsData) {
+          const rawSlug = wsData.store_slug || localStorage.getItem('storeSlug') || '';
+          const rawName = wsData.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+          const ownerName = wsData.config?.contact?.name || wsData.config?.ownerName || rawName.split(' ')[0] || 'Comerciante';
+
+          if (wsData.store_slug) localStorage.setItem('storeSlug', wsData.store_slug);
+          if (wsData.name) localStorage.setItem('merchant_store_name', wsData.name);
+
           setStoreInfo({ 
-            name: wsData.name || 'Jhonvip', 
-            slug: wsData.slug || 'jhonvip' 
+            name: rawName, 
+            slug: rawSlug,
+            merchantName: ownerName
           });
         }
 

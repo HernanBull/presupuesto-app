@@ -16,11 +16,16 @@ import CashShiftModal from '../components/admin/CashShiftModal';
 
 export default function MerchantMorePage() {
   const navigate = useNavigate();
-  const [storeInfo, setStoreInfo] = useState({ 
-    name: 'Jhonvip', 
-    slug: 'jhonvip', 
-    plan: 'Profesional',
-    merchantName: 'Jhon'
+  const [storeInfo, setStoreInfo] = useState(() => {
+    const localStoreName = localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+    const localSlug = localStorage.getItem('storeSlug') || '';
+    const localFirstName = localStoreName.split(' ')[0] || 'Comerciante';
+    return { 
+      name: localStoreName, 
+      slug: localSlug, 
+      plan: 'Profesional',
+      merchantName: localFirstName
+    };
   });
   const [copied, setCopied] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
@@ -34,15 +39,21 @@ export default function MerchantMorePage() {
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      supabase.from('workspaces').select('name, slug, config, status').eq('id', wsId).maybeSingle()
+      supabase.from('workspaces').select('id, name, store_slug, config, status').eq('id', wsId).maybeSingle()
         .then(({ data, error }) => {
           if (!error && data) {
-            const firstName = (data.name || 'Jhon').split(' ')[0];
+            const rawSlug = data.store_slug || localStorage.getItem('storeSlug') || '';
+            const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+            const ownerOrContact = data.config?.contact?.name || data.config?.ownerName || data.config?.adminName || rawName.split(' ')[0] || 'Comerciante';
+
+            if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
+            if (data.name) localStorage.setItem('merchant_store_name', data.name);
+
             setStoreInfo({
-              name: data.name || 'Jhonvip',
-              slug: data.slug || 'jhonvip',
-              plan: data.status === 'activo' ? 'Profesional' : 'Profesional',
-              merchantName: firstName
+              name: rawName,
+              slug: rawSlug,
+              plan: 'Profesional',
+              merchantName: ownerOrContact
             });
           }
         })
@@ -50,9 +61,13 @@ export default function MerchantMorePage() {
     }
   }, []);
 
-  const storeUrl = typeof window !== 'undefined' 
-    ? `${window.location.origin}/${storeInfo.slug}`
-    : `https://axonmarket.com/${storeInfo.slug}`;
+  const canonicalOrigin = typeof window !== 'undefined' && window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://axonmarket.vip';
+
+  const storeUrl = storeInfo.slug 
+    ? `${canonicalOrigin}/${storeInfo.slug}`
+    : `${canonicalOrigin}`;
 
   const handleCopyUrl = async () => {
     try {
@@ -214,7 +229,7 @@ export default function MerchantMorePage() {
     item.desc.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
-  const initialLetter = (storeInfo.merchantName || 'J')[0].toUpperCase();
+  const initialLetter = ((storeInfo.merchantName || storeInfo.name || 'A')[0] || 'A').toUpperCase();
 
   return (
     <div className="w-full min-h-screen bg-[#f4f7fb] dark:bg-black font-sans pb-32">

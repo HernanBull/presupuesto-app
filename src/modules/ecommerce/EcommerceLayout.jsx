@@ -22,7 +22,7 @@ function cn(...inputs) {
 export default function EcommerceLayout({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [storeName, setStoreName] = useState(() => localStorage.getItem('merchant_store_name') || 'Carlosvip');
+  const [storeName, setStoreName] = useState(() => localStorage.getItem('merchant_store_name') || 'Mi Comercio');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
@@ -159,11 +159,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      supabase.from('workspaces').select('name, status').eq('id', wsId).single()
+      supabase.from('workspaces').select('name, store_slug, status').eq('id', wsId).maybeSingle()
         .then(({ data, error }) => {
           if (!error && data) {
-            setStoreName(data.name || 'Carlosvip');
+            const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+            setStoreName(rawName);
             setWorkspaceStatus(data.status || 'Activo');
+            if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
+            if (data.name) localStorage.setItem('merchant_store_name', data.name);
           }
         })
         .catch(err => console.error("Error fetching store info:", err));
@@ -472,7 +475,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           </div>
         </div>
 
-        {/* 2. Workspace Selector Card (Jhonvip / Profesional) */}
+        {/* 2. Workspace Selector Card */}
         <div className="px-4 py-2">
           <div 
             onClick={handleOpenVitrina}
@@ -753,7 +756,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           ======================================================== */}
       <main className={cn(
         "flex-1 overflow-y-auto w-full custom-scrollbar bg-[#f4f7fb] dark:bg-zinc-950 relative",
-        isPosRoute ? "p-0 pb-0 overflow-hidden" : "pb-24 md:pb-8"
+        isPosRoute ? "p-0 pb-16 md:pb-0 overflow-hidden" : "pb-24 md:pb-8"
       )}>
         
         {/* Desktop Top Bar Controls (Oculto en /pos para terminal limpia) */}
@@ -873,9 +876,9 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       </main>
 
       {/* ========================================================
-          MOBILE BOTTOM NAV (Oculto en /pos y /product-studio para pantalla completa)
+          MOBILE BOTTOM NAV (Visible en POS y resto de módulos)
           ======================================================== */}
-      {location.pathname !== '/pos' && !location.pathname.startsWith('/product-studio') && (
+      {!location.pathname.startsWith('/product-studio') && (
         <nav
           className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/5 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}

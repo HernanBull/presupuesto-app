@@ -400,17 +400,15 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       {/* Rutas protegidas exclusivamente para comerciantes */}
       <Route element={<MerchantGuard />}>
         <Route element={<EcommerceLayout theme={theme} toggleTheme={toggleTheme} />}>
-          {/* Rutas Protegidas por PIN de Administrador */}
-          <Route element={<AdminGuard />}>
-            <Route path="dashboard" element={<EcommerceDashboard />} />
-            <Route path="pos" element={<UnifiedPosPage />} />
-            <Route path="shifts" element={<UnifiedPosPage />} />
-            <Route path="credits" element={<UnifiedPosPage />} />
-            <Route path="setup" element={<OnboardingChecklistPage />} />
-            <Route path="puesta-en-marcha" element={<OnboardingChecklistPage />} />
-            <Route path="analytics" element={<AnalyticsManager />} />
-            <Route path="store-profile" element={<StoreProfileManager />} />
-          </Route>
+          {/* Rutas Principales de Operación (Acceso directo sin bloqueo por PIN) */}
+          <Route path="dashboard" element={<EcommerceDashboard />} />
+          <Route path="pos" element={<UnifiedPosPage />} />
+          <Route path="shifts" element={<UnifiedPosPage />} />
+          <Route path="credits" element={<UnifiedPosPage />} />
+          <Route path="setup" element={<OnboardingChecklistPage />} />
+          <Route path="puesta-en-marcha" element={<OnboardingChecklistPage />} />
+          <Route path="analytics" element={<AnalyticsManager />} />
+          <Route path="store-profile" element={<StoreProfileManager />} />
           <Route path="inventory" element={<InventoryManager />} />
           <Route path="stock" element={<InventoryManager />} />
           <Route path="prices" element={<InventoryManager />} />
