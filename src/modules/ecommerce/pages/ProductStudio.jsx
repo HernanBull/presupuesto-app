@@ -35,7 +35,7 @@ export default function ProductStudio() {
 
             const parsedData = {
               id: data.id,
-              sku: data.batch_number || '', // Mapping to old fields for compatibility
+              sku: data.sku || data.batch_number || data.barcode || parsedMetadata.sku || parsedMetadata.barcode || '',
               name: data.name || '',
               category: data.category || 'General',
               price_usd: data.price || '',
@@ -71,6 +71,7 @@ export default function ProductStudio() {
 
       const cleanImages = Array.isArray(formData.images) ? formData.images : [];
       const primaryImage = cleanImages[0] || formData.image_url || null;
+      const skuVal = formData.sku ? String(formData.sku).trim() : '';
 
       const payload = {
         name: formData.name,
@@ -78,10 +79,14 @@ export default function ProductStudio() {
         price: parseFloat(formData.price_usd),
         stock: parseInt(formData.stock) || 0,
         cogs: parseFloat(formData.cogs) || 0,
-        batch_number: formData.sku,
+        batch_number: skuVal,
+        sku: skuVal,
+        barcode: skuVal,
         image_url: primaryImage,
         metadata: {
           ...(formData.metadata || {}),
+          sku: skuVal,
+          barcode: skuVal,
           images: cleanImages
         },
         workspace_id: workspaceId
@@ -100,7 +105,7 @@ export default function ProductStudio() {
       let { error } = await query;
 
       // Resiliencia: si Supabase rechaza alguna columna que no existe en el esquema cache
-      if (error && error.message && error.message.includes("Could not find the '")) {
+      while (error && error.message && error.message.includes("Could not find the '")) {
         const match = error.message.match(/Could not find the '([^']+)' column/);
         if (match && match[1] && payload[match[1]] !== undefined) {
           delete payload[match[1]];
@@ -109,6 +114,8 @@ export default function ProductStudio() {
             : supabase.from('ecommerce_products').insert([payload]);
           const retryResult = await retryQuery;
           error = retryResult.error;
+        } else {
+          break;
         }
       }
       

@@ -423,16 +423,16 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="orders" element={<OrdersManager />} />
           <Route path="invoicing" element={<UnifiedPosPage />} />
           <Route path="returns" element={<OrdersManager />} />
-          <Route path="coupons" element={<PromotionsManager />} />
+          <Route path="coupons" element={<Navigate to="/more" replace />} />
           <Route path="customers" element={<CustomersManager />} />
           <Route path="leads" element={<CustomersManager />} />
           <Route path="abandoned-carts" element={<AnalyticsManager />} />
-          <Route path="campaigns" element={<PromotionsManager />} />
+          <Route path="campaigns" element={<Navigate to="/more" replace />} />
           <Route path="audiences" element={<CustomersManager />} />
           <Route path="support" element={<SupportManager />} />
           <Route path="preparation" element={<OrderPreparation />} />
           <Route path="reviews" element={<ReviewsManager />} />
-          <Route path="promotions" element={<PromotionsManager />} />
+          <Route path="promotions" element={<Navigate to="/more" replace />} />
           <Route path="offers" element={<OffersManager />} />
           <Route path="social-feed" element={<MerchantSocialFeedPage />} />
           <Route path="news" element={<MerchantSocialFeedPage />} />

@@ -246,7 +246,6 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         { name: 'Centro de precios', path: '/prices' },
         { name: 'Ofertas Flash', path: '/offers' },
         { name: 'Ingresar mercadería', path: '/goods-receipt' },
-        { name: 'Promociones', path: '/promotions' },
       ]
     },
     {
@@ -296,8 +295,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   // Enlaces secundarios inferiores
   const bottomUtilityItems = [
     { name: 'Sucursales', path: '/location', icon: Building2 },
+    { name: 'Notificaciones', path: '/notifications', icon: Bell },
     { name: 'Equipo', path: '/support', icon: Users },
-    { name: 'Referidos', path: '/promotions', icon: Gift },
     { name: 'Apps', path: '/storefront', icon: LayoutGrid },
     { name: 'Configuración', path: '/store-profile', icon: Settings },
   ];
@@ -730,23 +729,82 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           </div>
 
           <div className="flex items-center gap-2.5 relative">
-            <button onClick={() => setShowNotifications(!showNotifications)} className="text-slate-500 hover:text-orange-500 p-2 relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)} 
+              className="text-slate-500 hover:text-orange-500 p-2 relative cursor-pointer"
+              title="Notificaciones"
+            >
               <Bell size={18} />
               {notifications.filter(n => !n.is_read).length > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               )}
             </button>
-            <button onClick={toggleTheme} className="text-slate-500 hover:text-orange-500 p-2">
+            <button onClick={toggleTheme} className="text-slate-500 hover:text-orange-500 p-2 cursor-pointer">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
             <button 
               onClick={handleLogout} 
               title="Cerrar sesión"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <LogOut size={14} />
               <span>Salir</span>
             </button>
+
+            {/* Dropdown de Notificaciones Mobile */}
+            {showNotifications && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40 bg-black/25 backdrop-blur-xs md:hidden" 
+                  onClick={() => setShowNotifications(false)} 
+                />
+                <div className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-4 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 dark:text-white">Notificaciones</h3>
+                    <span className="text-xs font-bold text-orange-500">{notifications.filter(n => !n.is_read).length} nuevas</span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-slate-500 dark:text-zinc-500 text-sm">No tienes notificaciones.</div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`p-4 border-b border-slate-100 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer ${n.is_read ? 'opacity-60' : 'bg-orange-50/50 dark:bg-orange-500/5'}`}
+                          onClick={() => {
+                            markAsRead(n.id);
+                            if(n.type === 'stock_alert') {
+                              navigate('/inventory');
+                            } else if(n.product_id) {
+                              navigate(`/product-studio/${n.product_id}`);
+                            }
+                            setShowNotifications(false);
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className={`text-xs mb-1 ${n.is_read ? 'text-slate-500' : 'text-orange-600 font-bold'}`}>
+                                {n.type === 'stock_alert' ? '⚠️ Alerta de Stock' : 'Notificación'}
+                              </p>
+                              <p className="text-sm text-slate-700 dark:text-zinc-300 leading-tight">{n.message}</p>
+                              <span className="text-[10px] text-slate-400 mt-2 block">{new Date(n.created_at).toLocaleString()}</span>
+                            </div>
+                            {!n.is_read && (
+                              <button onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }} className="text-slate-400 hover:text-orange-500 p-1" title="Marcar como leída">
+                                <CheckCheck size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="p-3 border-t border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-900/50">
+                    <button onClick={() => { setShowNotifications(false); navigate('/notifications'); }} className="w-full py-2 bg-orange-100 hover:bg-orange-200 dark:bg-orange-500/20 dark:hover:bg-orange-500/30 text-orange-700 dark:text-orange-400 font-bold text-xs rounded-xl transition-colors cursor-pointer">
+                      Ver todas las notificaciones
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
       )}

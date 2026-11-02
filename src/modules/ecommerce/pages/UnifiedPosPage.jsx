@@ -175,8 +175,12 @@ export default function UnifiedPosPage() {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(p => 
         (p.name && p.name.toLowerCase().includes(q)) ||
-        (p.barcode && p.barcode.toLowerCase().includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q))
+        (p.barcode && String(p.barcode).toLowerCase().includes(q)) ||
+        (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+        (p.batch_number && String(p.batch_number).toLowerCase().includes(q)) ||
+        (p.id && String(p.id).toLowerCase().includes(q)) ||
+        (p.metadata?.sku && String(p.metadata.sku).toLowerCase().includes(q)) ||
+        (p.metadata?.barcode && String(p.metadata.barcode).toLowerCase().includes(q))
       );
     }
 
@@ -402,9 +406,21 @@ export default function UnifiedPosPage() {
         let query = supabase.from('ecommerce_products').select('*');
         if (wsId) query = query.eq('workspace_id', wsId);
         
-        const { data, error } = await query.order('name', { ascending: true }).limit(50);
+        const { data, error } = await query.order('name', { ascending: true }).limit(200);
         if (!error && data && data.length > 0) {
-          setProducts(data);
+          const mapped = data.map(p => {
+            const meta = p.metadata ? (typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata) : {};
+            const skuVal = p.sku || p.batch_number || meta.sku || p.id || '';
+            const barcodeVal = p.barcode || p.batch_number || p.sku || meta.barcode || meta.sku || p.id || '';
+            return {
+              ...p,
+              sku: skuVal,
+              barcode: barcodeVal,
+              batch_number: p.batch_number || skuVal,
+              metadata: meta
+            };
+          });
+          setProducts(mapped);
         } else {
           setProducts(AXON_PRODUCTS);
           setCategories(AXON_CATEGORIES);
@@ -470,11 +486,14 @@ export default function UnifiedPosPage() {
     if (e.key === 'Enter' && searchQuery.trim()) {
       e.preventDefault();
       const q = searchQuery.trim().toLowerCase();
-      const found = products.find(p => 
-        (p.barcode && p.barcode.toLowerCase() === q) || 
-        p.name.toLowerCase() === q ||
-        p.name.toLowerCase().includes(q)
-      );
+      const found = products.find(p => {
+        const pBarcode = String(p.barcode || '').trim().toLowerCase();
+        const pSku = String(p.sku || p.batch_number || p.metadata?.sku || '').trim().toLowerCase();
+        const pBatch = String(p.batch_number || '').trim().toLowerCase();
+        const pId = String(p.id || '').trim().toLowerCase();
+        const pName = String(p.name || '').trim().toLowerCase();
+        return pBarcode === q || pSku === q || pBatch === q || pId === q || pName === q || pName.includes(q);
+      });
       if (found) {
         addToCart(found);
         toast.success(`+1 ${found.name}`);
@@ -486,20 +505,61 @@ export default function UnifiedPosPage() {
   };
 
   // Escaneo por cámara óptica del teléfono o lector inalámbrico
-  const handleBarcodeScanResult = (code) => {
+  const handleBarcodeScanResult = async (code) => {
     if (!code) return;
-    const q = code.trim().toLowerCase();
-    const found = products.find(p => 
-      (p.barcode && p.barcode.toLowerCase() === q) || 
-      (p.sku && p.sku.toLowerCase() === q) ||
-      p.name.toLowerCase() === q ||
-      p.name.toLowerCase().includes(q)
-    );
+    const raw = String(code).trim();
+    const q = raw.toLowerCase();
+
+    // 1. Buscar en memoria local del catálogo cargado
+    let found = products.find(p => {
+      const pBarcode = String(p.barcode || '').trim().toLowerCase();
+      const pSku = String(p.sku || p.batch_number || p.metadata?.sku || '').trim().toLowerCase();
+      const pBatch = String(p.batch_number || '').trim().toLowerCase();
+      const pMetaBarcode = String(p.metadata?.barcode || '').trim().toLowerCase();
+      const pId = String(p.id || '').trim().toLowerCase();
+      const pName = String(p.name || '').trim().toLowerCase();
+
+      return pBarcode === q || 
+             pSku === q || 
+             pBatch === q || 
+             pMetaBarcode === q || 
+             pId === q || 
+             pName === q;
+    });
+
+    // 2. Si no se encontró en memoria, consultar directamente a Supabase
+    if (!found) {
+      try {
+        const wsId = localStorage.getItem('activeWorkspace');
+        let query = supabase.from('ecommerce_products').select('*');
+        if (wsId) query = query.eq('workspace_id', wsId);
+
+        const { data } = await query
+          .or(`batch_number.eq.${raw},id.eq.${raw},name.ilike.%${raw}%`)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          const dbItem = data[0];
+          const meta = dbItem.metadata ? (typeof dbItem.metadata === 'string' ? JSON.parse(dbItem.metadata) : dbItem.metadata) : {};
+          found = {
+            ...dbItem,
+            sku: dbItem.sku || dbItem.batch_number || meta.sku || raw,
+            barcode: dbItem.barcode || dbItem.batch_number || meta.barcode || raw,
+            batch_number: dbItem.batch_number || raw,
+            metadata: meta
+          };
+          setProducts(prev => [found, ...prev.filter(p => p.id !== found.id)]);
+        }
+      } catch (err) {
+        console.warn('Error buscando producto escaneado en Supabase:', err);
+      }
+    }
+
     if (found) {
       addToCart(found);
       toast.success(`+1 ${found.name}`, { icon: '📦' });
     } else {
-      toast.error(`Código "${code}" no encontrado en catálogo`);
+      toast.error(`Código "${raw}" no encontrado en catálogo`);
     }
   };
 

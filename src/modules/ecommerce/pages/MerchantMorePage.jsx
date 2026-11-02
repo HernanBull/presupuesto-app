@@ -6,7 +6,7 @@ import {
   DollarSign, Receipt, Settings, HelpCircle, LogOut, 
   ExternalLink, Check, Sparkles, X, Globe, Layers,
   ShieldCheck, CreditCard, ShoppingBag, Zap, Package,
-  Database, Wallet
+  Database, Wallet, Bell
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -160,13 +160,13 @@ export default function MerchantMorePage() {
       bg: 'bg-orange-50 dark:bg-orange-500/10'
     },
     {
-      id: 'promociones',
-      name: 'Promociones & Cupones',
-      desc: 'Descuentos y ofertas de temporada',
-      path: '/promotions',
-      icon: Gift,
-      color: 'text-pink-500',
-      bg: 'bg-pink-50 dark:bg-pink-500/10'
+      id: 'notificaciones',
+      name: 'Centro de Notificaciones',
+      desc: 'Alertas de stock, pedidos y avisos del sistema',
+      path: '/notifications',
+      icon: Bell,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50 dark:bg-amber-500/10'
     },
     {
       id: 'caja',
