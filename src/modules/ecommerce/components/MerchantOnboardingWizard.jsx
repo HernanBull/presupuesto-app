@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Store, Flower2, Armchair, PawPrint, Hammer, BookOpen, Apple, Shirt, Utensils, PlusSquare, Truck, MoreHorizontal,
   Globe, MessageCircle, Rocket, Building2, ArrowRight, ArrowLeft, Check,
@@ -6,7 +6,8 @@ import {
   Users, UserCheck, Video, Gift, 
   ShoppingBag, ShieldCheck, Loader2, X,
   LayoutDashboard, Package, Tag, BarChart3,
-  Download, Smartphone, Laptop, CheckCircle2, Share
+  Download, Smartphone, Laptop, CheckCircle2, Share,
+  MapPin, Clock, CreditCard, Camera, UploadCloud, Trash2, CheckCircle, FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
@@ -26,6 +27,31 @@ const isAppStandalone = () => {
   );
 };
 
+export const VZLA_BANKS = [
+  '0102 - Banco de Venezuela',
+  '0104 - Banco Venezolano de Crédito',
+  '0105 - Banco Mercantil',
+  '0108 - Banco Provincial',
+  '0114 - Bancaribe',
+  '0115 - Banco Exterior',
+  '0128 - Banco Caroní',
+  '0134 - Banesco',
+  '0138 - Banco Plaza',
+  '0151 - Fondo Común (BFC)',
+  '0156 - 100% Banco',
+  '0157 - Del Sur',
+  '0163 - Banco del Tesoro',
+  '0166 - Banco Agrícola',
+  '0168 - Bancrecer',
+  '0169 - Mi Banco',
+  '0171 - Banco Activo',
+  '0172 - Bancamiga',
+  '0174 - Banplus',
+  '0175 - Banco Bicentenario',
+  '0177 - Banfanb',
+  '0191 - Banco Nacional de Crédito (BNC)'
+];
+
 export default function MerchantOnboardingWizard({ 
   isOpen = true, 
   onClose, 
@@ -36,7 +62,11 @@ export default function MerchantOnboardingWizard({
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Estados de Instalación PWA (Paso 8 Obligatorio)
+  // Referencias a inputs de archivos para identidad visual
+  const logoInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+
+  // Estados de Instalación PWA (Paso 7 Final)
   const [isStandalone, setIsStandalone] = useState(() => isAppStandalone());
   const [deferredPrompt, setDeferredPrompt] = useState(() => (typeof window !== 'undefined' ? window.deferredPwaPrompt : null));
   const [isInstalledJustNow, setIsInstalledJustNow] = useState(false);
@@ -79,30 +109,51 @@ export default function MerchantOnboardingWizard({
     };
   }, []);
 
-  // Form State
+  // -------------------------------------------------------------
+  // FORM STATES: Datos Reales de la Tienda Completa
+  // -------------------------------------------------------------
+
+  // Paso 1: Identidad y Expediente Fiscal
   const [ownerName, setOwnerName] = useState(initialData.ownerName || '');
   const [businessName, setBusinessName] = useState(initialData.businessName || '');
   const [rubro, setRubro] = useState(initialData.rubro || 'ferreteria');
   const [whatsapp, setWhatsapp] = useState(initialData.whatsapp || '');
-  
-  // Paso 2: ¿Por cuáles canales vendes?
-  const [salesChannels, setSalesChannels] = useState(['local']);
-  
-  // Paso 3: ¿Cuántas tiendas o sucursales tienes?
-  const [locationsCount, setLocationsCount] = useState('1');
-  
-  // Paso 4: ¿Cómo gestionas tu negocio actualmente?
-  const [currentSystems, setCurrentSystems] = useState(['excel']);
-  
-  // Paso 5: ¿Cómo prefieres que te contactemos?
-  const [supportPreference, setSupportPreference] = useState('whatsapp');
-  
-  // Paso 6: ¿Cómo nos conociste? + Código afiliado
-  const [discoveryChannel, setDiscoveryChannel] = useState('instagram');
-  const [affiliateCode, setAffiliateCode] = useState('');
-  const [affiliateApplied, setAffiliateApplied] = useState(false);
+  const [rifPrefix, setRifPrefix] = useState('V');
+  const [rifNumber, setRifNumber] = useState('');
 
-  // Paso 7: Precarga de catálogo
+  // Paso 2: Dirección y Ubicación Física
+  const [addressState, setAddressState] = useState('');
+  const [addressCity, setAddressCity] = useState('');
+  const [addressLine, setAddressLine] = useState('');
+  const [gpsCoords, setGpsCoords] = useState(null);
+
+  // Paso 3: Horarios de Atención Comercial
+  const [scheduleActive, setScheduleActive] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState('08:00');
+  const [scheduleClose, setScheduleClose] = useState('18:00');
+  const [closeWarningMinutes, setCloseWarningMinutes] = useState(30);
+  const [workingDays, setWorkingDays] = useState({
+    lunes: true,
+    martes: true,
+    miercoles: true,
+    jueves: true,
+    viernes: true,
+    sabado: true,
+    domingo: false
+  });
+
+  // Paso 4: Pago Móvil / Número de Cuenta para Cobrar
+  const [pagoMovilBank, setPagoMovilBank] = useState('0102 - Banco de Venezuela');
+  const [pagoMovilPhone, setPagoMovilPhone] = useState('');
+  const [pagoMovilId, setPagoMovilId] = useState('');
+
+  // Paso 5: Identidad Visual (Logotipo y Portada)
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
+
+  // Paso 6: Precarga de catálogo
   const [preloadCatalog, setPreloadCatalog] = useState(true);
 
   if (!isOpen) return null;
@@ -130,7 +181,71 @@ export default function MerchantOnboardingWizard({
     { id: 'otro', name: 'Otro', icon: MoreHorizontal }
   ];
 
+  // Detección automática por GPS
+  const handleDetectGPS = () => {
+    if (typeof navigator !== 'undefined' && "geolocation" in navigator) {
+      toast.loading('Detectando coordenadas GPS...', { id: 'gps-loading' });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          toast.dismiss('gps-loading');
+          const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setGpsCoords(coords);
+          toast.success('¡Coordenadas GPS fijadas exitosamente!', { icon: '📍' });
+
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.address) {
+                if (!addressState && data.address.state) setAddressState(data.address.state);
+                if (!addressCity && (data.address.city || data.address.town || data.address.county)) {
+                  setAddressCity(data.address.city || data.address.town || data.address.county);
+                }
+                if (!addressLine && data.display_name) {
+                  setAddressLine(data.display_name.split(',').slice(0, 3).join(','));
+                }
+              }
+            })
+            .catch(() => {});
+        },
+        (error) => {
+          toast.dismiss('gps-loading');
+          toast.error('No se pudo detectar el GPS. Puedes escribir la dirección manualmente.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      toast.error('Tu navegador no soporta geolocalización');
+    }
+  };
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('El logo no debe superar los 10 MB');
+        return;
+      }
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      toast.success('Logotipo cargado');
+    }
+  };
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 12 * 1024 * 1024) {
+        toast.error('La foto de portada no debe superar los 12 MB');
+        return;
+      }
+      setCoverFile(file);
+      setCoverPreview(URL.createObjectURL(file));
+      toast.success('Foto de portada cargada');
+    }
+  };
+
   const handleNext = () => {
+    // Validaciones por paso
     if (step === 1) {
       if (!ownerName.trim()) {
         toast.error('Por favor ingresa tu nombre');
@@ -141,10 +256,34 @@ export default function MerchantOnboardingWizard({
         return;
       }
       if (!whatsapp.trim() || whatsapp.replace(/\D/g, '').length < 7) {
-        toast.error('Por favor ingresa tu número de WhatsApp');
+        toast.error('Por favor ingresa tu número de WhatsApp válido');
+        return;
+      }
+      if (rifNumber && rifNumber.replace(/\D/g, '').length < 6) {
+        toast.error('El RIF o cédula debe tener al menos 6 dígitos');
+        return;
+      }
+    } else if (step === 2) {
+      if (!gpsCoords && (!addressState.trim() || !addressCity.trim() || !addressLine.trim())) {
+        toast.error('Ingresa al menos estado, ciudad y dirección, o detecta el GPS.');
+        return;
+      }
+    } else if (step === 3) {
+      if (!scheduleOpen || !scheduleClose) {
+        toast.error('Por favor define la hora de apertura y cierre.');
+        return;
+      }
+    } else if (step === 4) {
+      if (!pagoMovilBank) {
+        toast.error('Por favor selecciona el banco para recibir pagos.');
+        return;
+      }
+      if (pagoMovilPhone && pagoMovilPhone.replace(/\D/g, '').length < 11) {
+        toast.error('El teléfono de pago móvil debe tener 11 dígitos');
         return;
       }
     }
+
     setStep(prev => prev + 1);
   };
 
@@ -152,26 +291,7 @@ export default function MerchantOnboardingWizard({
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  const handleApplyAffiliate = () => {
-    if (!affiliateCode.trim()) {
-      toast.error('Ingresa un código de afiliado válido');
-      return;
-    }
-    setAffiliateApplied(true);
-    toast.success('¡Código de afiliado aplicado con éxito!', { icon: '🎁' });
-  };
-
-  const toggleMultiSelect = (state, setState, value) => {
-    if (state.includes(value)) {
-      if (state.length > 1) {
-        setState(state.filter(item => item !== value));
-      }
-    } else {
-      setState([...state, value]);
-    }
-  };
-
-  // Guardar configuración y precargar catálogo
+  // Guardar configuración completa en la base de datos
   const handleFinalize = async (withCatalog = true) => {
     setLoading(true);
     setPreloadCatalog(withCatalog);
@@ -186,98 +306,150 @@ export default function MerchantOnboardingWizard({
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '') || 'mi-tienda';
 
-      const onboardingData = {
-        owner_name: ownerName.trim(),
-        business_name: businessName.trim(),
-        rubro,
-        whatsapp: `+58${whatsapp.replace(/\D/g, '')}`,
-        sales_channels: salesChannels,
-        locations_count: locationsCount,
-        current_systems: currentSystems,
-        support_preference: supportPreference,
-        discovery_channel: discoveryChannel,
-        affiliate_code: affiliateCode.trim() || null,
-        preload_catalog: withCatalog,
-        onboarding_completed: true,
-        completed_at: new Date().toISOString()
-      };
+      // 1. Subida de Logo y Portada a Supabase Storage (si existen)
+      let uploadedLogoUrl = null;
+      let uploadedCoverUrl = null;
+
+      if (logoFile && activeWs) {
+        try {
+          const logoExt = logoFile.name.split('.').pop() || 'png';
+          const logoPath = `store_assets/${activeWs}/logo_${Date.now()}.${logoExt}`;
+          const { error: logoErr } = await supabase.storage.from('ecommerce').upload(logoPath, logoFile, { upsert: true });
+          if (!logoErr) {
+            const { data: logoData } = supabase.storage.from('ecommerce').getPublicUrl(logoPath);
+            if (logoData?.publicUrl) uploadedLogoUrl = logoData.publicUrl;
+          }
+        } catch (e) {
+          console.warn("Notice logo upload:", e);
+        }
+      }
+
+      if (coverFile && activeWs) {
+        try {
+          const coverExt = coverFile.name.split('.').pop() || 'jpg';
+          const coverPath = `store_assets/${activeWs}/cover_${Date.now()}.${coverExt}`;
+          const { error: coverErr } = await supabase.storage.from('ecommerce').upload(coverPath, coverFile, { upsert: true });
+          if (!coverErr) {
+            const { data: coverData } = supabase.storage.from('ecommerce').getPublicUrl(coverPath);
+            if (coverData?.publicUrl) uploadedCoverUrl = coverData.publicUrl;
+          }
+        } catch (e) {
+          console.warn("Notice cover upload:", e);
+        }
+      }
+
+      const resolvedAddress = addressLine.trim() || [addressCity.trim(), addressState.trim()].filter(Boolean).join(', ') || 'Venezuela';
+      const fullRif = rifNumber.trim() ? `${rifPrefix}-${rifNumber.trim()}` : `${rifPrefix}-00000000`;
+      const cleanPmPhone = pagoMovilPhone.trim() 
+        ? (pagoMovilPhone.replace(/\D/g, '').startsWith('58') ? `+${pagoMovilPhone.replace(/\D/g, '')}` : `+58${pagoMovilPhone.replace(/\D/g, '')}`)
+        : (whatsapp.replace(/\D/g, '').startsWith('58') ? `+${whatsapp.replace(/\D/g, '')}` : `+58${whatsapp.replace(/\D/g, '')}`);
 
       if (activeWs) {
-        // 1. Actualizar configuración del comercio de forma segura (preservando adminEmail y contacto previo)
-        try {
-          const { data: currentWs } = await supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle();
-          const prevConfig = typeof currentWs?.config === 'object' && currentWs?.config !== null 
-            ? currentWs.config 
-            : (typeof currentWs?.config === 'string' ? JSON.parse(currentWs.config || '{}') : {});
+        const { data: currentWs } = await supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle();
+        const prevConfig = typeof currentWs?.config === 'object' && currentWs?.config !== null 
+          ? currentWs.config 
+          : (typeof currentWs?.config === 'string' ? JSON.parse(currentWs.config || '{}') : {});
 
-          const merchantEmail = prevConfig.adminEmail || prevConfig.contact?.email || '';
+        const merchantEmail = prevConfig.adminEmail || prevConfig.contact?.email || '';
 
-          const updatedConfig = {
-            ...prevConfig,
-            adminEmail: merchantEmail,
-            onboarding: onboardingData,
-            trialActive: true,
-            plan: 'Prueba 7 Días Gratis',
-            contact: {
-              ...(prevConfig.contact || {}),
-              phone: `+58 ${whatsapp.trim()}`,
-              ownerName: ownerName.trim(),
-              ...(merchantEmail ? { email: merchantEmail } : {})
-            },
-            expediente: {
-              ...(prevConfig.expediente || {}),
-              ownerName: ownerName.trim(),
-              whatsapp: `+58 ${whatsapp.trim()}`
-            }
-          };
-
-          await supabase
-            .from('workspaces')
-            .update({
-              name: businessName.trim() || 'Mi Tienda',
-              store_slug: cleanSlug,
-              config: updatedConfig
-            })
-            .eq('id', activeWs);
-
-          // Actualizar simultáneamente la tabla oficial de contactos del comercio
-          await supabase.from('merchant_contacts').upsert([{
-            id: activeWs,
-            full_name: ownerName.trim(),
-            phone: `+58 ${whatsapp.trim()}`,
+        const updatedConfig = {
+          ...prevConfig,
+          adminEmail: merchantEmail,
+          business_type: rubro,
+          trialActive: true,
+          plan: 'Prueba 7 Días Gratis',
+          logoUrl: uploadedLogoUrl || prevConfig.logoUrl || null,
+          coverUrl: uploadedCoverUrl || prevConfig.coverUrl || null,
+          heroUrl: uploadedCoverUrl || prevConfig.heroUrl || null,
+          storefront: {
+            ...(prevConfig.storefront || {}),
+            logoUrl: uploadedLogoUrl || prevConfig.storefront?.logoUrl || null,
+            coverUrl: uploadedCoverUrl || prevConfig.storefront?.coverUrl || null,
+            heroUrl: uploadedCoverUrl || prevConfig.storefront?.heroUrl || null
+          },
+          paymentProfile: {
+            paymentMobile: true,
+            pmBank: pagoMovilBank,
+            pmPhone: cleanPmPhone,
+            pmId: pagoMovilId.trim() || fullRif,
+            zelleActive: false,
+            cashActive: true
+          },
+          scheduleProfile: {
+            scheduleActive: scheduleActive,
+            workDays: workingDays,
+            openTime: scheduleOpen,
+            closeTime: scheduleClose,
+            closeWarningMinutes: Number(closeWarningMinutes) || 30
+          },
+          address: resolvedAddress,
+          location: gpsCoords ? {
+            lat: gpsCoords.lat,
+            lng: gpsCoords.lng,
+            address: resolvedAddress
+          } : null,
+          expediente: {
+            ownerName: ownerName.trim(),
+            legalType: rifPrefix,
+            rif: fullRif,
+            state: addressState.trim() || 'Por definir',
+            city: addressCity.trim() || 'Por definir',
+            address: resolvedAddress,
+            gps: gpsCoords,
+            whatsapp: `+58${whatsapp.replace(/\D/g, '')}`
+          },
+          contact: {
+            phone: `+58${whatsapp.replace(/\D/g, '')}`,
+            ownerName: ownerName.trim(),
             ...(merchantEmail ? { email: merchantEmail } : {})
-          }]);
-        } catch (wsErr) {
-          console.warn('Notice updating workspace:', wsErr);
-        }
+          },
+          onboarding_completed: true
+        };
 
-        // 2. Insertar catálogo semilla de 30 productos en ecommerce_products
-        if (withCatalog && catalog?.items?.length) {
-          const timestamp = Date.now();
-          const productsToInsert = catalog.items.map((prod, idx) => ({
-            id: `seed_${activeWs}_${idx}_${timestamp}`,
-            workspace_id: activeWs,
-            name: prod.name,
-            category: prod.category || 'General',
-            price: Number(prod.priceUsd) || 1,
-            price_usd: Number(prod.priceUsd) || 1,
-            cogs: Math.round((Number(prod.priceUsd) * 0.7) * 100) / 100,
-            stock: 20,
-            stock_vitrina: 10,
-            image_url: prod.image,
-            supplier: 'Catálogo Inicial AxonMarket',
-            publish_status: 'Publicado',
-            created_at: new Date().toISOString()
-          }));
+        await supabase
+          .from('workspaces')
+          .update({
+            name: businessName.trim() || 'Mi Tienda',
+            store_slug: cleanSlug,
+            latitude: gpsCoords?.lat || null,
+            longitude: gpsCoords?.lng || null,
+            map_address: resolvedAddress,
+            config: updatedConfig
+          })
+          .eq('id', activeWs);
 
+        await supabase.from('merchant_contacts').upsert([{
+          id: activeWs,
+          full_name: ownerName.trim(),
+          phone: `+58${whatsapp.replace(/\D/g, '')}`,
+          ...(merchantEmail ? { email: merchantEmail } : {})
+        }]);
+
+        // 3. Precarga de catálogo si withCatalog es true
+        if (withCatalog && catalog?.items?.length > 0) {
           try {
-            const { error: prodErr } = await supabase
-              .from('ecommerce_products')
-              .upsert(productsToInsert);
+            const productsPayload = catalog.items.map((prod, idx) => ({
+              workspace_id: activeWs,
+              name: prod.name,
+              sku: prod.sku || `SKU-${idx + 100}`,
+              barcode: prod.barcode || `759${Date.now().toString().slice(-9)}${idx}`,
+              price: prod.priceUSD || 0,
+              ref_price: prod.priceUSD || 0,
+              cost: prod.costUSD || 0,
+              category: prod.category || catalog.rubroName,
+              stock: 25,
+              stock_vitrina: 25,
+              min_stock: 5,
+              unit: prod.unit || 'unidad',
+              tax_rate: 16,
+              image_url: prod.image || null,
+              description: prod.description || `Producto de alta rotación para ${catalog.rubroName}.`,
+              status: 'active',
+              is_featured: idx < 4,
+              created_at: new Date().toISOString()
+            }));
 
-            if (prodErr) {
-              console.warn('Notice inserting seed catalog to ecommerce_products:', prodErr);
-            }
+            await supabase.from('ecommerce_products').insert(productsPayload);
           } catch (pErr) {
             console.warn('Notice inserting seed catalog:', pErr);
           }
@@ -288,22 +460,23 @@ export default function MerchantOnboardingWizard({
       localStorage.setItem('merchant_store_name', businessName.trim() || 'Mi Tienda');
       localStorage.setItem('merchant_owner_name', ownerName.trim() || 'Comerciante');
       if (cleanSlug) localStorage.setItem('storeSlug', cleanSlug);
+      if (activeWs) localStorage.setItem('activeWorkspace', activeWs);
+      localStorage.setItem('is_merchant_app', 'true');
+      localStorage.setItem('merchant_mode', 'true');
 
-      toast.success(withCatalog ? '¡30 productos cargados exitosamente!' : '¡Configuración completada!');
+      toast.success(withCatalog ? '¡30 productos cargados y tienda configurada!' : '¡Tienda configurada con éxito!');
     } catch (err) {
       console.error('Error al finalizar onboarding:', err);
     } finally {
       setLoading(false);
-      setStep(8);
+      setStep(7); // Avanzar a pantalla final de éxito / instalación
     }
   };
 
   const handleTriggerInstall = async () => {
-    // Guardar sesión de comerciante en localStorage para que al abrir la app instalada ya esté logueado
     const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
-    if (activeWs) {
-      localStorage.setItem('activeWorkspace', activeWs);
-    }
+    if (activeWs) localStorage.setItem('activeWorkspace', activeWs);
+    
     const cleanSlug = businessName
       .trim()
       .toLowerCase()
@@ -312,9 +485,7 @@ export default function MerchantOnboardingWizard({
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') || 'mi-tienda';
     localStorage.setItem('storeSlug', cleanSlug);
-    if (businessName.trim()) {
-      localStorage.setItem('merchant_store_name', businessName.trim());
-    }
+    if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
     localStorage.setItem('merchant_onboarding_completed', 'true');
     localStorage.setItem('is_merchant_app', 'true');
     localStorage.setItem('merchant_mode', 'true');
@@ -330,8 +501,6 @@ export default function MerchantOnboardingWizard({
         if (outcome === 'accepted') {
           setIsInstalledJustNow(true);
           setIsStandalone(true);
-          localStorage.setItem('is_merchant_app', 'true');
-          localStorage.setItem('merchant_mode', 'true');
           toast.success('¡Instalación completada! Entrando a tu tienda...', { icon: '🚀' });
           setTimeout(() => {
             handleFinishAndGoToDashboard();
@@ -352,9 +521,8 @@ export default function MerchantOnboardingWizard({
 
   const handleFinishAndGoToDashboard = () => {
     const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
-    if (activeWs) {
-      localStorage.setItem('activeWorkspace', activeWs);
-    }
+    if (activeWs) localStorage.setItem('activeWorkspace', activeWs);
+
     const cleanSlug = businessName
       .trim()
       .toLowerCase()
@@ -363,9 +531,7 @@ export default function MerchantOnboardingWizard({
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') || 'mi-tienda';
     localStorage.setItem('storeSlug', cleanSlug);
-    if (businessName.trim()) {
-      localStorage.setItem('merchant_store_name', businessName.trim());
-    }
+    if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
     localStorage.setItem('merchant_onboarding_completed', 'true');
     localStorage.setItem('is_merchant_app', 'true');
     localStorage.setItem('merchant_mode', 'true');
@@ -377,27 +543,15 @@ export default function MerchantOnboardingWizard({
     window.location.href = '/pos';
   };
 
-  const getSystemLabel = (sysKey) => {
-    const map = {
-      excel: 'Excel o notas manuales',
-      saint: 'Saint Enterprise',
-      a2: 'A2 Softway',
-      valery: 'Valery / Premium Soft',
-      tiendanube: 'tu tienda virtual',
-      other: 'tu sistema administrativo actual'
-    };
-    return map[sysKey] || 'tu sistema administrativo actual';
-  };
-
   return (
     <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8 overflow-y-auto select-none animate-in fade-in duration-200 relative">
       
-      {/* 1. Fondo Auténtico: Funciones e Interfaz Real de AxonMarket (Exacto a Commercy) */}
+      {/* 1. Fondo Auténtico: Previsualización de AxonMarket */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none filter blur-[0.5px]">
         <AxonMarketDashboardPreview />
       </div>
 
-      {/* 2. Capa Translúcida con Leve Toque Anaranjado (Efecto Vidrio Commercy) */}
+      {/* 2. Capa Translúcida con Toque Anaranjado Corporativo */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px] bg-gradient-to-b from-orange-500/15 via-black/30 to-black/55 pointer-events-none" />
 
       {/* Botón flotante para cerrar */}
@@ -412,130 +566,40 @@ export default function MerchantOnboardingWizard({
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA PASO 8: PANTALLA DE ÉXITO CON INSTALACIÓN PWA OBLIGATORIA          */}
+      {/* VISTA PASO 7: PANTALLA DE ÉXITO CON INSTALACIÓN PWA O ENTRAR AL POS       */}
       {/* ========================================================================= */}
-      {step === 8 ? (
+      {step === 7 ? (
         <div className="relative z-20 bg-white rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200/90 max-w-4xl w-full p-6 sm:p-10 my-auto animate-in zoom-in-95 duration-200 m-4">
           
-          {/* Cabecera dinámica según estado de instalación */}
           <div className="text-center max-w-2xl mx-auto mb-6">
             {(isStandalone || isInstalledJustNow) ? (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black mb-3">
                 <CheckCircle2 size={15} className="text-emerald-600" />
-                <span>App Oficial Instalada · Modo Pantalla Completa Activo</span>
+                <span>App Oficial Instalada · Tienda Lista al 100%</span>
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100 border border-orange-300 text-orange-950 text-xs font-black uppercase tracking-wider mb-3">
                 <Sparkles size={14} className="text-orange-600 animate-spin" style={{ animationDuration: '3s' }} />
-                <span>Paso 8: Instalación Obligatoria de la App</span>
+                <span>¡Tu Tienda Virtual ha sido creada exitosamente!</span>
               </div>
             )}
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight mb-2">
-              {(isStandalone || isInstalledJustNow)
-                ? `¡Todo listo, ${ownerName.split(' ')[0] || 'Comerciante'}!`
-                : 'Instala la App Oficial de AxonMarket'
-              }
+              ¡Todo listo, {ownerName.split(' ')[0] || 'Comerciante'}!
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              {(isStandalone || isInstalledJustNow) ? (
-                <>
-                  <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> {preloadCatalog ? 'ya tiene 30 productos cargados y está lista para vender.' : 'está configurada para comenzar.'}
-                </>
-              ) : (
-                <>
-                  Para acceder a <span className="font-bold text-slate-900">{businessName || 'tu tienda'}</span> con <span className="font-bold text-orange-600">pantalla completa de 100%, cero lagueo y auto-login</span>, instala la app en tu teléfono o escritorio.
-                </>
-              )}
+              <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> {preloadCatalog ? 'ya tiene sus productos cargados, horarios y cobros configurados.' : 'está lista para comenzar a operar.'}
             </p>
           </div>
-
-          {/* Bloque de Instalación Obligatoria (Si no está en modo standalone) */}
-          {(!isStandalone && !isInstalledJustNow) && (
-            <div className="mb-6">
-              {/* Tarjetas de Beneficios */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                <div className="p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/80 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Smartphone size={20} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-black text-slate-900">100% Pantalla</div>
-                    <div className="text-[11px] text-slate-500">Sin barras ni pestañas</div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <Rocket size={20} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-black text-slate-900">Cero Lagueo</div>
-                    <div className="text-[11px] text-slate-500">Carga rápida y offline</div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-black text-slate-900">Acceso Directo</div>
-                    <div className="text-[11px] text-slate-500">Sesión abierta al entrar</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Acción según sistema operativo */}
-              {isIOS ? (
-                /* Guía interactiva iOS Safari */
-                <div className="bg-gradient-to-br from-amber-50/90 to-orange-50/90 border-2 border-orange-300 rounded-3xl p-5 sm:p-6 text-left shadow-xs">
-                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-orange-800 mb-3">
-                    <Share size={15} /> Pasos para instalar en iPhone / iPad (Safari):
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-700">
-                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
-                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">1</span>
-                      <span>Toca el botón <strong>Compartir</strong> (<Share size={13} className="inline text-blue-600" />) en la barra inferior de Safari.</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
-                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">2</span>
-                      <span>Baja en el menú y presiona <strong>"Agregar al Inicio" (+)</strong>.</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
-                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">3</span>
-                      <span>Abre <strong>AxonMarket</strong> desde tu pantalla de inicio para entrar con tu cuenta.</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Botón 1-Clic Android y PC */
-                <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100/70 border-2 border-orange-300 rounded-3xl p-6 sm:p-7 text-center shadow-xs">
-                  <button
-                    type="button"
-                    onClick={handleTriggerInstall}
-                    disabled={isInstalling}
-                    className="w-full max-w-md mx-auto py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 hover:from-orange-600 hover:to-amber-700 active:scale-[0.99] text-white font-black text-base sm:text-lg shadow-xl shadow-orange-500/30 flex items-center justify-center gap-3 transition-all cursor-pointer"
-                  >
-                    <Download size={22} strokeWidth={2.5} className="animate-bounce" />
-                    <span>{isInstalling ? 'Instalando aplicación...' : '⚡ Instalar App Oficial de AxonMarket'}</span>
-                  </button>
-                  <p className="text-[11px] text-slate-500 font-medium mt-3">
-                    Se creará un acceso directo en tu teléfono o escritorio para entrar a tu tienda sin navegar por la web.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Resumen de la tienda creada */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center mb-6">
             {/* Mockup Izquierdo */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-inner">
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3 font-medium">
-                <span>👁 Así va a quedar tu tienda</span>
+                <span>👁 Tu vitrina virtual oficial</span>
                 <span>·</span>
-                <span className="text-slate-500">se publica cuando confirmes los precios</span>
+                <span className="text-emerald-600 font-bold">Activa</span>
               </div>
 
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -545,22 +609,33 @@ export default function MerchantOnboardingWizard({
                     <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                     <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                   </div>
-                  <div className="bg-white px-3 py-0.5 rounded-md text-[11px] font-mono text-slate-500 truncate flex-1 text-center border border-slate-200">
-                    {(businessName || 'tienda').toLowerCase().replace(/\s+/g, '-')}.axonmarket.com
+                  <div className="bg-white px-3 py-0.5 rounded-md text-[11px] font-mono text-slate-600 truncate flex-1 text-center border border-slate-200 font-bold">
+                    axonmarket.vip/{(businessName || 'tienda').toLowerCase().replace(/\s+/g, '-')}
                   </div>
                 </div>
 
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                        {(businessName || 'A')[0].toUpperCase()}
+                    <div className="flex items-center gap-2.5">
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Logo" className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                          {(businessName || 'A')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <span className="font-bold text-xs text-slate-900 truncate block max-w-[130px]">
+                          {businessName || 'Mi Tienda'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">{catalog.rubroName}</span>
                       </div>
-                      <span className="font-bold text-xs text-slate-900 truncate max-w-[130px]">
-                        {businessName || 'Mi Tienda'}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {scheduleOpen} - {scheduleClose}
                       </span>
                     </div>
-                    <ShoppingBag size={15} className="text-slate-400" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -576,45 +651,46 @@ export default function MerchantOnboardingWizard({
               </div>
             </div>
 
-            {/* Columna Derecha */}
+            {/* Columna Derecha con resumen de expedientes */}
             <div className="space-y-3">
-              <div className="p-4 rounded-2xl bg-orange-50/80 border border-orange-200/80">
+              <div className="p-3.5 rounded-2xl bg-orange-50/80 border border-orange-200/80">
                 <span className="text-[10px] font-black tracking-wider uppercase text-orange-600 block mb-1">
-                  SIGUIENTE PASO
+                  DATOS FISCALES Y COBRO
                 </span>
-                <h3 className="text-sm font-extrabold text-slate-900 leading-snug mb-1">
-                  Confirma 10 precios esta semana y obtén 15% de descuento en tu primer mes
-                </h3>
-                <p className="text-xs text-slate-500 flex items-center gap-1.5">
-                  <span>⏱ 1 minuto</span>
-                  <span>·</span>
-                  <span>precios referenciales precargados</span>
+                <p className="text-xs text-slate-700 font-semibold">
+                  RIF: <span className="font-mono font-bold text-slate-900">{rifNumber ? `${rifPrefix}-${rifNumber}` : 'Sin RIF'}</span>
+                </p>
+                <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                  Pago Móvil: <span className="font-bold text-slate-900">{pagoMovilBank.split('-')[1]?.trim() || pagoMovilBank}</span>
+                </p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Tel: {pagoMovilPhone || whatsapp}
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 flex items-start gap-3">
-                <MessageCircle size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                <p className="text-xs text-emerald-950 font-medium leading-relaxed">
-                  <span className="font-bold">Un asesor de AxonMarket</span> te contactará por WhatsApp para ayudarte a migrar tu catálogo desde {getSystemLabel(currentSystems[0])}.
-                </p>
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 flex items-start gap-3">
+                <MapPin size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs text-emerald-950 font-bold">Ubicación física vinculada</p>
+                  <p className="text-xs text-emerald-800 leading-snug">
+                    {addressLine || [addressCity, addressState].filter(Boolean).join(', ')}
+                  </p>
+                </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <ShieldCheck size={16} className="text-orange-500 shrink-0" />
                   <div>
-                    <span className="font-bold text-slate-900">Plan Profesional 7 días</span>
+                    <span className="font-bold text-slate-900">Plan Profesional 7 Días Gratis</span>
                     <p className="text-slate-500 text-[11px]">Válido hasta el {formattedTrialEnd}.</p>
                   </div>
                 </div>
-                <button type="button" className="text-orange-600 font-bold hover:underline shrink-0 text-xs">
-                  Ver planes
-                </button>
               </div>
             </div>
           </div>
 
-          {/* Pie de Página: Acciones */}
+          {/* Pie de Página: Botones de instalación y entrar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
             {(!isStandalone && !isInstalledJustNow) ? (
               <>
@@ -623,7 +699,7 @@ export default function MerchantOnboardingWizard({
                   onClick={handleFinishAndGoToDashboard}
                   className="text-xs font-semibold text-slate-400 hover:text-slate-600 hover:underline cursor-pointer order-2 sm:order-1"
                 >
-                  Continuar temporalmente en el navegador (Modo Emergencia)
+                  Continuar en el navegador (Abrir POS)
                 </button>
 
                 <button
@@ -640,8 +716,8 @@ export default function MerchantOnboardingWizard({
                   }}
                   className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2 order-1 sm:order-2"
                 >
-                  <span>{isIOS ? 'Ya la agregué al inicio ➔ Entrar' : 'Instalar App y Entrar'}</span>
-                  <ArrowRight size={18} />
+                  <Download size={18} />
+                  <span>{isIOS ? 'Ya la agregué al inicio ➔ Entrar' : 'Instalar App y Abrir Tienda'}</span>
                 </button>
               </>
             ) : (
@@ -650,7 +726,7 @@ export default function MerchantOnboardingWizard({
                   onClick={handleFinishAndGoToDashboard}
                   className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
-                  <span>Abrir AxonMarket</span>
+                  <span>Abrir mi Sistema (POS)</span>
                   <ArrowRight size={18} />
                 </button>
               </div>
@@ -659,7 +735,7 @@ export default function MerchantOnboardingWizard({
         </div>
       ) : (
         /* ========================================================================= */
-        /* VISTA PRINCIPAL: PASOS 1 AL 7 (Fiel 1:1 a Commercy Móvil y Desktop)      */
+        /* VISTA PRINCIPAL: PASOS 1 AL 6 CON FORMULARIO COMPLETO                    */
         /* ========================================================================= */
         <div className="relative z-20 bg-white rounded-t-[32px] sm:rounded-3xl lg:rounded-[2.5rem] shadow-2xl border border-slate-200/80 max-w-[480px] lg:max-w-[960px] w-full overflow-hidden my-auto flex flex-col lg:grid lg:grid-cols-12 max-h-[96vh] sm:max-h-[90vh]">
           
@@ -667,11 +743,9 @@ export default function MerchantOnboardingWizard({
           {/* SECCIÓN NARANJA: CABECERA EN MÓVIL / COLUMNA LATERAL EN DESKTOP        */}
           {/* ===================================================================== */}
           <div className="lg:col-span-4 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 text-white p-5 sm:p-6 lg:p-8 flex flex-col justify-between relative shrink-0">
-            {/* Grab handle en móvil estilo iOS/Commercy (exacto como en la foto 2) */}
             <div className="w-12 h-1 bg-white/40 rounded-full mx-auto mb-3 lg:hidden" />
 
             <div>
-              {/* Barra superior de marca: Logo AxonMarket oficial exacto y centrado en su píldora blanca */}
               <div className="flex items-center justify-between lg:flex-col lg:items-start lg:gap-2.5 mb-3 lg:mb-8">
                 <div className="inline-flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-full shadow-sm border border-white/40 shrink-0">
                   <img 
@@ -686,107 +760,90 @@ export default function MerchantOnboardingWizard({
 
                 <div className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-white/95 shrink-0">
                   <span className="bg-white/20 px-2 py-0.5 rounded-full font-bold">
-                    Paso {step} de 7
+                    Paso {step} de 6
                   </span>
                   <span className="text-white/60">·</span>
-                  <span className="text-white/80">≈1 minuto</span>
+                  <span className="text-white/80">≈2 minutos</span>
                 </div>
               </div>
 
-              {/* Título comercial */}
+              {/* Títulos dinámicos de cada paso */}
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight mt-1 lg:mt-0 mb-1.5 lg:mb-3">
                 {step === 1 && 'Cuéntanos sobre tu negocio'}
-                {step === 2 && '¿Por cuáles canales vendes?'}
-                {step === 3 && '¿Cuántas tiendas o sucursales tienes?'}
-                {step === 4 && '¿Cómo gestionas tu negocio actualmente?'}
-                {step === 5 && '¿Cómo prefieres que te contactemos?'}
-                {step === 6 && '¿Cómo conociste AxonMarket?'}
-                {step === 7 && `Comienza con 30 productos típicos de ${catalog.rubroName}`}
+                {step === 2 && 'Dirección y Ubicación Física'}
+                {step === 3 && 'Horarios de Atención Comercial'}
+                {step === 4 && 'Datos de Cobro y Pago Móvil'}
+                {step === 5 && 'Logotipo y Foto de Portada'}
+                {step === 6 && `Comienza con 30 productos de ${catalog.rubroName}`}
               </h2>
 
               {/* Subtítulo explicativo */}
               <p className="text-xs sm:text-sm text-white/90 font-normal leading-relaxed mb-3 lg:mb-6">
-                {step === 1 && 'Te precargaremos productos y referencias según el rubro de tu negocio.'}
-                {step === 2 && 'Así personalizamos las herramientas que usarás a diario. Selecciona todas las que apliquen.'}
-                {step === 3 && 'Para recomendarte el plan adecuado a la escala de tu negocio.'}
-                {step === 4 && 'Si utilizas otro sistema, te ayudamos a migrar tus productos y datos sin costo.'}
-                {step === 5 && 'Un asesor especialista de AxonMarket te acompañará durante tus primeros días.'}
-                {step === 6 && 'Nos ayuda a conocer cómo llegaste a nuestra plataforma.'}
-                {step === 7 && 'Con fotos y precios de referencia en USD y Bs. Podrás confirmarlos y editarlos cuando desees desde tu panel.'}
+                {step === 1 && 'Ingresa tu información de contacto, rubro y expediente fiscal.'}
+                {step === 2 && 'Tus clientes podrán ubicarte en el mapa y para calcular tus despachos.'}
+                {step === 3 && 'Controla cuándo tu tienda está abierta y disponible para compras.'}
+                {step === 4 && 'Configura tu cuenta bancaria nacional para recibir pagos directos.'}
+                {step === 5 && 'Sube las fotos oficiales de tu marca para personalizar tu tienda.'}
+                {step === 6 && 'Fotos y precios de referencia en USD y Bs listos para vender o editar.'}
               </p>
-
-              {/* Píldoras contextuales dinámicas (Desktop) */}
-              <div className="hidden lg:block">
-                {step === 3 && salesChannels.includes('local') && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-950/30 border border-orange-200/30 text-[11px] font-semibold text-white/95 animate-in fade-in">
-                    <span>Porque vendes en tienda física</span>
-                  </div>
-                )}
-
-                {step === 4 && currentSystems.length > 0 && !currentSystems.includes('none') && (
-                  <div className="p-3.5 rounded-xl bg-orange-950/30 border border-orange-200/30 text-xs text-white/95 leading-relaxed animate-in fade-in flex items-start gap-2.5">
-                    <ArrowRight size={14} className="shrink-0 mt-0.5 text-amber-200" />
-                    <span>Te ayudamos a migrar tu catálogo y clientes desde {getSystemLabel(currentSystems[0])}. En el siguiente paso eliges cómo prefieres que te contactemos.</span>
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Barra de progreso blanca */}
+            {/* Barra de progreso */}
             <div className="pt-2 lg:pt-4">
               <div className="w-full bg-white/30 h-1.5 rounded-full overflow-hidden">
                 <div 
                   className="bg-white h-full rounded-full transition-all duration-300 ease-out" 
-                  style={{ width: `${(step / 7) * 100}%` }}
+                  style={{ width: `${(step / 6) * 100}%` }}
                 />
               </div>
             </div>
           </div>
 
           {/* ===================================================================== */}
-          {/* SECCIÓN BLANCA: FORMULARIO CURVADO SOBRE LA CABECERA (FOTO 2)        */}
+          {/* SECCIÓN BLANCA: FORMULARIO CURVADO SOBRE LA CABECERA                 */}
           {/* ===================================================================== */}
           <div className="lg:col-span-8 bg-white rounded-t-[32px] lg:rounded-none p-5 sm:p-6 lg:p-8 flex flex-col justify-between overflow-y-auto flex-1 shadow-2xl lg:shadow-none -mt-2 lg:mt-0 relative z-10">
             
             <div className="py-1">
+              
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 1: Tu nombre, Nombre del negocio, Rubro (3 cols) y WhatsApp  */}
+              {/* PASO 1: Identidad, Rubro, WhatsApp y RIF                          */}
               {/* ----------------------------------------------------------------- */}
               {step === 1 && (
                 <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
-                  {/* Tu nombre */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Tu nombre
-                    </label>
-                    <input 
-                      type="text"
-                      value={ownerName}
-                      onChange={e => setOwnerName(e.target.value)}
-                      placeholder="Ej: Carlos Mendoza"
-                      className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-orange-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
-                      autoFocus
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Tu nombre completo
+                      </label>
+                      <input 
+                        type="text"
+                        value={ownerName}
+                        onChange={e => setOwnerName(e.target.value)}
+                        placeholder="Ej: Carlos Mendoza"
+                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Nombre del negocio
+                      </label>
+                      <input 
+                        type="text"
+                        value={businessName}
+                        onChange={e => setBusinessName(e.target.value)}
+                        placeholder="Ej: Bodegón La Gran Parada"
+                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
+                      />
+                    </div>
                   </div>
 
-                  {/* Nombre del negocio */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Nombre del negocio
-                    </label>
-                    <input 
-                      type="text"
-                      value={businessName}
-                      onChange={e => setBusinessName(e.target.value)}
-                      placeholder="Ej: Bodegón La Gran Parada"
-                      className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
-                    />
-                  </div>
-
-                  {/* Rubro (Exactamente 3 columnas x 4 filas = 12 como en Commercy) */}
+                  {/* Rubro (12 rubros) */}
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                      Rubro
+                      Rubro Comercial
                     </label>
                     <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                       {RUBROS.map(r => {
@@ -811,10 +868,10 @@ export default function MerchantOnboardingWizard({
                     </div>
                   </div>
 
-                  {/* Tu WhatsApp con prefijo +58 solicitado */}
+                  {/* WhatsApp */}
                   <div>
                     <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Tu WhatsApp
+                      WhatsApp de Ventas
                     </label>
                     <div className="relative rounded-2xl border border-slate-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-100 transition-all bg-white shadow-xs">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-700">
@@ -828,298 +885,353 @@ export default function MerchantOnboardingWizard({
                         className="w-full pl-14 pr-4 py-2.5 sm:py-3 text-sm text-slate-900 placeholder:text-slate-400 rounded-2xl outline-none font-medium"
                       />
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-relaxed">
-                      Ingresa tu número celular (ej. 414 123 4567). Te contactaremos por WhatsApp para asistirte con tu prueba gratuita.
-                    </p>
+                  </div>
+
+                  {/* RIF o Cédula Fiscal */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-slate-800">
+                        RIF o Cédula Fiscal (Expediente)
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-semibold">Mínimo 6 dígitos</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex bg-slate-100 rounded-2xl p-1 border border-slate-200 shrink-0">
+                        {['J', 'V', 'G', 'E'].map(type => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setRifPrefix(type)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                              rifPrefix === type 
+                                ? 'bg-white text-orange-600 shadow-xs' 
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ))}
+                      </div>
+                      <input 
+                        type="text"
+                        value={rifNumber}
+                        onChange={e => setRifNumber(e.target.value.replace(/[^0-9-]/g, '').slice(0, 11))}
+                        placeholder="12345678 o 12345678-9"
+                        className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 2: ¿Por cuáles canales vendes? (Multi-select A-E)            */}
+              {/* PASO 2: Dirección y Ubicación Física con GPS                       */}
               {/* ----------------------------------------------------------------- */}
               {step === 2 && (
-                <div className="space-y-2.5 sm:space-y-3 animate-in fade-in duration-150">
-                  {[
-                    { id: 'local', letter: 'A', title: 'En tienda física', subtitle: 'Mostrador, caja y facturación', icon: Store },
-                    { id: 'online', letter: 'B', title: 'Tienda virtual', subtitle: 'Tu propia web con catálogo y carrito', icon: Globe },
-                    { id: 'social', letter: 'C', title: 'Redes sociales y WhatsApp', subtitle: 'Instagram, WhatsApp y atención directa', icon: MessageCircle },
-                    { id: 'wholesale', letter: 'D', title: 'Ventas al mayor', subtitle: 'Distribuidora o despacho mayorista', icon: Truck },
-                    { id: 'starting', letter: 'E', title: 'Aún no vendo', subtitle: 'Estoy comenzando mi negocio', icon: Rocket },
-                  ].map(item => {
-                    const Icon = item.icon;
-                    const isChecked = salesChannels.includes(item.id);
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => toggleMultiSelect(salesChannels, setSalesChannels, item.id)}
-                        className={`p-3 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isChecked 
-                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
-                            isChecked ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.letter}
-                          </span>
-                          <Icon size={18} className={isChecked ? 'text-orange-600' : 'text-slate-400'} />
-                          <div className="min-w-0">
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
-                            <p className="text-[11px] sm:text-xs text-slate-500 truncate">{item.subtitle}</p>
-                          </div>
-                        </div>
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  {/* Tarjeta GPS */}
+                  <div className="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-4 text-center space-y-2.5">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto text-orange-600 shadow-xs">
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900">Ubicación satelital de tu local</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Permite a tus clientes encontrarte en el mapa y calcular distancias de delivery.</p>
+                    </div>
 
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                          isChecked ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-300 bg-white'
-                        }`}>
-                          {isChecked && <Check size={13} className="stroke-[3]" />}
-                        </div>
-                      </div>
-                    );
-                  })}
+                    <button
+                      type="button"
+                      onClick={handleDetectGPS}
+                      className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <MapPin size={15} />
+                      <span>{gpsCoords ? 'Actualizar Coordenadas GPS' : 'Detectar mi ubicación por GPS'}</span>
+                    </button>
+
+                    {gpsCoords && (
+                      <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-1 px-2.5 inline-block">
+                        ✓ GPS Fijado: ({gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)})
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Estado y Ciudad */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">Estado</label>
+                      <input 
+                        type="text"
+                        value={addressState}
+                        onChange={e => setAddressState(e.target.value)}
+                        placeholder="Ej. Aragua"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">Ciudad / Municipio</label>
+                      <input 
+                        type="text"
+                        value={addressCity}
+                        onChange={e => setAddressCity(e.target.value)}
+                        placeholder="Ej. Cagua"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dirección exacta / Punto de referencia */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Dirección exacta o Punto de referencia
+                    </label>
+                    <textarea 
+                      rows={2}
+                      value={addressLine}
+                      onChange={e => setAddressLine(e.target.value)}
+                      placeholder="Calle, Centro Comercial, Local o número..."
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs resize-none"
+                    />
+                  </div>
                 </div>
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 3: ¿Cuántas tiendas o sucursales tienes? (Single-select A-D)  */}
+              {/* PASO 3: Horarios de Atención Comercial                            */}
               {/* ----------------------------------------------------------------- */}
               {step === 3 && (
-                <div className="space-y-3 animate-in fade-in duration-150">
-                  {[
-                    { id: '1', letter: 'A', title: '1 tienda o sucursal', subtitle: 'Un mostrador o punto de venta, con o sin depósito', icon: Store },
-                    { id: '2', letter: 'B', title: '2 sucursales', subtitle: 'Dos puntos de venta físicos', icon: Store },
-                    { id: '3-6', letter: 'C', title: '3 a 6 sucursales', subtitle: 'Cadena de tiendas en expansión', icon: Building2 },
-                    { id: 'more-6', letter: 'D', title: 'Más de 6 sucursales', subtitle: 'Diseñamos un plan corporativo a tu medida', icon: Building2 },
-                  ].map(item => {
-                    const Icon = item.icon;
-                    const isSelected = locationsCount === item.id;
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => setLocationsCount(item.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected 
-                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.letter}
-                          </span>
-                          <Icon size={18} className={isSelected ? 'text-orange-600' : 'text-slate-400'} />
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
-                            <p className="text-[11px] sm:text-xs text-slate-500">{item.subtitle}</p>
-                          </div>
-                        </div>
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">Activar Control de Horario</h4>
+                      <p className="text-[11px] text-slate-500 mt-0.5">Muestra aviso de abierto/cerrado en tu vitrina.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={scheduleActive} 
+                        onChange={e => setScheduleActive(e.target.checked)} 
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                  </div>
 
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-orange-500' : 'border-slate-300'
-                        }`}>
-                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* Horas de apertura y cierre */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">Hora de Apertura</label>
+                      <input 
+                        type="time"
+                        value={scheduleOpen}
+                        onChange={e => setScheduleOpen(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">Hora de Cierre</label>
+                      <input 
+                        type="time"
+                        value={scheduleClose}
+                        onChange={e => setScheduleClose(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Días laborables */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1.5">Días Laborables</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(dia => {
+                        const isActive = workingDays[dia];
+                        return (
+                          <button
+                            key={dia}
+                            type="button"
+                            onClick={() => setWorkingDays(prev => ({ ...prev, [dia]: !prev[dia] }))}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                              isActive 
+                                ? 'bg-orange-500 text-white shadow-xs' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/60'
+                            }`}
+                          >
+                            {dia.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Margen de advertencia */}
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-slate-800">Margen de Aviso de Cierre</label>
+                      <span className="text-xs font-bold text-orange-600">{closeWarningMinutes} minutos</span>
+                    </div>
+                    <input 
+                      type="range"
+                      min="10"
+                      max="60"
+                      step="5"
+                      value={closeWarningMinutes}
+                      onChange={e => setCloseWarningMinutes(Number(e.target.value))}
+                      className="w-full accent-orange-500 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-0.5">Avisa a los compradores antes de cerrar para asegurar el despacho a tiempo.</p>
+                  </div>
                 </div>
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 4: ¿Cómo gestionas tu negocio actualmente? (Multi-select)     */}
+              {/* PASO 4: Datos de Cobro y Pago Móvil                               */}
               {/* ----------------------------------------------------------------- */}
               {step === 4 && (
-                <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 animate-in fade-in duration-150">
-                  {[
-                    { id: 'excel', letter: 'A', title: 'Excel o notas manuales', subtitle: 'Hojas de cálculo o registros en papel' },
-                    { id: 'saint', letter: 'B', title: 'Saint Enterprise / A2 Softway', subtitle: 'Sistemas administrativos venezolanos' },
-                    { id: 'valery', letter: 'C', title: 'Valery / Premium Soft', subtitle: 'Facturación y gestión de inventario' },
-                    { id: 'tiendanube', letter: 'D', title: 'Tiendanube / Shopify / WooCommerce', subtitle: 'Plataformas de comercio online' },
-                    { id: 'pos', letter: 'E', title: 'Otro sistema POS', subtitle: 'Puntos de venta y facturación' },
-                    { id: 'other', letter: 'F', title: 'Otro sistema', subtitle: 'Contamos con soporte de migración personalizada' },
-                    { id: 'none', letter: 'G', title: 'Ninguno', subtitle: 'Empiezo desde cero' },
-                  ].map(item => {
-                    const isChecked = currentSystems.includes(item.id);
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          if (item.id === 'none') {
-                            setCurrentSystems(['none']);
-                          } else {
-                            const withoutNone = currentSystems.filter(s => s !== 'none');
-                            toggleMultiSelect(withoutNone, setCurrentSystems, item.id);
-                          }
-                        }}
-                        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isChecked 
-                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
-                            isChecked ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.letter}
-                          </span>
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
-                            <p className="text-[11px] text-slate-500">{item.subtitle}</p>
-                          </div>
-                        </div>
+                <div className="space-y-3.5 animate-in fade-in duration-150">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl flex items-start gap-2.5 text-xs text-amber-900">
+                    <CreditCard size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">
+                      Tus compradores verán estos datos al elegir pagar con <strong>Pago Móvil</strong> en tu vitrina virtual.
+                    </p>
+                  </div>
 
-                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                          isChecked ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-300 bg-white'
-                        }`}>
-                          {isChecked && <Check size={13} className="stroke-[3]" />}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* Banco Receptor */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Banco Receptor
+                    </label>
+                    <select
+                      value={pagoMovilBank}
+                      onChange={e => setPagoMovilBank(e.target.value)}
+                      className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-semibold outline-none shadow-xs bg-white"
+                    >
+                      {VZLA_BANKS.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Teléfono Pago Móvil */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Teléfono asociado a Pago Móvil (11 dígitos)
+                    </label>
+                    <input 
+                      type="tel"
+                      value={pagoMovilPhone}
+                      onChange={e => setPagoMovilPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
+                      placeholder={whatsapp ? `Ej: ${whatsapp}` : "Ej: 04141234567"}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">Si lo dejas vacío, se usará tu WhatsApp de contacto.</p>
+                  </div>
+
+                  {/* Cédula o RIF Pago Móvil */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 mb-1">
+                      Cédula o RIF del Titular
+                    </label>
+                    <input 
+                      type="text"
+                      value={pagoMovilId}
+                      onChange={e => setPagoMovilId(e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12))}
+                      placeholder={rifNumber ? `Ej: ${rifPrefix}-${rifNumber}` : "Ej: V-12345678 o J-12345678-9"}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                    />
+                  </div>
                 </div>
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 5: ¿Cómo prefieres que te contactemos? (Single-select A-D)   */}
+              {/* PASO 5: Identidad Visual (Logotipo y Portada)                      */}
               {/* ----------------------------------------------------------------- */}
               {step === 5 && (
-                <div className="space-y-3 animate-in fade-in duration-150">
-                  {[
-                    { id: 'whatsapp', letter: 'A', title: 'WhatsApp', subtitle: `Te contactamos al +58 ${whatsapp || 'tu número'}`, icon: MessageCircle },
-                    { id: 'call', letter: 'B', title: 'Llamada telefónica', subtitle: 'Te llamamos en horario laboral comercial', icon: Phone },
-                    { id: 'mail', letter: 'C', title: 'Correo electrónico', subtitle: 'Te escribimos a tu correo electrónico', icon: Mail },
-                    { id: 'self', letter: 'D', title: 'Prefiero explorar solo', subtitle: 'Tutoriales y guías disponibles directamente en el panel', icon: Ban },
-                  ].map(item => {
-                    const Icon = item.icon;
-                    const isSelected = supportPreference === item.id;
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => setSupportPreference(item.id)}
-                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected 
-                            ? 'border-orange-500 bg-orange-50/50 shadow-xs' 
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  {/* Logotipo Cuadrado 1:1 */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div 
+                        onClick={() => logoInputRef.current?.click()}
+                        className="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-300 hover:border-orange-500 bg-white flex items-center justify-center cursor-pointer overflow-hidden shrink-0 shadow-xs transition-colors"
                       >
-                        <div className="flex items-center gap-3.5">
-                          <span className={`w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.letter}
-                          </span>
-                          <Icon size={18} className={isSelected ? 'text-orange-600' : 'text-slate-400'} />
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
-                            <p className="text-[11px] sm:text-xs text-slate-500">{item.subtitle}</p>
-                          </div>
-                        </div>
-
-                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-orange-500' : 'border-slate-300'
-                        }`}>
-                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />}
-                        </div>
+                        {logoPreview ? (
+                          <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <Camera size={22} className="text-slate-400" />
+                        )}
                       </div>
-                    );
-                  })}
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">Logotipo Oficial</span>
+                          <span className="text-[10px] font-bold bg-slate-200/80 text-slate-600 px-2 py-0.5 rounded-full">1:1</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Óptimo 512×512 px (PNG o JPG).</p>
+                        {logoPreview && <span className="text-[10px] font-bold text-emerald-600 mt-1 block">✓ Imagen lista</span>}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => logoInputRef.current?.click()}
+                      className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                    >
+                      {logoPreview ? 'Cambiar' : 'Subir'}
+                    </button>
+                    <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                  </div>
+
+                  {/* Foto de Portada 16:9 */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-900">Foto de Portada</span>
+                        <span className="text-[10px] font-bold bg-slate-200/80 text-slate-600 px-2 py-0.5 rounded-full">16:9</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium">Panorámica para web y móviles</span>
+                    </div>
+
+                    {coverPreview ? (
+                      <div className="relative w-full h-24 rounded-xl overflow-hidden border border-slate-200">
+                        <img src={coverPreview} alt="Portada" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => coverInputRef.current?.click()}
+                          className="absolute inset-0 bg-black/40 hover:bg-black/50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Camera size={14} /> Cambiar Foto de Portada
+                        </button>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => coverInputRef.current?.click()}
+                        className="w-full py-5 border-2 border-dashed border-slate-300 hover:border-orange-500 rounded-xl bg-white flex flex-col items-center justify-center cursor-pointer transition-colors text-center"
+                      >
+                        <UploadCloud size={20} className="text-slate-400 mb-1" />
+                        <span className="text-xs font-bold text-slate-700">Subir foto de portada</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">JPG, PNG o WebP hasta 10 MB</span>
+                      </div>
+                    )}
+                    <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                  </div>
                 </div>
               )}
 
               {/* ----------------------------------------------------------------- */}
-              {/* PASO 6: ¿Cómo conociste AxonMarket? + Código de Afiliado          */}
+              {/* PASO 6: Catálogo Inicial de 30 Productos                          */}
               {/* ----------------------------------------------------------------- */}
               {step === 6 && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {[
-                      { id: 'social', letter: 'A', name: 'Instagram o Facebook', icon: Share2 },
-                      { id: 'google', letter: 'B', name: 'Google', icon: Search },
-                      { id: 'ai', letter: 'C', name: 'ChatGPT u otra IA', icon: Sparkles },
-                      { id: 'friend', letter: 'D', name: 'Recomendación de un colega', icon: Users },
-                      { id: 'provider', letter: 'E', name: 'Me invitó mi proveedor', icon: Truck },
-                      { id: 'accountant', letter: 'F', name: 'Mi contador o asesor', icon: UserCheck },
-                      { id: 'youtube', letter: 'G', name: 'YouTube o TikTok', icon: Video },
-                      { id: 'other', letter: 'H', name: 'Otro medio', icon: MoreHorizontal },
-                    ].map(item => {
-                      const Icon = item.icon;
-                      const isSelected = discoveryChannel === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setDiscoveryChannel(item.id)}
-                          className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
-                            isSelected 
-                              ? 'border-orange-500 bg-orange-50/70 text-orange-950 shadow-xs' 
-                              : 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
-                          }`}
-                        >
-                          <span className={`w-6 h-6 rounded-md text-[11px] font-bold flex items-center justify-center shrink-0 ${
-                            isSelected ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {item.letter}
-                          </span>
-                          <Icon size={16} className={isSelected ? 'text-orange-600' : 'text-slate-400'} />
-                          <span className="text-xs font-bold truncate">{item.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Gift size={16} className="text-orange-500" />
-                      <span className="text-xs font-bold text-slate-800">¿Tienes un código de referido o afiliado?</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text"
-                        value={affiliateCode}
-                        onChange={e => setAffiliateCode(e.target.value)}
-                        placeholder="ej. promo-caracas"
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-mono outline-none focus:border-orange-500 bg-white"
-                        disabled={affiliateApplied}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyAffiliate}
-                        disabled={affiliateApplied || !affiliateCode.trim()}
-                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                          affiliateApplied 
-                            ? 'bg-emerald-600 text-white cursor-default' 
-                            : 'bg-slate-900 hover:bg-slate-800 text-white cursor-pointer disabled:opacity-50'
-                        }`}
-                      >
-                        {affiliateApplied ? 'Aplicado ✓' : 'Aplicar'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ----------------------------------------------------------------- */}
-              {/* PASO 7: Comienza con 30 productos típicos de [Rubro]              */}
-              {/* ----------------------------------------------------------------- */}
-              {step === 7 && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
                     {catalog.items.slice(0, 6).map((prod, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-2xl p-2.5 bg-white shadow-xs flex flex-col justify-between">
+                      <div key={idx} className="border border-slate-200 rounded-2xl p-2 bg-white shadow-2xs flex flex-col justify-between">
                         <img 
                           src={prod.image} 
                           alt={prod.name} 
-                          className="w-full h-24 object-cover rounded-xl mb-2" 
+                          className="w-full h-20 object-cover rounded-xl mb-1.5" 
                         />
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900 line-clamp-1">{prod.name}</h4>
-                          <span className="text-xs font-extrabold text-orange-600 block mt-0.5">{prod.refPriceLabel}</span>
+                          <h4 className="text-[11px] font-bold text-slate-900 line-clamp-1">{prod.name}</h4>
+                          <span className="text-xs font-black text-orange-600 block mt-0.5">{prod.refPriceLabel}</span>
                         </div>
                       </div>
                     ))}
@@ -1127,7 +1239,7 @@ export default function MerchantOnboardingWizard({
 
                   <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
                     <p className="text-xs text-slate-600 font-medium">
-                      <span className="font-bold text-slate-900">y 24 productos más:</span> {catalog.items.slice(6, 14).map(p => p.name.split(' ')[0].toLowerCase()).join(', ')}...
+                      <span className="font-bold text-slate-900">y 24 productos más:</span> {catalog.items.slice(6, 12).map(p => p.name.split(' ')[0].toLowerCase()).join(', ')}...
                     </p>
                   </div>
                 </div>
@@ -1136,7 +1248,7 @@ export default function MerchantOnboardingWizard({
             </div>
 
             {/* ================================================================= */}
-            {/* BOTÓN INFERIOR DE ACCIÓN (Continuar →) FIEL A LA FOTO 2 DE COMMERCY */}
+            {/* BOTÓN INFERIOR DE ACCIÓN (Continuar / Finalizar)                  */}
             {/* ================================================================= */}
             <div className="pt-3 sm:pt-4 border-t border-slate-100 flex items-center justify-between gap-3 mt-3">
               {step > 1 ? (
@@ -1150,7 +1262,7 @@ export default function MerchantOnboardingWizard({
                 </button>
               ) : null}
 
-              {step < 7 ? (
+              {step < 6 ? (
                 <div className="flex items-center gap-2 w-full justify-end">
                   {step > 1 && (
                     <button
@@ -1178,7 +1290,7 @@ export default function MerchantOnboardingWizard({
                     onClick={() => handleFinalize(false)}
                     className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 cursor-pointer"
                   >
-                    Prefiero cargar los míos
+                    Cargar los míos propios
                   </button>
                   <button
                     type="button"
@@ -1189,11 +1301,11 @@ export default function MerchantOnboardingWizard({
                     {loading ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
-                        <span>Precargando...</span>
+                        <span>Configurando tienda...</span>
                       </>
                     ) : (
                       <>
-                        <span>Cargar los 30 productos</span>
+                        <span>Finalizar Registro y Guardar</span>
                         <ArrowRight size={16} />
                       </>
                     )}
