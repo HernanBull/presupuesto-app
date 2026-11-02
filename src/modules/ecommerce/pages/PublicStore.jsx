@@ -1872,6 +1872,9 @@ export default function PublicStore() {
     sections = [], texts
   } = config;
 
+  const resolvedCoverUrl = heroUrl || config?.coverUrl || config?.storefront?.heroUrl || config?.storefront?.coverUrl || config?.bannerUrl || null;
+  const resolvedLogoUrl = logoUrl || config?.storefront?.logoUrl || config?.avatarUrl || config?.logo || null;
+
   // Cierre visual: Forzamos la estética ultra-premium y el color Ámbar como estándar universal
   const primaryColor = '#f59e0b';
   const typography = 'font-sans';
@@ -2226,14 +2229,24 @@ export default function PublicStore() {
               </div>
             </div>
 
-            {/* Hero Cover Header - Portada 100% Limpia y Visible (Cero elementos en el centro) */}
-            <div className="relative w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs">
-              {heroUrl ? (
-                <img 
-                  src={resolveImageUrl(heroUrl)} 
-                  alt="Cover" 
-                  className="w-full h-full object-cover object-center block" 
-                />
+            {/* Hero Cover Header - Portada Centrada y Balanceada */}
+            <div className="relative w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
+              {resolvedCoverUrl ? (
+                <>
+                  {/* Fondo ambiental desenfocado para fotos que no sean panorámicas */}
+                  <img 
+                    src={resolveImageUrl(resolvedCoverUrl)} 
+                    alt="" 
+                    aria-hidden="true"
+                    className="absolute inset-0 w-full h-full object-cover object-center blur-md opacity-35 scale-110 pointer-events-none select-none" 
+                  />
+                  {/* Portada principal centrada */}
+                  <img 
+                    src={resolveImageUrl(resolvedCoverUrl)} 
+                    alt="Cover" 
+                    className="relative z-10 w-full h-full object-cover object-center block" 
+                  />
+                </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center">
                   <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
@@ -2260,9 +2273,9 @@ export default function PublicStore() {
                         }`}
                         title={hasViewedStatus ? 'Estado ya visto' : 'Toca para ver el estado del comercio'}
                       >
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center">
-                          {logoUrl ? (
-                            <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center p-1">
+                          {resolvedLogoUrl ? (
+                            <img src={resolveImageUrl(resolvedLogoUrl)} alt="Logo" className="w-full h-full object-contain object-center block" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
                               <Store size={36} />
@@ -2271,9 +2284,9 @@ export default function PublicStore() {
                         </div>
                       </div>
                     ) : (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center">
-                        {logoUrl ? (
-                          <img src={resolveImageUrl(logoUrl)} alt="Logo" className="w-full h-full object-cover object-center block" />
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center p-1">
+                        {resolvedLogoUrl ? (
+                          <img src={resolveImageUrl(resolvedLogoUrl)} alt="Logo" className="w-full h-full object-contain object-center block" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
                             <Store size={36} />
@@ -2297,10 +2310,8 @@ export default function PublicStore() {
                       </span>
                       <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Publicaciones</span>
                     </div>
-                    <div 
-                      className="flex flex-col items-center cursor-pointer hover:opacity-75 transition-opacity px-2"
-                      onClick={() => setShowFollowersModal(true)}
-                    >
+                    {/* Seguidores: solo número informativo sin visor de lista */}
+                    <div className="flex flex-col items-center px-2 select-none">
                       <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
                         {followersCount}
                       </span>

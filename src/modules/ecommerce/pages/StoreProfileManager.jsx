@@ -3,6 +3,7 @@ import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Cl
 import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
+import { optimizeStoreImage } from '../utils/imageOptimizer';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -149,16 +150,21 @@ export default function StoreProfileManager() {
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
   const handleImageUpload = async (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const rawFile = e.target.files[0];
+    if (!rawFile) return;
     
     setIsSaving(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      // Centrado y optimización automática en canvas (512x512 logo seguro, 1200x500 portada)
+      const file = await optimizeStoreImage(rawFile, type);
+      const fileExt = file.name ? file.name.split('.').pop() : 'webp';
       const fileName = `${type}_${Date.now()}.${fileExt}`;
       const filePath = `store_assets/${workspaceId}/${fileName}`;
       
-      const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file, {
+        contentType: file.type || 'image/webp',
+        upsert: true
+      });
       if (uploadError) throw uploadError;
       
       const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
@@ -473,6 +479,13 @@ export default function StoreProfileManager() {
         adminPin,
         logoUrl,
         coverUrl,
+        heroUrl: coverUrl,
+        storefront: {
+          ...(ws?.config?.storefront || {}),
+          logoUrl,
+          coverUrl,
+          heroUrl: coverUrl
+        },
         bcvRate,
         manualBcv,
         autoBcv: !manualBcv, // Keep for backward compatibility
