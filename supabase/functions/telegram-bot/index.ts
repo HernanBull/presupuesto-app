@@ -8,7 +8,8 @@ const MENU_KEYBOARD = {
   keyboard: [
     [{ text: "🟢 Disponible" }, { text: "🔴 Ocupado" }],
     [{ text: "💤 Descansando" }, { text: "🚑 Falla/Accidente" }],
-    [{ text: "👤 Mi Perfil" }, { text: "🛠️ Ayuda" }]
+    [{ text: "👤 Mi Perfil" }, { text: "🆔 Mi ID" }],
+    [{ text: "🛠️ Ayuda" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -18,7 +19,8 @@ const SUPERUSER_KEYBOARD = {
   keyboard: [
     [{ text: "📊 Resumen Hoy" }, { text: "🛵 Flota en Vivo" }],
     [{ text: "🏬 Comercios Activos" }, { text: "⏱️ Tiempos de Entrega" }],
-    [{ text: "🚨 Novedades e Incidentes" }, { text: "❓ Ayuda Gerencial" }]
+    [{ text: "🚨 Novedades e Incidentes" }, { text: "🆔 Mi ID" }],
+    [{ text: "❓ Ayuda Gerencial" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -371,19 +373,56 @@ async function handleTelegramUpdate(update, supabase) {
   }
 
   let text = update.message.text || '';
+  const rawText = text.trim();
   const chatId = update.message.chat?.id?.toString();
-  const driverName = update.message.from?.first_name || "Conductor";
+  const driverName = update.message.from?.first_name || "Compañero";
   const userId = update.message.from?.id;
+  const messageId = update.message.message_id;
+
+  if (!chatId) return new Response("OK");
+
+  // Normalizar comando quitando mención @DeliveryAxonbot si viene de un grupo
+  const cleanCmd = rawText.toLowerCase().split('@')[0];
 
   // --- LOGICA DE CONTROL Y MANTENIMIENTO ---
   const { data: maintenanceSetting } = await supabase.from('platform_settings').select('value').eq('key', 'bot_maintenance_mode').single();
   const isMaintenanceMode = maintenanceSetting?.value === 'true';
 
   if (isMaintenanceMode) {
-    if (text.startsWith('/')) {
+    if (cleanCmd.startsWith('/')) {
       await sendMessageToChat(chatId, "🛠️ <b>El bot se encuentra en MANTENIMIENTO.</b>\nLa agencia ha pausado temporalmente las operaciones del bot. Por favor, intenta más tarde.");
     }
     return new Response("OK", { status: 200, headers: corsHeaders });
+  }
+
+  // --- CONSULTA UNIVERSAL DE TELEGRAM USER ID (EN GRUPO DE CAGUA O EN PRIVADO) ---
+  if (
+    cleanCmd === '/id' ||
+    cleanCmd === '/mi_id' ||
+    cleanCmd === '/miid' ||
+    cleanCmd === '/my_id' ||
+    cleanCmd === '/id_admin_axon' ||
+    cleanCmd === '/quiensoy' ||
+    rawText === '🆔 Mi ID' ||
+    text === '🆔 Mi ID'
+  ) {
+    const targetId = (userId || chatId).toString();
+    const isGroupChat = chatId.startsWith('-');
+    if (isGroupChat) {
+      await sendMessageToChat(
+        chatId,
+        `👤 <b>${driverName}</b>, tu Telegram User ID es:\n👉 <code>${targetId}</code> 👈\n\n📋 <i>Toca el número para copiarlo y pásaselo al Administrador para registrarte en la flota de repartidores de Cagua o asignarte permisos directivos en el panel.</i>`,
+        undefined,
+        messageId ? { reply_to_message_id: messageId } : {}
+      );
+    } else {
+      await sendMessageToChat(
+        chatId,
+        `🆔 <b>TU TELEGRAM USER ID:</b>\n👉 <code>${targetId}</code> 👈\n\n📋 <i>Toca el número para copiarlo automáticamente en tu portapapeles y compártelo con el Administrador para darte de alta.</i>`,
+        MENU_KEYBOARD
+      );
+    }
+    return new Response("OK", { headers: corsHeaders });
   }
 
   // --- MAPEO DEL TECLADO INTERACTIVO ---
@@ -394,40 +433,31 @@ async function handleTelegramUpdate(update, supabase) {
   if (text === "👤 Mi Perfil") text = "/perfil";
   if (text === "🛠️ Ayuda") text = "/ayuda";
 
-  if (!chatId) return new Response("OK");
-
-  // --- CONSULTA UNIVERSAL DE TELEGRAM USER ID ---
-  if (text === '/id_admin_axon' || text === '/my_id' || text === '/id') {
-    const targetId = (userId || chatId).toString();
-    await sendMessageToChat(chatId, `🆔 <b>TU TELEGRAM ID:</b>\n<code>${targetId}</code>\n\n<i>Copia este número y proporciónalo al Administrador en el panel para habilitar tu cuenta gerencial o permisos especiales.</i>`);
-    return new Response("OK", { headers: corsHeaders });
-  }
-
   // --- RECONOCIMIENTO DE SUPERUSUARIO / DUEÑO DE AGENCIA (ENMINUTOS) ---
   const agencySuperuser = await isAgencySuperuser((userId || chatId).toString(), supabase);
 
   if (agencySuperuser) {
-    if (text === "📊 Resumen Hoy" || text === "/gerencia_hoy" || text === "/gerencia" || text === "/panel_em" || text === "/start") {
+    if (text === "📊 Resumen Hoy" || cleanCmd === "/gerencia_hoy" || cleanCmd === "/gerencia" || cleanCmd === "/panel_em" || cleanCmd === "/start") {
       return await handleGerenciaHoy(chatId, agencySuperuser, supabase);
     }
-    if (text === "🛵 Flota en Vivo" || text === "/gerencia_choferes") {
+    if (text === "🛵 Flota en Vivo" || cleanCmd === "/gerencia_choferes") {
       return await handleGerenciaChoferes(chatId, agencySuperuser, supabase);
     }
-    if (text === "🏬 Comercios Activos" || text === "/gerencia_tiendas") {
+    if (text === "🏬 Comercios Activos" || cleanCmd === "/gerencia_tiendas") {
       return await handleGerenciaTiendas(chatId, agencySuperuser, supabase);
     }
-    if (text === "⏱️ Tiempos de Entrega" || text === "/gerencia_tiempos") {
+    if (text === "⏱️ Tiempos de Entrega" || cleanCmd === "/gerencia_tiempos") {
       return await handleGerenciaTiempos(chatId, agencySuperuser, supabase);
     }
-    if (text === "🚨 Novedades e Incidentes" || text === "/gerencia_alertas") {
+    if (text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
       return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
     }
-    if (text.startsWith('/buscar') || text === "🔍 Buscar Pedido") {
+    if (cleanCmd.startsWith('/buscar') || text === "🔍 Buscar Pedido") {
       const q = text.replace('/buscar', '').replace('🔍 Buscar Pedido', '').trim();
       return await handleGerenciaBuscar(chatId, q, supabase);
     }
-    if (text === "❓ Ayuda Gerencial" || text === "/gerencia_ayuda" || text === "/ayuda") {
-      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
+    if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
+      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n🆔 <b>/mi_id</b>: Consultar tu Telegram User ID.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
@@ -560,8 +590,14 @@ async function handleTelegramUpdate(update, supabase) {
   }
 
   // Comandos Start
-  if (text === '/start') {
-    await sendMessageToChat(chatId, "👋 ¡Hola! Bienvenido al bot de Delivery. Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones. Si eres nuevo, escribe /registrar para comenzar.\n\n👇 Usa el menú de abajo para gestionar tu estado.", MENU_KEYBOARD);
+  if (text === '/start' || cleanCmd === '/start') {
+    const targetId = (userId || chatId).toString();
+    await sendMessageToChat(
+      chatId,
+      `👋 ¡Hola, <b>${driverName}</b>! Bienvenido al bot de Delivery.\n\n🆔 <b>Tu Telegram ID:</b> 👉 <code>${targetId}</code> 👈\n<i>(Toca el número para copiarlo si el Administrador te lo solicita para darte de alta)</i>\n\n🛵 Si deseas tomar un viaje, asegúrate de presionar el botón 'Aceptar Viaje' en el grupo de notificaciones de Cagua.\n📝 Si eres nuevo, escribe /registrar para comenzar.\n\n👇 Usa el menú de abajo para gestionar tu estado o consultar tu ID en cualquier momento.`,
+      MENU_KEYBOARD
+    );
+    return new Response("OK", { headers: corsHeaders });
   } else if (text.startsWith('/start accept_')) {
     const orderId = text.replace('/start accept_', '');
     const { data: pendingOrder } = await supabase.from('delivery_pending_trips').select('*').eq('order_id', orderId).single();
@@ -879,12 +915,12 @@ async function logEvent(level, message, details, supabase) {
   }
 }
 
-async function sendMessageToChat(chatId, text, replyMarkup = undefined) {
+async function sendMessageToChat(chatId, text, replyMarkup = undefined, extra = {}) {
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup })
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup, ...extra })
     });
     return await res.json();
   } catch (e) {

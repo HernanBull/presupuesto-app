@@ -251,9 +251,10 @@ export default function AgencySuperuserManager() {
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 text-xs sm:text-sm text-amber-200">
         <HelpCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
         <div>
-          <span className="font-bold">¿Cómo obtiene el dueño su Telegram ID?</span>
-          <p className="text-zinc-300 text-xs mt-0.5">
-            El dueño o director solo debe abrir el bot <b className="text-white">@DeliveryAxonbot</b> en Telegram y escribir <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">/id_admin_axon</code> o <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">/my_id</code>. El bot le devolverá su número de ID para pegarlo aquí.
+          <span className="font-bold">¿Cómo obtiene el repartidor o dueño su Telegram ID?</span>
+          <p className="text-zinc-300 text-xs mt-1 leading-relaxed">
+            • <b>En el Grupo de Cagua:</b> Escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/id</code> o <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/mi_id</code>. El bot responderá citando al usuario con su ID para copiarlo con un solo toque.<br/>
+            • <b>En el Bot Privado:</b> Abre <b className="text-white">@DeliveryAxonbot</b> y presiona el botón interactivo <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">🆔 Mi ID</code> o escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">/start</code>.
           </p>
         </div>
       </div>
@@ -308,9 +309,9 @@ export default function AgencySuperuserManager() {
               onChange={e => setRole(e.target.value)}
               className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500/60 cursor-pointer"
             >
-              <option value="owner">Dueño / Gerente General</option>
-              <option value="manager">Supervisor Operativo</option>
-              <option value="auditor">Auditor Financiero</option>
+              <option value="owner">👑 Dueño / Directiva (Acceso Total + Alertas Accidentes)</option>
+              <option value="manager">🛵 Supervisor Operativo (Flota, Choferes y Rutas)</option>
+              <option value="auditor">📊 Auditor Financiero (Ventas, Fletes y Tiempos)</option>
             </select>
           </div>
         </div>
