@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BarChart3, PieChart, ShoppingCart, Mail, Activity, ArrowRight, 
+  BarChart3, ShoppingCart, Mail, Activity, ArrowRight, 
   CheckCircle2, RotateCcw, CalendarDays, DollarSign, Target, 
   TrendingUp, TrendingDown, Layers, Calculator, CreditCard, 
   Factory, LineChart as LineChartIcon, Bot, ArrowLeft, Users, 
@@ -21,7 +21,6 @@ export default function AnalyticsManager() {
   // Data States
   const [salesData, setSalesData] = useState([]);
   const [funnelData, setFunnelData] = useState({ visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases: 0 });
-  const [trafficData, setTrafficData] = useState({ org: 0, soc: 0, dir: 0 });
   const [carts, setCarts] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [finData, setFinData] = useState({ revenue: 0, cogs: 0, ordersCount: 0, customersCount: 0 });
@@ -105,7 +104,6 @@ export default function AnalyticsManager() {
           checkoutStarted: Math.round(orders.length * 1.5), 
           purchases: orders.length 
         });
-        setTrafficData({ org: 60, soc: 30, dir: 10 });
         setCarts([]);
       }
     } catch (e) {
@@ -351,68 +349,30 @@ export default function AnalyticsManager() {
                 </div>
               </section>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Fuentes de Tráfico */}
-                <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs">
-                  <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
-                    <PieChart size={17} className="text-orange-500" /> Fuentes de Tráfico
+              {/* Monitoreo de Carritos */}
+              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs flex flex-col justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
+                    <ShoppingCart size={17} className="text-orange-500" /> Monitoreo de Carritos
                   </h3>
-                  <div className="space-y-5">
-                     <div>
-                       <div className="flex justify-between text-xs font-bold mb-1.5">
-                         <span className="text-slate-700 dark:text-slate-300">Búsqueda Orgánica / Google</span>
-                         <span className="font-mono">{trafficData.org}%</span>
-                       </div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${trafficData.org}%` }} />
-                       </div>
-                     </div>
-                     <div>
-                       <div className="flex justify-between text-xs font-bold mb-1.5">
-                         <span className="text-slate-700 dark:text-slate-300">Redes Sociales (WhatsApp, IG)</span>
-                         <span className="font-mono">{trafficData.soc}%</span>
-                       </div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-blue-500 h-full rounded-full" style={{ width: `${trafficData.soc}%` }} />
-                       </div>
-                     </div>
-                     <div>
-                       <div className="flex justify-between text-xs font-bold mb-1.5">
-                         <span className="text-slate-700 dark:text-slate-300">Enlace Directo / Vitrina QR</span>
-                         <span className="font-mono">{trafficData.dir}%</span>
-                       </div>
-                       <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                         <div className="bg-violet-500 h-full rounded-full" style={{ width: `${trafficData.dir}%` }} />
-                       </div>
-                     </div>
-                  </div>
-                </section>
-
-                {/* Carritos en Riesgo */}
-                <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-sm mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
-                      <ShoppingCart size={17} className="text-orange-500" /> Monitoreo de Carritos
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20">
-                        <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Recuperado</p>
-                        <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${recoveredRevenue.toFixed(2)}</p>
-                      </div>
-                      <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/60 dark:border-rose-500/20">
-                        <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">En riesgo</p>
-                        <p className="text-lg font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">${lostRevenue.toFixed(2)}</p>
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20">
+                      <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Recuperado</p>
+                      <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${recoveredRevenue.toFixed(2)}</p>
+                    </div>
+                    <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/60 dark:border-rose-500/20">
+                      <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">En riesgo</p>
+                      <p className="text-lg font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">${lostRevenue.toFixed(2)}</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => navigate('/abandoned-carts')}
-                    className="w-full py-2.5 px-4 bg-slate-50 dark:bg-white/5 hover:bg-orange-50 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-bold text-xs rounded-xl border border-slate-200/60 dark:border-white/10 transition-colors text-center cursor-pointer"
-                  >
-                    Ver detalle de carritos abandonados
-                  </button>
-                </section>
-              </div>
+                </div>
+                <button 
+                  onClick={() => navigate('/abandoned-carts')}
+                  className="w-full py-2.5 px-4 bg-slate-50 dark:bg-white/5 hover:bg-orange-50 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-bold text-xs rounded-xl border border-slate-200/60 dark:border-white/10 transition-colors text-center cursor-pointer"
+                >
+                  Ver detalle de carritos abandonados
+                </button>
+              </section>
 
             </div>
           )}

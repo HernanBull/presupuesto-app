@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
-  ArrowUpRight, Activity, ShoppingBag, Eye, Plus, MoreHorizontal, 
+  ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
   Rocket, PackageSearch, Tag, Users, Building2, Settings
 } from 'lucide-react';
@@ -20,6 +20,19 @@ export default function EcommerceDashboard() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('7d');
   const [lowStockCount, setLowStockCount] = useState(0);
+
+  // Ocultar montos / divisas (tipo app bancaria)
+  const [hideFinancials, setHideFinancials] = useState(() => {
+    return localStorage.getItem('hide_dashboard_amounts') === 'true';
+  });
+
+  const toggleHideFinancials = () => {
+    setHideFinancials(prev => {
+      const next = !prev;
+      localStorage.setItem('hide_dashboard_amounts', String(next));
+      return next;
+    });
+  };
 
   // Estados específicos para la vista móvil estilo Commercy (en Naranja Corporativo)
   const [storeInfo, setStoreInfo] = useState(() => ({ 
@@ -276,11 +289,14 @@ export default function EcommerceDashboard() {
     return '0%';
   };
 
+  const storeSlug = storeInfo.slug || localStorage.getItem('storeSlug') || '';
+  const storeUrl = storeSlug ? `/${storeSlug}` : '/';
+
   const stats = [
-    { title: 'Ventas Totales', value: `$${(summary.revenue || 0).toFixed(2)}`, change: formatChange(summary.revenueChange), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+    { title: 'Ventas Totales', value: hideFinancials ? '••••' : `$${(summary.revenue || 0).toFixed(2)}`, change: formatChange(summary.revenueChange), icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
     { title: 'Pedidos', value: (summary.orders || 0).toString(), change: formatChange(summary.ordersChange), icon: ShoppingCart, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10' },
     { title: 'Productos', value: (summary.products || 0).toString(), change: formatChange(summary.productsChange), icon: Package, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10' },
-    { title: 'Ticket Promedio', value: `$${(summary.aov || 0).toFixed(2)}`, change: formatChange(summary.aovChange), icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+    { title: 'Ticket Promedio', value: hideFinancials ? '••••' : `$${(summary.aov || 0).toFixed(2)}`, change: formatChange(summary.aovChange), icon: Activity, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-500/10' },
   ];
 
   // Variables para la vista móvil
@@ -306,25 +322,28 @@ export default function EcommerceDashboard() {
           <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-300/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 -left-12 w-40 h-40 bg-orange-700/30 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Fila Superior: Badge Tienda y Ver Vitrina */}
+          {/* Fila Superior: Badge Tienda (link a vitrina virtual) y Ocultar/Mostrar Divisas */}
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <div 
-              onClick={() => window.open(`/${storeInfo.slug}`, '_blank')}
-              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs"
-              title="Abrir Vitrina Pública"
+            <a 
+              href={storeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs text-white"
+              title={`Ir a la tienda virtual: ${storeInfo.name}`}
             >
-              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-2xs">
+              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
                 <ShoppingBag size={11} strokeWidth={2.5} />
               </div>
-              <span className="text-xs font-black text-white tracking-wide">{storeInfo.name}</span>
-            </div>
+              <span className="text-xs font-black tracking-wide truncate max-w-[170px]">{storeInfo.name}</span>
+              <ExternalLink size={11} className="text-white/80 shrink-0" />
+            </a>
 
             <button
-              onClick={() => window.open(`/${storeInfo.slug}`, '_blank')}
+              onClick={toggleHideFinancials}
               className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border border-white/20 shadow-xs cursor-pointer"
-              title="Ver vitrina pública"
+              title={hideFinancials ? "Mostrar cifras y divisas" : "Ocultar cifras y divisas"}
             >
-              <Eye size={17} />
+              {hideFinancials ? <EyeOff size={17} /> : <Eye size={17} />}
             </button>
           </div>
 
@@ -365,7 +384,7 @@ export default function EcommerceDashboard() {
             <div className="flex items-baseline gap-1 mt-1">
               <span className="text-2xl font-black font-mono text-white/90">$</span>
               <h2 className="text-5xl font-black font-mono tracking-tight text-white leading-none">
-                {currentSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                {hideFinancials ? '••••' : currentSales.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
               </h2>
             </div>
             
@@ -447,7 +466,7 @@ export default function EcommerceDashboard() {
                 <div className="flex items-baseline gap-0.5">
                   <span className="text-sm font-bold text-slate-500 dark:text-slate-400">$</span>
                   <span className="text-xl font-black font-mono text-slate-900 dark:text-white">
-                    {currentAov.toFixed(0)}
+                    {hideFinancials ? '••••' : currentAov.toFixed(0)}
                   </span>
                 </div>
               </div>
@@ -541,7 +560,7 @@ export default function EcommerceDashboard() {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-sm font-black font-mono text-slate-900 dark:text-white">
-                          ${Number(order.total || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {hideFinancials ? '••••' : `$${Number(order.total || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                         </p>
                         <p className={`text-[10px] font-bold ${statusColor}`}>
                           {order.status || 'Entregado'}
@@ -647,14 +666,24 @@ export default function EcommerceDashboard() {
             </p>
           </div>
 
-          <button 
-            onClick={() => navigate('/setup')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-xs transition-all w-fit cursor-pointer group"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Puesta en marcha: 4 de 4 listo</span>
-            <ArrowUpRight size={14} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleHideFinancials}
+              className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-500 transition-all shadow-xs cursor-pointer flex items-center gap-2 text-xs font-bold"
+              title={hideFinancials ? "Mostrar cifras y divisas" : "Ocultar cifras y divisas"}
+            >
+              {hideFinancials ? <EyeOff size={16} /> : <Eye size={16} />}
+              <span className="hidden sm:inline">{hideFinancials ? "Mostrar cifras" : "Ocultar cifras"}</span>
+            </button>
+            <button 
+              onClick={() => navigate('/setup')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-xs transition-all w-fit cursor-pointer group"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Puesta en marcha: 4 de 4 listo</span>
+              <ArrowUpRight size={14} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
+            </button>
+          </div>
         </div>
 
         {/* 4 Metric Cards in Commercy Style (Desktop) */}
@@ -803,7 +832,7 @@ export default function EcommerceDashboard() {
                        <p className="text-[11px] text-slate-400 truncate">{product.sales} ventas</p>
                      </div>
                      <div className="text-right shrink-0">
-                       <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">${product.revenue.toFixed(2)}</p>
+                       <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{hideFinancials ? '••••' : `$${product.revenue.toFixed(2)}`}</p>
                      </div>
                    </div>
                  ))}
