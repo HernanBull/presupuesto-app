@@ -119,7 +119,7 @@ export default function MerchantLandingPage() {
           {/* Acciones: Login y Botón Empezar */}
           <div className="flex items-center gap-3 sm:gap-4">
             <button 
-              onClick={() => { setTrialModalMode('login'); setShowTrialModal(true); }}
+              onClick={() => navigate('/merchant/login')}
               className="text-xs sm:text-sm font-bold text-zinc-700 hover:text-orange-600 transition-colors px-3 py-2 cursor-pointer"
             >
               Iniciar sesión

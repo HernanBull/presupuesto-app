@@ -715,11 +715,8 @@ export default function WelcomeLanding() {
                 </li>
                 <li>
                   <button 
-                    onClick={() => {
-                      setMerchantTrialInitialMode('login');
-                      setShowMerchantTrialModal(true);
-                    }} 
-                    className="hover:text-amber-600 transition-colors cursor-pointer"
+                    onClick={() => navigate('/merchant/login')} 
+                    className="hover:text-amber-600 transition-colors cursor-pointer font-bold text-amber-700"
                   >
                     Portal Comerciante (Iniciar sesión)
                   </button>

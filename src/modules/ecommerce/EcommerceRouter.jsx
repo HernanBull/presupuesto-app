@@ -40,6 +40,7 @@ import MerchantTrialPage from './pages/MerchantTrialPage';
 import OnboardingChecklistPage from './pages/OnboardingChecklistPage';
 import UnifiedPosPage from './pages/UnifiedPosPage';
 import MerchantMorePage from './pages/MerchantMorePage';
+import MerchantLoginPage from './pages/MerchantLoginPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -50,7 +51,7 @@ const MerchantGuard = () => {
   localStorage.removeItem('ecommerce_user');
 
   if (!isMerchantLogged) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/merchant/login" replace />;
   }
 
   return <Outlet />;
@@ -343,6 +344,11 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
     <Routes>
       <Route path="auth/callback" element={<AuthCallback />} />
       
+      {/* Portal exclusivo de autenticación para comerciantes */}
+      <Route path="merchant/login" element={<MerchantLoginPage />} />
+      <Route path="comerciante/login" element={<MerchantLoginPage />} />
+      <Route path="login-comerciante" element={<MerchantLoginPage />} />
+
       {/* Rutas para clientes (Compradores) */}
       <Route element={<CustomerGuard />}>
         <Route index element={<WelcomeLanding />} />

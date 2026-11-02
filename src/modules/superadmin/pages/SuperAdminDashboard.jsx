@@ -58,8 +58,19 @@ export default function SuperAdminDashboard({ superKey }) {
     setLoading(true);
     try {
       if (activeTab === 'merchants' || activeTab === 'pending_merchants') {
-        const { data } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
-        setMerchants(data || []);
+        const { data: wsData } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
+        const { data: contactsData } = await supabase.from('merchant_contacts').select('*');
+        const contactMap = {};
+        if (contactsData) {
+          contactsData.forEach(c => {
+            contactMap[c.id] = c;
+          });
+        }
+        const mergedMerchants = (wsData || []).map(ws => ({
+          ...ws,
+          merchantContact: contactMap[ws.id] || null
+        }));
+        setMerchants(mergedMerchants);
       } else if (activeTab === 'customers') {
         const { data } = await supabase.from('ecommerce_customers').select('*').order('join_date', { ascending: false });
         setCustomers(data || []);
@@ -1484,15 +1495,15 @@ export default function SuperAdminDashboard({ superKey }) {
                     <>
                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Administrador</p>
-                        <p className="text-sm text-slate-900 font-semibold">{config.adminEmail || config.contact?.email || 'No registrado'}</p>
+                        <p className="text-sm text-slate-900 font-semibold">{selectedDetails.merchantContact?.email || config.adminEmail || config.contact?.email || 'No registrado'}</p>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Teléfono</p>
-                        <p className="text-sm text-slate-900 font-semibold">{config.contact?.phone || config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
+                        <p className="text-sm text-slate-900 font-semibold">{selectedDetails.merchantContact?.phone || config.contact?.phone || config.phone || config.storefront?.phone || config.paymentProfile?.pmPhone || config.expediente?.whatsapp || 'No registrado'}</p>
                       </div>
                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-xs">
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Dueño / Propietario</p>
-                        <p className="text-sm text-slate-900 font-semibold">{config.expediente?.ownerName || selectedDetails.name || 'No registrado'}</p>
+                        <p className="text-sm text-slate-900 font-semibold">{selectedDetails.merchantContact?.full_name || config.expediente?.ownerName || config.contact?.ownerName || config.onboarding?.owner_name || 'No registrado'}</p>
                       </div>
                     </>
                   )

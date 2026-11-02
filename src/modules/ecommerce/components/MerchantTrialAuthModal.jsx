@@ -105,7 +105,10 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
           adminEmail: cleanEmail,
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),
-          plan: 'Prueba 7 Días Gratis'
+          plan: 'Prueba 7 Días Gratis',
+          contact: {
+            email: cleanEmail
+          }
         }
       };
 
@@ -113,6 +116,11 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       if (wsError && wsError.code !== '23505') {
         console.warn('Workspace upsert notice:', wsError);
       }
+
+      await supabase.from('merchant_contacts').upsert([{
+        id: userId,
+        email: cleanEmail
+      }]);
 
       localStorage.setItem('activeWorkspace', userId);
       localStorage.setItem('storeSlug', generatedSlug);

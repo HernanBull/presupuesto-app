@@ -2343,6 +2343,21 @@ export default function MarketplaceDirectory() {
                     text="continue_with"
                   />
                 </div>
+
+                <div className="mt-5 pt-4 border-t border-slate-100 text-center">
+                  <p className="text-xs text-slate-500 mb-1">¿Eres dueño o encargado de un negocio?</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAuthModalOpen(false);
+                      navigate('/merchant/login');
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors cursor-pointer"
+                  >
+                    <Store size={14} />
+                    <span>Ir al Portal Exclusivo de Comercios ➔</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -201,24 +201,50 @@ export default function MerchantOnboardingWizard({
       };
 
       if (activeWs) {
-        // 1. Actualizar configuración del comercio
+        // 1. Actualizar configuración del comercio de forma segura (preservando adminEmail y contacto previo)
         try {
+          const { data: currentWs } = await supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle();
+          const prevConfig = typeof currentWs?.config === 'object' && currentWs?.config !== null 
+            ? currentWs.config 
+            : (typeof currentWs?.config === 'string' ? JSON.parse(currentWs.config || '{}') : {});
+
+          const merchantEmail = prevConfig.adminEmail || prevConfig.contact?.email || '';
+
+          const updatedConfig = {
+            ...prevConfig,
+            adminEmail: merchantEmail,
+            onboarding: onboardingData,
+            trialActive: true,
+            plan: 'Prueba 7 Días Gratis',
+            contact: {
+              ...(prevConfig.contact || {}),
+              phone: `+58 ${whatsapp.trim()}`,
+              ownerName: ownerName.trim(),
+              ...(merchantEmail ? { email: merchantEmail } : {})
+            },
+            expediente: {
+              ...(prevConfig.expediente || {}),
+              ownerName: ownerName.trim(),
+              whatsapp: `+58 ${whatsapp.trim()}`
+            }
+          };
+
           await supabase
             .from('workspaces')
             .update({
               name: businessName.trim() || 'Mi Tienda',
               store_slug: cleanSlug,
-              config: {
-                onboarding: onboardingData,
-                trialActive: true,
-                plan: 'Prueba 7 Días Gratis',
-                contact: {
-                  phone: `+58 ${whatsapp.trim()}`,
-                  ownerName: ownerName.trim()
-                }
-              }
+              config: updatedConfig
             })
             .eq('id', activeWs);
+
+          // Actualizar simultáneamente la tabla oficial de contactos del comercio
+          await supabase.from('merchant_contacts').upsert([{
+            id: activeWs,
+            full_name: ownerName.trim(),
+            phone: `+58 ${whatsapp.trim()}`,
+            ...(merchantEmail ? { email: merchantEmail } : {})
+          }]);
         } catch (wsErr) {
           console.warn('Notice updating workspace:', wsErr);
         }
