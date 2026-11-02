@@ -163,7 +163,7 @@ export default function OrderPreparation() {
 
   const fetchOrders = async () => {
     setIsRefreshing(true);
-    const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+    const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
     try {
       let query = supabase.from('ecommerce_orders_v2').select('*');
       if (workspaceId) {
@@ -501,7 +501,7 @@ export default function OrderPreparation() {
 
     // Enviar a Telegram directamente desde Picking
     if (orderToSend) {
-      const wsId = orderToSend.workspace_id || activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+      const wsId = orderToSend.workspace_id || activeWorkspaceId || localStorage.getItem('activeWorkspace');
       const pickupInfo = await resolveStorePickupInfo(wsId);
       if (pickupInfo) {
         pickupInfo.pickup_pin = newPickupPin;
@@ -753,6 +753,9 @@ export default function OrderPreparation() {
       })).filter(u => u.id !== 'admin' && u.id !== 'usr-admin-master');
 
       setStaffList(formatted);
+      try {
+        localStorage.setItem('axon_staff_' + wsId, JSON.stringify(formatted));
+      } catch (e) {}
     } catch (e) {
       console.warn('Error fetching staff list:', e);
     } finally {

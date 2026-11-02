@@ -1209,7 +1209,7 @@ export default function OrdersManager() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">Escanea este código con el teléfono para preparar los pedidos.</p>
           
           {(() => {
-            const currentWs = localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+            const currentWs = localStorage.getItem('activeWorkspace') || '';
             const host = (window.location.hostname === 'localhost' ? '192.168.1.101' : window.location.hostname);
             const portPart = window.location.port ? ':' + window.location.port : '';
             const pickingUrl = `${window.location.protocol}//${host}${portPart}/picking?workspace=${currentWs}&ws=${currentWs}`;

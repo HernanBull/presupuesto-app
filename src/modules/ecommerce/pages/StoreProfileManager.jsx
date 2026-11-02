@@ -148,7 +148,17 @@ export default function StoreProfileManager() {
   const [isStaffSaving, setIsStaffSaving] = useState(false);
   const [showStaffPins, setShowStaffPins] = useState({});
 
-  const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+  const [workspaceId, setWorkspaceId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlWs = params.get('workspace') || params.get('workspace_id') || params.get('ws') || params.get('storeId') || params.get('store');
+      if (urlWs && urlWs !== 'null' && urlWs !== 'undefined' && urlWs !== 'default') {
+        localStorage.setItem('activeWorkspace', urlWs);
+        return urlWs;
+      }
+    } catch (e) {}
+    return localStorage.getItem('activeWorkspace') || 'default_workspace';
+  });
 
   const handleImageUpload = async (e, type) => {
     const rawFile = e.target.files[0];
@@ -255,6 +265,9 @@ export default function StoreProfileManager() {
               } catch (e) {}
             }
             setStaffList(storeStaff);
+            try {
+              localStorage.setItem('axon_staff_' + workspaceId, JSON.stringify(storeStaff));
+            } catch (e) {}
           }
         }
         setIsLoaded(true);
