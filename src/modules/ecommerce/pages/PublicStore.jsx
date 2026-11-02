@@ -2230,7 +2230,7 @@ export default function PublicStore() {
             </div>
 
             {/* Hero Cover Header - Portada Centrada y Balanceada */}
-            <div className="relative w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
+            <div className="relative z-0 w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
               {resolvedCoverUrl ? (
                 <>
                   {/* Fondo ambiental desenfocado para fotos que no sean panorámicas */}
@@ -2244,7 +2244,7 @@ export default function PublicStore() {
                   <img 
                     src={resolveImageUrl(resolvedCoverUrl)} 
                     alt="Cover" 
-                    className="relative z-10 w-full h-full object-cover object-center block" 
+                    className="w-full h-full object-cover object-center block" 
                   />
                 </>
               ) : (
@@ -2256,13 +2256,13 @@ export default function PublicStore() {
             </div>
 
             {/* Perfil del Comerciante (Estilo Instagram - Debajo de la Portada) */}
-            <div className="bg-white border-b border-slate-200/80 px-4 md:px-8 pt-3 pb-4 shadow-xs">
+            <div className="relative z-20 bg-white border-b border-slate-200/80 px-4 md:px-8 pt-3 pb-4 shadow-xs">
               <div className="max-w-[700px] mx-auto w-full">
                 
                 {/* Fila Superior: Avatar a la izquierda, Estadísticas a la derecha */}
                 <div className="flex items-center gap-4 sm:gap-6">
                   {/* Avatar con aro interactivo tipo WhatsApp / Stories */}
-                  <div className="relative shrink-0 -mt-10 sm:-mt-12">
+                  <div className="relative z-30 shrink-0 -mt-10 sm:-mt-12">
                     {hasActiveStatuses ? (
                       <div 
                         onClick={() => markStatusAsViewed(0)}
@@ -2273,9 +2273,13 @@ export default function PublicStore() {
                         }`}
                         title={hasViewedStatus ? 'Estado ya visto' : 'Toca para ver el estado del comercio'}
                       >
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center p-1">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center">
                           {resolvedLogoUrl ? (
-                            <img src={resolveImageUrl(resolvedLogoUrl)} alt="Logo" className="w-full h-full object-contain object-center block" />
+                            <img 
+                              src={resolveImageUrl(resolvedLogoUrl)} 
+                              alt="Logo" 
+                              className="w-full h-full object-cover object-center rounded-full block" 
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
                               <Store size={36} />
@@ -2284,9 +2288,21 @@ export default function PublicStore() {
                         </div>
                       </div>
                     ) : (
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center p-1">
+                      <div 
+                        onClick={() => {
+                          if (merchantStatuses && merchantStatuses.length > 0) {
+                            markStatusAsViewed(0);
+                          }
+                        }}
+                        className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                        title={merchantStatuses && merchantStatuses.length > 0 ? "Toca para ver historias del comercio" : (config?.business_name || "Tienda")}
+                      >
                         {resolvedLogoUrl ? (
-                          <img src={resolveImageUrl(resolvedLogoUrl)} alt="Logo" className="w-full h-full object-contain object-center block" />
+                          <img 
+                            src={resolveImageUrl(resolvedLogoUrl)} 
+                            alt="Logo" 
+                            className="w-full h-full object-cover object-center rounded-full block" 
+                          />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
                             <Store size={36} />
@@ -2296,7 +2312,7 @@ export default function PublicStore() {
                     )}
 
                     {config?.is_verified && (
-                      <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 border-2 border-white flex items-center justify-center shadow-md" title="Comercio Verificado">
+                      <div className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1 border-2 border-white flex items-center justify-center shadow-md z-40" title="Comercio Verificado">
                         <CheckCircle2 size={14} className="text-white" strokeWidth={3} />
                       </div>
                     )}
