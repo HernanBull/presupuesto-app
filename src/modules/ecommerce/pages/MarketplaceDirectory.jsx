@@ -1547,7 +1547,7 @@ export default function MarketplaceDirectory() {
   // Reiniciar visibleFeedCount cuando cambie categoría, filtro o búsqueda
   useEffect(() => {
     setVisibleFeedCount(4);
-  }, [activeCategory, discoveryFilter, searchQuery]);
+  }, [activeCategory, discoveryFilter, searchTerm]);
 
   // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo
   useEffect(() => {
