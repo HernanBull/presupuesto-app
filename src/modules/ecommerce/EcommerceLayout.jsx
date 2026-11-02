@@ -157,13 +157,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   };
 
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(7);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      supabase.from('workspaces').select('name, store_slug, status, config').eq('id', wsId).maybeSingle()
+      supabase.from('workspaces').select('name, store_slug, status, config, created_at').eq('id', wsId).maybeSingle()
         .then(({ data, error }) => {
           if (!error && data) {
             const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
@@ -174,9 +175,17 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
             // Verificar si el período de prueba de 7 días ya culminó
             const trialEndStr = data.config?.trialEndsAt;
-            if (trialEndStr && data.status !== 'Activo') {
+            if (trialEndStr) {
               const diffDays = Math.ceil((new Date(trialEndStr) - new Date()) / (1000 * 60 * 60 * 24));
-              if (diffDays <= 0) {
+              setTrialDaysRemaining(Math.max(0, diffDays));
+              if (diffDays <= 0 && data.status !== 'Activo') {
+                setIsTrialExpired(true);
+              }
+            } else if (data.created_at) {
+              const end = new Date(new Date(data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
+              const diffDays = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
+              setTrialDaysRemaining(Math.max(0, diffDays));
+              if (diffDays <= 0 && data.status !== 'Activo') {
                 setIsTrialExpired(true);
               }
             }
@@ -699,24 +708,29 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         {/* 5. Bottom Section: Trial Card + Utilities + User Card */}
         <div className="shrink-0 pt-2 pb-3 border-t border-white/15 bg-black/5 backdrop-blur-xs">
           
-          {/* Trial Progress Card (Prueba · 13 días [Activar]) */}
-          <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md">
-            <div className="flex items-center justify-between text-xs font-bold text-white mb-2">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                Prueba · 13 días
-              </span>
-              <button 
-                onClick={() => navigate('/store-profile')}
-                className="bg-white hover:bg-slate-50 text-orange-600 font-extrabold text-[10px] px-3 py-1 rounded-full shadow-xs active:scale-95 transition-all cursor-pointer"
-              >
-                Activar
-              </button>
+          {/* Trial Progress Card (7 Días de Prueba) */}
+          {workspaceStatus !== 'Activo' && (
+            <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md">
+              <div className="flex items-center justify-between text-xs font-bold text-white mb-2">
+                <span className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${trialDaysRemaining <= 2 ? 'bg-red-400 animate-ping' : 'bg-white animate-pulse'}`} />
+                  Prueba · {trialDaysRemaining > 0 ? `${trialDaysRemaining} días` : 'Expirada'}
+                </span>
+                <button 
+                  onClick={() => setIsSubscriptionModalOpen(true)}
+                  className="bg-white hover:bg-slate-50 text-orange-600 font-extrabold text-[10px] px-3 py-1 rounded-full shadow-xs active:scale-95 transition-all cursor-pointer"
+                >
+                  Activar
+                </button>
+              </div>
+              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className="bg-white h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, Math.max(12, (trialDaysRemaining / 7) * 100))}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-              <div className="w-3/4 h-full bg-white rounded-full transition-all duration-500" />
-            </div>
-          </div>
+          )}
 
           {/* Secondary Utility Links (Sucursales, Equipo, Referidos, Apps, Configuración) */}
           <div className="px-3.5 space-y-0.5 mb-2">
@@ -1046,6 +1060,68 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         </nav>
       )}
 
+      {/* ========================================================
+          PANTALLA DE BLOQUEO POR TRIAL EXPIRADO
+          ======================================================== */}
+      {isTrialExpired && workspaceStatus !== 'Activo' && (
+        <div className="fixed inset-0 z-[99990] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md w-full p-6 sm:p-7 text-center shadow-2xl space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 mx-auto flex items-center justify-center">
+              <Clock size={28} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-950 dark:text-white">
+                Período de Prueba Finalizado
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1 leading-relaxed">
+                Tus 7 días de acceso gratuito han concluido. Para continuar gestionando tus ventas, POS Kiosco y catálogo online, renueva tu suscripción.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-zinc-800/80 p-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-left space-y-2 text-xs">
+              <div className="flex justify-between items-center font-bold">
+                <span className="text-slate-800 dark:text-white">Plan Mensual:</span>
+                <span className="font-mono text-slate-950 dark:text-white font-black">$30 / mes</span>
+              </div>
+              <div className="flex justify-between items-center font-bold text-orange-600 dark:text-orange-400">
+                <span>Promo Trimestral (3 meses):</span>
+                <span className="font-mono font-black">$60 (1 mes gratis)</span>
+              </div>
+              <div className="text-[10px] text-purple-700 dark:text-purple-300 font-bold border-t border-slate-200 dark:border-white/10 pt-2 flex items-center gap-1">
+                <span>💳 Próximamente pago en cuotas con Cashea</span>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <CreditCard size={16} />
+                <span>Pagar con Pago Móvil BNC</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full py-2.5 text-slate-500 hover:text-slate-800 dark:hover:text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Pago de Suscripción */}
+      <SubscriptionPaymentModal 
+        isOpen={isSubscriptionModalOpen} 
+        onClose={() => setIsSubscriptionModalOpen(false)} 
+        storeInfo={{ name: storeName }}
+        onPaymentReported={() => {
+          setWorkspaceStatus('Pago_En_Revision');
+        }}
+      />
+
     </div>
   );
 }
+

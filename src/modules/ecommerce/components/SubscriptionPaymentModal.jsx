@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Check, Copy, CreditCard, ShieldCheck, Sparkles, 
   Smartphone, Building2, Hash, Calendar, DollarSign, 
-  AlertCircle, ChevronRight, CheckCircle2, Clock
+  AlertCircle, ChevronRight, CheckCircle2, Clock, Zap
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -11,6 +11,9 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
   const [bcvRate, setBcvRate] = useState(888.89);
   const [copiedField, setCopiedField] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Selector de Plan: 'mensual' ($30) o 'trimestral' ($60 - 3 meses con 1 mes gratis)
+  const [selectedPlan, setSelectedPlan] = useState('trimestral');
 
   // Formulario de Reporte de Pago
   const [reference, setReference] = useState('');
@@ -24,9 +27,31 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
     bancoCodigo: '0191',
     bancoNombre: '0191 - Banco Nacional de Crédito (BNC)',
     telefono: '04243592392',
-    titular: 'AxonMarket C.A.',
-    precioUsd: 20
+    titular: 'AxonMarket C.A.'
   };
+
+  const PLANS = {
+    mensual: {
+      id: 'mensual',
+      name: 'Plan Mensual',
+      durationDays: 30,
+      durationMonths: 1,
+      priceUsd: 30,
+      badge: 'Estándar',
+      desc: 'Acceso completo a todos los módulos por 30 días.'
+    },
+    trimestral: {
+      id: 'trimestral',
+      name: 'Plan Trimestral Promo (3 Meses)',
+      durationDays: 90,
+      durationMonths: 3,
+      priceUsd: 60,
+      badge: '🔥 Paga 2 y Lleva 3 (1 Mes GRATIS)',
+      desc: 'Pagas 2 meses ($60) y disfrutas de 3 meses completos. ¡Ahorras $30!'
+    }
+  };
+
+  const currentPlan = PLANS[selectedPlan] || PLANS.trimestral;
 
   useEffect(() => {
     if (isOpen) {
@@ -37,16 +62,23 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
           if (data?.rate) {
             const r = Number(data.rate);
             setBcvRate(r);
-            setAmountVes((PAGO_MOVIL_DATA.precioUsd * r).toFixed(2));
+            setAmountVes((currentPlan.priceUsd * r).toFixed(2));
           }
         })
         .catch(() => {
           const cached = Number(localStorage.getItem('axon_bcv_rate')) || 888.89;
           setBcvRate(cached);
-          setAmountVes((PAGO_MOVIL_DATA.precioUsd * cached).toFixed(2));
+          setAmountVes((currentPlan.priceUsd * cached).toFixed(2));
         });
     }
   }, [isOpen]);
+
+  // Actualizar monto cuando cambia el plan
+  useEffect(() => {
+    if (bcvRate) {
+      setAmountVes((currentPlan.priceUsd * bcvRate).toFixed(2));
+    }
+  }, [selectedPlan, bcvRate]);
 
   if (!isOpen) return null;
 
@@ -78,9 +110,15 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
         workspace_id: workspaceId,
         merchant_name: storeInfo?.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio',
         reference_number: reference.trim(),
-        amount_ves: parseFloat(amountVes) || (PAGO_MOVIL_DATA.precioUsd * bcvRate),
-        amount_usd: PAGO_MOVIL_DATA.precioUsd,
+        reference: reference.trim(),
+        amount_ves: parseFloat(amountVes) || (currentPlan.priceUsd * bcvRate),
+        amount_bs: parseFloat(amountVes) || (currentPlan.priceUsd * bcvRate),
+        amount_usd: currentPlan.priceUsd,
+        plan_type: selectedPlan,
+        months_granted: currentPlan.durationMonths,
+        duration_days: currentPlan.durationDays,
         bcv_rate: bcvRate,
+        exchange_rate: bcvRate,
         bank_origin: bankOrigin,
         payment_date: paymentDate,
         status: 'Pendiente',
@@ -133,7 +171,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
     }
   };
 
-  const totalVesEstimado = (PAGO_MOVIL_DATA.precioUsd * bcvRate).toLocaleString('es-VE', { 
+  const totalVesEstimado = (currentPlan.priceUsd * bcvRate).toLocaleString('es-VE', { 
     minimumFractionDigits: 2, 
     maximumFractionDigits: 2 
   });
@@ -154,20 +192,20 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider mb-2">
             <Sparkles size={13} />
-            <span>Suscripción Mensual AxonMarket</span>
+            <span>Suscripción AxonMarket</span>
           </div>
 
           <h3 className="text-xl sm:text-2xl font-black leading-tight tracking-tight">
-            Plan Profesional Único
+            Planes Profesionales
           </h3>
           <p className="text-xs text-white/90 mt-1">
-            Activa o renueva todas las herramientas de tu tienda por 30 días continuos.
+            Activa o renueva todas las herramientas de tu tienda y POS Kiosco sin límites.
           </p>
 
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black font-mono">${PAGO_MOVIL_DATA.precioUsd}</span>
-            <span className="text-sm font-bold text-white/80">/ mes</span>
-            <span className="ml-auto text-xs font-bold text-white/90 bg-black/20 px-2.5 py-1 rounded-full">
+            <span className="text-3xl sm:text-4xl font-black font-mono">${currentPlan.priceUsd}</span>
+            <span className="text-sm font-bold text-white/80">/ {selectedPlan === 'trimestral' ? '3 meses' : 'mes'}</span>
+            <span className="ml-auto text-xs font-bold text-white/90 bg-black/20 px-2.5 py-1 rounded-full font-mono">
               ≈ Bs. {totalVesEstimado}
             </span>
           </div>
@@ -175,36 +213,79 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
 
         <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
 
-          {/* Lista de Funcionalidades Incluidas */}
-          <div className="bg-slate-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-slate-200/70 dark:border-white/5 space-y-2.5">
-            <h4 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-emerald-500" />
-              <span>Funcionalidades Incluidas Sin Restricciones</span>
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-zinc-300">
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>POS Kiosco (Mostrador)</span>
+          {/* Selector de Planes: Mensual vs Trimestral */}
+          <div className="space-y-2.5">
+            <label className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+              <Zap size={14} className="text-orange-500" />
+              <span>Selecciona tu Plan de Suscripción</span>
+            </label>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Opción Trimestral */}
+              <div 
+                onClick={() => setSelectedPlan('trimestral')}
+                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
+                  selectedPlan === 'trimestral'
+                    ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-500/10 shadow-sm'
+                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                }`}
+              >
+                <div className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider shadow-xs">
+                  1 Mes GRATIS
+                </div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">Plan Trimestral</span>
+                  <span className="text-base font-black font-mono text-orange-600">$60</span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-tight">
+                  Pagas 2 meses ($60) y disfrutas de <strong>3 meses</strong>. ¡Ahorras $30!
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <Check size={12} /> 90 días de servicio continuo
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>Facturación &amp; SENIAT</span>
+
+              {/* Opción Mensual */}
+              <div 
+                onClick={() => setSelectedPlan('mensual')}
+                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                  selectedPlan === 'mensual'
+                    ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-500/10 shadow-sm'
+                    : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">Plan Mensual</span>
+                  <span className="text-base font-black font-mono text-slate-900 dark:text-white">$30</span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-tight">
+                  Renovación estándar mensual de tu tienda y herramientas.
+                </p>
+                <div className="mt-2 text-[10px] font-bold text-slate-500 dark:text-zinc-400 flex items-center gap-1">
+                  <Check size={12} /> 30 días de servicio
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>Control de Caja F9 (Arqueo Z)</span>
+            </div>
+          </div>
+
+          {/* Banner: Cashea (Próximamente) */}
+          <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/40 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
+                <CreditCard size={18} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>21 Permisos de Personal</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>Respaldos ACID (.axonbak)</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check size={13} className="text-emerald-500 shrink-0" />
-                <span>Vitrina Digital 24/7</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wide">
+                    Paga en Cuotas con Cashea
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[9px] font-black uppercase tracking-wider">
+                    Próximamente
+                  </span>
+                </div>
+                <p className="text-[11px] text-purple-900/80 dark:text-purple-300/80 mt-0.5 leading-snug">
+                  Muy pronto podrás pagar tu plan en cómodas cuotas sin interés mediante Cashea.
+                </p>
               </div>
             </div>
           </div>
@@ -278,9 +359,9 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1 pt-1">
-              <span>Tasa oficial BCV: <strong>Bs. {bcvRate.toFixed(2)}</strong></span>
-              <span>Monto exacto: <strong>Bs. {totalVesEstimado}</strong></span>
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1 pt-1 font-medium">
+              <span>Tasa BCV: <strong>Bs. {bcvRate.toFixed(2)}</strong></span>
+              <span>Monto a transferir: <strong className="text-orange-600 dark:text-orange-400 font-mono">Bs. {totalVesEstimado}</strong></span>
             </div>
           </div>
 
@@ -288,12 +369,12 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
           <form onSubmit={handleSubmitPayment} className="space-y-4 pt-1">
             <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
               <Clock size={14} className="text-orange-500" />
-              <span>Reportar Comprobante de Pago</span>
+              <span>Reportar Comprobante de Pago Móvil</span>
             </h4>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
-                Número de Referencia Bancaria (últimos 4 a 6 dígitos) *
+                Número de Referencia Bancaria (últimos 4 a 8 dígitos) *
               </label>
               <div className="relative">
                 <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -324,6 +405,9 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
                   <option value="0105 - Banco Mercantil">0105 - Banco Mercantil</option>
                   <option value="0191 - BNC">0191 - BNC</option>
                   <option value="0172 - Bancamiga">0172 - Bancamiga</option>
+                  <option value="0114 - Banco del Caribe">0114 - Bancaribe</option>
+                  <option value="0115 - Banco Exterior">0115 - Banco Exterior</option>
+                  <option value="0163 - Banco del Tesoro">0163 - Banco del Tesoro</option>
                   <option value="Otro Banco">Otro Banco Nacional</option>
                 </select>
               </div>
@@ -336,7 +420,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
                   type="text"
                   value={amountVes}
                   onChange={(e) => setAmountVes(e.target.value)}
-                  placeholder="Ej: 17777.80"
+                  placeholder="Ej: 53333.40"
                   className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none"
                 />
               </div>
@@ -352,7 +436,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
               ) : (
                 <>
                   <CheckCircle2 size={16} />
-                  <span>Confirmar y Enviar Comprobante</span>
+                  <span>Confirmar Comprobante ({currentPlan.name})</span>
                 </>
               )}
             </button>

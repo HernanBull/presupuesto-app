@@ -349,9 +349,9 @@ export default function MerchantMorePage() {
         </div>
 
         {/* ========================================================
-            BANNER: PLAN PROFESIONAL ÚNICO & CONTADOR DE TRIAL 7 DÍAS
+            BANNER: PLANES PROFESIONALES & CONTADOR DE TRIAL 7 DÍAS
             ======================================================== */}
-        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in">
+        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in space-y-4">
           <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none">
             <Sparkles size={80} />
           </div>
@@ -359,7 +359,7 @@ export default function MerchantMorePage() {
             <div className="flex items-center justify-between">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider">
                 <Sparkles size={12} />
-                <span>Plan Profesional Único</span>
+                <span>Planes Profesionales</span>
               </div>
               <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                 workspaceStatus === 'Activo' 
@@ -382,15 +382,47 @@ export default function MerchantMorePage() {
               </h4>
               <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
                 {workspaceStatus === 'Activo'
-                  ? 'Disfruta de todas las funciones: POS Mostrador, Facturación SENIAT, Caja F9 y Catálogo Online.'
-                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Realiza tu Pago Móvil BNC para mantener tu servicio sin interrupciones.`
+                  ? 'Disfruta de POS Mostrador, Facturación SENIAT, Caja F9, Catálogo Online y gestión de equipo.'
+                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Paga mensualmente $30 o aprovecha la promo trimestral de $60 (¡1 mes gratis!).`
                 }
               </p>
             </div>
 
+            {/* Opciones de Planes Destacadas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <div className="bg-black/15 backdrop-blur-md rounded-2xl p-3 border border-white/15">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>Plan Mensual</span>
+                  <span className="font-mono text-sm font-black">$30 / mes</span>
+                </div>
+                <p className="text-[10px] text-white/80 mt-0.5">Acceso completo estándar mensual.</p>
+              </div>
+
+              <div className="bg-black/25 backdrop-blur-md rounded-2xl p-3 border-2 border-white/30 relative">
+                <span className="absolute -top-2 right-2 bg-emerald-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-xs">
+                  Paga 2 Lleva 3
+                </span>
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span>Plan Trimestral</span>
+                  <span className="font-mono text-sm font-black text-amber-200">$60 (3 meses)</span>
+                </div>
+                <p className="text-[10px] text-white/90 mt-0.5">¡1 mes GRATIS! Ahorras $30.</p>
+              </div>
+            </div>
+
+            {/* Mención Cashea Próximamente */}
+            <div className="bg-white/15 backdrop-blur-md rounded-2xl px-3.5 py-2 flex items-center justify-between gap-2 border border-white/20">
+              <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                <span>💳 Próximamente: Paga en cuotas sin interés con Cashea</span>
+              </span>
+              <span className="text-[9px] uppercase font-black bg-white/25 px-2 py-0.5 rounded-full">
+                Pronto
+              </span>
+            </div>
+
             {/* Barra de progreso visual de los 7 días */}
             {workspaceStatus !== 'Activo' && (
-              <div className="space-y-1">
+              <div className="space-y-1 pt-1">
                 <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden p-0.5">
                   <div 
                     className="bg-white h-full rounded-full transition-all duration-500"
@@ -409,7 +441,7 @@ export default function MerchantMorePage() {
               className="mt-1 w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-orange-50 text-orange-600 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
             >
               <CreditCard size={15} />
-              <span>{workspaceStatus === 'Activo' ? 'Ver Datos de Pago Móvil' : 'Pagar Suscripción / Activar Plan'}</span>
+              <span>{workspaceStatus === 'Activo' ? 'Ver Datos de Pago Móvil' : 'Ver Planes & Pagar con BNC'}</span>
             </button>
           </div>
         </div>

@@ -393,13 +393,17 @@ export default function SuperAdminDashboard({ superKey }) {
     setLoading(false);
   };
 
-  const handleApprovePayment = async (payment) => {
-    const confirmApprove = window.confirm(`¿Aprobar pago de $20 (Ref: ${payment.reference}) para "${payment.merchant_name || 'Comercio'}" y activar servicio por 30 días?`);
+  const handleApprovePayment = async (payment, customDays = null) => {
+    const isQuarterly = payment.plan_type === 'trimestral' || Number(payment.amount_usd) >= 50 || Number(payment.duration_days) >= 60;
+    const extensionDays = customDays || (isQuarterly ? 90 : 30);
+    const planName = extensionDays >= 90 ? 'Trimestral Promo (90 días / 3 meses)' : 'Mensual (30 días)';
+    const amountLabel = isQuarterly ? '$60' : '$30';
+    
+    const confirmApprove = window.confirm(`¿Aprobar pago de ${amountLabel} (${planName}, Ref: ${payment.reference}) para "${payment.merchant_name || 'Comercio'}" y activar servicio por ${extensionDays} días?`);
     if (!confirmApprove) return;
     setIsActionLoading(true);
     try {
       const now = new Date();
-      const extensionDays = 30;
       const nextExpiration = new Date(now.getTime() + extensionDays * 24 * 60 * 60 * 1000).toISOString();
       
       const targetWsId = payment.workspace_id;
@@ -414,7 +418,8 @@ export default function SuperAdminDashboard({ superKey }) {
           lastSubscriptionPayment: {
             ...(cfg.lastSubscriptionPayment || payment),
             status: 'Aprobado',
-            approved_at: now.toISOString()
+            approved_at: now.toISOString(),
+            extension_days: extensionDays
           }
         };
         await supabase.from('workspaces').update({
@@ -432,7 +437,7 @@ export default function SuperAdminDashboard({ superKey }) {
         } catch(e) {}
       }
       
-      alert(`¡Pago Aprobado con Éxito! El comercio "${payment.merchant_name}" ha sido activado por 30 días.`);
+      alert(`¡Pago Aprobado con Éxito! El comercio "${payment.merchant_name}" ha sido activado por ${extensionDays} días (hasta ${new Date(nextExpiration).toLocaleDateString()}).`);
       fetchData();
     } catch (err) {
       console.error("Error al aprobar pago:", err);
@@ -1164,7 +1169,7 @@ export default function SuperAdminDashboard({ superKey }) {
 
                 <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Activos ($20/mes)</span>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Planes Activos</span>
                     <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
                       <CheckCircle2 size={18} />
                     </div>
@@ -1172,7 +1177,7 @@ export default function SuperAdminDashboard({ superKey }) {
                   <p className="text-2xl font-black text-emerald-700">
                     {trialMerchants.filter(m => m.calculatedStatus === 'Activo').length}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-medium mt-1">Planes profesionales vigentes</p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">Planes $30/m o $60/trimestre</p>
                 </div>
               </div>
 
@@ -1185,7 +1190,7 @@ export default function SuperAdminDashboard({ superKey }) {
                       Pagos Móviles BNC Reportados
                     </h3>
                     <p className="text-xs text-slate-600 font-medium mt-0.5">
-                      Verifica la referencia en la banca en línea de BNC y aprueba con un solo clic (+30 días de acceso).
+                      Concilia con BNC y aprueba: $30 activa 30 días (Mensual) y $60 activa 90 días (Promo Trimestral con 1 mes gratis).
                     </p>
                   </div>
                   <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700">
@@ -1205,6 +1210,7 @@ export default function SuperAdminDashboard({ superKey }) {
                     <div className="md:hidden flex flex-col gap-3">
                       {subscriptionPayments.map((pay, pIdx) => {
                         const isPending = pay.status === 'Pendiente';
+                        const isQuarterly = pay.plan_type === 'trimestral' || Number(pay.amount_usd) >= 50;
                         return (
                           <div key={pay.id || pIdx} className={`bg-white border rounded-2xl p-4 flex flex-col gap-3 shadow-xs ${isPending ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'}`}>
                             <div className="flex justify-between items-start">
@@ -1236,8 +1242,13 @@ export default function SuperAdminDashboard({ superKey }) {
                                 <p className="font-bold text-slate-800 mt-0.5">{pay.bank_origin || 'BNC'}</p>
                               </div>
                               <div>
-                                <p className="text-[10px] text-slate-500 uppercase font-bold">Monto</p>
-                                <p className="font-bold text-emerald-700 mt-0.5">Bs. {pay.amount_bs ? Number(pay.amount_bs).toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'} <span className="text-[10px] text-slate-500 font-normal">($20)</span></p>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Plan / Monto</p>
+                                <p className="font-bold text-emerald-700 mt-0.5">
+                                  Bs. {pay.amount_bs ? Number(pay.amount_bs).toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'} 
+                                  <span className="text-[10px] text-slate-500 block font-normal">
+                                    {isQuarterly ? '🔥 Trimestral ($60)' : 'Mensual ($30)'}
+                                  </span>
+                                </p>
                               </div>
                               <div>
                                 <p className="text-[10px] text-slate-500 uppercase font-bold">Fecha</p>
@@ -1270,7 +1281,7 @@ export default function SuperAdminDashboard({ superKey }) {
                                     disabled={isActionLoading}
                                     className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
                                   >
-                                    <Check size={14} /> Aprobar (+30d)
+                                    <Check size={14} /> {isQuarterly ? 'Aprobar Trimestral (+90d)' : 'Aprobar (+30d)'}
                                   </button>
                                 </div>
                               ) : (
@@ -1291,7 +1302,7 @@ export default function SuperAdminDashboard({ superKey }) {
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-900">Comercio</th>
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Referencia BNC</th>
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Banco Origen</th>
-                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Monto Bs.</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Plan & Monto</th>
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Estado</th>
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">WhatsApp</th>
                             <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-right">Acción</th>
@@ -1300,6 +1311,7 @@ export default function SuperAdminDashboard({ superKey }) {
                         <tbody>
                           {subscriptionPayments.map((pay, pIdx) => {
                             const isPending = pay.status === 'Pendiente';
+                            const isQuarterly = pay.plan_type === 'trimestral' || Number(pay.amount_usd) >= 50;
                             const cleanPhone = (pay.contact_phone || '').replace(/\D/g, '').replace(/^0/, '').replace(/^58/, '');
                             return (
                               <tr key={pay.id || pIdx} className={`border-b border-slate-100 transition-colors ${isPending ? 'bg-amber-50/30 hover:bg-amber-50/60' : 'hover:bg-slate-50/80'}`}>
@@ -1340,7 +1352,15 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <div className="font-black text-emerald-700">
                                     Bs. {pay.amount_bs ? Number(pay.amount_bs).toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
                                   </div>
-                                  <div className="text-[10px] text-slate-500 font-mono">$20.00 USD</div>
+                                  <div className="text-[10px] text-slate-600 font-bold">
+                                    {isQuarterly ? (
+                                      <span className="inline-flex items-center gap-1 text-orange-600 font-black">
+                                        🔥 Trimestral ($60 / 3m)
+                                      </span>
+                                    ) : (
+                                      <span>Mensual ($30 / 1m)</span>
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="py-3.5 px-4 text-center">
                                   <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
@@ -1379,10 +1399,10 @@ export default function SuperAdminDashboard({ superKey }) {
                                       <button
                                         onClick={() => handleApprovePayment(pay)}
                                         disabled={isActionLoading}
-                                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
-                                        title="Aprobar y activar comercio por 30 días"
+                                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                                        title={`Aprobar y activar servicio por ${isQuarterly ? '90 días' : '30 días'}`}
                                       >
-                                        <Check size={14} /> Aprobar (+30d)
+                                        <Check size={14} /> {isQuarterly ? 'Aprobar 90d' : 'Aprobar 30d'}
                                       </button>
                                     </div>
                                   ) : (
@@ -1528,18 +1548,26 @@ export default function SuperAdminDashboard({ superKey }) {
                                   <button
                                     onClick={() => handleExtendTrial(m, 7)}
                                     disabled={isActionLoading}
-                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition-colors border border-slate-300 disabled:opacity-50"
+                                    className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition-colors border border-slate-300 disabled:opacity-50"
                                     title="Dar 7 días adicionales de cortesía"
                                   >
-                                    +7 Días
+                                    +7d
                                   </button>
                                   <button
-                                    onClick={() => handleApprovePayment({ workspace_id: m.id, merchant_name: m.name, reference: 'MANUAL_SUPERADMIN' })}
+                                    onClick={() => handleApprovePayment({ workspace_id: m.id, merchant_name: m.name, reference: 'MANUAL_SUPERADMIN', amount_usd: 30 }, 30)}
+                                    disabled={isActionLoading}
+                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
+                                    title="Activar plan mensual (30 días)"
+                                  >
+                                    +30d
+                                  </button>
+                                  <button
+                                    onClick={() => handleApprovePayment({ workspace_id: m.id, merchant_name: m.name, reference: 'MANUAL_SUPERADMIN', amount_usd: 60, plan_type: 'trimestral' }, 90)}
                                     disabled={isActionLoading}
                                     className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
-                                    title="Activar plan por 30 días"
+                                    title="Activar plan trimestral promo (90 días)"
                                   >
-                                    Activar 30d
+                                    +90d Promo
                                   </button>
                                 </div>
                               </td>
