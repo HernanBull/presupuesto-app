@@ -17,13 +17,31 @@ const MENU_KEYBOARD = {
 
 const SUPERUSER_KEYBOARD = {
   keyboard: [
-    [{ text: "📊 Resumen Hoy" }, { text: "🛵 Flota en Vivo" }],
-    [{ text: "🏬 Comercios Activos" }, { text: "⏱️ Tiempos de Entrega" }],
-    [{ text: "🚨 Novedades e Incidentes" }, { text: "🆔 Mi ID" }],
-    [{ text: "❓ Ayuda Gerencial" }]
+    [{ text: "📊 Resumen Hoy" }, { text: "📅 Reporte por Fecha" }],
+    [{ text: "🛵 Flota en Vivo" }, { text: "🏬 Comercios Activos" }],
+    [{ text: "⏱️ Tiempos de Entrega" }, { text: "🚨 Novedades e Incidentes" }],
+    [{ text: "🆔 Mi ID" }, { text: "❓ Ayuda Gerencial" }]
   ],
   resize_keyboard: true,
   is_persistent: true
+};
+
+const DATE_SELECTOR_INLINE_KEYBOARD = {
+  inline_keyboard: [
+    [
+      { text: "📅 Hoy", callback_data: "rep_date:today" },
+      { text: "⏪ Ayer", callback_data: "rep_date:yesterday" },
+      { text: "🗓️ Antier", callback_data: "rep_date:day_before" }
+    ],
+    [
+      { text: "📊 Esta Semana (7d)", callback_data: "rep_date:this_week" },
+      { text: "📈 Mes en Curso", callback_data: "rep_date:this_month" }
+    ],
+    [
+      { text: "🗓️ Mes Anterior", callback_data: "rep_date:last_month" },
+      { text: "🔍 Otra Fecha...", callback_data: "rep_date:ask_custom" }
+    ]
+  ]
 };
 
 const corsHeaders = {
@@ -368,6 +386,10 @@ async function handleCustomerConfirm({ orderId }, supabase) {
 
 // === Lógica para manejar respuestas del Bot (Webhook) ===
 async function handleTelegramUpdate(update, supabase) {
+  if (update.callback_query) {
+    return await handleTelegramCallbackQuery(update.callback_query, supabase);
+  }
+
   if (!update.message) {
     return new Response("OK", { status: 200, headers: corsHeaders });
   }
@@ -440,6 +462,37 @@ async function handleTelegramUpdate(update, supabase) {
     if (text === "📊 Resumen Hoy" || cleanCmd === "/gerencia_hoy" || cleanCmd === "/gerencia" || cleanCmd === "/panel_em" || cleanCmd === "/start") {
       return await handleGerenciaHoy(chatId, agencySuperuser, supabase);
     }
+    if (text === "📅 Reporte por Fecha" || cleanCmd === "/reporte" || cleanCmd === "/fechas" || cleanCmd === "/calendario" || cleanCmd === "/fecha") {
+      const promptMsg = `🗓️ <b>CONSOLA GERENCIAL — AUDITORÍA POR FECHAS</b> 📋\n\nSelecciona un período predeterminado o escribe directamente una fecha en el chat:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-01</code>)\n\n👇 <i>Toca una opción rápida:</i>`;
+      await sendMessageToChat(chatId, promptMsg, DATE_SELECTOR_INLINE_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
+    if (cleanCmd === "/ayer" || cleanCmd === "/gerencia_ayer" || rawText.toLowerCase() === "ayer") {
+      const range = getVenezuelaDateRange('yesterday');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (cleanCmd === "/antier" || cleanCmd === "/gerencia_antier" || rawText.toLowerCase() === "antier") {
+      const range = getVenezuelaDateRange('day_before');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (cleanCmd === "/semana" || cleanCmd === "/gerencia_semana" || rawText.toLowerCase() === "esta semana" || rawText.toLowerCase() === "semana") {
+      const range = getVenezuelaDateRange('this_week');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (cleanCmd === "/mes" || cleanCmd === "/gerencia_mes" || rawText.toLowerCase() === "este mes" || rawText.toLowerCase() === "mes") {
+      const range = getVenezuelaDateRange('this_month');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+
+    // Consulta por fecha personalizada (ej: 01/11/2026, 31/10, 2026-11-01, /gerencia 01/11/2026)
+    const dateMatch = extractDateFromString(rawText);
+    if (dateMatch) {
+      const range = getVenezuelaDateRange('custom', `${dateMatch.year}-${dateMatch.month}-${dateMatch.day}`);
+      if (range) {
+        return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+      }
+    }
+
     if (text === "🛵 Flota en Vivo" || cleanCmd === "/gerencia_choferes") {
       return await handleGerenciaChoferes(chatId, agencySuperuser, supabase);
     }
@@ -457,7 +510,7 @@ async function handleTelegramUpdate(update, supabase) {
       return await handleGerenciaBuscar(chatId, q, supabase);
     }
     if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
-      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n🆔 <b>/mi_id</b>: Consultar tu Telegram User ID.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
+      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n📅 <b>/reporte</b>: Selector interactivo de auditoría por fechas.\n⏪ <b>/ayer</b> o <b>/antier</b>: Balance del día anterior o antepasado.\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>01/11/2026</code> o <code>31/10</code> para auditar ese día.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n🆔 <b>/mi_id</b>: Consultar tu Telegram User ID.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
@@ -929,6 +982,20 @@ async function sendMessageToChat(chatId, text, replyMarkup = undefined, extra = 
   }
 }
 
+async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  try {
+    const payload: any = { callback_query_id: callbackQueryId };
+    if (text) payload.text = text;
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error("Error contestando callback query:", e);
+  }
+}
+
 async function isUserInGroup(userId, groupId) {
   try {
     const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChatMember?chat_id=${groupId}&user_id=${userId}`);
@@ -1007,26 +1074,125 @@ async function notifyAgencySuperusers(supabase: any, message: string, replyMarku
   }
 }
 
-// 1. Resumen Gerencial del Día (/gerencia hoy)
-async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const startIso = startOfDay.toISOString();
+function formatVzlaDate(d: Date): string {
+  return d.toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function parseDateString(text: string): { day: number, month: number, year: number } | null {
+  const clean = text.replace('/gerencia', '').replace('/reporte', '').replace('/fecha', '').trim();
+  
+  // DD/MM/YYYY or DD-MM-YYYY
+  let m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) {
+    const day = parseInt(m[1]);
+    const month = parseInt(m[2]);
+    const year = parseInt(m[3]);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year };
+  }
+  
+  // YYYY-MM-DD
+  m = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) {
+    const year = parseInt(m[1]);
+    const month = parseInt(m[2]);
+    const day = parseInt(m[3]);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year };
+  }
+
+  // DD/MM or DD-MM (assume current year)
+  m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) {
+    const day = parseInt(m[1]);
+    const month = parseInt(m[2]);
+    const currentYear = new Date().getFullYear();
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year: currentYear };
+  }
+
+  return null;
+}
+
+function getVenezuelaDateRange(type: string, customDateStr?: string) {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const vzlaTime = new Date(utc + (3600000 * -4)); // Venezuelan time (UTC-4)
+
+  let start = new Date(vzlaTime);
+  let end = new Date(vzlaTime);
+  let label = '';
+
+  if (type === 'today') {
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    label = `HOY (${formatVzlaDate(start)})`;
+  } else if (type === 'yesterday') {
+    start.setDate(start.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() - 1);
+    end.setHours(23, 59, 59, 999);
+    label = `AYER (${formatVzlaDate(start)})`;
+  } else if (type === 'day_before') {
+    start.setDate(start.getDate() - 2);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() - 2);
+    end.setHours(23, 59, 59, 999);
+    label = `ANTIER (${formatVzlaDate(start)})`;
+  } else if (type === 'this_week') {
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    label = `ÚLTIMOS 7 DÍAS (${formatVzlaDate(start)} al ${formatVzlaDate(end)})`;
+  } else if (type === 'this_month') {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    label = `MES EN CURSO (${start.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' })})`;
+  } else if (type === 'last_month') {
+    start.setMonth(start.getMonth() - 1);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
+    label = `MES ANTERIOR (${start.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' })})`;
+  } else if (type === 'custom' && customDateStr) {
+    const parsed = parseDateString(customDateStr);
+    if (!parsed) return null;
+    start = new Date(parsed.year, parsed.month - 1, parsed.day, 0, 0, 0, 0);
+    end = new Date(parsed.year, parsed.month - 1, parsed.day, 23, 59, 59, 999);
+    label = `FECHA ${formatVzlaDate(start)}`;
+  } else {
+    return null;
+  }
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const startIso = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T00:00:00.000-04:00`;
+  const endIso = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T23:59:59.999-04:00`;
+
+  return { startIso, endIso, label, start, end };
+}
+
+// 1. Reporte Gerencial por Período/Fecha (/gerencia hoy, ayer, antier, custom)
+async function sendGerenciaReport(chatId: string, superuser: any, range: any, supabase: any) {
+  if (!range) {
+    await sendMessageToChat(chatId, "⚠️ Formato de fecha no válido. Usa <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>).");
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  const { startIso, endIso, label } = range;
 
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
     .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name')
-    .gte('date', startIso);
+    .gte('date', startIso)
+    .lte('date', endIso);
 
   const orderList = orders || [];
   const totalCount = orderList.length;
-  const delivered = orderList.filter(o => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').length;
-  const inRoute = orderList.filter(o => o.status === 'Enviado' || o.delivery_telegram_status === 'assigned').length;
-  const broadcasted = orderList.filter(o => o.delivery_telegram_status === 'broadcasted').length;
-  const aborted = orderList.filter(o => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
+  const delivered = orderList.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').length;
+  const inRoute = orderList.filter((o: any) => o.status === 'Enviado' || o.delivery_telegram_status === 'assigned').length;
+  const broadcasted = orderList.filter((o: any) => o.delivery_telegram_status === 'broadcasted').length;
+  const aborted = orderList.filter((o: any) => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
 
   let totalGmv = 0;
-  orderList.forEach(o => {
+  orderList.forEach((o: any) => {
     if (o.status !== 'Cancelado') {
       totalGmv += Number(o.total || 0);
     }
@@ -1036,15 +1202,37 @@ async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) 
   const baseFee = parseFloat(feeSet?.value || '2.00');
   const deliveryIncome = delivered * baseFee;
 
-  const dateStr = new Date().toLocaleDateString('es-VE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  // Desglose por Comercios Top en la fecha
+  const storeCounts: Record<string, number> = {};
+  orderList.forEach((o: any) => {
+    const store = o.pickup_store_name || 'Comercio General';
+    storeCounts[store] = (storeCounts[store] || 0) + 1;
+  });
+  const topStores = Object.entries(storeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => `  • 🏬 ${name}: <b>${count}</b> pedidos`)
+    .join('\n');
+
+  // Desglose por Choferes que entregaron en la fecha
+  const driverCounts: Record<string, number> = {};
+  orderList.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').forEach((o: any) => {
+    const dName = o.delivery_driver_name || 'Repartidor';
+    driverCounts[dName] = (driverCounts[dName] || 0) + 1;
+  });
+  const topDrivers = Object.entries(driverCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => `  • 🛵 ${name}: <b>${count}</b> entregas`)
+    .join('\n');
 
   const msg = `👔 <b>CONSOLA GERENCIAL — ${superuser.agency_name || 'ENMINUTOS'}</b> 🚀
-📅 <i>${dateStr}</i>
+📅 <b>PERÍODO:</b> <u>${label}</u>
 ━━━━━━━━━━━━━━━━━━━━━━
-📦 <b>ESTADO DE PEDIDOS HOY:</b>
+📦 <b>ESTADO DE PEDIDOS:</b>
 • <b>Total Despachos:</b> ${totalCount} pedidos
 • ✅ <b>Entregados:</b> ${delivered} pedidos
-• 🛵 <b>En Ruta Activa:</b> ${inRoute} pedidos
+• 🛵 <b>En Ruta:</b> ${inRoute} pedidos
 • 📢 <b>En Espera / Subasta:</b> ${broadcasted} pedidos
 • ⚠️ <b>Cancelados / Abortados:</b> ${aborted} pedidos
 
@@ -1052,9 +1240,53 @@ async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) 
 • 💵 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
 • 🛵 <b>Recaudación en Fletes:</b> $${deliveryIncome.toFixed(2)} USD (Ref. $${baseFee.toFixed(2)}/envío)
 
-<i>Toca los botones del menú inferior para auditar choferes, comercios o tiempos de respuesta.</i>`;
+🏬 <b>COMERCIOS CON DESPACHOS:</b>
+${topStores || '  <i>(Sin despachos registrados en esta fecha)</i>'}
 
-  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+🛵 <b>REPARTIDORES CON ENTREGAS:</b>
+${topDrivers || '  <i>(Sin entregas completadas en esta fecha)</i>'}
+━━━━━━━━━━━━━━━━━━━━━━
+<i>👇 Selecciona otro período o escribe una fecha (ej. 01/11/2026):</i>`;
+
+  await sendMessageToChat(chatId, msg, DATE_SELECTOR_INLINE_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) {
+  const range = getVenezuelaDateRange('today');
+  return await sendGerenciaReport(chatId, superuser, range, supabase);
+}
+
+// Manejador de botones inline (Callback Queries de Telegram)
+async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
+  const callbackQueryId = callbackQuery.id;
+  const data = callbackQuery.data || '';
+  const fromUserId = callbackQuery.from?.id?.toString();
+  const chatId = callbackQuery.message?.chat?.id?.toString() || fromUserId;
+
+  const agencySuperuser = await isAgencySuperuser(fromUserId, supabase);
+  if (!agencySuperuser) {
+    await answerCallbackQuery(callbackQueryId, "⛔ Acceso exclusivo para Directores de la Agencia.");
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  await answerCallbackQuery(callbackQueryId);
+
+  if (data.startsWith('rep_date:')) {
+    const action = data.replace('rep_date:', '');
+
+    if (action === 'ask_custom') {
+      const promptMsg = `✍️ <b>CONSULTA DE FECHA PERSONALIZADA</b>\n\nPor favor escribe directamente en el chat la fecha que deseas auditar:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-01</code>)\n\n<i>El bot generará el reporte de ese día automáticamente.</i>`;
+      await sendMessageToChat(chatId, promptMsg);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    const range = getVenezuelaDateRange(action);
+    if (range) {
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+  }
+
   return new Response("OK", { headers: corsHeaders });
 }
 

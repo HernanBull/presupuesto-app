@@ -250,12 +250,16 @@ export default function AgencySuperuserManager() {
       {/* Nota Explicativa */}
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 text-xs sm:text-sm text-amber-200">
         <HelpCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-        <div>
+        <div className="space-y-1.5">
           <span className="font-bold">¿Cómo obtiene el repartidor o dueño su Telegram ID?</span>
-          <p className="text-zinc-300 text-xs mt-1 leading-relaxed">
+          <p className="text-zinc-300 text-xs leading-relaxed">
             • <b>En el Grupo de Cagua:</b> Escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/id</code> o <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/mi_id</code>. El bot responderá citando al usuario con su ID para copiarlo con un solo toque.<br/>
             • <b>En el Bot Privado:</b> Abre <b className="text-white">@DeliveryAxonbot</b> y presiona el botón interactivo <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">🆔 Mi ID</code> o escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">/start</code>.
           </p>
+          <div className="pt-1 border-t border-amber-500/15 text-xs text-amber-300/90 flex items-center gap-1.5">
+            <span>📅</span>
+            <span><b>Auditoría por Fechas:</b> Los directivos pueden auditar fechas anteriores tocando <b>«📅 Reporte por Fecha»</b> en el bot, o escribiendo <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">/ayer</code>, <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">/antier</code> o cualquier fecha como <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">01/11/2026</code>.</span>
+          </div>
         </div>
       </div>
 
