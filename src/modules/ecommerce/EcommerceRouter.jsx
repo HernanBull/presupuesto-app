@@ -57,6 +57,29 @@ const MerchantGuard = () => {
   return <Outlet />;
 };
 
+const RootIndexResolver = () => {
+  const isMerchant = localStorage.getItem('activeWorkspace');
+  const isMerchantApp = localStorage.getItem('is_merchant_app') === 'true';
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches || 
+    window.navigator.standalone === true
+  );
+
+  // 1. Si el comerciante ya tiene sesión activa o tienda registrada, dirigir siempre a su POS
+  if (isMerchant) {
+    return <Navigate to="/pos" replace />;
+  }
+
+  // 2. Si la app fue instalada o abierta en modo standalone (PWA) o marcada como app de comerciante,
+  // mantener siempre el portal del comerciante y no abrir la vitrina de compras
+  if (isStandalone || isMerchantApp) {
+    return <Navigate to="/merchant/login" replace />;
+  }
+
+  // 3. Comprador general en navegador web
+  return <WelcomeLanding />;
+};
+
 const CustomerGuard = () => {
   // Ya no eliminamos activeWorkspace aquí porque rompe la previsualización de la vitrina en otra pestaña.
   // El conflicto real ya fue resuelto en MerchantGuard al eliminar el customer.
@@ -349,9 +372,9 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
       <Route path="comerciante/login" element={<MerchantLoginPage />} />
       <Route path="login-comerciante" element={<MerchantLoginPage />} />
 
-      {/* Rutas para clientes (Compradores) */}
+      {/* Rutas para clientes (Compradores) y Enrutamiento Inteligente */}
       <Route element={<CustomerGuard />}>
-        <Route index element={<WelcomeLanding />} />
+        <Route index element={<RootIndexResolver />} />
         <Route path="explorar" element={<MarketplaceDirectory />} />
         <Route path="feed" element={<MarketplaceDirectory />} />
         <Route path="app" element={<MarketplaceDirectory />} />

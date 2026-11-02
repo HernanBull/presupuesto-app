@@ -138,6 +138,22 @@ export default defineConfig({
             form_factor: 'narrow',
             label: 'AxonMarket Marketplace'
           }
+        ],
+        shortcuts: [
+          {
+            name: "Punto de Venta (POS)",
+            short_name: "POS",
+            description: "Acceso al mostrador de ventas y caja",
+            url: "/pos",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }]
+          },
+          {
+            name: "Panel de Comerciante",
+            short_name: "Mi Tienda",
+            description: "Gestión de pedidos, inventario y catálogo",
+            url: "/dashboard",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }]
+          }
         ]
       }
     })

@@ -84,7 +84,7 @@ export default function MerchantMorePage() {
       await supabase.auth.signOut().catch(() => {});
       localStorage.removeItem('activeWorkspace');
       localStorage.removeItem('merchant_store_name');
-      navigate('/');
+      navigate('/merchant/login');
     }
   };
 

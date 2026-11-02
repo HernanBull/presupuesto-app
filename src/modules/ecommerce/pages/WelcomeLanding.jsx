@@ -23,6 +23,22 @@ export default function WelcomeLanding() {
   const [showTopBanner, setShowTopBanner] = useState(true);
   const [currentCustomer, setCurrentCustomer] = useState(null);
 
+  // Redirección inmediata si es comerciante o app instalada
+  useEffect(() => {
+    const isMerchant = localStorage.getItem('activeWorkspace');
+    const isMerchantApp = localStorage.getItem('is_merchant_app') === 'true';
+    const isStandalone = typeof window !== 'undefined' && (
+      window.matchMedia('(display-mode: standalone)').matches || 
+      window.navigator.standalone === true
+    );
+
+    if (isMerchant) {
+      navigate('/pos', { replace: true });
+    } else if (isStandalone || isMerchantApp) {
+      navigate('/merchant/login', { replace: true });
+    }
+  }, [navigate]);
+
   // Tasa Oficial BCV en vivo (con caché local inmediata para evitar parpadeo)
   const [bcvRate, setBcvRate] = useState(() => {
     return localStorage.getItem('axon_bcv_rate') || '887.30';

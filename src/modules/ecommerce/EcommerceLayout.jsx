@@ -62,7 +62,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     if (window.confirm('¿Deseas cerrar sesión de tu tienda?')) {
       localStorage.removeItem('activeWorkspace');
       localStorage.removeItem('storeSlug');
-      navigate('/');
+      navigate('/merchant/login');
     }
   };
 

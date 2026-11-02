@@ -61,6 +61,8 @@ export default function MerchantOnboardingWizard({
       setIsInstalledJustNow(true);
       setIsStandalone(true);
       setDeferredPrompt(null);
+      localStorage.setItem('is_merchant_app', 'true');
+      localStorage.setItem('merchant_mode', 'true');
       toast.success('¡App de AxonMarket instalada con éxito!', { icon: '🎉' });
     };
 
@@ -314,6 +316,8 @@ export default function MerchantOnboardingWizard({
       localStorage.setItem('merchant_store_name', businessName.trim());
     }
     localStorage.setItem('merchant_onboarding_completed', 'true');
+    localStorage.setItem('is_merchant_app', 'true');
+    localStorage.setItem('merchant_mode', 'true');
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('ecommerce_user');
 
@@ -326,7 +330,12 @@ export default function MerchantOnboardingWizard({
         if (outcome === 'accepted') {
           setIsInstalledJustNow(true);
           setIsStandalone(true);
-          toast.success('¡Instalación completada! Ábrela desde tu pantalla de inicio', { icon: '🚀' });
+          localStorage.setItem('is_merchant_app', 'true');
+          localStorage.setItem('merchant_mode', 'true');
+          toast.success('¡Instalación completada! Entrando a tu tienda...', { icon: '🚀' });
+          setTimeout(() => {
+            handleFinishAndGoToDashboard();
+          }, 800);
         }
       } catch (err) {
         console.warn('Error en prompt de instalación:', err);
@@ -358,12 +367,14 @@ export default function MerchantOnboardingWizard({
       localStorage.setItem('merchant_store_name', businessName.trim());
     }
     localStorage.setItem('merchant_onboarding_completed', 'true');
+    localStorage.setItem('is_merchant_app', 'true');
+    localStorage.setItem('merchant_mode', 'true');
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('ecommerce_user');
 
     if (onComplete) onComplete();
     if (onClose) onClose();
-    window.location.href = '/dashboard';
+    window.location.href = '/pos';
   };
 
   const getSystemLabel = (sysKey) => {
