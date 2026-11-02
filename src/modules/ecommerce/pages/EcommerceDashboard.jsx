@@ -35,11 +35,16 @@ export default function EcommerceDashboard() {
   };
 
   // Estados específicos para la vista móvil estilo Commercy (en Naranja Corporativo)
-  const [storeInfo, setStoreInfo] = useState(() => ({ 
-    name: localStorage.getItem('merchant_store_name') || 'Mi Comercio', 
-    slug: localStorage.getItem('storeSlug') || '',
-    merchantName: (localStorage.getItem('merchant_store_name') || 'Comerciante').split(' ')[0]
-  }));
+  const [storeInfo, setStoreInfo] = useState(() => {
+    const rawStore = localStorage.getItem('merchant_store_name') || 'Mi Comercio';
+    const rawOwner = localStorage.getItem('merchant_owner_name') || '';
+    const validOwner = (rawOwner && rawOwner.toLowerCase() !== rawStore.toLowerCase()) ? rawOwner : '';
+    return { 
+      name: rawStore, 
+      slug: localStorage.getItem('storeSlug') || '',
+      merchantName: validOwner
+    };
+  });
   const [mobilePeriod, setMobilePeriod] = useState('today'); // 'today' | 'month'
   const [todayMetrics, setTodayMetrics] = useState({
     sales: 0,
@@ -57,10 +62,18 @@ export default function EcommerceDashboard() {
   const [recentOrders, setRecentOrders] = useState([]);
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
 
-  // Saludo dinámico según la hora local
+  // Saludo dinámico según la hora local — Utiliza el Nombre del Comerciante (no de la tienda)
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const firstName = (storeInfo.merchantName || storeInfo.name || 'Comerciante').trim().split(' ')[0];
+    const candidate = storeInfo.merchantName && storeInfo.merchantName.toLowerCase() !== (storeInfo.name || '').toLowerCase()
+      ? storeInfo.merchantName
+      : (localStorage.getItem('merchant_owner_name') || '');
+    
+    const finalName = (candidate && candidate.toLowerCase() !== (storeInfo.name || '').toLowerCase())
+      ? candidate
+      : 'Comerciante';
+
+    const firstName = finalName.trim().split(' ')[0];
     if (hour < 12) return `Buenos días, ${firstName}`;
     if (hour < 19) return `Buenas tardes, ${firstName}`;
     return `Buenas noches, ${firstName}`;
@@ -74,7 +87,7 @@ export default function EcommerceDashboard() {
         const workspaceId = localStorage.getItem('activeWorkspace');
         if (!workspaceId) return;
 
-        // 1. Datos de la tienda (Nombre y Vitrina)
+        // 1. Datos de la tienda y resolución del nombre del comerciante
         const { data: wsData } = await supabase
           .from('workspaces')
           .select('name, store_slug, config')
@@ -83,7 +96,37 @@ export default function EcommerceDashboard() {
         if (wsData) {
           const rawSlug = wsData.store_slug || localStorage.getItem('storeSlug') || '';
           const rawName = wsData.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
-          const ownerName = wsData.config?.contact?.name || wsData.config?.ownerName || rawName.split(' ')[0] || 'Comerciante';
+          
+          let ownerName = localStorage.getItem('merchant_owner_name') || '';
+          if (!ownerName || ownerName.toLowerCase() === rawName.toLowerCase()) {
+            ownerName = wsData.config?.ownerName || 
+                        wsData.config?.expediente?.ownerName || 
+                        wsData.config?.contact?.name || 
+                        wsData.config?.adminName || '';
+          }
+
+          if (!ownerName || ownerName.toLowerCase() === rawName.toLowerCase()) {
+            const { data: contact } = await supabase
+              .from('merchant_contacts')
+              .select('full_name')
+              .eq('id', workspaceId)
+              .maybeSingle();
+            if (contact?.full_name && contact.full_name.toLowerCase() !== rawName.toLowerCase()) {
+              ownerName = contact.full_name;
+            }
+          }
+
+          if (!ownerName || ownerName.toLowerCase() === rawName.toLowerCase()) {
+            const { data: { user } } = await supabase.auth.getUser();
+            const userMetaName = user?.user_metadata?.full_name || user?.user_metadata?.name || '';
+            if (userMetaName && userMetaName.toLowerCase() !== rawName.toLowerCase()) {
+              ownerName = userMetaName;
+            }
+          }
+
+          if (ownerName && ownerName.toLowerCase() !== rawName.toLowerCase()) {
+            localStorage.setItem('merchant_owner_name', ownerName);
+          }
 
           if (wsData.store_slug) localStorage.setItem('storeSlug', wsData.store_slug);
           if (wsData.name) localStorage.setItem('merchant_store_name', wsData.name);
@@ -91,7 +134,7 @@ export default function EcommerceDashboard() {
           setStoreInfo({ 
             name: rawName, 
             slug: rawSlug,
-            merchantName: ownerName
+            merchantName: ownerName || ''
           });
         }
 

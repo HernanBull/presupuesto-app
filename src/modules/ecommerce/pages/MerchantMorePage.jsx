@@ -81,17 +81,23 @@ export default function MerchantMorePage() {
   };
 
   const handleShareUrl = async () => {
+    const shareTitle = `${storeInfo.name} — Catálogo & Vitrina Oficial`;
+    const shareText = `Tus precios y stock real en vivo. Arma tu pedido directo desde el catálogo oficial:\n${storeUrl}`;
+
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Vitrina de ${storeInfo.name} en AxonMarket`,
-          text: `¡Haz tus pedidos en línea en ${storeInfo.name}!`,
+          title: shareTitle,
+          text: `Tus precios y stock real. Armá tu pedido desde el catálogo oficial:`,
           url: storeUrl
         });
+        return;
       } catch (e) {}
-    } else {
-      handleCopyUrl();
     }
+    
+    // Fallback si no tiene Web Share API: abrir WhatsApp directamente con el enlace enriquecido
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareTitle}\n\n${shareText}`)}`;
+    window.open(waUrl, '_blank');
   };
 
   const handleLogout = async () => {

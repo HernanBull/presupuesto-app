@@ -79,8 +79,12 @@ export default function MerchantLoginPage() {
 
       toast.success(`¡Bienvenido de nuevo, ${ws?.name || 'Comerciante'}!`, { icon: '👋' });
 
-      // Entrar directamente al POS o Dashboard del comercio
-      navigate('/pos', { replace: true });
+      // Entrar directamente al Inicio (Dashboard) del comercio
+      const owner = ws?.config?.ownerName || ws?.config?.expediente?.ownerName || ws?.config?.contact?.name || '';
+      if (owner && owner.toLowerCase() !== (ws?.name || '').toLowerCase()) {
+        localStorage.setItem('merchant_owner_name', owner);
+      }
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('Error al iniciar sesión:', err);
       let msg = 'Error al iniciar sesión. Verifica tus credenciales.';
@@ -131,8 +135,13 @@ export default function MerchantLoginPage() {
         localStorage.removeItem('ecommerce_current_customer');
         localStorage.removeItem('ecommerce_user');
 
+        const googleOwner = wsData.config?.ownerName || wsData.config?.expediente?.ownerName || wsData.config?.contact?.name || payload.name || '';
+        if (googleOwner && googleOwner.toLowerCase() !== wsData.name.toLowerCase()) {
+          localStorage.setItem('merchant_owner_name', googleOwner);
+        }
+
         toast.success(`¡Bienvenido de nuevo, ${wsData.name}!`, { icon: '👋' });
-        navigate('/pos', { replace: true });
+        navigate('/dashboard', { replace: true });
         return;
       }
 

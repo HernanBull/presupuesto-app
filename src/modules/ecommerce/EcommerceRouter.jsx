@@ -65,9 +65,9 @@ const RootIndexResolver = () => {
     window.navigator.standalone === true
   );
 
-  // 1. Si el comerciante ya tiene sesión activa o tienda registrada, dirigir siempre a su POS
+  // 1. Si el comerciante ya tiene sesión activa o tienda registrada, dirigir a su Inicio (Dashboard)
   if (isMerchant) {
-    return <Navigate to="/pos" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // 2. Si la app fue instalada o abierta en modo standalone (PWA) o marcada como app de comerciante,

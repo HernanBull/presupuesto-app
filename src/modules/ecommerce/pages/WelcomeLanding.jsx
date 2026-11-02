@@ -27,7 +27,7 @@ export default function WelcomeLanding() {
     );
 
     if (isMerchant) {
-      navigate('/pos', { replace: true });
+      navigate('/dashboard', { replace: true });
     } else if (isStandalone || isMerchantApp) {
       navigate('/merchant/login', { replace: true });
     }

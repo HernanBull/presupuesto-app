@@ -204,6 +204,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
+          ownerName: ownerName.trim() || businessName.trim(),
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),
           plan: 'Prueba 7 Días Gratis',
@@ -237,6 +238,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
       // 4. Guardar sesión de comerciante en localStorage
       localStorage.setItem('activeWorkspace', userId);
       localStorage.setItem('storeSlug', generatedSlug);
+      if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
+      if (ownerName.trim()) localStorage.setItem('merchant_owner_name', ownerName.trim());
       localStorage.removeItem('ecommerce_current_customer');
       localStorage.removeItem('ecommerce_user');
 

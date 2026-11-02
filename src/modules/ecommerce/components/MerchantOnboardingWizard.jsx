@@ -559,6 +559,7 @@ export default function MerchantOnboardingWizard({
       .replace(/^-|-$/g, '') || 'mi-tienda';
     localStorage.setItem('storeSlug', cleanSlug);
     if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
+    if (ownerName.trim()) localStorage.setItem('merchant_owner_name', ownerName.trim());
     localStorage.setItem('merchant_onboarding_completed', 'true');
     localStorage.setItem('is_merchant_app', 'true');
     localStorage.setItem('merchant_mode', 'true');
@@ -567,7 +568,7 @@ export default function MerchantOnboardingWizard({
 
     if (onComplete) onComplete();
     if (onClose) onClose();
-    window.location.href = '/pos';
+    window.location.href = '/dashboard';
   };
 
   return (
