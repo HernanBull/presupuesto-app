@@ -12,6 +12,7 @@ import { supabase } from '../../../supabaseClient';
 import DeliveryFleetDashboard from './DeliveryFleetDashboard';
 import BotControlPanel from './BotControlPanel';
 import HardwareSecurityPanel from './HardwareSecurityPanel';
+import AgencySuperuserManager from './AgencySuperuserManager';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -1662,6 +1663,9 @@ export default function SuperAdminDashboard({ superKey }) {
               
               {/* Nuevo Panel de Control Avanzado (Switches y Logs) */}
               <BotControlPanel />
+
+              {/* Módulo de Directores y Superusuarios de Agencia (EnMinutos) */}
+              <AgencySuperuserManager />
 
               {/* Configuración Antigua de Telegram y Conductores */}
               <div className="border-t border-white/10 pt-10">

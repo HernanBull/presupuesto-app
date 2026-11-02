@@ -14,6 +14,16 @@ const MENU_KEYBOARD = {
   is_persistent: true
 };
 
+const SUPERUSER_KEYBOARD = {
+  keyboard: [
+    [{ text: "📊 Resumen Hoy" }, { text: "🛵 Flota en Vivo" }],
+    [{ text: "🏬 Comercios Activos" }, { text: "⏱️ Tiempos de Entrega" }],
+    [{ text: "🚨 Novedades e Incidentes" }, { text: "❓ Ayuda Gerencial" }]
+  ],
+  resize_keyboard: true,
+  is_persistent: true
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -51,6 +61,10 @@ serve(async (req) => {
 
     if (body.type === 'cancel_delivery') {
       return await handleCancelDelivery(body, supabase);
+    }
+
+    if (body.type === 'superuser_greeting') {
+      return await handleSuperuserGreeting(body, supabase);
     }
 
     // Otherwise, assume it's an Update from Telegram Webhook
@@ -382,7 +396,44 @@ async function handleTelegramUpdate(update, supabase) {
 
   if (!chatId) return new Response("OK");
 
-  // Validaciones de seguridad para chats privados
+  // --- CONSULTA UNIVERSAL DE TELEGRAM USER ID ---
+  if (text === '/id_admin_axon' || text === '/my_id' || text === '/id') {
+    const targetId = (userId || chatId).toString();
+    await sendMessageToChat(chatId, `🆔 <b>TU TELEGRAM ID:</b>\n<code>${targetId}</code>\n\n<i>Copia este número y proporciónalo al Administrador en el panel para habilitar tu cuenta gerencial o permisos especiales.</i>`);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  // --- RECONOCIMIENTO DE SUPERUSUARIO / DUEÑO DE AGENCIA (ENMINUTOS) ---
+  const agencySuperuser = await isAgencySuperuser((userId || chatId).toString(), supabase);
+
+  if (agencySuperuser) {
+    if (text === "📊 Resumen Hoy" || text === "/gerencia_hoy" || text === "/gerencia" || text === "/panel_em" || text === "/start") {
+      return await handleGerenciaHoy(chatId, agencySuperuser, supabase);
+    }
+    if (text === "🛵 Flota en Vivo" || text === "/gerencia_choferes") {
+      return await handleGerenciaChoferes(chatId, agencySuperuser, supabase);
+    }
+    if (text === "🏬 Comercios Activos" || text === "/gerencia_tiendas") {
+      return await handleGerenciaTiendas(chatId, agencySuperuser, supabase);
+    }
+    if (text === "⏱️ Tiempos de Entrega" || text === "/gerencia_tiempos") {
+      return await handleGerenciaTiempos(chatId, agencySuperuser, supabase);
+    }
+    if (text === "🚨 Novedades e Incidentes" || text === "/gerencia_alertas") {
+      return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
+    }
+    if (text.startsWith('/buscar') || text === "🔍 Buscar Pedido") {
+      const q = text.replace('/buscar', '').replace('🔍 Buscar Pedido', '').trim();
+      return await handleGerenciaBuscar(chatId, q, supabase);
+    }
+    if (text === "❓ Ayuda Gerencial" || text === "/gerencia_ayuda" || text === "/ayuda") {
+      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
+      await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
+  }
+
+  // Validaciones de seguridad para chats privados de repartidores
   if (userId && !chatId.startsWith('-')) {
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     const masterGroupId = setting ? setting.value : null;
@@ -404,11 +455,6 @@ async function handleTelegramUpdate(update, supabase) {
     if (text.startsWith('/')) {
       await sendMessageToChat(chatId, "⛔ <b>ACCESO DENEGADO</b>\n\nEstás suspendido de la agencia y no puedes interactuar con el bot ni tomar viajes.");
     }
-    return new Response("OK", { headers: corsHeaders });
-  }
-
-  if (text === '/id_admin_axon') {
-    await sendMessageToChat(chatId, `🛡️ El ID de este chat/grupo es: <code>${chatId}</code>`);
     return new Response("OK", { headers: corsHeaders });
   }
 
@@ -801,6 +847,10 @@ async function handleTelegramUpdate(update, supabase) {
     }
 
     await logEvent('warning', `Repartidor abortó el pedido #${orderId}`, { orderId, reason: reasonText, driverName }, supabase);
+    await notifyAgencySuperusers(
+      supabase,
+      `🚨 <b>ALERTA GERENCIAL ENMINUTOS</b> 🚨\n\n🆔 <b>Pedido:</b> #${orderId}\n🏍️ <b>Repartidor:</b> ${driverName}\n⚠️ <b>Incidente Reportado:</b> ${reasonText}\n\n<i>El pedido fue re-subastado automáticamente con alta prioridad en el grupo de repartidores.</i>`
+    );
 
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
     if (setting && setting.value) {
@@ -856,3 +906,317 @@ async function isUserInGroup(userId, groupId) {
     return false;
   }
 }
+
+// ==============================================================================
+// FUNCIONES GERENCIALES PARA SUPERUSUARIO / DUEÑO DE AGENCIA (ENMINUTOS)
+// ==============================================================================
+
+async function handleSuperuserGreeting({ telegramUserId, message }: any, supabase: any) {
+  if (!telegramUserId) {
+    return new Response(JSON.stringify({ success: false, error: 'telegramUserId es requerido' }), { 
+      status: 400, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
+
+  const greeting = message || `👔 <b>¡HOLA!</b> 🚀\n\nTu acceso como <b>Superusuario Gerencial</b> ha sido verificado con éxito.\nEscribe <code>/gerencia</code> o toca los botones de abajo para comenzar.`;
+  const result = await sendMessageToChat(telegramUserId, greeting, SUPERUSER_KEYBOARD);
+
+  return new Response(JSON.stringify({ 
+    success: !!result.ok, 
+    telegramResponse: result 
+  }), { 
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+  });
+}
+
+async function getAgencySuperusers(supabase: any) {
+  let list: any[] = [];
+  try {
+    const { data, error } = await supabase.from('delivery_agency_superusers').select('*').eq('is_active', true);
+    if (!error && data && data.length > 0) {
+      list = data;
+    }
+  } catch (e) {}
+
+  if (list.length === 0) {
+    try {
+      const { data: set } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_agency_superusers').maybeSingle();
+      if (set && set.value) {
+        const parsed = JSON.parse(set.value);
+        list = parsed.filter((u: any) => u.is_active !== false);
+      }
+    } catch (e) {}
+  }
+
+  return list;
+}
+
+async function isAgencySuperuser(userIdOrChatId: string, supabase: any) {
+  if (!userIdOrChatId) return null;
+  const superusers = await getAgencySuperusers(supabase);
+  return superusers.find((u: any) => u.telegram_user_id === userIdOrChatId.toString()) || null;
+}
+
+async function notifyAgencySuperusers(supabase: any, message: string, replyMarkup = undefined) {
+  try {
+    const superusers = await getAgencySuperusers(supabase);
+    for (const su of superusers) {
+      if (su.alert_on_accidents !== false && su.telegram_user_id) {
+        await sendMessageToChat(su.telegram_user_id, message, replyMarkup);
+      }
+    }
+  } catch (e) {
+    console.error("Error notificando superusuarios de agencia:", e);
+  }
+}
+
+// 1. Resumen Gerencial del Día (/gerencia hoy)
+async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const startIso = startOfDay.toISOString();
+
+  const { data: orders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name')
+    .gte('date', startIso);
+
+  const orderList = orders || [];
+  const totalCount = orderList.length;
+  const delivered = orderList.filter(o => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').length;
+  const inRoute = orderList.filter(o => o.status === 'Enviado' || o.delivery_telegram_status === 'assigned').length;
+  const broadcasted = orderList.filter(o => o.delivery_telegram_status === 'broadcasted').length;
+  const aborted = orderList.filter(o => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
+
+  let totalGmv = 0;
+  orderList.forEach(o => {
+    if (o.status !== 'Cancelado') {
+      totalGmv += Number(o.total || 0);
+    }
+  });
+
+  const { data: feeSet } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_base_fee').maybeSingle();
+  const baseFee = parseFloat(feeSet?.value || '2.00');
+  const deliveryIncome = delivered * baseFee;
+
+  const dateStr = new Date().toLocaleDateString('es-VE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const msg = `👔 <b>CONSOLA GERENCIAL — ${superuser.agency_name || 'ENMINUTOS'}</b> 🚀
+📅 <i>${dateStr}</i>
+━━━━━━━━━━━━━━━━━━━━━━
+📦 <b>ESTADO DE PEDIDOS HOY:</b>
+• <b>Total Despachos:</b> ${totalCount} pedidos
+• ✅ <b>Entregados:</b> ${delivered} pedidos
+• 🛵 <b>En Ruta Activa:</b> ${inRoute} pedidos
+• 📢 <b>En Espera / Subasta:</b> ${broadcasted} pedidos
+• ⚠️ <b>Cancelados / Abortados:</b> ${aborted} pedidos
+
+💰 <b>FINANZAS OPERATIVAS (ESTIMADO):</b>
+• 💵 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
+• 🛵 <b>Recaudación en Fletes:</b> $${deliveryIncome.toFixed(2)} USD (Ref. $${baseFee.toFixed(2)}/envío)
+
+<i>Toca los botones del menú inferior para auditar choferes, comercios o tiempos de respuesta.</i>`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 2. Monitoreo de Choferes en Vivo (/gerencia choferes)
+async function handleGerenciaChoferes(chatId: string, superuser: any, supabase: any) {
+  const { data: drivers } = await supabase.from('delivery_drivers').select('*');
+  const { data: activeTrips } = await supabase.from('delivery_active_trips').select('*');
+
+  const driverList = drivers || [];
+  const tripList = activeTrips || [];
+  const activeDriverIds = new Set(tripList.map(t => t.driver_id));
+
+  const available = driverList.filter(d => d.status === 'disponible' && !activeDriverIds.has(d.id));
+  const resting = driverList.filter(d => d.status === 'descansando');
+  const incident = driverList.filter(d => d.status === 'accidentado');
+
+  let activeText = '';
+  if (tripList.length === 0) {
+    activeText = '<i>No hay choferes en ruta en este momento.</i>';
+  } else {
+    activeText = tripList.map(t => {
+      const minutesAgo = t.start_time ? Math.floor((Date.now() - new Date(t.start_time).getTime()) / 60000) : 0;
+      return `• 🏍️ <b>${t.driver_name || 'Chofer'}</b> (${t.driver_moto || 'Moto'})\n  ➔ Pedido: <code>#${t.order_id}</code> (En ruta hace ${minutesAgo} min)\n  ➔ Cliente: ${t.customer_name || 'Cliente'}`;
+    }).join('\n\n');
+  }
+
+  let availableText = '';
+  if (available.length === 0) {
+    availableText = '<i>No hay choferes disponibles ahora.</i>';
+  } else {
+    availableText = available.map(d => `• 🟢 <b>${d.name}</b> (${d.moto || 'Moto'} - ${d.placa || 'Sin placa'}) | ${d.total_trips || 0} viajes`).join('\n');
+  }
+
+  let extras = '';
+  if (resting.length > 0) {
+    extras += `\n\n💤 <b>EN DESCANSO (${resting.length}):</b>\n` + resting.map(d => `• ${d.name}`).join(', ');
+  }
+  if (incident.length > 0) {
+    extras += `\n\n🚑 <b>CON INCIDENCIA/ACCIDENTE (${incident.length}):</b>\n` + incident.map(d => `• ⚠️ <b>${d.name}</b> (Tel: ${d.telefono || 'Sin tel'})`).join('\n');
+  }
+
+  const msg = `🛵 <b>MONITOREO DE REPARTIDORES EN VIVO</b>
+━━━━━━━━━━━━━━━━━━━━━━
+🔴 <b>EN RUTA ACTIVA (${tripList.length}):</b>
+${activeText}
+
+━━━━━━━━━━━━━━━━━━━━━━
+🟢 <b>DISPONIBLES (${available.length}):</b>
+${availableText}${extras}`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 3. Ranking de Tiendas y Comercios (/gerencia tiendas)
+async function handleGerenciaTiendas(chatId: string, superuser: any, supabase: any) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const { data: orders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('pickup_store_name, total')
+    .gte('date', startOfDay.toISOString());
+
+  const storeMap: Record<string, { count: number; total: number }> = {};
+  (orders || []).forEach(o => {
+    const name = o.pickup_store_name || 'Tienda AxonPOS';
+    if (!storeMap[name]) storeMap[name] = { count: 0, total: 0 };
+    storeMap[name].count++;
+    storeMap[name].total += Number(o.total || 0);
+  });
+
+  const sorted = Object.entries(storeMap).sort((a, b) => b[1].count - a[1].count);
+
+  let text = '';
+  if (sorted.length === 0) {
+    text = '<i>Aún no se han registrado pedidos en comercios hoy.</i>';
+  } else {
+    text = sorted.map(([store, data], i) => `${i + 1}. 🏢 <b>${store}</b>: <b>${data.count}</b> despachos ($${data.total.toFixed(2)} USD)`).join('\n');
+  }
+
+  const msg = `🏬 <b>COMERCIOS CON MÁS DESPACHOS HOY</b>
+━━━━━━━━━━━━━━━━━━━━━━
+${text}
+
+<i>Total Comercios con Envíos: ${sorted.length}</i>`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 4. Tiempos Promedio y Eficiencia (/gerencia tiempos)
+async function handleGerenciaTiempos(chatId: string, superuser: any, supabase: any) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const { data: deliveredOrders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, date, created_at, updated_at, delivery_driver_name')
+    .eq('status', 'Entregado')
+    .gte('date', startOfDay.toISOString());
+
+  const list = deliveredOrders || [];
+  let avgMin = 24;
+  if (list.length > 0) {
+    let sumMinutes = 0;
+    let validCount = 0;
+    list.forEach(o => {
+      const created = new Date(o.date || o.created_at).getTime();
+      const updated = new Date(o.updated_at || o.date).getTime();
+      const diff = Math.floor((updated - created) / 60000);
+      if (diff > 3 && diff < 180) {
+        sumMinutes += diff;
+        validCount++;
+      }
+    });
+    if (validCount > 0) avgMin = Math.round(sumMinutes / validCount);
+  }
+
+  const msg = `⏱️ <b>TIEMPOS Y EFICIENCIA DE ENTREGA</b>
+━━━━━━━━━━━━━━━━━━━━━━
+• ⏳ <b>Tiempo Promedio de Entrega:</b> ~${avgMin} minutos
+• ✅ <b>Entregas Finalizadas Hoy:</b> ${list.length} pedidos
+• 🎯 <b>Meta Operativa:</b> Menos de 30 minutos
+
+<i>Calculado desde el momento de despacho en mostrador hasta la confirmación de entrega en mano.</i>`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 5. Historial de Novedades e Incidentes (/gerencia alertas)
+async function handleGerenciaAlertas(chatId: string, superuser: any, supabase: any) {
+  const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+
+  const { data: abortedOrders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, delivery_abort_reason, delivery_driver_name, date, status, pickup_store_name')
+    .or(`delivery_telegram_status.eq.aborted,status.eq.Cancelado`)
+    .gte('date', yesterday)
+    .order('date', { ascending: false })
+    .limit(10);
+
+  const list = abortedOrders || [];
+  let body = '';
+  if (list.length === 0) {
+    body = '✅ <b>¡Todo en orden!</b>\n<i>No se han registrado abortos ni emergencias en las últimas 24 horas.</i>';
+  } else {
+    body = list.map(o => {
+      return `⚠️ <b>Pedido #${o.id}</b>\n• Motivo: <i>${o.delivery_abort_reason || 'Cancelado por tienda o chofer'}</i>\n• Tienda: ${o.pickup_store_name || 'Comercio'}\n• Chofer: ${o.delivery_driver_name || 'No registrado'}`;
+    }).join('\n\n');
+  }
+
+  const msg = `🚨 <b>NOVEDADES E INCIDENCIAS (ÚLTIMAS 24H)</b>
+━━━━━━━━━━━━━━━━━━━━━━
+${body}`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 6. Buscador de Pedido (/buscar ORD-XXXX)
+async function handleGerenciaBuscar(chatId: string, q: string, supabase: any) {
+  if (!q) {
+    await sendMessageToChat(chatId, `🔍 <b>BUSCADOR DE PEDIDOS</b>\n\nPor favor escribe: <code>/buscar ORD-XXXX</code> con el número del pedido que deseas auditar.`, SUPERUSER_KEYBOARD);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  const cleanQuery = q.replace('#', '').trim();
+  const { data: order } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('*')
+    .or(`id.ilike.%${cleanQuery}%,order_number.ilike.%${cleanQuery}%`)
+    .maybeSingle();
+
+  if (!order) {
+    await sendMessageToChat(chatId, `❌ No se encontró ningún pedido que coincida con "<b>${cleanQuery}</b>".`, SUPERUSER_KEYBOARD);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  const msg = `📦 <b>FICHA AUDITORÍA DE PEDIDO #${order.id}</b>
+━━━━━━━━━━━━━━━━━━━━━━
+📍 <b>Estado:</b> ${order.status || 'En Proceso'} (${order.delivery_telegram_status || 'idle'})
+🏢 <b>Tienda:</b> ${order.pickup_store_name || 'Tienda AxonPOS'}
+📍 <b>Dirección Local:</b> ${order.pickup_address || 'Mostrador Principal'}
+👤 <b>Cliente:</b> ${order.customer_name || 'Cliente'}
+📞 <b>Teléfono:</b> ${order.customer_phone || 'Sin teléfono'}
+🏠 <b>Dirección Entrega:</b> ${order.customer_address || 'Dirección de entrega'}
+
+🏍️ <b>REPARTIDOR ASIGNADO:</b>
+${order.delivery_driver_name ? `• Chofer: <b>${order.delivery_driver_name}</b>\n• Moto: ${order.delivery_driver_moto || 'Moto'}\n• Tel: ${order.delivery_driver_phone || 'Sin teléfono'}` : '<i>Aún no asignado</i>'}
+
+🔐 <b>PIN DE SEGURIDAD:</b>
+• PIN Retiro Tienda: <code>${(order.shipping_info as any)?.pickup_pin || 'Pendiente'}</code>
+• PIN Entrega Cliente: <code>${order.delivery_pin || 'Pendiente'}</code>
+💵 <b>Total Pedido:</b> $${Number(order.total || 0).toFixed(2)} USD`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
