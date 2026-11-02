@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Store, Flower2, Armchair, PawPrint, Hammer, BookOpen, Apple, Shirt, Utensils, PlusSquare, Truck, MoreHorizontal,
   Globe, MessageCircle, Rocket, Building2, ArrowRight, ArrowLeft, Check,
   Phone, Mail, Ban, Share2, Search, Sparkles, 
   Users, UserCheck, Video, Gift, 
   ShoppingBag, ShieldCheck, Loader2, X,
-  LayoutDashboard, Package, Tag, BarChart3
+  LayoutDashboard, Package, Tag, BarChart3,
+  Download, Smartphone, Laptop, CheckCircle2, Share
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import { getCatalogForRubro } from '../data/seedCatalogs';
 import AxonMarketDashboardPreview from './AxonMarketDashboardPreview';
+
+const isIOSDevice = () => {
+  return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+};
+
+const isAppStandalone = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    (document.referrer && document.referrer.includes('android-app://'))
+  );
+};
 
 export default function MerchantOnboardingWizard({ 
   isOpen = true, 
@@ -21,6 +35,47 @@ export default function MerchantOnboardingWizard({
 }) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  // Estados de Instalación PWA (Paso 8 Obligatorio)
+  const [isStandalone, setIsStandalone] = useState(() => isAppStandalone());
+  const [deferredPrompt, setDeferredPrompt] = useState(() => (typeof window !== 'undefined' ? window.deferredPwaPrompt : null));
+  const [isInstalledJustNow, setIsInstalledJustNow] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [isIOS, setIsIOS] = useState(() => isIOSDevice());
+
+  useEffect(() => {
+    setIsStandalone(isAppStandalone());
+    setIsIOS(isIOSDevice());
+
+    const handlePrompt = (e) => {
+      setDeferredPrompt(e.detail || window.deferredPwaPrompt);
+    };
+
+    const handleNativePrompt = (e) => {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalledJustNow(true);
+      setIsStandalone(true);
+      setDeferredPrompt(null);
+      toast.success('¡App de AxonMarket instalada con éxito!', { icon: '🎉' });
+    };
+
+    window.addEventListener('axon-pwa-prompt-available', handlePrompt);
+    window.addEventListener('beforeinstallprompt', handleNativePrompt);
+    window.addEventListener('axon-pwa-app-installed', handleAppInstalled);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('axon-pwa-prompt-available', handlePrompt);
+      window.removeEventListener('beforeinstallprompt', handleNativePrompt);
+      window.removeEventListener('axon-pwa-app-installed', handleAppInstalled);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   // Form State
   const [ownerName, setOwnerName] = useState(initialData.ownerName || '');
@@ -215,6 +270,51 @@ export default function MerchantOnboardingWizard({
     }
   };
 
+  const handleTriggerInstall = async () => {
+    // Guardar sesión de comerciante en localStorage para que al abrir la app instalada ya esté logueado
+    const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
+    if (activeWs) {
+      localStorage.setItem('activeWorkspace', activeWs);
+    }
+    const cleanSlug = businessName
+      .trim()
+      .toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'mi-tienda';
+    localStorage.setItem('storeSlug', cleanSlug);
+    if (businessName.trim()) {
+      localStorage.setItem('merchant_store_name', businessName.trim());
+    }
+    localStorage.setItem('merchant_onboarding_completed', 'true');
+    localStorage.removeItem('ecommerce_current_customer');
+    localStorage.removeItem('ecommerce_user');
+
+    const promptObj = deferredPrompt || (typeof window !== 'undefined' ? window.deferredPwaPrompt : null);
+    if (promptObj) {
+      setIsInstalling(true);
+      try {
+        promptObj.prompt();
+        const { outcome } = await promptObj.userChoice;
+        if (outcome === 'accepted') {
+          setIsInstalledJustNow(true);
+          setIsStandalone(true);
+          toast.success('¡Instalación completada! Ábrela desde tu pantalla de inicio', { icon: '🚀' });
+        }
+      } catch (err) {
+        console.warn('Error en prompt de instalación:', err);
+      } finally {
+        setIsInstalling(false);
+      }
+    } else {
+      toast('Toca el menú del navegador (⋮) y selecciona "Instalar aplicación" o "Agregar a la pantalla principal"', {
+        icon: '📲',
+        duration: 6000
+      });
+    }
+  };
+
   const handleFinishAndGoToDashboard = () => {
     const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
     if (activeWs) {
@@ -228,6 +328,12 @@ export default function MerchantOnboardingWizard({
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') || 'mi-tienda';
     localStorage.setItem('storeSlug', cleanSlug);
+    if (businessName.trim()) {
+      localStorage.setItem('merchant_store_name', businessName.trim());
+    }
+    localStorage.setItem('merchant_onboarding_completed', 'true');
+    localStorage.removeItem('ecommerce_current_customer');
+    localStorage.removeItem('ecommerce_user');
 
     if (onComplete) onComplete();
     if (onClose) onClose();
@@ -269,20 +375,124 @@ export default function MerchantOnboardingWizard({
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA PASO 8: PANTALLA DE ÉXITO ("¡Listo, [Nombre]!")                     */}
+      {/* VISTA PASO 8: PANTALLA DE ÉXITO CON INSTALACIÓN PWA OBLIGATORIA          */}
       {/* ========================================================================= */}
       {step === 8 ? (
         <div className="relative z-20 bg-white rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200/90 max-w-4xl w-full p-6 sm:p-10 my-auto animate-in zoom-in-95 duration-200 m-4">
-          <div className="text-center max-w-xl mx-auto mb-8">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight mb-2">
-              ¡Listo, {ownerName.split(' ')[0] || 'Comerciante'}!
+          
+          {/* Cabecera dinámica según estado de instalación */}
+          <div className="text-center max-w-2xl mx-auto mb-6">
+            {(isStandalone || isInstalledJustNow) ? (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-black mb-3">
+                <CheckCircle2 size={15} className="text-emerald-600" />
+                <span>App Oficial Instalada · Modo Pantalla Completa Activo</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-100 border border-orange-300 text-orange-950 text-xs font-black uppercase tracking-wider mb-3">
+                <Sparkles size={14} className="text-orange-600 animate-spin" style={{ animationDuration: '3s' }} />
+                <span>Paso 8: Instalación Obligatoria de la App</span>
+              </div>
+            )}
+
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-950 tracking-tight mb-2">
+              {(isStandalone || isInstalledJustNow)
+                ? `¡Todo listo, ${ownerName.split(' ')[0] || 'Comerciante'}!`
+                : 'Instala la App Oficial de AxonMarket'
+              }
             </h1>
-            <p className="text-sm sm:text-base text-slate-500 font-medium">
-              <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> {preloadCatalog ? 'ya tiene 30 productos cargados.' : 'está lista para comenzar.'}
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              {(isStandalone || isInstalledJustNow) ? (
+                <>
+                  <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> {preloadCatalog ? 'ya tiene 30 productos cargados y está lista para vender.' : 'está configurada para comenzar.'}
+                </>
+              ) : (
+                <>
+                  Para acceder a <span className="font-bold text-slate-900">{businessName || 'tu tienda'}</span> con <span className="font-bold text-orange-600">pantalla completa de 100%, cero lagueo y auto-login</span>, instala la app en tu teléfono o escritorio.
+                </>
+              )}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center mb-8">
+          {/* Bloque de Instalación Obligatoria (Si no está en modo standalone) */}
+          {(!isStandalone && !isInstalledJustNow) && (
+            <div className="mb-6">
+              {/* Tarjetas de Beneficios */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                <div className="p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/80 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Smartphone size={20} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900">100% Pantalla</div>
+                    <div className="text-[11px] text-slate-500">Sin barras ni pestañas</div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <Rocket size={20} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900">Cero Lagueo</div>
+                    <div className="text-[11px] text-slate-500">Carga rápida y offline</div>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-xs font-black text-slate-900">Acceso Directo</div>
+                    <div className="text-[11px] text-slate-500">Sesión abierta al entrar</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Acción según sistema operativo */}
+              {isIOS ? (
+                /* Guía interactiva iOS Safari */
+                <div className="bg-gradient-to-br from-amber-50/90 to-orange-50/90 border-2 border-orange-300 rounded-3xl p-5 sm:p-6 text-left shadow-xs">
+                  <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-orange-800 mb-3">
+                    <Share size={15} /> Pasos para instalar en iPhone / iPad (Safari):
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-700">
+                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
+                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">1</span>
+                      <span>Toca el botón <strong>Compartir</strong> (<Share size={13} className="inline text-blue-600" />) en la barra inferior de Safari.</span>
+                    </div>
+                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
+                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">2</span>
+                      <span>Baja en el menú y presiona <strong>"Agregar al Inicio" (+)</strong>.</span>
+                    </div>
+                    <div className="bg-white p-3.5 rounded-2xl border border-orange-200/80 shadow-2xs flex items-start gap-2.5">
+                      <span className="w-6 h-6 rounded-full bg-orange-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">3</span>
+                      <span>Abre <strong>AxonMarket</strong> desde tu pantalla de inicio para entrar con tu cuenta.</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Botón 1-Clic Android y PC */
+                <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100/70 border-2 border-orange-300 rounded-3xl p-6 sm:p-7 text-center shadow-xs">
+                  <button
+                    type="button"
+                    onClick={handleTriggerInstall}
+                    disabled={isInstalling}
+                    className="w-full max-w-md mx-auto py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-orange-600 to-amber-600 hover:from-orange-600 hover:to-amber-700 active:scale-[0.99] text-white font-black text-base sm:text-lg shadow-xl shadow-orange-500/30 flex items-center justify-center gap-3 transition-all cursor-pointer"
+                  >
+                    <Download size={22} strokeWidth={2.5} className="animate-bounce" />
+                    <span>{isInstalling ? 'Instalando aplicación...' : '⚡ Instalar App Oficial de AxonMarket'}</span>
+                  </button>
+                  <p className="text-[11px] text-slate-500 font-medium mt-3">
+                    Se creará un acceso directo en tu teléfono o escritorio para entrar a tu tienda sin navegar por la web.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Resumen de la tienda creada */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center mb-6">
             {/* Mockup Izquierdo */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-inner">
               <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3 font-medium">
@@ -330,18 +540,18 @@ export default function MerchantOnboardingWizard({
             </div>
 
             {/* Columna Derecha */}
-            <div className="space-y-3.5">
-              <div className="p-4 sm:p-5 rounded-2xl bg-orange-50/80 border border-orange-200/80">
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-orange-50/80 border border-orange-200/80">
                 <span className="text-[10px] font-black tracking-wider uppercase text-orange-600 block mb-1">
                   SIGUIENTE PASO
                 </span>
-                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 leading-snug mb-1.5">
+                <h3 className="text-sm font-extrabold text-slate-900 leading-snug mb-1">
                   Confirma 10 precios esta semana y obtén 15% de descuento en tu primer mes
                 </h3>
                 <p className="text-xs text-slate-500 flex items-center gap-1.5">
                   <span>⏱ 1 minuto</span>
                   <span>·</span>
-                  <span>son precios referenciales de tu rubro</span>
+                  <span>precios referenciales precargados</span>
                 </p>
               </div>
 
@@ -352,12 +562,12 @@ export default function MerchantOnboardingWizard({
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2.5">
-                  <ShieldCheck size={18} className="text-orange-500 shrink-0" />
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-orange-500 shrink-0" />
                   <div>
-                    <span className="font-bold text-slate-900">Estás disfrutando del Plan Profesional 7 días</span>
-                    <p className="text-slate-500 text-[11px]">vigente hasta el {formattedTrialEnd}. Luego podrás continuar en el plan Gratuito.</p>
+                    <span className="font-bold text-slate-900">Plan Profesional 7 días</span>
+                    <p className="text-slate-500 text-[11px]">Válido hasta el {formattedTrialEnd}.</p>
                   </div>
                 </div>
                 <button type="button" className="text-orange-600 font-bold hover:underline shrink-0 text-xs">
@@ -367,14 +577,47 @@ export default function MerchantOnboardingWizard({
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <button
-              onClick={handleFinishAndGoToDashboard}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <span>Ir a mi panel</span>
-              <ArrowRight size={18} />
-            </button>
+          {/* Pie de Página: Acciones */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            {(!isStandalone && !isInstalledJustNow) ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleFinishAndGoToDashboard}
+                  className="text-xs font-semibold text-slate-400 hover:text-slate-600 hover:underline cursor-pointer order-2 sm:order-1"
+                >
+                  Continuar temporalmente en el navegador (Modo Emergencia)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isAppStandalone()) {
+                      handleFinishAndGoToDashboard();
+                    } else if (isIOS) {
+                      toast.success('¡Excelente! Abre AxonMarket desde tu pantalla de inicio', { icon: '📲' });
+                      handleFinishAndGoToDashboard();
+                    } else {
+                      handleTriggerInstall();
+                    }
+                  }}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2 order-1 sm:order-2"
+                >
+                  <span>{isIOS ? 'Ya la agregué al inicio ➔ Entrar' : 'Instalar App y Entrar'}</span>
+                  <ArrowRight size={18} />
+                </button>
+              </>
+            ) : (
+              <div className="w-full flex justify-end">
+                <button
+                  onClick={handleFinishAndGoToDashboard}
+                  className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-lg shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>Abrir AxonMarket</span>
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       ) : (

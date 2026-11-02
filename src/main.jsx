@@ -90,6 +90,18 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Global PWA install prompt capture
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  window.deferredPwaPrompt = e;
+  window.dispatchEvent(new CustomEvent('axon-pwa-prompt-available', { detail: e }));
+});
+
+window.addEventListener('appinstalled', () => {
+  window.deferredPwaPrompt = null;
+  window.dispatchEvent(new Event('axon-pwa-app-installed'));
+});
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

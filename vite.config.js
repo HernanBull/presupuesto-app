@@ -107,7 +107,7 @@ export default defineConfig({
         theme_color: '#09090b',
         background_color: '#ffffff',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         lang: 'es',
