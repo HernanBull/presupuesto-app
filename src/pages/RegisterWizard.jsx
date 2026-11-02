@@ -177,7 +177,8 @@ export const RegisterWizard = () => {
           instagram: formData.instagram
         },
         adminEmail: formData.email,
-        adminPin: formData.password
+        adminPin: formData.password,
+        staff: []
       };
 
       const payload = {
@@ -194,9 +195,11 @@ export const RegisterWizard = () => {
 
       if (wsError) throw new Error(wsError.message || 'Error al crear la tienda virtual');
 
-      // Guardar el workspace y el slug en localStorage para el panel de administración
+      // Guardar el workspace, slug y PIN maestro aislado para este nuevo comercio
       localStorage.setItem('activeWorkspace', id);
       localStorage.setItem('storeSlug', generatedSlug);
+      localStorage.setItem('adminPin_' + id, formData.password);
+      localStorage.setItem('axon_staff_' + id, JSON.stringify([]));
 
       setTimeout(() => {
         window.location.href = '/'; 

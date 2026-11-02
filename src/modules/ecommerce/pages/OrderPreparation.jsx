@@ -106,9 +106,9 @@ export default function OrderPreparation() {
         localStorage.setItem('activeWorkspace', urlWs);
         return urlWs;
       }
-      return localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+      return localStorage.getItem('activeWorkspace') || '';
     } catch {
-      return localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
+      return localStorage.getItem('activeWorkspace') || '';
     }
   });
   const [storeName, setStoreName] = useState('Axon');
@@ -652,18 +652,19 @@ export default function OrderPreparation() {
   };
 
   const verifyPin = async (pinCode) => {
-    // 1. Consultar Workspace config (adminPin y personal configurado en Perfil de Tienda)
-    let masterPin = localStorage.getItem('adminPin') || '9999';
+    const wsId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+    if (!wsId) {
+      setPinError('Tienda no identificada');
+      return;
+    }
+
+    // 1. Consultar Workspace config (adminPin y personal configurado en Perfil de Tienda para este workspace)
+    let masterPin = localStorage.getItem('adminPin_' + wsId) || localStorage.getItem('adminPin') || null;
     try {
-      const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
-      let query = supabase.from('workspaces').select('config');
-      if (workspaceId) {
-        query = query.eq('id', workspaceId);
-      }
-      const { data: wsList } = await query.limit(1);
-      const ws = wsList && wsList.length > 0 ? wsList[0] : null;
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
       if (ws?.config?.adminPin) {
         masterPin = ws.config.adminPin;
+        localStorage.setItem('adminPin_' + wsId, masterPin);
       }
       const staffArr = ws?.config?.staff || [];
       const foundInWs = staffArr.find(s => (s.pin_code === pinCode || s.pinCode === pinCode) && s.is_active !== false);
@@ -686,8 +687,8 @@ export default function OrderPreparation() {
       console.warn('Error verificando config workspace:', e);
     }
 
-    // 2. PIN Maestro de SuperAdmin
-    if (pinCode === masterPin || pinCode === '9999' || pinCode === '1234') {
+    // 2. PIN Maestro de este comercio exclusivamente
+    if (masterPin && pinCode === masterPin) {
       const adminWorker = { id: 'admin', fullName: 'SuperAdmin / Propietario', role: 'ADMIN' };
       sessionStorage.setItem('axon_active_picker', JSON.stringify(adminWorker));
       localStorage.setItem('axon_active_picker', JSON.stringify(adminWorker));
@@ -698,37 +699,9 @@ export default function OrderPreparation() {
       return;
     }
 
-    // 3. Consultar usuarios en Supabase Cloud (sincronizados con AxonPOS)
-    try {
-      const { data: suUsers } = await supabase
-        .from('users')
-        .select('*')
-        .eq('pin_code', pinCode)
-        .eq('is_active', true);
-
-      if (suUsers && suUsers.length > 0) {
-        const u = suUsers[0];
-        const matchedWorker = {
-          id: u.id,
-          fullName: u.full_name,
-          pinCode: u.pin_code,
-          role: u.role || 'PICKER'
-        };
-        sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
-        localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
-        setActiveWorker(matchedWorker);
-        triggerHaptic([50, 50, 100]);
-        playBeep(980, 0.12);
-        setPinInput('');
-        return;
-      }
-    } catch (e) {
-      console.warn('Error consultando Supabase users:', e);
-    }
-
-    // 4. Consultar almacenamiento local
-    const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-    const found = savedPickers.find(p => (p.pinCode === pinCode || p.pin_code === pinCode) && p.isActive !== false);
+    // 3. Consultar almacenamiento local aislado de este comercio
+    const savedPickers = JSON.parse(localStorage.getItem('axon_staff_' + wsId) || '[]');
+    const found = savedPickers.find(p => (p.pinCode === pinCode || p.pin_code === pinCode) && p.isActive !== false && p.is_active !== false);
 
     if (found) {
       const matched = {
@@ -757,46 +730,29 @@ export default function OrderPreparation() {
   const fetchStaffList = async () => {
     setIsStaffLoading(true);
     try {
-      const { data: suUsers } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      const saved = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-      const map = new Map();
-      (suUsers || []).forEach(u => map.set(u.id, {
-        id: u.id,
-        fullName: u.full_name,
-        pinCode: u.pin_code,
-        role: u.role || 'PICKER',
-        createdAt: u.created_at
-      }));
-      saved.forEach(u => {
-        if (!map.has(u.id)) {
-          map.set(u.id, u);
-        }
-      });
-
-      const workspaceId = activeWorkspaceId || localStorage.getItem('activeWorkspace') || '830e447c-c1db-49d6-ad38-86a8adcf5cbf';
-      if (workspaceId) {
-        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-        if (ws?.config?.staff && Array.isArray(ws.config.staff)) {
-          ws.config.staff.forEach(s => {
-            if (!map.has(s.id)) {
-              map.set(s.id, {
-                id: s.id,
-                fullName: s.full_name || s.fullName,
-                pinCode: s.pin_code || s.pinCode,
-                role: s.role || 'PICKER',
-                createdAt: s.created_at
-              });
-            }
-          });
-        }
+      const wsId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+      if (!wsId) {
+        setStaffList([]);
+        return;
       }
 
-      // Filtrar administradores para mostrar solo trabajadores autorizados
-      setStaffList(Array.from(map.values()).filter(u => u.id !== 'admin' && u.id !== 'usr-admin-master'));
+      let storeStaff = [];
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      if (ws?.config?.staff && Array.isArray(ws.config.staff)) {
+        storeStaff = ws.config.staff;
+      } else {
+        storeStaff = JSON.parse(localStorage.getItem('axon_staff_' + wsId) || '[]');
+      }
+
+      const formatted = storeStaff.map(s => ({
+        id: s.id,
+        fullName: s.full_name || s.fullName,
+        pinCode: s.pin_code || s.pinCode,
+        role: s.role || 'PICKER',
+        createdAt: s.created_at || s.createdAt
+      })).filter(u => u.id !== 'admin' && u.id !== 'usr-admin-master');
+
+      setStaffList(formatted);
     } catch (e) {
       console.warn('Error fetching staff list:', e);
     } finally {
@@ -807,22 +763,49 @@ export default function OrderPreparation() {
   const handleDeletePicker = async (workerId) => {
     if (!window.confirm('¿Está seguro de revocar y eliminar este acceso de trabajador?')) return;
     triggerHaptic(40);
+    const wsId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+    if (!wsId) return;
+
     try {
-      await supabase.from('users').delete().eq('id', workerId);
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      const currentConfig = ws?.config || {};
+      const currentStaff = currentConfig.staff || [];
+      const updatedStaff = currentStaff.filter(s => s.id !== workerId);
+      await supabase.from('workspaces').update({
+        config: {
+          ...currentConfig,
+          staff: updatedStaff
+        }
+      }).eq('id', wsId);
     } catch (e) {
-      console.warn('Error revocando usuario en Supabase:', e);
+      console.warn('Error revocando trabajador en workspace:', e);
     }
-    const saved = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
+
+    const saved = JSON.parse(localStorage.getItem('axon_staff_' + wsId) || '[]');
     const filtered = saved.filter(p => p.id !== workerId);
-    localStorage.setItem('axon_pickers', JSON.stringify(filtered));
+    localStorage.setItem('axon_staff_' + wsId, JSON.stringify(filtered));
     fetchStaffList();
   };
 
   const handleVerifyMasterPin = async () => {
     setMasterAuthError(null);
     const clean = masterPinInput.trim();
-    const storedMasterPin = localStorage.getItem('adminPin') || '9999';
-    if (clean === storedMasterPin || clean === '9999' || clean === '1234') {
+    const wsId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+    if (!wsId) {
+      setMasterAuthError('Tienda no especificada.');
+      return;
+    }
+
+    let storedMasterPin = localStorage.getItem('adminPin_' + wsId) || localStorage.getItem('adminPin');
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      if (ws?.config?.adminPin) {
+        storedMasterPin = ws.config.adminPin;
+        localStorage.setItem('adminPin_' + wsId, storedMasterPin);
+      }
+    } catch (e) {}
+
+    if (storedMasterPin && clean === storedMasterPin) {
       triggerHaptic([50, 50, 100]);
       playBeep(980, 0.12);
       setMasterPinStep('REGISTER');
@@ -830,24 +813,6 @@ export default function OrderPreparation() {
       fetchStaffList();
       return;
     }
-
-    try {
-      const { data: adminUsers } = await supabase
-        .from('users')
-        .select('*')
-        .in('role', ['ADMIN', 'MASTER'])
-        .eq('pin_code', clean)
-        .eq('is_active', true);
-
-      if (adminUsers && adminUsers.length > 0) {
-        triggerHaptic([50, 50, 100]);
-        playBeep(980, 0.12);
-        setMasterPinStep('REGISTER');
-        setMasterPinInput('');
-        fetchStaffList();
-        return;
-      }
-    } catch (e) {}
 
     triggerHaptic([150, 100, 150]);
     playBeep(320, 0.2);
@@ -867,34 +832,44 @@ export default function OrderPreparation() {
 
     const cleanPin = newPickerPin.trim();
     const cleanName = newPickerName.trim();
-    const workerId = 'usr-picker-' + Date.now();
+    const wsId = activeWorkspaceId || localStorage.getItem('activeWorkspace');
+    if (!wsId) {
+      setMasterAuthError('Tienda no identificada.');
+      return;
+    }
 
+    const workerId = 'usr-picker-' + Date.now();
     const newWorker = {
       id: workerId,
+      full_name: cleanName,
       fullName: cleanName,
+      pin_code: cleanPin,
       pinCode: cleanPin,
       role: 'PICKER',
-      createdAt: new Date().toISOString()
+      is_active: true,
+      created_at: new Date().toISOString()
     };
 
-    const savedPickers = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-    savedPickers.push(newWorker);
-    localStorage.setItem('axon_pickers', JSON.stringify(savedPickers));
-
-    // Sincronizar inmediatamente con la tabla users en Supabase (compartida con AxonPOS)
+    // 1. Guardar en workspace config en Supabase (Aislado 100%)
     try {
-      await supabase.from('users').upsert({
-        id: workerId,
-        username: cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(100 + Math.random() * 900),
-        full_name: cleanName,
-        role: 'PICKER',
-        pin_code: cleanPin,
-        is_active: true,
-        created_at: new Date().toISOString()
-      });
-    } catch (sbErr) {
-      console.warn('Error guardando en Supabase users:', sbErr);
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      const currentConfig = ws?.config || {};
+      const currentStaff = currentConfig.staff || [];
+      const updatedStaff = [newWorker, ...currentStaff.filter(s => (s.pin_code || s.pinCode) !== cleanPin)];
+      await supabase.from('workspaces').update({
+        config: {
+          ...currentConfig,
+          staff: updatedStaff
+        }
+      }).eq('id', wsId);
+    } catch (wsErr) {
+      console.warn('Error guardando picker en workspace:', wsErr);
     }
+
+    // 2. Respaldo local aislado por tienda
+    const savedPickers = JSON.parse(localStorage.getItem('axon_staff_' + wsId) || '[]');
+    const updatedLocal = [newWorker, ...savedPickers.filter(s => (s.pinCode || s.pin_code) !== cleanPin)];
+    localStorage.setItem('axon_staff_' + wsId, JSON.stringify(updatedLocal));
 
     setRegisterSuccess(`¡${newWorker.fullName} registrado con éxito! PIN: ${cleanPin}`);
     triggerHaptic([50, 50, 150]);

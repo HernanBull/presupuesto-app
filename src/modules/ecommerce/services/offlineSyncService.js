@@ -26,6 +26,11 @@ export class AxonOfflineDatabase extends Dexie {
       audit_logs: 'id, action, targetUserId, timestamp',
       system_backups: 'id, fileName, storageLocation, createdAt'
     });
+    this.version(3).stores({
+      users: 'id, username, role, isActive, pinCode, workspace_id',
+      cash_registers: 'id, code, name, isActive, workspace_id',
+      audit_logs: 'id, action, targetUserId, timestamp, workspace_id'
+    });
   }
 }
 

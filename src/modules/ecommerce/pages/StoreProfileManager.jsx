@@ -4,6 +4,7 @@ import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import { optimizeStoreImage } from '../utils/imageOptimizer';
+import { offlineDb } from '../services/offlineSyncService';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -243,33 +244,17 @@ export default function StoreProfileManager() {
               if (ws.config.scheduleProfile.closeWarningMinutes !== undefined) setCloseWarningMinutes(ws.config.scheduleProfile.closeWarningMinutes);
             }
 
-            // Sincronizar Personal & PINs desde config y tabla users de Supabase (AxonPOS & Picking)
-            let mergedStaff = [];
+            // Sincronizar Personal & PINs desde config de este comercio exclusivamente (Aislamiento Multi-Tenant)
+            let storeStaff = [];
             if (ws.config.staff && Array.isArray(ws.config.staff)) {
-              mergedStaff = [...ws.config.staff];
+              storeStaff = [...ws.config.staff];
+            } else {
+              try {
+                const local = JSON.parse(localStorage.getItem('axon_staff_' + workspaceId) || '[]');
+                if (Array.isArray(local) && local.length > 0) storeStaff = local;
+              } catch (e) {}
             }
-            try {
-              const { data: suUsers } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-              if (suUsers && suUsers.length > 0) {
-                const map = new Map();
-                mergedStaff.forEach(s => map.set(s.pin_code || s.pinCode, s));
-                suUsers.forEach(u => {
-                  if (u.role !== 'ADMIN' && u.pin_code && !map.has(u.pin_code)) {
-                    map.set(u.pin_code, {
-                      id: u.id,
-                      full_name: u.full_name || u.fullName,
-                      pin_code: u.pin_code,
-                      role: u.role || 'PICKER',
-                      created_at: u.created_at
-                    });
-                  }
-                });
-                mergedStaff = Array.from(map.values());
-              }
-            } catch (uErr) {
-              console.warn('Error syncing staff users:', uErr);
-            }
-            setStaffList(mergedStaff);
+            setStaffList(storeStaff);
           }
         }
         setIsLoaded(true);
@@ -322,22 +307,7 @@ export default function StoreProfileManager() {
     const updatedList = [newWorker, ...staffList];
     setStaffList(updatedList);
 
-    // 1. Guardar en tabla users de Supabase (compatible con AxonPOS y Picking)
-    try {
-      await supabase.from('users').upsert({
-        id: workerId,
-        username: cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Math.floor(100 + Math.random() * 900),
-        full_name: cleanName,
-        role: newStaffRole,
-        pin_code: cleanPin,
-        is_active: true,
-        created_at: new Date().toISOString()
-      });
-    } catch (sbErr) {
-      console.warn('Error guardando en users:', sbErr);
-    }
-
-    // 2. Guardar en workspace config en Supabase
+    // 1. Guardar en workspace config en Supabase (Aislado 100% por comercio)
     try {
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       const currentConfig = ws?.config || {};
@@ -351,10 +321,21 @@ export default function StoreProfileManager() {
       console.warn('Error actualizando workspace config:', wsErr);
     }
 
-    // 3. Respaldo local
+    // 2. Respaldo local y offline aislado por comercio
     try {
-      const local = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-      localStorage.setItem('axon_pickers', JSON.stringify([newWorker, ...local.filter(x => x.pinCode !== cleanPin && x.pin_code !== cleanPin)]));
+      localStorage.setItem('axon_staff_' + workspaceId, JSON.stringify(updatedList));
+      try {
+        await offlineDb.users.put({
+          id: workerId,
+          username: cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+          fullName: cleanName,
+          role: newStaffRole,
+          pinCode: cleanPin,
+          isActive: true,
+          workspace_id: workspaceId,
+          createdAt: newWorker.created_at
+        });
+      } catch (e) {}
     } catch (e) {}
 
     setIsStaffSaving(false);
@@ -370,19 +351,7 @@ export default function StoreProfileManager() {
     const updatedList = staffList.filter(s => s.id !== workerId && (s.pin_code || s.pinCode) !== pinCode);
     setStaffList(updatedList);
 
-    // 1. Eliminar de tabla users de Supabase
-    try {
-      if (pinCode) {
-        await supabase.from('users').delete().eq('pin_code', pinCode);
-      }
-      if (workerId) {
-        await supabase.from('users').delete().eq('id', workerId);
-      }
-    } catch (e) {
-      console.warn('Error eliminando de users:', e);
-    }
-
-    // 2. Actualizar workspace config
+    // 1. Actualizar workspace config (Aislado 100%)
     try {
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       const currentConfig = ws?.config || {};
@@ -396,10 +365,12 @@ export default function StoreProfileManager() {
       console.warn('Error actualizando config:', e);
     }
 
-    // 3. Respaldo local
+    // 2. Respaldo local y offline aislado por comercio
     try {
-      const local = JSON.parse(localStorage.getItem('axon_pickers') || '[]');
-      localStorage.setItem('axon_pickers', JSON.stringify(local.filter(x => x.id !== workerId && x.pinCode !== pinCode && x.pin_code !== pinCode)));
+      localStorage.setItem('axon_staff_' + workspaceId, JSON.stringify(updatedList));
+      try {
+        await offlineDb.users.delete(workerId);
+      } catch (e) {}
     } catch (e) {}
   };
 
