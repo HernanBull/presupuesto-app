@@ -86,16 +86,21 @@ class OfflineSyncManager {
 
   // Guardar venta en la cola Dexie local
   async enqueueSale(saleData) {
+    const invoiceNum = saleData.invoiceNumber || `TICK-${Date.now()}`;
     const record = {
-      id: saleData.invoiceNumber || `TICK-${Date.now()}`,
-      invoice_number: saleData.invoiceNumber || `TICK-${Date.now()}`,
+      id: invoiceNum,
+      invoice_number: invoiceNum,
+      document_type: saleData.documentType || 'TICKET_VENTA',
       customer_name: saleData.customer || 'Consumidor Final',
       total_usd: Number(saleData.totalUsd) || 0,
       total_ves: Number(saleData.totalVes) || 0,
+      subtotal_usd: Number(saleData.subtotalUsd) || 0,
+      iva_usd: Number(saleData.ivaUsd) || 0,
+      igtf_usd: Number(saleData.igtfUsd) || 0,
       items: saleData.items || [],
-      payment_methods: saleData.paymentEntries || [],
-      sync_status: 'PENDING',
-      timestamp: new Date().toISOString()
+      payments: saleData.payments || saleData.paymentEntries || [],
+      sync_status: saleData.isSynced ? 'SYNCED' : 'PENDING',
+      timestamp: saleData.dateIso || new Date().toISOString()
     };
 
     await offlineDb.offline_sales_queue.put(record);
@@ -115,7 +120,7 @@ class OfflineSyncManager {
     }
   }
 
-  // Sincronizar todas las ventas pendientes con Supabase
+  // Sincronizar todas las ventas pendientes con Supabase (ecommerce_orders_v2)
   async syncPendingSales() {
     if (!this.effectiveOnline) return { success: false, synced: 0 };
 
@@ -128,20 +133,39 @@ class OfflineSyncManager {
     for (const sale of pending) {
       try {
         if (wsId) {
-          // Intentar insertar en Supabase
-          const { error } = await supabase.from('pos_sales').insert([{
+          const primaryMethod = sale.payments?.[0]?.method ? sale.payments[0].method.toLowerCase() : 'pos';
+          const orderPayload = {
+            id: sale.invoice_number,
+            customer: sale.customer_name || 'Consumidor Final',
+            date: sale.timestamp || new Date().toISOString(),
+            total: Number(sale.total_usd) || 0,
+            status: 'Entregado',
+            priority: 'Normal',
+            address: 'Venta en Mostrador (POS)',
+            paymentmethod: primaryMethod,
+            paymentstatus: 'approved',
+            paymentdetails: {
+              invoiceNumber: sale.invoice_number,
+              documentType: sale.document_type || 'TICKET_VENTA',
+              subtotalUsd: sale.subtotal_usd,
+              ivaUsd: sale.iva_usd,
+              igtfUsd: sale.igtf_usd,
+              totalUsd: sale.total_usd,
+              totalVes: sale.total_ves,
+              payments: sale.payments
+            },
+            items: sale.items || [],
+            ismobile: 0,
+            order_type: 'pos',
             workspace_id: wsId,
-            invoice_number: sale.invoice_number,
-            customer_name: sale.customer_name,
-            total_usd: sale.total_usd,
-            total_ves: sale.total_ves,
-            items: sale.items,
-            payment_methods: sale.payment_methods,
-            created_at: sale.timestamp
-          }]);
+            stock_deducted: 1
+          };
+
+          const { error } = await supabase.from('ecommerce_orders_v2').upsert([orderPayload], { onConflict: 'id' });
 
           if (error) {
-            console.warn(`Error syncing sale ${sale.id} to Supabase:`, error);
+            console.warn(`Error syncing sale ${sale.id} to ecommerce_orders_v2:`, error);
+            continue;
           }
         }
 
@@ -158,7 +182,7 @@ class OfflineSyncManager {
     }
 
     if (syncedCount > 0) {
-      toast.success(`¡${syncedCount} venta(s) de la cola Dexie sincronizadas con la nube!`, {
+      toast.success(`¡${syncedCount} venta(s) mostrador sincronizadas en tiempo real!`, {
         icon: '🔄'
       });
     }

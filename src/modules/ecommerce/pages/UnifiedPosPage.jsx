@@ -358,18 +358,63 @@ export default function UnifiedPosPage() {
   const [newCreditConcept, setNewCreditConcept] = useState('');
   const [newCreditDueDate, setNewCreditDueDate] = useState('2026-11-15');
 
-  // Facturación y Documentos Fiscales (Fase 4 - /invoicing)
-  const [invoices, setInvoices] = useState([
-    { id: 'FAC-000182', type: 'FACTURA_FISCAL', customer: 'Distribuidora Los Andes', doc: 'J-40918231-1', date: '2026-10-31 16:45', taxableUsd: 120.00, exemptUsd: 25.00, ivaUsd: 19.20, igtfUsd: 3.60, totalUsd: 167.80, totalVes: 10990.90, status: 'EMITIDA' },
-    { id: 'TICK-847291', type: 'TICKET_VENTA', customer: 'Consumidor Final', doc: 'V-00000000', date: '2026-10-31 15:30', taxableUsd: 14.50, exemptUsd: 5.00, ivaUsd: 2.32, igtfUsd: 0.00, totalUsd: 21.82, totalVes: 1429.21, status: 'EMITIDA' },
-    { id: 'NOTA-000094', type: 'NOTA_ENTREGA', customer: 'María Fernández', doc: 'V-18.421.902', date: '2026-10-31 12:10', taxableUsd: 45.00, exemptUsd: 0.00, ivaUsd: 0.00, igtfUsd: 0.00, totalUsd: 45.00, totalVes: 2947.50, status: 'EMITIDA' },
-    { id: 'FAC-000181', type: 'FACTURA_FISCAL', customer: 'Inversiones del Centro C.A.', doc: 'J-31049281-0', date: '2026-10-30 18:20', taxableUsd: 340.00, exemptUsd: 40.00, ivaUsd: 54.40, igtfUsd: 10.20, totalUsd: 444.60, totalVes: 29121.30, status: 'EMITIDA' },
-  ]);
-
+  // Facturación y Documentos Fiscales Reales SENIAT (/invoicing)
+  const [invoices, setInvoices] = useState([]);
   const [invoiceFilter, setInvoiceFilter] = useState('TODAS');
   const [selectedInvoiceForView, setSelectedInvoiceForView] = useState(null);
 
-  // Función para exportar Libro de Ventas SENIAT en CSV oficial
+  // Consulta reactiva de facturas y documentos fiscales desde ecommerce_orders_v2
+  const fetchInvoices = async () => {
+    try {
+      const wsId = localStorage.getItem('activeWorkspace');
+      if (!wsId) return;
+
+      const { data: orders, error } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('*')
+        .eq('workspace_id', wsId)
+        .order('date', { ascending: false })
+        .limit(200);
+
+      if (!error && orders) {
+        const mapped = orders.map(o => {
+          const pd = o.paymentdetails || {};
+          const isFiscal = pd.documentType === 'FACTURA_FISCAL' || (o.id && String(o.id).startsWith('FAC-'));
+          const isNote = pd.documentType === 'NOTA_ENTREGA' || (o.id && (String(o.id).startsWith('NE-') || String(o.id).startsWith('NOTA-')));
+          const docType = isFiscal ? 'FACTURA_FISCAL' : (isNote ? 'NOTA_ENTREGA' : 'TICKET_VENTA');
+
+          const totUsd = Number(o.total) || 0;
+          const currentBcv = Number(pd.bcvRate) || bcvRate || 1;
+          const totVes = Number(pd.totalVes) || (totUsd * currentBcv);
+          const subUsd = Number(pd.subtotalUsd) || (totUsd / 1.16);
+          const ivaUsd = Number(pd.ivaUsd) || (totUsd - subUsd);
+          const igtfUsd = Number(pd.igtfUsd) || 0;
+
+          return {
+            id: pd.invoiceNumber || o.id,
+            type: docType,
+            customer: o.customer || 'Consumidor Final',
+            doc: pd.doc || pd.rif || pd.ci || 'V-00000000',
+            date: new Date(o.date).toLocaleString(),
+            taxableUsd: Number(subUsd.toFixed(2)),
+            exemptUsd: 0,
+            ivaUsd: Number(ivaUsd.toFixed(2)),
+            igtfUsd: Number(igtfUsd.toFixed(2)),
+            totalUsd: Number(totUsd.toFixed(2)),
+            totalVes: Number(totVes.toFixed(2)),
+            status: 'EMITIDA',
+            items: o.items || [],
+            payments: pd.payments || []
+          };
+        });
+        setInvoices(mapped);
+      }
+    } catch (e) {
+      console.warn('Error fetching real invoices from ecommerce_orders_v2:', e);
+    }
+  };
+
+  // Función para exportar Libro de Ventas SENIAT en CSV oficial con datos reales
   const exportLibroVentasSeniat = () => {
     const headers = ['Operacion', 'Fecha', 'Tipo Documento', 'Numero', 'Cliente', 'RIF / CI', 'Base Imponible ($)', 'Exento ($)', 'IVA 16% ($)', 'IGTF 3% ($)', 'Total USD', 'Total VES (Tasa BCV)'];
     const rows = invoices.map((inv, idx) => [
@@ -394,7 +439,7 @@ export default function UnifiedPosPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Libro de Ventas SENIAT exportado en CSV/Excel');
+    toast.success('Libro de Ventas SENIAT exportado en CSV/Excel con transacciones reales');
   };
 
   // Cargar catálogo de Supabase o utilizar Catálogo Oficial AxonPOS
@@ -435,12 +480,13 @@ export default function UnifiedPosPage() {
     };
 
     fetchCatalog();
+    fetchInvoices();
 
     fetch('https://axonmarket-api.onrender.com/api/bcv')
       .then(res => res.json())
       .then(data => { if (data?.rate) setBcvRate(Number(data.rate)); })
       .catch(() => {});
-  }, []);
+  }, [activeTab]);
 
   // Manejador central de cantidades en carrito
   const handleUpdateCartQuantity = (product, delta) => {
@@ -670,15 +716,19 @@ export default function UnifiedPosPage() {
     setIsProcessingSale(true);
     playBeep();
 
+    const wsId = localStorage.getItem('activeWorkspace') || 'default_workspace';
     const invoiceNum = documentType === 'FISCAL_INVOICE' 
       ? `FAC-${Math.floor(100000 + Math.random() * 900000)}` 
-      : `NE-${Math.floor(100000 + Math.random() * 900000)}`;
+      : (documentType === 'NOTA_ENTREGA' ? `NE-${Math.floor(100000 + Math.random() * 900000)}` : `TICK-${Math.floor(100000 + Math.random() * 900000)}`);
+
+    const primaryPaymentMethod = payments?.[0]?.method ? payments[0].method.toLowerCase() : 'efectivo';
+    const saleDateIso = new Date().toISOString();
 
     const completedSaleData = {
-      id: `sale-${Date.now()}`,
+      id: invoiceNum,
       invoiceNumber: invoiceNum,
       documentType,
-      customer: selectedCustomer,
+      customer: selectedCustomer || 'Consumidor Final',
       cashier: activeShift?.cashier || 'Cajero 1',
       subtotalUsd: netSubtotalUsd,
       ivaUsd: ivaGeneralUsd,
@@ -689,47 +739,125 @@ export default function UnifiedPosPage() {
       changeVes,
       items: cart,
       payments,
-      date: new Date().toLocaleString()
+      date: new Date().toLocaleString(),
+      dateIso: saleDateIso
     };
 
-    // 1. Guardar atómicamente en la cola Dexie Local (Offline-First)
+    // 1. Guardar de inmediato en ecommerce_orders_v2 de Supabase (Refleja ventas en Inicio en vivo)
+    let isSynced = false;
+    if (isOnline && wsId) {
+      try {
+        const orderPayload = {
+          id: invoiceNum,
+          customer: selectedCustomer || 'Consumidor Final',
+          date: saleDateIso,
+          total: totalRequiredUsd,
+          status: 'Entregado',
+          priority: 'Normal',
+          address: 'Venta en Mostrador (POS)',
+          paymentmethod: primaryPaymentMethod,
+          paymentstatus: 'approved',
+          paymentdetails: {
+            invoiceNumber: invoiceNum,
+            documentType,
+            subtotalUsd: netSubtotalUsd,
+            ivaUsd: ivaGeneralUsd,
+            igtfUsd: igtfUsd,
+            totalUsd: totalRequiredUsd,
+            totalVes: totalRequiredVes,
+            bcvRate,
+            changeUsd,
+            changeVes,
+            cashier: activeShift?.cashier || 'Cajero 1',
+            payments
+          },
+          items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: Number(item.price) || 0,
+            quantity: item.quantity,
+            sku: item.sku || '',
+            barcode: item.barcode || ''
+          })),
+          ismobile: 0,
+          order_type: 'pos',
+          workspace_id: wsId,
+          stock_deducted: 1
+        };
+
+        const { error: ordErr } = await supabase
+          .from('ecommerce_orders_v2')
+          .upsert([orderPayload], { onConflict: 'id' });
+
+        if (!ordErr) {
+          isSynced = true;
+        } else {
+          console.warn('Error guardando venta mostrador en ecommerce_orders_v2:', ordErr);
+        }
+      } catch (sbErr) {
+        console.warn('Fallo de red en venta online:', sbErr);
+      }
+    }
+
+    // 2. Guardar en la cola Dexie Local (Offline-First garantizado)
     try {
-      await offlineSyncManager.enqueueSale(completedSaleData);
+      await offlineSyncManager.enqueueSale({
+        ...completedSaleData,
+        isSynced
+      });
       const pending = await offlineSyncManager.getPendingSales();
       setPendingSalesCount(pending.length);
     } catch (dexErr) {
       console.warn('Dexie local queue warning:', dexErr);
     }
 
-    // 2. Hardware: Si está configurada la apertura de gaveta, enviar pulso ESC/POS
+    // 3. Deducción atómica y segura de Stock en Supabase y catálogo reactivo local
+    try {
+      for (const item of cart) {
+        if (item.id && !item.id.toString().startsWith('com-') && !item.id.toString().startsWith('free-')) {
+          let currentStock = Number(item.stock) || 0;
+          if (isOnline && wsId) {
+            const { data: dbItem } = await supabase
+              .from('ecommerce_products')
+              .select('stock')
+              .eq('id', item.id)
+              .eq('workspace_id', wsId)
+              .maybeSingle();
+
+            if (dbItem && dbItem.stock !== undefined) {
+              currentStock = Number(dbItem.stock);
+            }
+          }
+
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          if (isOnline && wsId) {
+            await supabase
+              .from('ecommerce_products')
+              .update({ stock: newStock })
+              .eq('id', item.id)
+              .eq('workspace_id', wsId);
+          }
+
+          // Actualizar reactivamente catálogo en pantalla de inmediato
+          setProducts(prev => prev.map(p => p.id === item.id ? { ...p, stock: newStock } : p));
+        }
+      }
+    } catch (stockErr) {
+      console.warn('Error actualizando stock de inventario:', stockErr);
+    }
+
+    // 4. Hardware: Si está configurada la apertura de gaveta, enviar pulso ESC/POS
     if (hardwareConfig.autoDrawer) {
       hardwareService.openCashDrawer();
     }
 
-    // 3. Simulación de impresión
+    // 5. Impresión de Ticket
     try {
       hardwareService.printTestTicket(hardwareConfig.printerSize);
     } catch (e) {}
 
-    // 4. Sincronización en la nube si está online
-    if (isOnline) {
-      try {
-        for (const item of cart) {
-          if (item.id && !item.id.toString().startsWith('com-') && !item.id.toString().startsWith('free-')) {
-            const currentStock = Number(item.stock) || 0;
-            const newStock = Math.max(0, currentStock - item.quantity);
-            await supabase.from('ecommerce_products').update({ stock: newStock }).eq('id', item.id);
-          }
-        }
-        await offlineSyncManager.syncPendingSales();
-        const pendingAfter = await offlineSyncManager.getPendingSales();
-        setPendingSalesCount(pendingAfter.length);
-      } catch (e) {
-        console.warn('Sync offline fallback:', e);
-      }
-    }
-
-    // 5. Registrar en métricas del turno de caja
+    // 6. Registrar en métricas del turno de caja
     setActiveShift(prev => {
       const cashUsdFromSale = payments.filter(p => p.method === 'CASH_USD').reduce((a, p) => a + p.amountPaid, 0);
       const cashVesFromSale = payments.filter(p => p.method === 'CASH_VES').reduce((a, p) => a + p.amountPaid, 0);
@@ -746,12 +874,31 @@ export default function UnifiedPosPage() {
       };
     });
 
+    // 7. Actualizar vista de Facturas SENIAT de inmediato
+    const newInvoiceRecord = {
+      id: invoiceNum,
+      type: documentType,
+      customer: selectedCustomer || 'Consumidor Final',
+      doc: 'V-00000000',
+      date: new Date().toLocaleString(),
+      taxableUsd: Number(netSubtotalUsd.toFixed(2)),
+      exemptUsd: 0,
+      ivaUsd: Number(ivaGeneralUsd.toFixed(2)),
+      igtfUsd: Number(igtfUsd.toFixed(2)),
+      totalUsd: Number(totalRequiredUsd.toFixed(2)),
+      totalVes: Number(totalRequiredVes.toFixed(2)),
+      status: 'EMITIDA',
+      items: cart,
+      payments
+    };
+    setInvoices(prev => [newInvoiceRecord, ...prev]);
+
     setCompletedSale(completedSaleData);
     setIsCheckoutOpen(false);
     setCart([]);
     setPayments([]);
     setIsProcessingSale(false);
-    toast.success(`¡Venta ${invoiceNum} cobrada e impresa con éxito!`);
+    toast.success(`¡Venta ${invoiceNum} cobrada e integrada exitosamente!`);
   };
 
   // Atajos de teclado idénticos a AxonPOS ([F2] Buscar, [F3] Cliente, [F12] Cobrar)

@@ -576,7 +576,9 @@ export default function EcommerceDashboard() {
                     ? '15:28' 
                     : dObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   
-                  const payment = order.paymentMethod || 'Efectivo';
+                  const payment = order.order_type === 'pos'
+                    ? 'Mostrador POS' 
+                    : (order.paymentmethod || order.paymentMethod || 'Efectivo');
                   const isDelivered = order.status === 'Entregado';
                   const statusColor = isDelivered 
                     ? 'text-emerald-600 dark:text-emerald-400' 
