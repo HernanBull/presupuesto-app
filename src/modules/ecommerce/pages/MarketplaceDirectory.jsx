@@ -1840,14 +1840,13 @@ export default function MarketplaceDirectory() {
               ))
             )}
 
-            {/* Centinela de carga progresiva infinita suave */}
+            {/* Centinela de carga progresiva infinita - Altura cero invisible para cero separacion */}
             {visibleFeedCount < feedPosts.length && (
               <div 
                 ref={feedSentinelRef} 
-                className="w-full h-24 flex items-center justify-center text-zinc-500 text-xs py-6 snap-start"
-              >
-                <div className="w-6 h-6 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-              </div>
+                className="w-full h-0 pointer-events-none opacity-0 m-0 p-0 border-0" 
+                aria-hidden="true"
+              />
             )}
 
             {/* Footer App Compacto */}

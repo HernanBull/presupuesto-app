@@ -18,7 +18,6 @@ import {
 } from '../services/socialService';
 import ResponsiveModal from './ResponsiveModal';
 import { useActiveFeedMedia } from '../context/ActiveFeedMediaContext';
-import ProgressiveFeedImage from './ProgressiveFeedImage';
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
@@ -387,7 +386,9 @@ export default function SocialFeedCard({
           )}
         </div>
       ) : storeCover ? (
-        <ProgressiveFeedImage 
+        <img 
+          loading="lazy" 
+          decoding="async"
           src={resolveImageUrl(storeCover)} 
           alt={storeName} 
           className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
