@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check } from 'lucide-react';
+import { 
+  Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, 
+  BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, 
+  ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check, Clock, CreditCard, 
+  Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw 
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -17,7 +22,7 @@ const safeParseConfig = (configData) => {
 };
 
 export default function SuperAdminDashboard({ superKey }) {
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'merchants', 'customers', 'monitor'
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'merchants', 'customers', 'monitor', 'subscriptions'
   const [merchants, setMerchants] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [liveOrders, setLiveOrders] = useState([]);
@@ -28,6 +33,12 @@ export default function SuperAdminDashboard({ superKey }) {
   const [groupName, setGroupName] = useState('');
   const [deliveryGroups, setDeliveryGroups] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  
+  // Subscriptions & BNC State
+  const [subscriptionPayments, setSubscriptionPayments] = useState([]);
+  const [trialMerchants, setTrialMerchants] = useState([]);
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+  const [copiedRef, setCopiedRef] = useState(null);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,7 +68,133 @@ export default function SuperAdminDashboard({ superKey }) {
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'merchants' || activeTab === 'pending_merchants') {
+      // Always check pending payments count for notification badge
+      try {
+        let pendingCount = 0;
+        try {
+          const { data: tablePending } = await supabase
+            .from('merchant_subscription_payments')
+            .select('id')
+            .eq('status', 'Pendiente');
+          if (tablePending) pendingCount += tablePending.length;
+        } catch(e) {}
+        
+        const { data: wsPending } = await supabase
+          .from('workspaces')
+          .select('id, status, config')
+          .or('status.eq.Pago_En_Revision,config->>paymentReported.eq.true');
+        if (wsPending) {
+          pendingCount = Math.max(pendingCount, wsPending.length);
+        }
+        setPendingPaymentsCount(pendingCount);
+      } catch (countErr) {
+        console.warn('Conteo de pagos pendientes:', countErr);
+      }
+
+      if (activeTab === 'subscriptions') {
+        const { data: wsData } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
+        const { data: contactsData } = await supabase.from('merchant_contacts').select('*');
+        const contactMap = {};
+        if (contactsData) {
+          contactsData.forEach(c => {
+            contactMap[c.id] = c;
+          });
+        }
+
+        // Consultar pagos en la tabla dedicada
+        let tablePayments = [];
+        try {
+          const { data: payData } = await supabase.from('merchant_subscription_payments').select('*').order('created_at', { ascending: false });
+          if (payData) tablePayments = payData;
+        } catch (e) {
+          console.warn("Tabla merchant_subscription_payments no lista:", e);
+        }
+
+        // Extraer también de workspaces.config.lastSubscriptionPayment
+        const combinedPaymentsMap = {};
+        tablePayments.forEach(p => {
+          const key = p.reference ? `${p.workspace_id}_${p.reference}` : p.id;
+          combinedPaymentsMap[key] = p;
+        });
+
+        (wsData || []).forEach(ws => {
+          const cfg = safeParseConfig(ws.config);
+          const lastPay = cfg.lastSubscriptionPayment;
+          if (lastPay) {
+            const key = lastPay.reference ? `${ws.id}_${lastPay.reference}` : (lastPay.id || ws.id);
+            if (!combinedPaymentsMap[key]) {
+              combinedPaymentsMap[key] = {
+                id: lastPay.id || `ws_${ws.id}`,
+                workspace_id: ws.id,
+                store_slug: ws.store_slug,
+                merchant_name: ws.name,
+                amount_usd: lastPay.amount_usd || 20,
+                amount_bs: lastPay.amount_bs || 0,
+                exchange_rate: lastPay.exchange_rate || 0,
+                reference: lastPay.reference || '-',
+                bank_origin: lastPay.bank_origin || 'BNC',
+                payment_date: lastPay.payment_date || lastPay.created_at || ws.created_at,
+                contact_phone: lastPay.contact_phone || contactMap[ws.id]?.phone || cfg.contact?.phone || '-',
+                status: lastPay.status || (ws.status === 'Pago_En_Revision' ? 'Pendiente' : 'Aprobado'),
+                created_at: lastPay.created_at || ws.created_at
+              };
+            }
+          }
+        });
+
+        const allPayments = Object.values(combinedPaymentsMap).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        setSubscriptionPayments(allPayments);
+
+        // Procesar comercios con métricas de Trial y suscripción
+        const processedMerchants = (wsData || []).map(ws => {
+          const cfg = safeParseConfig(ws.config);
+          const contact = contactMap[ws.id] || null;
+          const phone = contact?.phone || cfg.contact?.phone || cfg.phone || cfg.storefront?.phone || cfg.paymentProfile?.pmPhone || '-';
+          const email = contact?.email || cfg.adminEmail || cfg.contact?.email || '-';
+          const owner = contact?.full_name || cfg.expediente?.ownerName || cfg.contact?.ownerName || '-';
+
+          // Fechas
+          const createdAt = ws.created_at ? new Date(ws.created_at) : new Date();
+          let trialEndsAt;
+          if (cfg.trialEndsAt) {
+            trialEndsAt = new Date(cfg.trialEndsAt);
+          } else {
+            trialEndsAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+          }
+
+          const subscriptionEndsAt = cfg.subscriptionEndsAt ? new Date(cfg.subscriptionEndsAt) : null;
+          const now = Date.now();
+          const targetExpDate = subscriptionEndsAt || trialEndsAt;
+          const diffMs = targetExpDate.getTime() - now;
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+          let calculatedStatus = 'En_Prueba';
+          if (ws.status === 'Suspendido') {
+            calculatedStatus = 'Suspendido';
+          } else if (ws.status === 'Pago_En_Revision' || cfg.paymentReported) {
+            calculatedStatus = 'Pago_En_Revision';
+          } else if (ws.status === 'Activo' && (diffDays > 0 || subscriptionEndsAt)) {
+            calculatedStatus = 'Activo';
+          } else if (diffDays <= 0) {
+            calculatedStatus = 'Prueba_Vencida';
+          }
+
+          return {
+            ...ws,
+            config: cfg,
+            contact,
+            phone,
+            email,
+            owner,
+            trialEndsAt,
+            subscriptionEndsAt,
+            diffDays,
+            calculatedStatus
+          };
+        });
+
+        setTrialMerchants(processedMerchants);
+      } else if (activeTab === 'merchants' || activeTab === 'pending_merchants') {
         const { data: wsData } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
         const { data: contactsData } = await supabase.from('merchant_contacts').select('*');
         const contactMap = {};
@@ -254,6 +391,133 @@ export default function SuperAdminDashboard({ superKey }) {
       alert('Error al obtener datos');
     }
     setLoading(false);
+  };
+
+  const handleApprovePayment = async (payment) => {
+    const confirmApprove = window.confirm(`¿Aprobar pago de $20 (Ref: ${payment.reference}) para "${payment.merchant_name || 'Comercio'}" y activar servicio por 30 días?`);
+    if (!confirmApprove) return;
+    setIsActionLoading(true);
+    try {
+      const now = new Date();
+      const extensionDays = 30;
+      const nextExpiration = new Date(now.getTime() + extensionDays * 24 * 60 * 60 * 1000).toISOString();
+      
+      const targetWsId = payment.workspace_id;
+      if (targetWsId) {
+        const { data: ws } = await supabase.from('workspaces').select('*').eq('id', targetWsId).single();
+        const cfg = safeParseConfig(ws?.config);
+        const updatedCfg = {
+          ...cfg,
+          trialEndsAt: nextExpiration,
+          subscriptionEndsAt: nextExpiration,
+          paymentReported: false,
+          lastSubscriptionPayment: {
+            ...(cfg.lastSubscriptionPayment || payment),
+            status: 'Aprobado',
+            approved_at: now.toISOString()
+          }
+        };
+        await supabase.from('workspaces').update({
+          status: 'Activo',
+          config: updatedCfg
+        }).eq('id', targetWsId);
+      }
+      
+      if (payment.id && !String(payment.id).startsWith('ws_')) {
+        try {
+          await supabase.from('merchant_subscription_payments').update({
+            status: 'Aprobado',
+            approved_at: now.toISOString()
+          }).eq('id', payment.id);
+        } catch(e) {}
+      }
+      
+      alert(`¡Pago Aprobado con Éxito! El comercio "${payment.merchant_name}" ha sido activado por 30 días.`);
+      fetchData();
+    } catch (err) {
+      console.error("Error al aprobar pago:", err);
+      alert("Error al aprobar pago: " + (err.message || "Error"));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleRejectPayment = async (payment) => {
+    const reason = window.prompt(`¿Rechazar este pago? Ingrese el motivo (ej. Referencia no coincide en BNC):`);
+    if (reason === null) return;
+    setIsActionLoading(true);
+    try {
+      const targetWsId = payment.workspace_id;
+      if (targetWsId) {
+        const { data: ws } = await supabase.from('workspaces').select('*').eq('id', targetWsId).single();
+        const cfg = safeParseConfig(ws?.config);
+        const updatedCfg = {
+          ...cfg,
+          paymentReported: false,
+          lastSubscriptionPayment: {
+            ...(cfg.lastSubscriptionPayment || payment),
+            status: 'Rechazado',
+            rejected_reason: reason,
+            rejected_at: new Date().toISOString()
+          }
+        };
+        await supabase.from('workspaces').update({
+          status: 'Prueba_Expirada',
+          config: updatedCfg
+        }).eq('id', targetWsId);
+      }
+      
+      if (payment.id && !String(payment.id).startsWith('ws_')) {
+        try {
+          await supabase.from('merchant_subscription_payments').update({
+            status: 'Rechazado',
+            notes: reason
+          }).eq('id', payment.id);
+        } catch(e) {}
+      }
+      
+      alert("Pago marcado como rechazado.");
+      fetchData();
+    } catch (err) {
+      console.error("Error al rechazar pago:", err);
+      alert("Error al rechazar pago: " + (err.message || "Error"));
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleExtendTrial = async (merchant, extraDays = 7) => {
+    const confirmExt = window.confirm(`¿Extender período de prueba por ${extraDays} días a "${merchant.name}"?`);
+    if (!confirmExt) return;
+    setIsActionLoading(true);
+    try {
+      const cfg = safeParseConfig(merchant.config);
+      const currentTrialEnd = cfg.trialEndsAt ? new Date(cfg.trialEndsAt) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const baseDate = currentTrialEnd.getTime() > Date.now() ? currentTrialEnd.getTime() : Date.now();
+      const newTrialDate = new Date(baseDate + extraDays * 24 * 60 * 60 * 1000).toISOString();
+      
+      const updatedCfg = {
+        ...cfg,
+        trialEndsAt: newTrialDate
+      };
+      await supabase.from('workspaces').update({
+        status: 'Activo',
+        config: updatedCfg
+      }).eq('id', merchant.id);
+      
+      alert(`Período de prueba extendido hasta el ${new Date(newTrialDate).toLocaleDateString()}`);
+      fetchData();
+    } catch(err) {
+      alert("Error: " + err.message);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleCopyRef = (ref) => {
+    navigator.clipboard.writeText(ref);
+    setCopiedRef(ref);
+    setTimeout(() => setCopiedRef(null), 2500);
   };
 
   const handleSaveDeliveryGroup = async () => {
@@ -635,6 +899,22 @@ export default function SuperAdminDashboard({ superKey }) {
             <Truck size={18} /> Delivery Bot
           </button>
           <button 
+            onClick={() => setActiveTab('subscriptions')}
+            className={`min-w-[160px] flex-1 py-4 px-3 rounded-2xl flex items-center justify-center gap-2.5 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer relative ${
+              activeTab === 'subscriptions' 
+                ? 'bg-emerald-600 text-white shadow-[0_0_20px_rgba(16,185,129,0.35)]' 
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
+            }`}
+          >
+            <CreditCard size={18} /> 
+            <span>Suscripciones & BNC</span>
+            {pendingPaymentsCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse shadow-sm">
+                {pendingPaymentsCount}
+              </span>
+            )}
+          </button>
+          <button 
             onClick={() => setActiveTab('pending_merchants')}
             className={`min-w-[140px] flex-1 py-4 px-2 rounded-2xl flex items-center justify-center gap-3 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === 'pending_merchants' ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
@@ -812,6 +1092,469 @@ export default function SuperAdminDashboard({ superKey }) {
                     ))}
                     {stats.topProducts.length === 0 && <p className="text-slate-500 text-sm font-medium">Sin datos suficientes</p>}
                   </div>
+                </div>
+              </div>
+
+            </div>
+          ) : activeTab === 'subscriptions' ? (
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-widest text-slate-950 flex items-center gap-2.5">
+                    <CreditCard className="text-emerald-600" size={24} /> 
+                    Suscripciones & Conciliación BNC
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    Gestión del período de prueba (7 días), validación de pagos móviles BNC ($20/mes) y control de accesos.
+                  </p>
+                </div>
+                <button 
+                  onClick={fetchData}
+                  disabled={loading || isActionLoading}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center gap-2 transition-all shadow-xs disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                  Actualizar
+                </button>
+              </div>
+
+              {/* KPIs de Suscripciones */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`p-5 rounded-2xl border transition-all ${pendingPaymentsCount > 0 ? 'bg-amber-50/80 border-amber-300 shadow-sm' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Por Validar</span>
+                    <div className={`p-2 rounded-xl ${pendingPaymentsCount > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-200/60 text-slate-600'}`}>
+                      <AlertTriangle size={18} />
+                    </div>
+                  </div>
+                  <p className={`text-2xl font-black ${pendingPaymentsCount > 0 ? 'text-amber-800' : 'text-slate-900'}`}>
+                    {pendingPaymentsCount}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">
+                    {pendingPaymentsCount > 0 ? '⚠️ Pagos BNC por conciliar' : 'Al día, sin pagos pendientes'}
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">En Prueba (7D)</span>
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-600 border border-blue-200">
+                      <Clock size={18} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-black text-slate-900">
+                    {trialMerchants.filter(m => m.calculatedStatus === 'En_Prueba').length}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">Comercios dentro del lapso gratuito</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Pruebas Vencidas</span>
+                    <div className="p-2 rounded-xl bg-red-50 text-red-600 border border-red-200">
+                      <XCircle size={18} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-black text-red-600">
+                    {trialMerchants.filter(m => m.calculatedStatus === 'Prueba_Vencida').length}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">Requieren renovar para acceder</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">Activos ($20/mes)</span>
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                      <CheckCircle2 size={18} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-black text-emerald-700">
+                    {trialMerchants.filter(m => m.calculatedStatus === 'Activo').length}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">Planes profesionales vigentes</p>
+                </div>
+              </div>
+
+              {/* SECCIÓN 1: Pagos Reportados BNC */}
+              <div className="bg-slate-50/60 border border-slate-200 rounded-3xl p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <h3 className="text-base font-black uppercase tracking-wider text-slate-950 flex items-center gap-2">
+                      <DollarSign className="text-emerald-600" size={20} />
+                      Pagos Móviles BNC Reportados
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium mt-0.5">
+                      Verifica la referencia en la banca en línea de BNC y aprueba con un solo clic (+30 días de acceso).
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700">
+                    Total: {subscriptionPayments.length} reportes
+                  </span>
+                </div>
+
+                {subscriptionPayments.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500">
+                    <CreditCard className="mx-auto mb-3 text-slate-300" size={36} />
+                    <p className="font-bold text-slate-800 text-sm">No hay reportes de pago móvil registrados aún.</p>
+                    <p className="text-xs text-slate-500 mt-1">Cuando un comerciante reporte su pago desde el panel o al expirar su prueba, aparecerá aquí.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Mobile View */}
+                    <div className="md:hidden flex flex-col gap-3">
+                      {subscriptionPayments.map((pay, pIdx) => {
+                        const isPending = pay.status === 'Pendiente';
+                        return (
+                          <div key={pay.id || pIdx} className={`bg-white border rounded-2xl p-4 flex flex-col gap-3 shadow-xs ${isPending ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'}`}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-black text-slate-950 text-sm">{pay.merchant_name || 'Comercio'}</p>
+                                <p className="text-[11px] text-slate-500 font-mono">Slug: {pay.store_slug || '-'}</p>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                isPending ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse' :
+                                pay.status === 'Aprobado' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                'bg-red-100 text-red-800 border border-red-300'
+                              }`}>
+                                {pay.status || 'Pendiente'}
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-200">
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Referencia BNC</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="font-mono font-black text-slate-900">{pay.reference}</span>
+                                  <button onClick={() => handleCopyRef(pay.reference)} className="text-slate-500 hover:text-slate-900">
+                                    <Copy size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Banco Origen</p>
+                                <p className="font-bold text-slate-800 mt-0.5">{pay.bank_origin || 'BNC'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Monto</p>
+                                <p className="font-bold text-emerald-700 mt-0.5">Bs. {pay.amount_bs ? Number(pay.amount_bs).toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'} <span className="text-[10px] text-slate-500 font-normal">($20)</span></p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Fecha</p>
+                                <p className="text-slate-700 mt-0.5">{pay.payment_date ? new Date(pay.payment_date).toLocaleDateString() : '-'}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                              {pay.contact_phone && (
+                                <a 
+                                  href={`https://wa.me/58${pay.contact_phone.replace(/\D/g, '').replace(/^0/, '').replace(/^58/, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-emerald-700 hover:text-emerald-800 text-xs font-bold flex items-center gap-1"
+                                >
+                                  <MessageCircle size={15} /> WhatsApp
+                                </a>
+                              )}
+                              {isPending ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleRejectPayment(pay)}
+                                    disabled={isActionLoading}
+                                    className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold transition-all border border-red-200"
+                                  >
+                                    Rechazar
+                                  </button>
+                                  <button
+                                    onClick={() => handleApprovePayment(pay)}
+                                    disabled={isActionLoading}
+                                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+                                  >
+                                    <Check size={14} /> Aprobar (+30d)
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-500 font-medium">Procesado</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+                      <table className="w-full text-left border-collapse min-w-[850px]">
+                        <thead>
+                          <tr className="border-b border-slate-200 bg-slate-50/70">
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Fecha</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-900">Comercio</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Referencia BNC</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Banco Origen</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Monto Bs.</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Estado</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">WhatsApp</th>
+                            <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {subscriptionPayments.map((pay, pIdx) => {
+                            const isPending = pay.status === 'Pendiente';
+                            const cleanPhone = (pay.contact_phone || '').replace(/\D/g, '').replace(/^0/, '').replace(/^58/, '');
+                            return (
+                              <tr key={pay.id || pIdx} className={`border-b border-slate-100 transition-colors ${isPending ? 'bg-amber-50/30 hover:bg-amber-50/60' : 'hover:bg-slate-50/80'}`}>
+                                <td className="py-3.5 px-4 text-xs text-slate-600 font-medium whitespace-nowrap">
+                                  {pay.created_at || pay.payment_date ? new Date(pay.created_at || pay.payment_date).toLocaleString() : '-'}
+                                </td>
+                                <td className="py-3.5 px-4 text-sm font-black text-slate-950">
+                                  <div>{pay.merchant_name || 'Comercio'}</div>
+                                  {pay.store_slug && (
+                                    <a 
+                                      href={`https://axonmarket.vip/${pay.store_slug}`} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-[11px] text-blue-600 hover:underline font-mono font-normal flex items-center gap-1 mt-0.5"
+                                    >
+                                      /{pay.store_slug} <ExternalLink size={10} />
+                                    </a>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-mono font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                      {pay.reference}
+                                    </span>
+                                    <button 
+                                      onClick={() => handleCopyRef(pay.reference)}
+                                      className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-900 transition-colors"
+                                      title="Copiar referencia"
+                                    >
+                                      {copiedRef === pay.reference ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="py-3.5 px-4 text-xs font-bold text-slate-800">
+                                  {pay.bank_origin || 'BNC'}
+                                </td>
+                                <td className="py-3.5 px-4 text-sm">
+                                  <div className="font-black text-emerald-700">
+                                    Bs. {pay.amount_bs ? Number(pay.amount_bs).toLocaleString('es-VE', { minimumFractionDigits: 2 }) : '-'}
+                                  </div>
+                                  <div className="text-[10px] text-slate-500 font-mono">$20.00 USD</div>
+                                </td>
+                                <td className="py-3.5 px-4 text-center">
+                                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                    isPending ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                    pay.status === 'Aprobado' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                    'bg-red-100 text-red-800 border border-red-300'
+                                  }`}>
+                                    {pay.status || 'Pendiente'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 text-xs">
+                                  {cleanPhone ? (
+                                    <a 
+                                      href={`https://wa.me/58${cleanPhone}?text=Hola%20${encodeURIComponent(pay.merchant_name || 'Comercio')},%20te%20escribimos%20de%20AxonMarket%20sobre%20tu%20pago%20de%20suscripci%C3%B3n.`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-bold border border-emerald-200 transition-colors"
+                                    >
+                                      <MessageCircle size={14} /> WhatsApp
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 font-mono">-</span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  {isPending ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <button
+                                        onClick={() => handleRejectPayment(pay)}
+                                        disabled={isActionLoading}
+                                        className="px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white rounded-lg text-xs font-bold transition-all border border-red-200 disabled:opacity-50"
+                                        title="Rechazar comprobante"
+                                      >
+                                        Rechazar
+                                      </button>
+                                      <button
+                                        onClick={() => handleApprovePayment(pay)}
+                                        disabled={isActionLoading}
+                                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                                        title="Aprobar y activar comercio por 30 días"
+                                      >
+                                        <Check size={14} /> Aprobar (+30d)
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-slate-400 font-medium">Conciliado</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* SECCIÓN 2: Monitor de Período de Prueba (7 Días) & Vencimientos */}
+              <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                  <div>
+                    <h3 className="text-base font-black uppercase tracking-wider text-slate-950 flex items-center gap-2">
+                      <Clock className="text-blue-600" size={20} />
+                      Monitor de Período de Prueba (7 Días) & Estado de Comercios
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium mt-0.5">
+                      Control detallado de los 7 días de cortesía por comercio. Envía recordatorios de pago antes de que expire.
+                    </p>
+                  </div>
+                  <div className="relative w-full sm:w-64">
+                    <Search size={16} className="absolute left-3 top-3 text-slate-400 pointer-events-none" />
+                    <input 
+                      type="text"
+                      placeholder="Filtrar comercios..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[850px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50/70">
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-900">Comercio</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Contacto / Dueño</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Registro</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Expira</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Estado del Plan</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Recordatorio</th>
+                        <th className="py-3 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-right">Acciones Rápidas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trialMerchants
+                        .filter(m => {
+                          if (!searchTerm) return true;
+                          const q = searchTerm.toLowerCase();
+                          return (m.name || '').toLowerCase().includes(q) || 
+                                 (m.store_slug || '').toLowerCase().includes(q) ||
+                                 (m.owner || '').toLowerCase().includes(q) ||
+                                 (m.phone || '').includes(q);
+                        })
+                        .map(m => {
+                          const cleanPhone = (m.phone || '').replace(/\D/g, '').replace(/^0/, '').replace(/^58/, '');
+                          const isExpired = m.calculatedStatus === 'Prueba_Vencida';
+                          const isTrial = m.calculatedStatus === 'En_Prueba';
+                          const isActive = m.calculatedStatus === 'Activo';
+                          const isReview = m.calculatedStatus === 'Pago_En_Revision';
+                          
+                          // Template mensaje WhatsApp
+                          const waMessage = isExpired 
+                            ? `Hola ${m.owner !== '-' ? m.owner : m.name}, te escribimos de AxonMarket. Tu período de prueba de 7 días ha finalizado. Para reactivar tu tienda y catálogo online, puedes reportar tu Pago Móvil de $20 a tasa BCV. ¡Estamos a la orden para ayudarte!`
+                            : `Hola ${m.owner !== '-' ? m.owner : m.name}, te escribimos de AxonMarket. Te quedan ${m.diffDays} días de tu prueba gratuita. ¿Tienes alguna duda para configurar tu tienda o métodos de pago?`;
+
+                          return (
+                            <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
+                              <td className="py-3.5 px-4 text-sm font-black text-slate-950">
+                                <div>{m.name}</div>
+                                {m.store_slug && (
+                                  <a 
+                                    href={`https://axonmarket.vip/${m.store_slug}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-[11px] text-blue-600 hover:underline font-mono font-normal flex items-center gap-1 mt-0.5"
+                                  >
+                                    /{m.store_slug} <ExternalLink size={10} />
+                                  </a>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-xs text-slate-700">
+                                <div className="font-bold text-slate-900">{m.owner}</div>
+                                <div className="text-slate-500 font-mono mt-0.5">{m.phone}</div>
+                              </td>
+                              <td className="py-3.5 px-4 text-xs text-slate-600 font-medium">
+                                {new Date(m.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="py-3.5 px-4 text-xs font-mono font-semibold text-slate-800">
+                                {m.subscriptionEndsAt 
+                                  ? new Date(m.subscriptionEndsAt).toLocaleDateString() 
+                                  : new Date(m.trialEndsAt).toLocaleDateString()}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                {isActive ? (
+                                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                    Activo (Suscrito)
+                                  </span>
+                                ) : isReview ? (
+                                  <span className="px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 rounded-md text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                                    Pago en Revisión
+                                  </span>
+                                ) : isExpired ? (
+                                  <span className="px-2.5 py-1 bg-red-100 text-red-800 border border-red-300 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                    Prueba Vencida (Bloqueado)
+                                  </span>
+                                ) : (
+                                  <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                    m.diffDays <= 2 
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+                                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                                  }`}>
+                                    {m.diffDays}d restantes
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                {cleanPhone ? (
+                                  <a 
+                                    href={`https://wa.me/58${cleanPhone}?text=${encodeURIComponent(waMessage)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-bold border border-emerald-200 transition-colors"
+                                    title="Enviar recordatorio por WhatsApp"
+                                  >
+                                    <MessageCircle size={14} /> Contactar
+                                  </a>
+                                ) : (
+                                  <span className="text-slate-400 text-xs">-</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => handleExtendTrial(m, 7)}
+                                    disabled={isActionLoading}
+                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition-colors border border-slate-300 disabled:opacity-50"
+                                    title="Dar 7 días adicionales de cortesía"
+                                  >
+                                    +7 Días
+                                  </button>
+                                  <button
+                                    onClick={() => handleApprovePayment({ workspace_id: m.id, merchant_name: m.name, reference: 'MANUAL_SUPERADMIN' })}
+                                    disabled={isActionLoading}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-colors shadow-xs disabled:opacity-50"
+                                    title="Activar plan por 30 días"
+                                  >
+                                    Activar 30d
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {trialMerchants.length === 0 && (
+                        <tr>
+                          <td colSpan="7" className="py-12 text-center text-slate-500 font-medium">
+                            No se encontraron comercios registrados.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 

@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import CashShiftModal from '../components/admin/CashShiftModal';
+import SubscriptionPaymentModal from '../components/SubscriptionPaymentModal';
 
 export default function MerchantMorePage() {
   const navigate = useNavigate();
@@ -30,6 +31,9 @@ export default function MerchantMorePage() {
   const [copied, setCopied] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   const [showPlanBanner, setShowPlanBanner] = useState(true);
+  const [trialDaysRemaining, setTrialDaysRemaining] = useState(7);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [workspaceStatus, setWorkspaceStatus] = useState('Pendiente');
 
   // Modales de administración crítica (AxonPOS ➔ AxonMarket)
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
@@ -48,6 +52,18 @@ export default function MerchantMorePage() {
 
             if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
             if (data.name) localStorage.setItem('merchant_store_name', data.name);
+            setWorkspaceStatus(data.status || 'Activo');
+
+            // Calcular días restantes de la prueba gratuita de 7 días
+            const trialEndStr = data.config?.trialEndsAt;
+            if (trialEndStr) {
+              const diff = Math.ceil((new Date(trialEndStr) - new Date()) / (1000 * 60 * 60 * 24));
+              setTrialDaysRemaining(Math.max(0, diff));
+            } else if (data.created_at) {
+              const end = new Date(new Date(data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
+              const diff = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
+              setTrialDaysRemaining(Math.max(0, diff));
+            }
 
             setStoreInfo({
               name: rawName,
@@ -333,39 +349,70 @@ export default function MerchantMorePage() {
         </div>
 
         {/* ========================================================
-            BANNER: MEJORAR PLAN (ESTILO COMMERCY EN NARANJA CORPORATIVO)
+            BANNER: PLAN PROFESIONAL ÚNICO & CONTADOR DE TRIAL 7 DÍAS
             ======================================================== */}
-        {showPlanBanner && (
-          <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-4 text-white shadow-md shadow-orange-500/20 relative overflow-hidden animate-in fade-in">
-            <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none">
-              <Sparkles size={72} />
+        <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/20 relative overflow-hidden animate-in fade-in">
+          <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none">
+            <Sparkles size={80} />
+          </div>
+          <div className="relative z-10 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider">
+                <Sparkles size={12} />
+                <span>Plan Profesional Único</span>
+              </div>
+              <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
+                workspaceStatus === 'Activo' 
+                  ? 'bg-emerald-500 text-white' 
+                  : trialDaysRemaining > 3 
+                    ? 'bg-white/25 text-white' 
+                    : 'bg-red-500 text-white animate-pulse'
+              }`}>
+                {workspaceStatus === 'Activo' 
+                  ? 'Suscripción Activa' 
+                  : trialDaysRemaining > 0 
+                    ? `${trialDaysRemaining} días de prueba` 
+                    : 'Prueba Vencida'}
+              </span>
             </div>
-            <div className="flex items-start justify-between relative z-10">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-2xs">
-                  <ArrowUpRight size={20} className="text-white" />
+
+            <div>
+              <h4 className="text-base sm:text-lg font-black leading-tight">
+                {workspaceStatus === 'Activo' ? 'Tu comercio cuenta con acceso completo' : 'Prueba Gratuita de 7 Días'}
+              </h4>
+              <p className="text-xs text-white/90 mt-0.5 leading-relaxed">
+                {workspaceStatus === 'Activo'
+                  ? 'Disfruta de todas las funciones: POS Mostrador, Facturación SENIAT, Caja F9 y Catálogo Online.'
+                  : `Te quedan ${trialDaysRemaining} días de acceso ilimitado. Realiza tu Pago Móvil BNC para mantener tu servicio sin interrupciones.`
+                }
+              </p>
+            </div>
+
+            {/* Barra de progreso visual de los 7 días */}
+            {workspaceStatus !== 'Activo' && (
+              <div className="space-y-1">
+                <div className="w-full bg-black/20 h-2 rounded-full overflow-hidden p-0.5">
+                  <div 
+                    className="bg-white h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, Math.max(12, (trialDaysRemaining / 7) * 100))}%` }}
+                  />
                 </div>
-                <div>
-                  <h4 className="text-sm font-black leading-tight">Mejorar plan</h4>
-                  <p className="text-xs text-white/90 mt-0.5">Desbloqueá más módulos y funciones avanzadas</p>
-                  <button
-                    onClick={() => navigate('/pricing')}
-                    className="mt-2 text-xs font-black underline flex items-center gap-1 hover:text-amber-200 transition-colors cursor-pointer"
-                  >
-                    <span>Ver planes</span>
-                    <ChevronRight size={14} />
-                  </button>
+                <div className="flex justify-between text-[10px] text-white/80 font-bold">
+                  <span>Día {Math.max(1, 8 - trialDaysRemaining)} de 7</span>
+                  <span>{trialDaysRemaining > 0 ? `${trialDaysRemaining} días restantes` : 'Culminado'}</span>
                 </div>
               </div>
-              <button
-                onClick={() => setShowPlanBanner(false)}
-                className="p-1 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-              >
-                <X size={16} />
-              </button>
-            </div>
+            )}
+
+            <button
+              onClick={() => setIsSubscriptionModalOpen(true)}
+              className="mt-1 w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-orange-50 text-orange-600 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <CreditCard size={15} />
+              <span>{workspaceStatus === 'Activo' ? 'Ver Datos de Pago Móvil' : 'Pagar Suscripción / Activar Plan'}</span>
+            </button>
           </div>
-        )}
+        </div>
 
         {/* ========================================================
             SECCIÓN: CUENTA Y NIVEL
@@ -464,6 +511,15 @@ export default function MerchantMorePage() {
       <BackupManagerModal
         isOpen={isBackupModalOpen}
         onClose={() => setIsBackupModalOpen(false)}
+      />
+
+      <SubscriptionPaymentModal
+        isOpen={isSubscriptionModalOpen}
+        onClose={() => setIsSubscriptionModalOpen(false)}
+        storeInfo={storeInfo}
+        onPaymentReported={() => {
+          setWorkspaceStatus('Pago_En_Revision');
+        }}
       />
 
     </div>

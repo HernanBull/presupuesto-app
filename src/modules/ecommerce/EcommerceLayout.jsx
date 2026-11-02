@@ -9,11 +9,13 @@ import {
   Store, Globe, MonitorSmartphone, DollarSign, Layers,
   Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
-  HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList
+  HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
+  Clock, RefreshCw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
+import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -155,11 +157,13 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   };
 
   const [workspaceStatus, setWorkspaceStatus] = useState(null);
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
 
   useEffect(() => {
     const wsId = localStorage.getItem('activeWorkspace');
     if (wsId) {
-      supabase.from('workspaces').select('name, store_slug, status').eq('id', wsId).maybeSingle()
+      supabase.from('workspaces').select('name, store_slug, status, config').eq('id', wsId).maybeSingle()
         .then(({ data, error }) => {
           if (!error && data) {
             const rawName = data.name || localStorage.getItem('merchant_store_name') || 'Mi Comercio';
@@ -167,6 +171,15 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             setWorkspaceStatus(data.status || 'Activo');
             if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
             if (data.name) localStorage.setItem('merchant_store_name', data.name);
+
+            // Verificar si el período de prueba de 7 días ya culminó
+            const trialEndStr = data.config?.trialEndsAt;
+            if (trialEndStr && data.status !== 'Activo') {
+              const diffDays = Math.ceil((new Date(trialEndStr) - new Date()) / (1000 * 60 * 60 * 24));
+              if (diffDays <= 0) {
+                setIsTrialExpired(true);
+              }
+            }
           }
         })
         .catch(err => console.error("Error fetching store info:", err));
@@ -195,14 +208,6 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   // Estructura exacta solicitada por el usuario (Menú multinivel Commercy)
   const menuSections = [
-    {
-      id: 'setup',
-      name: 'Puesta en marcha',
-      path: '/setup',
-      icon: Rocket,
-      badge: '4/4',
-      exact: true
-    },
     {
       id: 'dashboard',
       name: 'Estadísticas',
@@ -306,6 +311,81 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     if (slug) window.open(`/${slug}`, '_blank');
     else alert('No se encontró el enlace de tu tienda.');
   };
+
+  if (isTrialExpired && workspaceStatus !== 'Activo' && workspaceStatus !== 'Pago_En_Revision') {
+    return (
+      <div className="min-h-screen h-[100dvh] flex flex-col bg-gradient-to-b from-slate-900 via-zinc-950 to-black text-white font-sans items-center justify-center p-4 sm:p-6 text-center">
+        <div className="max-w-md w-full bg-zinc-900 border border-orange-500/30 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl shadow-orange-500/10 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/40 text-orange-500 flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <ShieldAlert size={34} />
+          </div>
+          <span className="text-[11px] font-black uppercase tracking-wider text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
+            Período de Prueba Finalizado
+          </span>
+          <h2 className="text-2xl font-black text-white mt-3 mb-2 tracking-tight">
+            Renueva tu Acceso a AxonMarket
+          </h2>
+          <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+            Tus 7 días de prueba gratuita han culminado. Para continuar operando tu POS, emitiendo comprobantes y vendiendo en línea, realiza tu pago móvil BNC.
+          </p>
+          <div className="bg-zinc-800/80 border border-white/10 rounded-2xl p-4 mb-6 text-left space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">Banco:</span>
+              <span className="font-bold text-white">0191 - BNC</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">RIF Jurídico:</span>
+              <span className="font-bold text-orange-400 font-mono">J-50805614</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400">Teléfono:</span>
+              <span className="font-bold text-white font-mono">04243592392</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsSubscriptionModalOpen(true)}
+            className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black py-3.5 rounded-2xl transition-all text-xs uppercase tracking-wider shadow-lg shadow-orange-500/25 active:scale-98 cursor-pointer"
+          >
+            Pagar y Reportar Referencia Bancaria
+          </button>
+        </div>
+
+        <SubscriptionPaymentModal 
+          isOpen={isSubscriptionModalOpen} 
+          onClose={() => setIsSubscriptionModalOpen(false)}
+          storeInfo={{ name: storeName }}
+          onPaymentReported={() => {
+            setWorkspaceStatus('Pago_En_Revision');
+            setIsTrialExpired(false);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (workspaceStatus === 'Pago_En_Revision') {
+    return (
+      <div className="min-h-screen h-[100dvh] flex flex-col bg-gradient-to-b from-slate-50 via-white to-slate-100 text-slate-900 font-sans items-center justify-center p-4 sm:p-6 text-center">
+        <div className="max-w-md w-full bg-white border border-slate-200/90 p-8 sm:p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/60 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center mx-auto mb-6 shadow-sm">
+            <Clock size={32} />
+          </div>
+          <h2 className="text-2xl font-extrabold text-slate-900 mb-2 tracking-tight">
+            Pago en Verificación
+          </h2>
+          <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+            Hemos recibido el comprobante de tu pago móvil. Nuestro equipo de administración verificará la referencia en el BNC para activar tus 30 días de servicio en breve.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-2xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-slate-900/10 active:scale-98 cursor-pointer"
+          >
+            <RefreshCw size={16} /> Comprobar Estado
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (workspaceStatus === 'Pendiente') {
     return (
@@ -822,19 +902,6 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <div className="sticky top-0 z-40 bg-[#f4f7fb]/80 dark:bg-zinc-950/80 backdrop-blur-md px-6 md:px-10 py-3.5 hidden md:flex items-center justify-between border-b border-slate-200/60 dark:border-white/5 mb-2">
             
             <div className="flex items-center gap-2">
-              <NavLink
-                to="/setup"
-                className={({ isActive }) => cn(
-                  "px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5",
-                  (isActive || location.pathname === '/puesta-en-marcha')
-                    ? "bg-orange-500 text-white shadow-xs"
-                    : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/60 dark:border-white/10"
-                )}
-              >
-                <Rocket size={13} />
-                Puesta en marcha
-              </NavLink>
-
               {/* Botón Destacado para Entrar al POS Kiosco (Mostrador) */}
               <NavLink
                 to="/pos"
