@@ -60,25 +60,8 @@ const MerchantGuard = () => {
 };
 
 const RootIndexResolver = () => {
-  const isMerchant = localStorage.getItem('activeWorkspace');
-  const isMerchantApp = localStorage.getItem('is_merchant_app') === 'true';
-  const isStandalone = typeof window !== 'undefined' && (
-    window.matchMedia('(display-mode: standalone)').matches || 
-    window.navigator.standalone === true
-  );
-
-  // 1. Si el comerciante ya tiene sesión activa o tienda registrada, dirigir a su Inicio (Dashboard)
-  if (isMerchant) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // 2. Si la app fue instalada o abierta en modo standalone (PWA) o marcada como app de comerciante,
-  // mantener siempre el portal del comerciante y no abrir la vitrina de compras
-  if (isStandalone || isMerchantApp) {
-    return <Navigate to="/merchant/login" replace />;
-  }
-
-  // 3. Comprador general en navegador web
+  // La pantalla de bienvenida permite al usuario elegir directamente
+  // si entra como Cliente ("Soy Cliente") o Comerciante ("Soy Comerciante").
   return <WelcomeLanding />;
 };
 

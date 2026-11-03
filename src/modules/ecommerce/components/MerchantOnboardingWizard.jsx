@@ -91,7 +91,6 @@ export default function MerchantOnboardingWizard({
       setIsInstalledJustNow(true);
       setIsStandalone(true);
       setDeferredPrompt(null);
-      localStorage.setItem('is_merchant_app', 'true');
       localStorage.setItem('merchant_mode', 'true');
       toast.success('¡App de AxonMarket instalada con éxito!', { icon: '🎉' });
     };
@@ -488,7 +487,6 @@ export default function MerchantOnboardingWizard({
       localStorage.setItem('merchant_owner_name', ownerName.trim() || 'Comerciante');
       if (cleanSlug) localStorage.setItem('storeSlug', cleanSlug);
       if (activeWs) localStorage.setItem('activeWorkspace', activeWs);
-      localStorage.setItem('is_merchant_app', 'true');
       localStorage.setItem('merchant_mode', 'true');
 
       toast.success(withCatalog ? '¡30 productos cargados y tienda configurada!' : '¡Tienda configurada con éxito!');
@@ -514,7 +512,6 @@ export default function MerchantOnboardingWizard({
     localStorage.setItem('storeSlug', cleanSlug);
     if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
     localStorage.setItem('merchant_onboarding_completed', 'true');
-    localStorage.setItem('is_merchant_app', 'true');
     localStorage.setItem('merchant_mode', 'true');
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('ecommerce_user');
@@ -561,7 +558,6 @@ export default function MerchantOnboardingWizard({
     if (businessName.trim()) localStorage.setItem('merchant_store_name', businessName.trim());
     if (ownerName.trim()) localStorage.setItem('merchant_owner_name', ownerName.trim());
     localStorage.setItem('merchant_onboarding_completed', 'true');
-    localStorage.setItem('is_merchant_app', 'true');
     localStorage.setItem('merchant_mode', 'true');
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('ecommerce_user');

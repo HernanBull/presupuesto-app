@@ -17,21 +17,12 @@ export default function WelcomeLanding() {
   const [showMerchantTrialModal, setShowMerchantTrialModal] = useState(false);
   const [merchantTrialInitialMode, setMerchantTrialInitialMode] = useState('register');
 
-  // Redirección inmediata si es comerciante o app instalada
+  // Limpieza de estados anteriores que forzaban el modo comerciante
   useEffect(() => {
-    const isMerchant = localStorage.getItem('activeWorkspace');
-    const isMerchantApp = localStorage.getItem('is_merchant_app') === 'true';
-    const isStandalone = typeof window !== 'undefined' && (
-      window.matchMedia('(display-mode: standalone)').matches || 
-      window.navigator.standalone === true
-    );
-
-    if (isMerchant) {
-      navigate('/dashboard', { replace: true });
-    } else if (isStandalone || isMerchantApp) {
-      navigate('/merchant/login', { replace: true });
-    }
-  }, [navigate]);
+    try {
+      localStorage.removeItem('is_merchant_app');
+    } catch (e) {}
+  }, []);
 
   // Tasa Oficial BCV en vivo (con caché local inmediata para evitar parpadeo)
   const [bcvRate, setBcvRate] = useState(() => {
@@ -100,15 +91,41 @@ export default function WelcomeLanding() {
             Tus tiendas, restaurantes y bodegones favoritos en un solo lugar
           </p>
 
-          {/* Único Botón Principal: Abrir aplicación */}
-          <div className="w-full max-w-sm flex items-center justify-center mb-6">
+          {/* Selector de Entrada: Cliente o Comerciante con Iconos */}
+          <div className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 mb-6 px-2">
+            {/* Opción 1: Entrar como Cliente */}
             <button 
               onClick={() => navigate('/explorar')}
-              className="w-full py-4 px-8 font-black text-base sm:text-lg rounded-full shadow-2xl active:scale-95 transition-all text-center bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/30 cursor-pointer flex items-center justify-center gap-2 group"
-              style={{ color: '#ffffff' }}
+              className="py-4 px-5 rounded-2xl sm:rounded-3xl shadow-2xl active:scale-95 transition-all bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border border-white/30 cursor-pointer flex items-center gap-3.5 group text-left"
             >
-              <span>Abrir aplicación</span>
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform border border-white/20 text-white">
+                <ShoppingBag size={24} className="stroke-[2.5]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] uppercase tracking-wider font-extrabold text-amber-200 block">Comprar</span>
+                <span className="text-base sm:text-lg font-black leading-tight block text-white">Soy Cliente</span>
+                <span className="text-[11px] text-white/80 font-medium truncate block">Explorar tiendas y pedir</span>
+              </div>
+              <ArrowRight size={18} className="text-white/70 group-hover:text-white group-hover:translate-x-1 transition-all shrink-0" />
+            </button>
+
+            {/* Opción 2: Entrar como Comerciante */}
+            <button 
+              onClick={() => {
+                const isMerchant = localStorage.getItem('activeWorkspace');
+                navigate(isMerchant ? '/dashboard' : '/merchant/login');
+              }}
+              className="py-4 px-5 rounded-2xl sm:rounded-3xl shadow-2xl active:scale-95 transition-all bg-black/60 hover:bg-black/75 backdrop-blur-md text-white border border-white/25 hover:border-amber-400/60 cursor-pointer flex items-center gap-3.5 group text-left"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/25 backdrop-blur-md flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform border border-amber-400/30 text-amber-400">
+                <Store size={24} className="stroke-[2.5]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] uppercase tracking-wider font-extrabold text-amber-400 block">Mi Negocio</span>
+                <span className="text-base sm:text-lg font-black leading-tight block text-white group-hover:text-amber-300 transition-colors">Soy Comerciante</span>
+                <span className="text-[11px] text-zinc-300 font-medium truncate block">Panel, catálogo y ventas</span>
+              </div>
+              <ArrowRight size={18} className="text-zinc-400 group-hover:text-amber-400 group-hover:translate-x-1 transition-all shrink-0" />
             </button>
           </div>
 
