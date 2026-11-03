@@ -395,6 +395,18 @@ export default function MarketplaceDirectory() {
     loadGlobalCart();
     window.addEventListener('cart_updated', loadGlobalCart);
 
+    const handleCustomerUpdated = (e) => {
+      if (e?.detail) {
+        setCurrentCustomer(e.detail);
+      } else {
+        const saved = localStorage.getItem('ecommerce_current_customer');
+        if (saved) {
+          try { setCurrentCustomer(JSON.parse(saved)); } catch(err) {}
+        }
+      }
+    };
+    window.addEventListener('customer_updated', handleCustomerUpdated);
+
     // Auto-open merchant register if navigated from Pricing
     if (location.state && location.state.openMerchantRegister) {
       setMerchantAuthMode('register');
@@ -414,6 +426,7 @@ export default function MarketplaceDirectory() {
     return () => {
       if (authListener?.subscription) authListener.subscription.unsubscribe();
       window.removeEventListener('cart_updated', loadGlobalCart);
+      window.removeEventListener('customer_updated', handleCustomerUpdated);
     };
   }, [location.state]);
 

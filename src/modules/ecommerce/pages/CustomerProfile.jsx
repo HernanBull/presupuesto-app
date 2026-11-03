@@ -20,7 +20,7 @@ L.Icon.Default.mergeOptions({
 });
 
 import ProfileWizardModal from '../components/ProfileWizardModal';
-import { getCustomerSavedPosts } from '../services/socialService';
+import { getCustomerSavedPosts, isUuid } from '../services/socialService';
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
@@ -329,38 +329,82 @@ export default function CustomerProfile() {
     }
   }, [location.state?.tab]);
 
+  // Escuchar actualizaciones globales del cliente (favoritos, perfil, etc.)
+  useEffect(() => {
+    const handleCustomerUpdate = (e) => {
+      if (e?.detail) {
+        setCurrentCustomer(e.detail);
+      } else {
+        const saved = localStorage.getItem('ecommerce_current_customer');
+        if (saved) {
+          try { setCurrentCustomer(JSON.parse(saved)); } catch(err) {}
+        }
+      }
+    };
+    window.addEventListener('customer_updated', handleCustomerUpdate);
+    return () => window.removeEventListener('customer_updated', handleCustomerUpdate);
+  }, []);
+
   // Cargar publicaciones guardadas del cliente para la sección de favoritos
   useEffect(() => {
-    if (!currentCustomer?.id) return;
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    if (!custId) return;
     const fetchSaves = async () => {
       setLoadingSavedPosts(true);
       try {
-        const saves = await getCustomerSavedPosts(currentCustomer.id);
+        const saves = await getCustomerSavedPosts(custId);
+        const custFavs = Array.isArray(currentCustomer?.favorites) 
+          ? currentCustomer.favorites 
+          : (typeof currentCustomer?.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
+
         if (saves && saves.length > 0) {
           const postIds = saves.map(s => s.post_id).filter(Boolean);
-          const { data: newsData } = await supabase
-            .from('ecommerce_store_news')
-            .select('*')
-            .in('id', postIds);
+          const validNewsIds = postIds.filter(id => isUuid(id));
+          let newsData = [];
+          if (validNewsIds.length > 0) {
+            const { data } = await supabase
+              .from('ecommerce_store_news')
+              .select('*')
+              .in('id', validNewsIds);
+            newsData = data || [];
+          }
 
           const combined = saves.map(s => {
             const foundNews = newsData?.find(n => String(n.id) === String(s.post_id));
+            const foundFav = custFavs.find(f => (typeof f === 'object' && (String(f.id) === String(s.post_id) || String(f.postId) === String(s.post_id))));
             return {
-              id: s.id,
+              id: s.id || s.post_id,
               postId: s.post_id,
-              workspaceId: s.workspace_id,
-              title: foundNews?.title || 'Publicación Guardada',
-              content: foundNews?.content || '',
-              image_url: foundNews?.image_url || foundNews?.image || '',
-              media_type: foundNews?.media_type || (foundNews?.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(foundNews?.image_url) ? 'video' : 'image'),
-              store_name: foundNews?.store_name || 'Comercio',
-              store_slug: foundNews?.store_slug || s.workspace_id,
-              created_at: s.created_at
+              workspaceId: s.workspace_id || foundFav?.workspace_id,
+              title: foundNews?.title || foundFav?.title || foundFav?.name || 'Publicación Guardada',
+              content: foundNews?.content || foundFav?.caption || '',
+              image_url: foundNews?.image_url || foundNews?.image || foundFav?.cover || foundFav?.image_url || '',
+              media_type: foundNews?.media_type || ((foundNews?.image_url || foundFav?.cover || foundFav?.image_url) && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(foundNews?.image_url || foundFav?.cover || foundFav?.image_url) ? 'video' : 'image'),
+              store_name: foundNews?.store_name || foundFav?.store_name || 'Comercio',
+              store_slug: foundNews?.store_slug || foundFav?.store_slug || s.workspace_id,
+              created_at: s.created_at || foundFav?.savedAt || new Date().toISOString()
             };
           });
           setSavedPosts(combined);
         } else {
-          setSavedPosts([]);
+          // Fallback a favoritos guardados localmente si la tabla remota aún no ha sincronizado
+          const postFavs = custFavs.filter(f => f && (f.type === 'post' || f.postId));
+          if (postFavs.length > 0) {
+            setSavedPosts(postFavs.map(f => ({
+              id: f.id || f.postId,
+              postId: f.postId || f.id,
+              workspaceId: f.workspace_id,
+              title: f.title || f.name || 'Publicación Guardada',
+              content: f.caption || '',
+              image_url: f.cover || f.image_url || '',
+              media_type: (f.cover || f.image_url) && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(f.cover || f.image_url) ? 'video' : 'image',
+              store_name: f.store_name || 'Comercio',
+              store_slug: f.store_slug || f.workspace_id,
+              created_at: f.savedAt || new Date().toISOString()
+            })));
+          } else {
+            setSavedPosts([]);
+          }
         }
       } catch (err) {
         console.warn('Error fetching saved posts in profile:', err);
@@ -370,7 +414,7 @@ export default function CustomerProfile() {
     };
 
     fetchSaves();
-  }, [currentCustomer?.id]);
+  }, [currentCustomer?.id, currentCustomer?.favorites]);
 
   useEffect(() => {
     if (!currentCustomer?.email) return;

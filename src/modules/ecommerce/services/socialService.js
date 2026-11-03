@@ -90,22 +90,19 @@ const findRecordByCustomer = async (tableName, matchField, matchValue, customerI
   const rawId = String(customerId);
   const uuidId = toSocialUuid(customerId);
 
-  if (isUuid(rawId)) {
-    const { data } = await supabase.from(tableName).select('id').eq(matchField, String(matchValue)).eq('customer_id', rawId).maybeSingle();
-    return data;
-  }
-
-  // 1. Intentar con uuidId primero (siempre compatible con columna UUID y TEXT)
+  // 1. Buscar primero con rawId (ID original de cliente: CUS-... o UUID)
   try {
-    const { data: d1, error: err1 } = await supabase.from(tableName).select('id').eq(matchField, String(matchValue)).eq('customer_id', uuidId).maybeSingle();
+    const { data: d1, error: err1 } = await supabase.from(tableName).select('id').eq(matchField, String(matchValue)).eq('customer_id', rawId).maybeSingle();
     if (!err1 && d1) return d1;
   } catch (e) {}
 
-  // 2. Si la columna fue migrada a TEXT, verificar también con rawId
-  try {
-    const { data: d2, error: err2 } = await supabase.from(tableName).select('id').eq(matchField, String(matchValue)).eq('customer_id', rawId).maybeSingle();
-    if (!err2 && d2) return d2;
-  } catch (e) {}
+  // 2. Si no encontró y no es UUID nativo, probar también con uuidId determinista
+  if (!isUuid(rawId)) {
+    try {
+      const { data: d2, error: err2 } = await supabase.from(tableName).select('id').eq(matchField, String(matchValue)).eq('customer_id', uuidId).maybeSingle();
+      if (!err2 && d2) return d2;
+    } catch (e) {}
+  }
 
   return null;
 };
@@ -117,20 +114,20 @@ const insertWithCustomerFallback = async (tableName, record, customerId) => {
   const rawId = String(customerId);
   const uuidId = toSocialUuid(customerId);
 
-  if (isUuid(rawId)) {
-    const { data, error } = await supabase.from(tableName).insert([{ ...record, customer_id: rawId }]).select().maybeSingle();
-    if (error) throw error;
-    return data;
+  // 1. Intentar primero con rawId directo (las columnas customer_id en las tablas son TEXT)
+  try {
+    const { data: dRaw, error: errRaw } = await supabase.from(tableName).insert([{ ...record, customer_id: rawId }]).select().maybeSingle();
+    if (!errRaw && dRaw) return dRaw;
+  } catch (e) {}
+
+  // 2. Si falló por restricción estricta de UUID en Postgres, intentar con uuidId determinista
+  try {
+    const { data: dUuid, error: errUuid } = await supabase.from(tableName).insert([{ ...record, customer_id: uuidId }]).select().maybeSingle();
+    if (!errUuid && dUuid) return dUuid;
+    if (errUuid) throw errUuid;
+  } catch (err) {
+    throw err;
   }
-
-  // Si no es UUID nativo: intentamos con uuidId primero para garantizar compatibilidad con Postgres UUID
-  const { data: dUuid, error: errUuid } = await supabase.from(tableName).insert([{ ...record, customer_id: uuidId }]).select().maybeSingle();
-  if (!errUuid) return dUuid;
-
-  // Si falló, intentar con rawId (si la columna ya es text)
-  const { data: dRaw, error: errRaw } = await supabase.from(tableName).insert([{ ...record, customer_id: rawId }]).select().maybeSingle();
-  if (errRaw) throw errRaw;
-  return dRaw;
 };
 
 // Suscripción Realtime en Supabase para sincronización entre diferentes navegadores y cuentas
@@ -547,6 +544,11 @@ export const toggleSavePost = async (postId, workspaceId, customerId, storeMeta 
       customerObj.favorites = currentFavs;
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(customerObj));
 
+      // Notificar a todos los componentes del cliente que se actualizaron los favoritos
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('customer_updated', { detail: customerObj }));
+      }
+
       // Guardar en Supabase ecommerce_customers
       await supabase
         .from('ecommerce_customers')
@@ -567,20 +569,17 @@ export const getCustomerSavedPosts = async (customerId) => {
   const uuidId = toSocialUuid(customerId);
 
   try {
-    if (isUuid(rawId)) {
-      const { data } = await supabase.from('ecommerce_post_saves').select('*').eq('customer_id', rawId).order('created_at', { ascending: false });
-      return data || [];
+    // 1. Buscar primero por rawId directo
+    const { data: rawData, error: rawErr } = await supabase.from('ecommerce_post_saves').select('*').eq('customer_id', rawId).order('created_at', { ascending: false });
+    if (!rawErr && rawData && rawData.length > 0) return rawData;
+
+    // 2. Si no es UUID y no trajo nada por rawId, verificar por uuidId determinista
+    if (!isUuid(rawId)) {
+      const { data: uuidData, error: uuidErr } = await supabase.from('ecommerce_post_saves').select('*').eq('customer_id', uuidId).order('created_at', { ascending: false });
+      if (!uuidErr && uuidData && uuidData.length > 0) return uuidData;
     }
 
-    const { data: uuidData, error: uuidErr } = await supabase.from('ecommerce_post_saves').select('*').eq('customer_id', uuidId).order('created_at', { ascending: false });
-    if (!uuidErr && uuidData && uuidData.length > 0) return uuidData;
-
-    try {
-      const { data: rawData } = await supabase.from('ecommerce_post_saves').select('*').eq('customer_id', rawId).order('created_at', { ascending: false });
-      if (rawData && rawData.length > 0) return rawData;
-    } catch(e) {}
-
-    return uuidData || [];
+    return rawData || [];
   } catch (err) {
     console.warn('Error fetching customer saved posts:', err);
     return [];

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
@@ -28,13 +29,20 @@ const resolveImageUrl = (url) => {
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return 'Reciente';
   const diffSec = Math.floor((new Date() - new Date(dateStr)) / 1000);
-  if (diffSec < 60) return 'Hace un momento';
+  if (isNaN(diffSec) || diffSec < 60) return 'Hace un momento';
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `Hace ${diffMin} min`;
   const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `Hace ${diffH} horas`;
+  if (diffH < 24) return `Hace ${diffH} h`;
   const diffD = Math.floor(diffH / 24);
-  return `Hace ${diffD} días`;
+  if (diffD === 1) return 'Ayer';
+  if (diffD < 7) return `Hace ${diffD} días`;
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' });
+  } catch (e) {
+    return `Hace ${diffD} días`;
+  }
 };
 
 export default function SocialFeedCard({
@@ -55,15 +63,17 @@ export default function SocialFeedCard({
   const isVerified = post.is_verified || post.config?.is_verified;
   const createdAt = post.created_at;
 
+  const customerIdResolved = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.user_id || currentCustomer?.doc_id || currentCustomer?.docId;
+
   // Estados síncronos iniciales para render estático inmediato (sin parpadeos ni animaciones de recarga)
-  const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, currentCustomer?.id));
+  const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, customerIdResolved));
   const [likesCount, setLikesCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, currentCustomer?.id));
+  const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, customerIdResolved));
   const [isSaved, setIsSaved] = useState(() => {
-    if (!currentCustomer?.id || !postId) return false;
+    if (!customerIdResolved || !postId) return false;
     const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
       currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
-    return inCustomerFavs || isPostSavedLocally(postId, currentCustomer.id);
+    return inCustomerFavs || isPostSavedLocally(postId, customerIdResolved);
   });
   const [commentsCount, setCommentsCount] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
@@ -216,7 +226,7 @@ export default function SocialFeedCard({
           currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
         const saveRes = await getPostSaveState(postId, custId);
         if (mounted) {
-          setIsSaved(inCustomerFavs || saveRes.isSaved);
+          setIsSaved(saveRes.isSaved || inCustomerFavs);
         }
       }
 
@@ -232,15 +242,15 @@ export default function SocialFeedCard({
     const handleGlobalUpdate = (e) => {
       const detail = e.detail;
       if (!mounted) return;
-      if (detail.eventType === 'like' && detail.postId === postId) {
+      if (detail.eventType === 'like' && String(detail.postId) === String(postId)) {
         setLikesCount(detail.count);
-        if (detail.customerId === currentCustomer?.id) setIsLiked(detail.isLiked);
-      } else if (detail.eventType === 'follow' && detail.workspaceId === workspaceId) {
-        if (detail.customerId === currentCustomer?.id) setIsFollowing(detail.isFollowing);
-      } else if (detail.eventType === 'comment_added' && detail.postId === postId) {
+        if (!detail.customerId || String(detail.customerId) === String(customerIdResolved)) setIsLiked(detail.isLiked);
+      } else if (detail.eventType === 'follow' && String(detail.workspaceId) === String(workspaceId)) {
+        if (!detail.customerId || String(detail.customerId) === String(customerIdResolved)) setIsFollowing(detail.isFollowing);
+      } else if (detail.eventType === 'comment_added' && String(detail.postId) === String(postId)) {
         setCommentsCount(prev => prev + 1);
-      } else if (detail.eventType === 'save' && detail.postId === postId) {
-        if (detail.customerId === currentCustomer?.id) setIsSaved(detail.isSaved);
+      } else if (detail.eventType === 'save' && String(detail.postId) === String(postId)) {
+        if (!detail.customerId || String(detail.customerId) === String(customerIdResolved)) setIsSaved(detail.isSaved);
       }
     };
 
@@ -250,7 +260,7 @@ export default function SocialFeedCard({
       mounted = false;
       window.removeEventListener('axon_social_updated', handleGlobalUpdate);
     };
-  }, [postId, workspaceId, currentCustomer?.id, hasEnteredViewport]);
+  }, [postId, workspaceId, customerIdResolved, hasEnteredViewport]);
 
   // Manejo de Like
   const handleLike = async (e) => {
@@ -304,6 +314,17 @@ export default function SocialFeedCard({
   const handleSave = async (e) => {
     e.stopPropagation();
     if (!currentCustomer) {
+      toast('Inicia sesión para guardar esta publicación en tus favoritos', {
+        icon: '🔒',
+        duration: 3500
+      });
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+
+    const custId = currentCustomer.id || currentCustomer.uid || currentCustomer.user_id || currentCustomer.doc_id || currentCustomer.docId || currentCustomer.email;
+    if (!custId) {
+      toast.error('No se pudo verificar tu cuenta de cliente. Inicia sesión nuevamente.');
       if (onRequireAuth) onRequireAuth();
       return;
     }
@@ -311,10 +332,23 @@ export default function SocialFeedCard({
     const newSaved = !isSaved;
     setIsSaved(newSaved);
 
+    if (newSaved) {
+      toast.success('¡Publicación guardada en tus favoritos!', {
+        icon: '🔖',
+        duration: 2500
+      });
+    } else {
+      toast('Publicación eliminada de tus guardados', {
+        icon: '🗑️',
+        duration: 2000
+      });
+    }
+
     try {
-      await toggleSavePost(postId, workspaceId, currentCustomer.id, {
+      const res = await toggleSavePost(postId, workspaceId, custId, {
         id: String(postId),
         postId: String(postId),
+        post_id: String(postId),
         title: post.title || post.name || storeName,
         caption: caption,
         cover: storeCover,
@@ -324,8 +358,13 @@ export default function SocialFeedCard({
         workspace_id: workspaceId,
         type: post.type || 'news'
       });
+      if (res && typeof res.isSaved === 'boolean') {
+        setIsSaved(res.isSaved);
+      }
     } catch (err) {
+      console.error('Error toggling save post:', err);
       setIsSaved(!newSaved);
+      toast.error('Error al guardar la publicación.');
     }
   };
 
@@ -584,8 +623,9 @@ export default function SocialFeedCard({
               </span>
               {isVerified && <CheckCircle size={13} className="text-blue-400 fill-blue-400/20 shrink-0" />}
             </div>
-            <span className="text-zinc-300 text-[10px] font-medium flex items-center gap-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] truncate">
-              <MapPin size={10} className="text-amber-400 shrink-0" /> {address}
+            <span className="text-white text-[11px] font-semibold flex items-center gap-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] truncate">
+              <MapPin size={11} className="text-amber-400 shrink-0 stroke-[2.5]" />
+              <span className="text-white drop-shadow-md">{address}</span>
             </span>
           </div>
 
@@ -628,8 +668,9 @@ export default function SocialFeedCard({
             <MessageCircle size={12} />
             <span>{commentsCount > 0 ? `Ver ${commentsCount} comentarios` : 'Comentar...'}</span>
           </button>
-          <span className="text-zinc-400 text-[10px] font-medium">
-            • {formatTimeAgo(createdAt)}
+          <span className="text-white text-[11px] font-semibold flex items-center gap-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+            <span className="text-amber-400 font-bold">•</span>
+            <span className="text-white drop-shadow-md">{formatTimeAgo(createdAt)}</span>
           </span>
         </div>
       </div>
