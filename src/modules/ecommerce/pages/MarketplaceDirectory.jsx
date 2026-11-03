@@ -1696,31 +1696,14 @@ export default function MarketplaceDirectory() {
                       </div>
                     )}
                   </button>
-                ) : currentMerchant ? (
-                  <button 
-                    onClick={() => navigate('/dashboard')} 
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-slate-950 rounded-full text-xs font-bold hover:bg-amber-400 transition-colors shadow-xs"
-                  >
-                    <Store size={14} /> Panel
-                  </button>
                 ) : (
-                  <>
-                    <button 
-                      onClick={() => { setMerchantAuthMode('register'); setIsMerchantModalOpen(true); }} 
-                      className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                      title="Abrir mi Tienda"
-                    >
-                      <Store size={20} strokeWidth={2} />
-                    </button>
-                    
-                    <button 
-                      onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                      className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                      title="Iniciar Sesión"
-                    >
-                      <User size={20} strokeWidth={2} />
-                    </button>
-                  </>
+                  <button 
+                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                    title="Iniciar Sesión"
+                  >
+                    <User size={20} strokeWidth={2} />
+                  </button>
                 )}
               </div>
             </div>

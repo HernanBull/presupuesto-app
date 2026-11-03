@@ -876,22 +876,6 @@ export default function CustomerAuthModal({
                   width="100%"
                 />
               </div>
-
-              {/* Enlace al Portal de Comercios */}
-              <div className="mt-5 pt-4 border-t border-zinc-100 text-center">
-                <p className="text-xs text-zinc-500 mb-1">¿Tienes un negocio o tienda?</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onClose) onClose();
-                    navigate('/merchant/login');
-                  }}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer"
-                >
-                  <Store size={14} />
-                  <span>Ir al Portal Exclusivo de Comercios ➔</span>
-                </button>
-              </div>
             </>
           )}
 
