@@ -180,7 +180,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
         
-        {/* Encabezado Oficial AxonMarket */}
+        {/* Encabezado */}
         <div className="relative p-6 sm:p-7 bg-gradient-to-br from-[#ea580c] via-[#ea580c] to-[#c2410c] text-white">
           <button 
             type="button" 
@@ -189,11 +189,6 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
           >
             <X size={18} />
           </button>
-
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-black uppercase tracking-wider mb-2.5 border border-white/20">
-            <Sparkles size={13} className="text-amber-200" />
-            <span>Suscripción Oficial AxonMarket</span>
-          </div>
 
           <h3 className="text-xl sm:text-2xl font-black leading-tight tracking-tight">
             Planes Profesionales
@@ -215,9 +210,8 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
 
           {/* Selector de Planes: Mensual vs Trimestral */}
           <div className="space-y-2.5">
-            <label className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Zap size={14} className="text-orange-500" />
-              <span>Selecciona tu Plan de Suscripción</span>
+            <label className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider block">
+              Selecciona tu Plan de Suscripción
             </label>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
