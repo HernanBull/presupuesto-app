@@ -6,7 +6,7 @@ import {
   DollarSign, Receipt, Settings, HelpCircle, LogOut, 
   ExternalLink, Check, Sparkles, X, Globe, Layers,
   ShieldCheck, CreditCard, ShoppingBag, Zap, Package,
-  Database, Wallet, Bell, Clock
+  Database, Wallet, Bell, Clock, MessageSquare
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -236,8 +236,17 @@ export default function MerchantMorePage() {
       bg: 'bg-teal-50 dark:bg-teal-500/10'
     },
     {
+      id: 'chat',
+      name: 'Chat de Clientes',
+      desc: 'Atención y mensajes en vivo con clientes',
+      path: '/support',
+      icon: MessageSquare,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50 dark:bg-amber-500/10'
+    },
+    {
       id: 'equipo',
-      name: 'Equipo & Permisos',
+      name: 'Personal & Usuarios',
       desc: 'Centro de Control Maestro: 21 permisos y PINes',
       onClick: () => setIsUserManagementModalOpen(true),
       icon: Users,

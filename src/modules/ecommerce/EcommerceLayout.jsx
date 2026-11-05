@@ -10,12 +10,13 @@ import {
   Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
   HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
-  Clock, RefreshCw
+  Clock, RefreshCw, ShieldCheck
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
 import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
+import UserManagementModal from './components/admin/UserManagementModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -29,6 +30,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
+  const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
 
@@ -352,11 +354,17 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       .filter(Boolean);
   }, [searchQuery, menuSections]);
 
-  // Enlaces secundarios inferiores (Apps removido a petición)
+  // Enlaces secundarios inferiores
   const bottomUtilityItems = [
     { name: 'Sucursales', path: '/location', icon: Building2 },
     { name: 'Notificaciones', path: '/notifications', icon: Bell },
-    { name: 'Equipo', path: '/support', icon: Users },
+    { name: 'Chat', path: '/support', icon: MessageSquare },
+    { 
+      name: 'Personal & Usuarios', 
+      icon: Users, 
+      onClick: () => setIsUserManagementModalOpen(true),
+      badge: 'Maestro'
+    },
     { name: 'Configuración', path: '/store-profile', icon: Settings },
   ];
 
@@ -792,22 +800,41 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             </div>
           )}
 
-          {/* Secondary Utility Links (Sucursales, Equipo, Referidos, Apps, Configuración) */}
+          {/* Secondary Utility Links (Sucursales, Notificaciones, Chat, Personal & Usuarios, Configuración) */}
           <div className="px-3.5 space-y-0.5 mb-2">
             {bottomUtilityItems.map((u) => (
-              <NavLink
-                key={u.name}
-                to={u.path}
-                className={({ isActive }) => cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                  isActive 
-                    ? "bg-white/20 text-white font-bold" 
-                    : "text-white/75 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <u.icon size={15} className="shrink-0 text-white/80" />
-                <span className="truncate">{u.name}</span>
-              </NavLink>
+              u.onClick ? (
+                <button
+                  key={u.name}
+                  type="button"
+                  onClick={u.onClick}
+                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-white/75 hover:text-white hover:bg-white/10 cursor-pointer text-left group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <u.icon size={15} className="shrink-0 text-white/80 group-hover:text-white" />
+                    <span className="truncate">{u.name}</span>
+                  </div>
+                  {u.badge && (
+                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-white/20 text-white shrink-0 group-hover:bg-white group-hover:text-orange-600 transition-colors">
+                      {u.badge}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <NavLink
+                  key={u.name}
+                  to={u.path}
+                  className={({ isActive }) => cn(
+                    "flex items-center gap-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    isActive 
+                      ? "bg-white/20 text-white font-bold" 
+                      : "text-white/75 hover:text-white hover:bg-white/10"
+                  )}
+                >
+                  <u.icon size={15} className="shrink-0 text-white/80" />
+                  <span className="truncate">{u.name}</span>
+                </NavLink>
+              )
             ))}
           </div>
 
@@ -1257,6 +1284,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         onPaymentReported={() => {
           setWorkspaceStatus('Pago_En_Revision');
         }}
+      />
+
+      {/* Centro de Control Maestro: Personal, Cajas y PINes */}
+      <UserManagementModal
+        isOpen={isUserManagementModalOpen}
+        onClose={() => setIsUserManagementModalOpen(false)}
       />
 
     </div>
