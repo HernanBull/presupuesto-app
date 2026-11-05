@@ -398,7 +398,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="pos" element={<UnifiedPosPage />} />
           <Route path="cash-master" element={<MerchantCashMasterView />} />
           <Route path="caja-maestra" element={<MerchantCashMasterView />} />
-          <Route path="shifts" element={<UnifiedPosPage />} />
+          <Route path="shifts" element={<Navigate to="/cash-master" replace />} />
           <Route path="credits" element={<UnifiedPosPage />} />
           <Route path="setup" element={<OnboardingChecklistPage />} />
           <Route path="puesta-en-marcha" element={<OnboardingChecklistPage />} />

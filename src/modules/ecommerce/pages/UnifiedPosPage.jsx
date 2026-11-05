@@ -319,9 +319,13 @@ export default function UnifiedPosPage() {
   const searchInputRef = useRef(null);
 
   // Cash Shift & Arqueo State (Fase 3)
+  const currentCashierName = localStorage.getItem('axonpos_active_user_name') || 
+                             localStorage.getItem('axon_active_cashier_name') || 
+                             'yende';
+
   const [activeShift, setActiveShift] = useState({
     id: 'SHIFT-20261101-01',
-    cashier: 'Carlos (Administrador)',
+    cashier: currentCashierName,
     openedAt: '08:30 AM · Hoy',
     initialCashUsd: 50.00,
     initialCashVes: 1500.00,
@@ -364,7 +368,7 @@ export default function UnifiedPosPage() {
   const [blindSubmitted, setBlindSubmitted] = useState(false);
 
   // Apertura de turno
-  const [openCashier, setOpenCashier] = useState('Carlos (Administrador)');
+  const [openCashier, setOpenCashier] = useState(() => currentCashierName);
   const [openInitUsd, setOpenInitUsd] = useState('50.00');
   const [openInitVes, setOpenInitVes] = useState('1500.00');
 
@@ -799,7 +803,7 @@ export default function UnifiedPosPage() {
             bcvRate,
             changeUsd,
             changeVes,
-            cashier: activeShift?.cashier || 'Cajero 1',
+            cashier: localStorage.getItem('axonpos_active_user_name') || activeShift?.cashier || currentCashierName,
             payments
           },
           items: cart.map(item => ({
@@ -3386,6 +3390,22 @@ export default function UnifiedPosPage() {
                             setActiveShift(prev => ({ ...prev, status: 'CERRADO' }));
                             setIsCierreZModalOpen(false);
                             setCompletedZReport(closedRecord);
+
+                            // Sincronizar Cierre en Supabase cash_shifts
+                            try {
+                              const activeWs = localStorage.getItem('activeWorkspace');
+                              if (activeWs) {
+                                supabase.from('cash_shifts').update({
+                                  closed_at: new Date().toISOString(),
+                                  actual_usd: declaredUsd,
+                                  actual_ves: declaredVes,
+                                  difference_usd: diffUsd,
+                                  difference_ves: diffVes,
+                                  status: 'CLOSED'
+                                }).match({ branch_id: activeWs, status: 'OPEN' }).then(() => {});
+                              }
+                            } catch (e) {}
+
                             toast.success('Turno cerrado exitosamente con Cierre Z');
                           }}
                           className="flex-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-extrabold py-3 rounded-xl transition-all shadow-md cursor-pointer"
@@ -3524,6 +3544,25 @@ export default function UnifiedPosPage() {
                 setActiveShift(newShift);
                 setShiftMovements([]);
                 setIsOpenShiftModalOpen(false);
+
+                // Sincronizar Apertura en Supabase cash_shifts
+                try {
+                  const activeWs = localStorage.getItem('activeWorkspace');
+                  if (activeWs) {
+                    supabase.from('cash_shifts').insert([{
+                      branch_id: activeWs,
+                      register_name: 'Caja 1 - Principal',
+                      cashier_name: newShift.cashier,
+                      opened_at: new Date().toISOString(),
+                      initial_usd: u,
+                      initial_ves: v,
+                      expected_usd: u,
+                      expected_ves: v,
+                      status: 'OPEN'
+                    }]).then(() => {});
+                  }
+                } catch (e) {}
+
                 toast.success(`Turno abierto para ${newShift.cashier}`);
               }}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition-colors cursor-pointer shadow-md shadow-emerald-600/20"

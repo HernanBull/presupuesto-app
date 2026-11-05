@@ -35,16 +35,18 @@ export default function CashShiftModal({
   activeShift,
   onShiftChange,
   bcvRate = 888.89,
-  storeName = 'AxonMarket Store'
+  storeName = 'AxonMarket Store',
+  initialTab = 'status'
 }) {
-  const [activeTab, setActiveTab] = useState('status'); // 'status' | 'movement' | 'close' | 'registers'
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [movements, setMovements] = useState([]);
   const [registers, setAvailableRegisters] = useState([]);
+  const [availableStaff, setAvailableStaff] = useState([]);
 
   // Estados para Apertura de Turno (si no hay turno activo)
   const [openRegisterName, setOpenRegisterName] = useState('Caja 1 - Principal');
-  const [openCashierName, setOpenCashierName] = useState('Axon (Propietario)');
+  const [openCashierName, setOpenCashierName] = useState('yende');
   const [openInitialUsd, setOpenInitialUsd] = useState('50.00');
   const [openInitialVes, setOpenInitialVes] = useState('1000.00');
 
@@ -62,17 +64,40 @@ export default function CashShiftModal({
   // Cargar usuario actual, cajas y movimientos
   useEffect(() => {
     if (isOpen) {
+      if (initialTab) setActiveTab(initialTab);
+
       const u = authService.getCurrentUser();
       if (u) {
         setCurrentUser(u);
-        setOpenCashierName(u.fullName);
       }
+
+      // Cargar lista de cajeros y personal real
+      const activeWs = localStorage.getItem('activeWorkspace');
+      if (activeWs) {
+        supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle().then(({ data }) => {
+          const cfgUsers = data?.config?.users || [];
+          if (cfgUsers.length > 0) {
+            setAvailableStaff(cfgUsers);
+            const defCashier = cfgUsers.find(x => x.role === 'CASHIER') || cfgUsers[0];
+            if (defCashier) setOpenCashierName(defCashier.full_name || defCashier.fullName);
+          }
+        });
+      }
+
+      authService.getUsers().then(users => {
+        if (users && users.length > 0) {
+          setAvailableStaff(prev => prev.length > 0 ? prev : users);
+          const firstCashier = users.find(x => x.role === 'CASHIER') || users[0];
+          if (firstCashier) setOpenCashierName(firstCashier.fullName);
+        }
+      });
+
       authService.getCashRegisters().then(regs => {
         setAvailableRegisters(regs.filter(r => r.isActive));
       });
       loadMovements();
     }
-  }, [isOpen, activeShift]);
+  }, [isOpen, activeShift, initialTab]);
 
   const loadMovements = async () => {
     try {
@@ -143,23 +168,24 @@ export default function CashShiftModal({
 
     // Sincronizar en Supabase cash_shifts para la Caja Maestra
     try {
-      const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      const storeSlug = localStorage.getItem('storeSlug') || '';
-      await supabase.from('cash_shifts').insert([{
-        branch_id: storeSlug || activeWs,
-        register_name: openRegisterName,
-        cashier_name: openCashierName,
-        opened_at: newShift.openedAt,
-        initial_usd: newShift.initialUsd,
-        initial_ves: newShift.initialVes,
-        expected_usd: newShift.initialUsd,
-        expected_ves: newShift.initialVes,
-        status: 'OPEN',
-        notes: JSON.stringify({
-          bcvRate: Number(bcvRate) || 888.89,
-          storeName
-        })
-      }]);
+      const activeWs = localStorage.getItem('activeWorkspace');
+      if (activeWs) {
+        await supabase.from('cash_shifts').insert([{
+          branch_id: activeWs,
+          register_name: openRegisterName,
+          cashier_name: openCashierName,
+          opened_at: newShift.openedAt,
+          initial_usd: newShift.initialUsd,
+          initial_ves: newShift.initialVes,
+          expected_usd: newShift.initialUsd,
+          expected_ves: newShift.initialVes,
+          status: 'OPEN',
+          notes: JSON.stringify({
+            bcvRate: Number(bcvRate) || 888.89,
+            storeName
+          })
+        }]);
+      }
     } catch (errDb) {
       console.warn('Advertencia sincronizando turno a Supabase:', errDb);
     }
@@ -228,24 +254,25 @@ export default function CashShiftModal({
 
     // Actualizar en Supabase cash_shifts
     try {
-      const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      const storeSlug = localStorage.getItem('storeSlug') || '';
-      await supabase
-        .from('cash_shifts')
-        .update({
-          closed_at: closedShift.closedAt,
-          actual_usd: actUsd,
-          actual_ves: actVes,
-          expected_usd: expectedUsd,
-          expected_ves: expectedVes,
-          difference_usd: diffUsd,
-          difference_ves: diffVes,
-          status: 'CLOSED'
-        })
-        .match({
-          branch_id: storeSlug || activeWs,
-          status: 'OPEN'
-        });
+      const activeWs = localStorage.getItem('activeWorkspace');
+      if (activeWs) {
+        await supabase
+          .from('cash_shifts')
+          .update({
+            closed_at: closedShift.closedAt,
+            actual_usd: actUsd,
+            actual_ves: actVes,
+            expected_usd: expectedUsd,
+            expected_ves: expectedVes,
+            difference_usd: diffUsd,
+            difference_ves: diffVes,
+            status: 'CLOSED'
+          })
+          .match({
+            branch_id: activeWs,
+            status: 'OPEN'
+          });
+      }
     } catch (errDb) {
       console.warn('Advertencia cerrando turno en Supabase:', errDb);
     }
@@ -383,6 +410,92 @@ export default function CashShiftModal({
           {/* TAB 1: ESTADO DE CAJA */}
           {activeTab === 'status' && (
             <>
+              {activeShift?.status !== 'OPEN' && (
+                <div className="p-5 rounded-2xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-500/30 space-y-3.5 mb-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-orange-900 dark:text-orange-300 flex items-center gap-2">
+                      <Lock size={15} className="text-orange-600" />
+                      <span>Caja Cerrada — Apertura de Nuevo Turno</span>
+                    </h4>
+                    <span className="text-[10px] font-bold text-orange-600 bg-orange-100 dark:bg-orange-500/20 px-2 py-0.5 rounded-full">
+                      Habilitar Cobros
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Cajero Responsable</label>
+                      <select
+                        value={openCashierName}
+                        onChange={e => setOpenCashierName(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
+                      >
+                        {availableStaff.length > 0 ? (
+                          availableStaff.map((st, i) => (
+                            <option key={st.id || i} value={st.full_name || st.fullName}>
+                              {st.full_name || st.fullName} ({st.role || 'Cajero'})
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="yende">yende (Cajero)</option>
+                            <option value="Axon (Propietario)">Axon (Propietario)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Caja Registradora</label>
+                      <select
+                        value={openRegisterName}
+                        onChange={e => setOpenRegisterName(e.target.value)}
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
+                      >
+                        {registers.length > 0 ? (
+                          registers.map(r => (
+                            <option key={r.id} value={r.name}>{r.name}</option>
+                          ))
+                        ) : (
+                          <option value="Caja 1 - Principal">Caja 1 - Principal</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Fondo Inicial en Divisas ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={openInitialUsd}
+                        onChange={e => setOpenInitialUsd(e.target.value)}
+                        placeholder="50.00"
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Fondo Inicial en Bolívares (Bs.)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={openInitialVes}
+                        onChange={e => setOpenInitialVes(e.target.value)}
+                        placeholder="1000.00"
+                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleOpenShift}
+                    className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span>Iniciar Turno de Caja Ahora</span>
+                  </button>
+                </div>
+              )}
               {/* Tarjetas de Fondos Iniciales */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="p-4 rounded-2xl bg-white dark:bg-zinc-800/40 border border-slate-200/80 dark:border-white/5 shadow-xs">

@@ -289,8 +289,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       items: [
         { name: 'Órdenes', path: '/orders' },
         { name: 'POS Kiosco', path: '/pos', isPos: true },
-        { name: 'Caja Maestra', path: '/cash-master', badge: 'Global' },
-        { name: 'Caja & Turnos', path: '/shifts' },
+        { name: 'Caja Maestra & Turnos', path: '/cash-master' },
       ]
     },
     {

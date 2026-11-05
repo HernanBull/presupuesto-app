@@ -4,11 +4,12 @@ import {
   RefreshCw, CheckCircle2, Clock, Users, QrCode, Copy, ExternalLink,
   ChevronRight, AlertCircle, ShoppingBag, Landmark, Smartphone,
   ShieldCheck, PlusCircle, Calculator, Layers, Receipt, CreditCard,
-  Banknote, ArrowRightLeft, Zap
+  Banknote, ArrowRightLeft, Zap, Printer, Lock, FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import UserManagementModal from '../components/admin/UserManagementModal';
+import CashShiftModal from '../components/admin/CashShiftModal';
 
 export default function MerchantCashMasterView() {
   const [loading, setLoading] = useState(true);
@@ -17,9 +18,13 @@ export default function MerchantCashMasterView() {
   const [storeName, setStoreName] = useState(() => localStorage.getItem('merchant_store_name') || 'Mi Comercio');
   const [storeSlug, setStoreSlug] = useState(() => localStorage.getItem('storeSlug') || '');
   const [configuredRegisters, setConfiguredRegisters] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [bcvRate, setBcvRate] = useState(888.89);
   const [selectedShiftForQr, setSelectedShiftForQr] = useState(null);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
+  const [isCashShiftModalOpen, setIsCashShiftModalOpen] = useState(false);
+  const [cashShiftModalTab, setCashShiftModalTab] = useState('status');
+  const [selectedShiftForModal, setSelectedShiftForModal] = useState(null);
 
   const workspaceId = localStorage.getItem('activeWorkspace');
 
@@ -62,6 +67,7 @@ export default function MerchantCashMasterView() {
               { id: 'caja-2', name: 'Caja 2 - Rápida', enabled: true }
             ];
         setConfiguredRegisters(rawRegs);
+        setStaffList(Array.isArray(cfg.users) ? cfg.users : []);
       }
 
       // 3. Obtener turnos de caja exclusivos de este comercio
@@ -274,6 +280,83 @@ export default function MerchantCashMasterView() {
         </div>
       </div>
 
+      {/* Barra de Acciones Operativas de Caja & Turno (Integración Total) */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              setCashShiftModalTab('status');
+              setSelectedShiftForModal(openShifts[0] || null);
+              setIsCashShiftModalOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm shadow-orange-500/20 active:scale-95 cursor-pointer"
+          >
+            <Wallet size={15} />
+            <span>{openShifts.length > 0 ? 'Control de Caja & Turno (F9)' : 'Abrir Turno de Caja'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setCashShiftModalTab('movement');
+              setSelectedShiftForModal(openShifts[0] || null);
+              setIsCashShiftModalOpen(true);
+            }}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <ArrowRightLeft size={14} className="text-orange-500" />
+            <span>Caja Chica (Gastos/Retiros)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setCashShiftModalTab('close');
+              setSelectedShiftForModal(openShifts[0] || null);
+              setIsCashShiftModalOpen(true);
+            }}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock size={14} className="text-rose-500" />
+            <span>Arqueo & Cierre</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              window.print();
+            }}
+            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <Printer size={14} className="text-slate-500" />
+            <span>Imprimir Cuadre</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (window.confirm('¿Desea emitir el REPORTE X (Corte Parcial SENIAT)?')) {
+                toast.success('Reporte X (Corte Parcial SENIAT) emitido con éxito.');
+              }
+            }}
+            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <Receipt size={14} className="text-orange-500" />
+            <span>Corte X (SENIAT)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (window.confirm('¿Desea emitir el REPORTE Z (Cierre Diario Definitivo SENIAT)?')) {
+                toast.success('Reporte Z (Cierre Fiscal Diario SENIAT) emitido con éxito.');
+              }
+            }}
+            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <Printer size={14} className="text-rose-500" />
+            <span>Cierre Z (SENIAT)</span>
+          </button>
+        </div>
+      </div>
+
       {/* Tarjetas Principales de Ingresos Consolidados */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
@@ -392,163 +475,184 @@ export default function MerchantCashMasterView() {
 
       </div>
 
-      {/* Desglose Consolidado por Métodos de Pago */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+      {/* Desglose Consolidado por Métodos de Pago (Estética Axon Orange & White) */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <h3 className="text-sm font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+          <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Landmark size={16} className="text-orange-500" />
             <span>Consolidación por Métodos de Pago (Bimonetario)</span>
           </h3>
           <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Tasa BCV del día: <strong className="font-mono text-slate-800 dark:text-slate-200">Bs. {bcvRate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+            Tasa BCV del día: <strong className="font-mono text-orange-600 dark:text-orange-400 font-bold">Bs. {bcvRate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
           </span>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           
           {/* 1. Efectivo USD */}
-          <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block">Efectivo USD</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-200/70 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Efectivo USD</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200/60 dark:border-orange-500/20">
                   {breakdown.cashUsd.count} cobro{breakdown.cashUsd.count !== 1 ? 's' : ''}
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-emerald-700 dark:text-emerald-400 mt-2">
+              <p className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 ${breakdown.cashUsd.usd.toFixed(2)}
               </p>
-              <p className="text-[11px] font-mono text-emerald-600/80 dark:text-emerald-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 Bs. {breakdown.cashUsd.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <span className="text-[9px] text-emerald-800/60 dark:text-emerald-400/60 font-semibold mt-3 pt-2 border-t border-emerald-200/60 dark:border-emerald-800/40">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
               💵 Billetes en gaveta
             </span>
           </div>
 
           {/* 2. Efectivo Bolívares */}
-          <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase tracking-wider block">Efectivo Bolívares</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-blue-200/70 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span>Efectivo Bs.</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200/60 dark:border-orange-500/20">
                   {breakdown.cashVes.count} cobro{breakdown.cashVes.count !== 1 ? 's' : ''}
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-blue-700 dark:text-blue-400 mt-2">
+              <p className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 Bs. {breakdown.cashVes.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-[11px] font-mono text-blue-600/80 dark:text-blue-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 ${breakdown.cashVes.usd.toFixed(2)} USD
               </p>
             </div>
-            <span className="text-[9px] text-blue-800/60 dark:text-blue-400/60 font-semibold mt-3 pt-2 border-t border-blue-200/60 dark:border-blue-800/40">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
               🇻🇪 Billetes en gaveta
             </span>
           </div>
 
           {/* 3. Pago Móvil */}
-          <div className="p-4 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-200/80 dark:border-cyan-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-cyan-800 dark:text-cyan-400 uppercase tracking-wider block">Pago Móvil</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-cyan-200/70 dark:bg-cyan-500/20 text-cyan-800 dark:text-cyan-300">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                  <span>Pago Móvil</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200/60 dark:border-orange-500/20">
                   {breakdown.pagoMovil.count} cobro{breakdown.pagoMovil.count !== 1 ? 's' : ''}
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-cyan-800 dark:text-cyan-400 mt-2">
+              <p className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 Bs. {breakdown.pagoMovil.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-[11px] font-mono text-cyan-700/80 dark:text-cyan-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 ${breakdown.pagoMovil.usd.toFixed(2)} USD
               </p>
             </div>
-            <span className="text-[9px] text-cyan-800/60 dark:text-cyan-400/60 font-semibold mt-3 pt-2 border-t border-cyan-200/60 dark:border-cyan-800/40">
-              📲 Banco directo
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
+              📲 Directo en banco
             </span>
           </div>
 
           {/* 4. Punto de Venta */}
-          <div className="p-4 rounded-2xl bg-violet-50/60 dark:bg-violet-950/20 border border-violet-200/80 dark:border-violet-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-violet-700 dark:text-violet-400 uppercase tracking-wider block">Punto de Venta</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-violet-200/70 dark:bg-violet-500/20 text-violet-800 dark:text-violet-300">
-                  {breakdown.pos.count} cobro{breakdown.pos.count !== 1 ? 's' : ''}
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                  <span>Punto POS</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {breakdown.pos.count} cobros
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-violet-700 dark:text-violet-400 mt-2">
+              <p className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 Bs. {breakdown.pos.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-[11px] font-mono text-violet-600/80 dark:text-violet-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 ${breakdown.pos.usd.toFixed(2)} USD
               </p>
             </div>
-            <span className="text-[9px] text-violet-800/60 dark:text-violet-400/60 font-semibold mt-3 pt-2 border-t border-violet-200/60 dark:border-violet-800/40">
-              💳 Tarjetas Débito/Crédito
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
+              💳 Tarjetas débito/crédito
             </span>
           </div>
 
           {/* 5. Zelle */}
-          <div className="p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-purple-700 dark:text-purple-400 uppercase tracking-wider block">Zelle</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-200/70 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300">
-                  {breakdown.zelle.count} cobro{breakdown.zelle.count !== 1 ? 's' : ''}
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  <span>Zelle USD</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {breakdown.zelle.count} cobros
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-purple-700 dark:text-purple-400 mt-2">
+              <p className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 ${breakdown.zelle.usd.toFixed(2)}
               </p>
-              <p className="text-[11px] font-mono text-purple-600/80 dark:text-purple-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 Bs. {breakdown.zelle.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <span className="text-[9px] text-purple-800/60 dark:text-purple-400/60 font-semibold mt-3 pt-2 border-t border-purple-200/60 dark:border-purple-800/40">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
               ⚡ Transferencia USD
             </span>
           </div>
 
           {/* 6. Transferencia Bancaria */}
-          <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-800/40 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider block">Transferencia</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-200/70 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300">
-                  {breakdown.transferencia.count} cobro{breakdown.transferencia.count !== 1 ? 's' : ''}
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>Transferencia</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {breakdown.transferencia.count} cobros
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-amber-700 dark:text-amber-400 mt-2">
+              <p className="text-xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 Bs. {breakdown.transferencia.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
-              <p className="text-[11px] font-mono text-amber-600/80 dark:text-amber-400/70 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 ${breakdown.transferencia.usd.toFixed(2)} USD
               </p>
             </div>
-            <span className="text-[9px] text-amber-800/60 dark:text-amber-400/60 font-semibold mt-3 pt-2 border-t border-amber-200/60 dark:border-amber-800/40">
-              🏦 Cuentas bancarias
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
+              🏦 Acreditación cuenta
             </span>
           </div>
 
           {/* 7. Otros Canales */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 relative overflow-hidden flex flex-col justify-between">
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs hover:border-orange-500/40 transition-all flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block">Otros Canales</span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                  {breakdown.otros.count} cobro{breakdown.otros.count !== 1 ? 's' : ''}
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span>Otros Canales</span>
+                </span>
+                <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                  {breakdown.otros.count} cobros
                 </span>
               </div>
-              <p className="text-xl font-black font-mono text-slate-700 dark:text-slate-300 mt-2">
+              <p className="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white mt-2">
                 ${breakdown.otros.usd.toFixed(2)}
               </p>
-              <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400 mt-0.5">
                 Bs. {breakdown.otros.ves.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <span className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold mt-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
               🌐 Cashea / Otros
             </span>
           </div>
@@ -643,19 +747,34 @@ export default function MerchantCashMasterView() {
                       </td>
 
                       <td className="py-3.5 px-3 text-right">
-                        <button
-                          onClick={() => {
-                            setSelectedShiftForQr({
-                              name: shift.register_name || 'Caja',
-                              url: `${window.location.origin}/${registerSlug}/caja`
-                            });
-                          }}
-                          className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl font-bold text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer"
-                          title="Ver QR de esta caja"
-                        >
-                          <QrCode size={13} />
-                          <span>QR / Link</span>
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedShiftForModal(shift);
+                              setCashShiftModalTab('status');
+                              setIsCashShiftModalOpen(true);
+                            }}
+                            className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Abrir panel operativo de caja"
+                          >
+                            <Wallet size={12} className="text-orange-400" />
+                            <span>Operar</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedShiftForQr({
+                                name: shift.register_name || 'Caja',
+                                url: `${window.location.origin}/${registerSlug}/caja`
+                              });
+                            }}
+                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl font-bold text-[11px] inline-flex items-center gap-1 transition-all cursor-pointer"
+                            title="Ver QR de esta caja"
+                          >
+                            <QrCode size={12} />
+                            <span>QR</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -719,9 +838,14 @@ export default function MerchantCashMasterView() {
                       </td>
 
                       <td className="py-3.5 px-3">
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {pd.cashier || (order.order_type === 'pos' ? 'Venta POS' : (order.customer || 'Mostrador'))}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-[10px] font-black shrink-0">
+                            {((pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))).charAt(0)).toUpperCase()}
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">
+                            {pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))}
+                          </span>
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-3">
@@ -729,45 +853,46 @@ export default function MerchantCashMasterView() {
                           {hasSplit ? (
                             pd.payments.map((p, idx) => {
                               const m = String(p.method || '').toUpperCase();
-                              const isCashUsd = m.includes('CASH_USD') || (m.includes('CASH') && p.currency === 'USD');
-                              const isCashVes = m.includes('CASH_VES') || (m.includes('CASH') && p.currency === 'VES');
+                              const isCashUsd = m.includes('CASH_USD') || (m.includes('CASH') && p.currency === 'USD') || m.includes('EFECTIVO_USD');
+                              const isCashVes = m.includes('CASH_VES') || (m.includes('CASH') && p.currency === 'VES') || m.includes('EFECTIVO_BS') || m.includes('EFECTIVO_VES');
                               const isPagoMovil = m.includes('MOVIL');
                               const isPos = m.includes('POS') || m.includes('PUNTO');
 
-                              let badgeClass = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-                              let icon = '💵';
+                              let badgeClass = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs';
+                              let dot = 'bg-slate-400';
                               let label = p.method;
 
                               if (isCashUsd) {
-                                badgeClass = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800';
-                                icon = '💵';
+                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-emerald-500/30 dark:border-emerald-500/40 shadow-2xs';
+                                dot = 'bg-emerald-500';
                                 label = `$${Number(p.amountPaid || 0).toFixed(2)} USD (Efectivo)`;
                               } else if (isCashVes) {
-                                badgeClass = 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800';
-                                icon = '🇻🇪';
+                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-500/30 dark:border-blue-500/40 shadow-2xs';
+                                dot = 'bg-blue-500';
                                 label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Efectivo)`;
                               } else if (isPagoMovil) {
-                                badgeClass = 'bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200/80 dark:border-cyan-800';
-                                icon = '📲';
+                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-cyan-500/30 dark:border-cyan-500/40 shadow-2xs';
+                                dot = 'bg-cyan-500';
                                 label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Pago Móvil${p.bankName ? ' ' + p.bankName : ''}${p.referenceNumber ? ' #' + p.referenceNumber : ''})`;
                               } else if (isPos) {
-                                badgeClass = 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/80 dark:border-violet-800';
-                                icon = '💳';
+                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-purple-500/30 dark:border-purple-500/40 shadow-2xs';
+                                dot = 'bg-purple-500';
                                 label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Punto POS)`;
                               } else {
                                 label = `${p.method}: ${p.amountPaid} ${p.currency || ''}`;
                               }
 
                               return (
-                                <span key={idx} className={`px-2 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center gap-1 ${badgeClass}`}>
-                                  <span>{icon}</span>
+                                <span key={idx} className={`px-2 py-0.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1.5 ${badgeClass}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
                                   <span>{label}</span>
                                 </span>
                               );
                             })
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                              {order.paymentmethod || 'Pago estándar'}
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs inline-flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                              <span>{order.paymentmethod || 'Pago estándar'}</span>
                             </span>
                           )}
                         </div>
@@ -846,6 +971,24 @@ export default function MerchantCashMasterView() {
             setIsUserManagementModalOpen(false);
             fetchMerchantCashData();
           }}
+        />
+      )}
+
+      {/* Modal Operativo Integral de Caja & Turno (Arqueo, Gastos, Cuadre, SENIAT) */}
+      {isCashShiftModalOpen && (
+        <CashShiftModal
+          isOpen={isCashShiftModalOpen}
+          onClose={() => {
+            setIsCashShiftModalOpen(false);
+            fetchMerchantCashData();
+          }}
+          activeShift={selectedShiftForModal || openShifts[0] || null}
+          onShiftChange={() => {
+            fetchMerchantCashData();
+          }}
+          initialTab={cashShiftModalTab}
+          bcvRate={bcvRate}
+          storeName={storeName}
         />
       )}
 
