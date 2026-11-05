@@ -180,38 +180,38 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
         
-        {/* Encabezado */}
-        <div className="relative p-6 bg-gradient-to-br from-orange-500 via-orange-600 to-amber-600 text-white">
+        {/* Encabezado Oficial AxonMarket */}
+        <div className="relative p-6 sm:p-7 bg-gradient-to-br from-[#ea580c] via-[#ea580c] to-[#c2410c] text-white">
           <button 
             type="button" 
             onClick={onClose}
-            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 flex items-center justify-center transition-colors text-white"
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 flex items-center justify-center transition-all text-white cursor-pointer active:scale-95"
           >
             <X size={18} />
           </button>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-black uppercase tracking-wider mb-2">
-            <Sparkles size={13} />
-            <span>Suscripción AxonMarket</span>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-black uppercase tracking-wider mb-2.5 border border-white/20">
+            <Sparkles size={13} className="text-amber-200" />
+            <span>Suscripción Oficial AxonMarket</span>
           </div>
 
           <h3 className="text-xl sm:text-2xl font-black leading-tight tracking-tight">
             Planes Profesionales
           </h3>
-          <p className="text-xs text-white/90 mt-1">
+          <p className="text-xs text-white/90 mt-1 max-w-sm">
             Activa o renueva todas las herramientas de tu tienda y POS Kiosco sin límites.
           </p>
 
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl sm:text-4xl font-black font-mono">${currentPlan.priceUsd}</span>
-            <span className="text-sm font-bold text-white/80">/ {selectedPlan === 'trimestral' ? '3 meses' : 'mes'}</span>
-            <span className="ml-auto text-xs font-bold text-white/90 bg-black/20 px-2.5 py-1 rounded-full font-mono">
+          <div className="mt-4 flex flex-wrap items-baseline gap-2 pt-2 border-t border-white/20">
+            <span className="text-3xl sm:text-4xl font-black font-mono tracking-tight">${currentPlan.priceUsd}</span>
+            <span className="text-xs font-bold text-white/80">/ {selectedPlan === 'trimestral' ? '3 meses' : 'mes'}</span>
+            <span className="ml-auto text-xs font-bold text-white bg-black/25 px-3 py-1 rounded-full font-mono border border-white/15 shadow-2xs">
               ≈ Bs. {totalVesEstimado}
             </span>
           </div>
         </div>
 
-        <div className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
 
           {/* Selector de Planes: Mensual vs Trimestral */}
           <div className="space-y-2.5">
@@ -226,7 +226,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
                 onClick={() => setSelectedPlan('trimestral')}
                 className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
                   selectedPlan === 'trimestral'
-                    ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-500/10 shadow-sm'
+                    ? 'border-orange-500 bg-orange-50/70 dark:bg-orange-500/10 shadow-sm'
                     : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
                 }`}
               >
@@ -250,7 +250,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
                 onClick={() => setSelectedPlan('mensual')}
                 className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
                   selectedPlan === 'mensual'
-                    ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-500/10 shadow-sm'
+                    ? 'border-orange-500 bg-orange-50/70 dark:bg-orange-500/10 shadow-sm'
                     : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
                 }`}
               >
@@ -268,37 +268,37 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
             </div>
           </div>
 
-          {/* Banner: Cashea (Próximamente) */}
-          <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/40 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
+          {/* Banner: Cashea (Próximamente) — 100% Paleta Axon (Sin Morado) */}
+          <div className="bg-gradient-to-r from-orange-50/70 via-amber-50/40 to-slate-50 dark:from-zinc-800/90 dark:via-zinc-800/60 dark:to-zinc-800/30 p-3.5 sm:p-4 rounded-2xl border border-orange-200/80 dark:border-white/10 flex items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#ea580c] text-white flex items-center justify-center font-black shrink-0 shadow-xs">
                 <CreditCard size={18} />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wide">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
                     Paga en Cuotas con Cashea
                   </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[9px] font-black uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-[9px] font-black uppercase tracking-wider border border-orange-200 dark:border-orange-500/30">
                     Próximamente
                   </span>
                 </div>
-                <p className="text-[11px] text-purple-900/80 dark:text-purple-300/80 mt-0.5 leading-snug">
-                  Muy pronto podrás pagar tu plan en cómodas cuotas sin interés mediante Cashea.
+                <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-0.5 leading-snug">
+                  Muy pronto podrás pagar tu plan profesional en cómodas cuotas sin interés mediante Cashea.
                 </p>
               </div>
             </div>
           </div>
 
           {/* Tarjeta de Datos de Pago Móvil BNC Jurídico */}
-          <div className="border-2 border-orange-500/30 bg-orange-50/40 dark:bg-orange-500/5 rounded-2xl p-4 sm:p-5 space-y-3.5">
+          <div className="border border-orange-200 dark:border-orange-500/30 bg-orange-50/40 dark:bg-orange-500/5 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xs">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black">
-                  <Smartphone size={16} />
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#ea580c] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Smartphone size={17} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                     Pago Móvil BNC (Cuenta Jurídica)
                   </h4>
                   <p className="text-[10px] text-slate-500 dark:text-zinc-400">
@@ -306,98 +306,99 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
                   </p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800">
+              <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-300 dark:border-emerald-800 flex items-center gap-1 shadow-2xs">
+                <ShieldCheck size={12} className="text-emerald-600" />
                 Verificado
               </span>
             </div>
 
             {/* Fila: Banco */}
-            <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 block">BANCO</span>
-                <span className="font-bold text-slate-800 dark:text-white">{PAGO_MOVIL_DATA.bancoNombre}</span>
+            <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs shadow-2xs">
+              <div className="min-w-0 pr-2">
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider uppercase">BANCO DESTINO</span>
+                <span className="font-extrabold text-slate-900 dark:text-white truncate block">{PAGO_MOVIL_DATA.bancoNombre}</span>
               </div>
               <button
                 type="button"
                 onClick={() => copyToClipboard(PAGO_MOVIL_DATA.bancoCodigo, 'Código de Banco')}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-orange-700 dark:text-orange-400 font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-orange-200/60 dark:border-white/10 active:scale-95"
               >
-                {copiedField === 'Código de Banco' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                <span>Copiar 0191</span>
+                {copiedField === 'Código de Banco' ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                <span>{copiedField === 'Código de Banco' ? '¡Copiado!' : 'Copiar 0191'}</span>
               </button>
             </div>
 
             {/* Fila: RIF */}
-            <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs">
+            <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs shadow-2xs">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block">RIF JURÍDICO</span>
-                <span className="font-bold text-slate-800 dark:text-white font-mono">{PAGO_MOVIL_DATA.rif}</span>
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider uppercase">RIF JURÍDICO</span>
+                <span className="font-black text-slate-900 dark:text-white font-mono text-sm tracking-wide">{PAGO_MOVIL_DATA.rif}</span>
               </div>
               <button
                 type="button"
                 onClick={() => copyToClipboard(PAGO_MOVIL_DATA.rif, 'RIF')}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-orange-700 dark:text-orange-400 font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-orange-200/60 dark:border-white/10 active:scale-95"
               >
-                {copiedField === 'RIF' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                <span>Copiar RIF</span>
+                {copiedField === 'RIF' ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                <span>{copiedField === 'RIF' ? '¡Copiado!' : 'Copiar RIF'}</span>
               </button>
             </div>
 
             {/* Fila: Teléfono */}
-            <div className="flex items-center justify-between p-2.5 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs">
+            <div className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs shadow-2xs">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block">TELÉFONO DE PAGO</span>
-                <span className="font-bold text-slate-800 dark:text-white font-mono">{PAGO_MOVIL_DATA.telefono}</span>
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider uppercase">TELÉFONO DE PAGO MÓVIL</span>
+                <span className="font-black text-slate-900 dark:text-white font-mono text-sm tracking-wide">{PAGO_MOVIL_DATA.telefono}</span>
               </div>
               <button
                 type="button"
                 onClick={() => copyToClipboard(PAGO_MOVIL_DATA.telefono, 'Teléfono')}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-orange-700 dark:text-orange-400 font-bold text-[11px] flex items-center gap-1.5 transition-all cursor-pointer shrink-0 border border-orange-200/60 dark:border-white/10 active:scale-95"
               >
-                {copiedField === 'Teléfono' ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                <span>Copiar Teléfono</span>
+                {copiedField === 'Teléfono' ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                <span>{copiedField === 'Teléfono' ? '¡Copiado!' : 'Copiar Teléfono'}</span>
               </button>
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-zinc-400 px-1 pt-1 font-medium">
-              <span>Tasa BCV: <strong>Bs. {bcvRate.toFixed(2)}</strong></span>
-              <span>Monto a transferir: <strong className="text-orange-600 dark:text-orange-400 font-mono">Bs. {totalVesEstimado}</strong></span>
+            <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-zinc-400 px-1 pt-1 font-medium border-t border-orange-200/60 dark:border-white/10">
+              <span>Tasa Oficial BCV: <strong className="text-slate-900 dark:text-white font-mono">Bs. {bcvRate.toFixed(2)}</strong></span>
+              <span>Monto a transferir: <strong className="text-orange-600 dark:text-orange-400 font-mono text-xs">Bs. {totalVesEstimado}</strong></span>
             </div>
           </div>
 
           {/* Formulario de Notificación de Pago */}
           <form onSubmit={handleSubmitPayment} className="space-y-4 pt-1">
             <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Clock size={14} className="text-orange-500" />
+              <Clock size={15} className="text-orange-500" />
               <span>Reportar Comprobante de Pago Móvil</span>
             </h4>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+              <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200">
                 Número de Referencia Bancaria (últimos 4 a 8 dígitos) *
               </label>
               <div className="relative">
-                <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Hash size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   required
                   placeholder="Ej: 849201"
                   value={reference}
                   onChange={(e) => setReference(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-mono font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-white/15 rounded-xl text-sm font-mono font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 shadow-2xs"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200">
                   Banco Emisor
                 </label>
                 <select
                   value={bankOrigin}
                   onChange={(e) => setBankOrigin(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-white/15 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
                 >
                   <option value="0102 - Banco de Venezuela">0102 - Banco de Venezuela</option>
                   <option value="0108 - Banco Provincial">0108 - Banco Provincial</option>
@@ -413,15 +414,15 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                <label className="text-xs font-extrabold text-slate-800 dark:text-zinc-200">
                   Monto Pagado (Bs)
                 </label>
                 <input
                   type="text"
                   value={amountVes}
                   onChange={(e) => setAmountVes(e.target.value)}
-                  placeholder="Ej: 53333.40"
-                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none"
+                  placeholder="Ej: 26846.63"
+                  className="w-full px-3 py-2.5 bg-white dark:bg-zinc-800 border border-slate-300 dark:border-white/15 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
                 />
               </div>
             </div>
@@ -432,7 +433,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-orange-500/25 active:scale-98 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <span>Validando...</span>
+                <span>Validando comprobante...</span>
               ) : (
                 <>
                   <CheckCircle2 size={16} />

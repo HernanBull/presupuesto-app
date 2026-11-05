@@ -424,22 +424,22 @@ export default function MerchantSubscriptionPage() {
             </div>
           </div>
 
-          {/* Banner de Cashea (Próximamente) */}
-          <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20 p-4 rounded-2xl border border-purple-200 dark:border-purple-800/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3">
+          {/* Banner de Cashea (Próximamente) — 100% Paleta Axon (Sin Morado) */}
+          <div className="bg-gradient-to-r from-orange-50/70 via-amber-50/40 to-slate-50 dark:from-zinc-800/90 dark:via-zinc-800/60 dark:to-zinc-800/30 p-4 rounded-2xl border border-orange-200/80 dark:border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 shadow-2xs">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#ea580c] text-white flex items-center justify-center font-black shrink-0 shadow-xs">
                 <CreditCard size={18} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-black text-purple-950 dark:text-purple-200 uppercase tracking-wide">
+                  <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wide">
                     Paga en Cuotas con Cashea
                   </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-300 text-[9px] font-black uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-[9px] font-black uppercase tracking-wider border border-orange-200 dark:border-orange-500/30">
                     Próximamente
                   </span>
                 </div>
-                <p className="text-xs text-purple-900/80 dark:text-purple-300/80 mt-0.5">
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">
                   Muy pronto podrás pagar tu Plan VIP en cuotas sin interés mediante Cashea a crédito.
                 </p>
               </div>
