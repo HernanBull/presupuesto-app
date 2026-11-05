@@ -34,9 +34,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   // Estados de acordeón para submenús desplegables estilo Commercy (Image 4)
   const [openMenus, setOpenMenus] = useState({
-    ventas: true,       // Abierto por defecto como en la captura
-    inventario: false,
-    precios: false,
+    ventas: true,       // Abierto por defecto
+    inventario: true,   // Abierto por defecto
     clientes: false
   });
 
@@ -104,10 +103,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     const path = location.pathname;
     if (['/orders', '/invoicing', '/returns', '/pos', '/shifts', '/coupons'].includes(path)) {
       setOpenMenus(prev => ({ ...prev, ventas: true }));
-    } else if (['/inventory', '/stock', '/categories', '/suggestions', '/migrations'].includes(path)) {
+    } else if (['/inventory', '/stock', '/combos', '/categories', '/products', '/offers', '/prices', '/goods-receipt'].includes(path)) {
       setOpenMenus(prev => ({ ...prev, inventario: true }));
-    } else if (['/prices', '/goods-receipt', '/promotions', '/offers'].includes(path)) {
-      setOpenMenus(prev => ({ ...prev, precios: true }));
     } else if (['/leads', '/customers', '/abandoned-carts', '/campaigns', '/audiences', '/credits'].includes(path)) {
       setOpenMenus(prev => ({ ...prev, clientes: true }));
     }
@@ -274,7 +271,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     }
   }, [theme]);
 
-  // Estructura exacta solicitada por el usuario (Menú multinivel Commercy)
+  // Estructura simplificada y sin duplicados para el comerciante
   const menuSections = [
     {
       id: 'dashboard',
@@ -289,11 +286,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       isDropdown: true,
       items: [
         { name: 'Órdenes', path: '/orders' },
-        { name: 'Facturación', path: '/invoicing' },
-        { name: 'Arrepentimientos', path: '/returns' },
         { name: 'POS Kiosco', path: '/pos', isPos: true },
-        { name: 'Caja', path: '/shifts' },
-        { name: 'Cupones', path: '/coupons' },
+        { name: 'Caja & Turnos', path: '/shifts' },
       ]
     },
     {
@@ -302,23 +296,9 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: PackageSearch,
       isDropdown: true,
       items: [
-        { name: 'Productos', path: '/inventory' },
-        { name: 'Stock', path: '/stock' },
-        { name: 'Combos & Paquetes', path: '/combos' },
-        { name: 'Categorías', path: '/categories' },
-        { name: 'Sugerencias de ficha', path: '/suggestions' },
-        { name: 'Migraciones', path: '/migrations' },
-      ]
-    },
-    {
-      id: 'precios',
-      name: 'Precios',
-      icon: Tag,
-      isDropdown: true,
-      items: [
-        { name: 'Centro de precios', path: '/prices' },
+        { name: 'Inventario General', path: '/inventory' },
+        { name: 'Combos, Paquetes & Categorías', path: '/combos' },
         { name: 'Ofertas Flash', path: '/offers' },
-        { name: 'Ingresar mercadería', path: '/goods-receipt' },
       ]
     },
     {
@@ -327,11 +307,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: Users,
       isDropdown: true,
       items: [
-        { name: 'Base de leads', path: '/leads' },
         { name: 'Clientes', path: '/customers' },
-        { name: 'Carritos y estadísticas', path: '/abandoned-carts' },
-        { name: 'Campañas', path: '/campaigns' },
-        { name: 'Audiencias', path: '/audiences' },
+        { name: 'Carritos Abandonados', path: '/abandoned-carts' },
       ]
     },
     {
@@ -341,6 +318,16 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: Box
     }
   ];
+
+  const isSubItemActive = (subPath, currentPath) => {
+    if (currentPath === subPath) return true;
+    if (subPath === '/combos' && (currentPath === '/categories' || currentPath === '/products')) return true;
+    if (subPath === '/inventory' && (currentPath === '/stock' || currentPath === '/prices' || currentPath === '/goods-receipt')) return true;
+    if (subPath === '/orders' && currentPath === '/returns') return true;
+    if (subPath === '/customers' && (currentPath === '/leads' || currentPath === '/audiences')) return true;
+    if (subPath === '/pos' && currentPath === '/invoicing') return true;
+    return false;
+  };
 
   // Filtro en vivo para la barra de búsqueda ⌘K
   const filteredSections = useMemo(() => {
@@ -683,10 +670,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         {/* 4. Main Nav List con Acordeones Desplegables Estilo Commercy (Image 4) */}
         <nav className="flex-1 px-3 space-y-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-2">
           {filteredSections.map((sec) => {
-            // Caso 1: Ítem con submenú desplegable (Ventas, Inventario, Precios, Clientes)
+            // Caso 1: Ítem con submenú desplegable (Ventas, Inventario, Clientes)
             if (sec.isDropdown) {
               const isOpen = sec.forceOpen || openMenus[sec.id];
-              const isChildActive = sec.items.some(item => location.pathname === item.path);
+              const isChildActive = sec.items.some(item => isSubItemActive(item.path, location.pathname));
 
               return (
                 <div key={sec.id} className="space-y-1">
@@ -711,11 +698,11 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                     )}
                   </button>
 
-                  {/* Sub-ítems (Idéntico a Image 4: Píldora blanca con texto azul/naranja cuando está activo) */}
+                  {/* Sub-ítems (Píldora blanca con texto naranja cuando está activo) */}
                   {isOpen && (
                     <div className="pl-6 pr-1 space-y-1 pt-0.5 pb-1 animate-in slide-in-from-top-1 duration-150">
                       {sec.items.map((sub) => {
-                        const isSubActive = location.pathname === sub.path;
+                        const isSubActive = isSubItemActive(sub.path, location.pathname);
                         return (
                           <NavLink
                             key={sub.name}
