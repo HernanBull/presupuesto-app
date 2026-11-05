@@ -312,7 +312,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       isDropdown: true,
       items: [
         { name: 'Inventario General', path: '/inventory' },
-        { name: 'Combos, Paquetes & Categorías', path: '/combos' },
+        { name: 'Categorías del Catálogo', path: '/categories' },
+        { name: 'Combos & Paquetes', path: '/combos' },
         { name: 'Ofertas Flash', path: '/offers' },
       ]
     },
@@ -337,7 +338,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const isSubItemActive = (subPath, currentPath) => {
     if (currentPath === subPath) return true;
     if (subPath === '/cash-master' && (currentPath === '/cash-master' || currentPath === '/caja-maestra')) return true;
-    if (subPath === '/combos' && (currentPath === '/categories' || currentPath === '/products')) return true;
+    if (subPath === '/categories' && currentPath === '/categories') return true;
+    if (subPath === '/combos' && (currentPath === '/combos' || currentPath === '/products')) return true;
     if (subPath === '/inventory' && (currentPath === '/stock' || currentPath === '/prices' || currentPath === '/goods-receipt')) return true;
     if (subPath === '/orders' && currentPath === '/returns') return true;
     if (subPath === '/customers' && (currentPath === '/leads' || currentPath === '/audiences')) return true;

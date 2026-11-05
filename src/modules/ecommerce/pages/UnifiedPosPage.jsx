@@ -477,7 +477,7 @@ export default function UnifiedPosPage() {
     toast.success('Libro de Ventas SENIAT exportado en CSV/Excel con transacciones reales');
   };
 
-  // Cargar catálogo de la tienda activa en Supabase (Sin fallback a productos demo)
+  // Cargar catálogo y categorías de la tienda activa en Supabase
   useEffect(() => {
     const fetchCatalog = async () => {
       setLoading(true);
@@ -489,11 +489,47 @@ export default function UnifiedPosPage() {
           return;
         }
 
+        // 1. Obtener productos del comercio
         const { data, error } = await supabase
           .from('ecommerce_products')
           .select('*')
           .eq('workspace_id', wsId)
           .order('name', { ascending: true });
+
+        // 2. Obtener categorías personalizadas de la configuración del workspace
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('config')
+          .eq('id', wsId)
+          .single();
+
+        const rawCustom = wsData?.config?.customCategories || wsData?.config?.categories || [];
+        const customCategoriesList = Array.isArray(rawCustom)
+          ? rawCustom.map(c => typeof c === 'string' ? { name: c, color: '#EA580C' } : c).filter(c => c && c.name)
+          : [];
+
+        const catMap = new Map();
+        const subcatMap = new Map();
+
+        // Registrar primero las categorías creadas por el comerciante
+        customCategoriesList.forEach(c => {
+          const cName = String(c.name).trim();
+          if (cName && !catMap.has(cName)) {
+            catMap.set(cName, {
+              id: cName,
+              name: cName,
+              color: c.color || '#EA580C',
+              level: 'main'
+            });
+            // Espejo subcategoría inicial para permitir filtro
+            subcatMap.set(cName, {
+              id: cName,
+              name: cName,
+              parentId: cName,
+              level: 'sub'
+            });
+          }
+        });
 
         if (!error && data && data.length > 0) {
           const mapped = data.map(p => {
@@ -515,10 +551,7 @@ export default function UnifiedPosPage() {
           });
           setProducts(mapped);
 
-          // Extraer categorías y subcategorías dinámicamente de los productos reales de la tienda
-          const catMap = new Map();
-          const subcatMap = new Map();
-
+          // Extraer categorías adicionales de productos
           mapped.forEach(p => {
             const catName = p.category ? String(p.category).trim() : 'General';
             if (catName && !catMap.has(catName)) {
@@ -539,23 +572,24 @@ export default function UnifiedPosPage() {
               });
             }
           });
-
-          const extractedCats = Array.from(catMap.values());
-          const extractedSubs = Array.from(subcatMap.values());
-
-          if (extractedSubs.length > 0) {
-            setCategories([...extractedCats, ...extractedSubs]);
-          } else {
-            const mirrorSubs = extractedCats.map(c => ({
-              id: c.id,
-              name: c.name,
-              parentId: c.id,
-              level: 'sub'
-            }));
-            setCategories([...extractedCats, ...mirrorSubs]);
-          }
         } else {
           setProducts([]);
+        }
+
+        const extractedCats = Array.from(catMap.values());
+        const extractedSubs = Array.from(subcatMap.values());
+
+        if (extractedSubs.length > 0) {
+          setCategories([...extractedCats, ...extractedSubs]);
+        } else if (extractedCats.length > 0) {
+          const mirrorSubs = extractedCats.map(c => ({
+            id: c.id,
+            name: c.name,
+            parentId: c.id,
+            level: 'sub'
+          }));
+          setCategories([...extractedCats, ...mirrorSubs]);
+        } else {
           setCategories([]);
         }
       } catch (e) {
@@ -575,6 +609,45 @@ export default function UnifiedPosPage() {
       .then(data => { if (data?.rate) setBcvRate(Number(data.rate)); })
       .catch(() => {});
   }, [activeTab]);
+
+  // Creación rápida de categoría directamente desde el POS Kiosco
+  const handleCreateCategoryInPos = async (categoryName, categoryColor = '#EA580C') => {
+    const clean = (categoryName || '').trim();
+    if (!clean) return;
+
+    try {
+      const wsId = localStorage.getItem('activeWorkspace');
+      if (!wsId) return;
+
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      const currentConfig = ws?.config || {};
+      const existing = Array.isArray(currentConfig.customCategories) ? [...currentConfig.customCategories] : [];
+      
+      const alreadyExists = existing.some(c => (typeof c === 'string' ? c : c.name).toLowerCase() === clean.toLowerCase());
+      if (!alreadyExists) {
+        existing.push({ name: clean, color: categoryColor });
+        await supabase.from('workspaces').update({
+          config: { ...currentConfig, customCategories: existing }
+        }).eq('id', wsId);
+      }
+
+      setCategories(prev => {
+        if (prev.some(c => c.name.toLowerCase() === clean.toLowerCase())) return prev;
+        return [
+          ...prev,
+          { id: clean, name: clean, color: categoryColor, level: 'main' },
+          { id: `${clean}-sub`, name: clean, parentId: clean, level: 'sub' }
+        ];
+      });
+
+      setSelectedMainCategory(clean);
+      setSelectedSubcategory('ALL');
+      toast.success(`Categoría "${clean}" creada en POS`);
+    } catch (err) {
+      console.error('Error creando categoría en POS:', err);
+      toast.error('No se pudo guardar la categoría: ' + err.message);
+    }
+  };
 
   // Manejador central de cantidades en carrito
   const handleUpdateCartQuantity = (product, delta) => {
@@ -1462,6 +1535,7 @@ export default function UnifiedPosPage() {
                 setSelectedMainCategory(catId);
                 setSelectedSubcategory('ALL');
               }}
+              onCreateCategory={handleCreateCategoryInPos}
               productCounts={mainCategoryCounts}
               totalProductsCount={products.length}
               sortBy={sortBy}

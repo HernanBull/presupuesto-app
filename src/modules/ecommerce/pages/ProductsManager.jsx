@@ -16,6 +16,7 @@ export default function ProductsManager() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [customCategories, setCustomCategories] = useState([]);
 
   // Pestañas activas: 'combos' o 'categories'
   const [activeTab, setActiveTab] = useState(() => {
@@ -51,6 +52,14 @@ export default function ProductsManager() {
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
+
+      // Cargar categorías personalizadas de la configuración de la tienda
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const rawCustom = ws?.config?.customCategories || ws?.config?.categories || [];
+      const validCats = Array.isArray(rawCustom)
+        ? rawCustom.map(c => typeof c === 'string' ? c : c.name).filter(Boolean)
+        : [];
+      setCustomCategories(validCats);
 
       if (!error && data) {
         const mapped = data.map(p => {
@@ -144,9 +153,26 @@ export default function ProductsManager() {
   const [newCatName, setNewCatName] = useState('');
   const [savingCategory, setSavingCategory] = useState(false);
 
-  // Extracción unificada de categorías del inventario
+  // Extracción unificada de categorías (combinando categorías creadas por el usuario y productos)
   const categoriesList = useMemo(() => {
     const map = new Map();
+
+    // 1. Agregar primero las categorías configuradas por el comerciante
+    customCategories.forEach(catName => {
+      const clean = String(catName).trim();
+      if (clean && !map.has(clean)) {
+        map.set(clean, {
+          name: clean,
+          count: 0,
+          totalStock: 0,
+          combosCount: 0,
+          sampleProducts: [],
+          isCustom: true
+        });
+      }
+    });
+
+    // 2. Extraer y contabilizar a partir de los productos en inventario
     products.forEach(p => {
       const cat = (p.category || 'General').trim();
       if (!map.has(cat)) {
@@ -155,7 +181,8 @@ export default function ProductsManager() {
           count: 0,
           totalStock: 0,
           combosCount: 0,
-          sampleProducts: []
+          sampleProducts: [],
+          isCustom: false
         });
       }
       const item = map.get(cat);
@@ -168,8 +195,9 @@ export default function ProductsManager() {
         item.sampleProducts.push(p.name);
       }
     });
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [products]);
+
+    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [products, customCategories]);
 
   const filteredCategories = useMemo(() => {
     if (!categorySearch.trim()) return categoriesList;
@@ -193,10 +221,13 @@ export default function ProductsManager() {
       setSavingCategory(true);
       const workspaceId = localStorage.getItem('activeWorkspace');
       
+      // Actualización optimista local
+      setCustomCategories(prev => [...prev, cleanName]);
+
       // Guardar en la configuración del workspace como categoría registrada
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       const currentConfig = ws?.config || {};
-      const customCats = Array.isArray(currentConfig.customCategories) ? currentConfig.customCategories : [];
+      const customCats = Array.isArray(currentConfig.customCategories) ? [...currentConfig.customCategories] : [];
       if (!customCats.includes(cleanName)) {
         customCats.push(cleanName);
       }
@@ -205,7 +236,6 @@ export default function ProductsManager() {
       toast.success(`Categoría "${cleanName}" registrada exitosamente`);
       setNewCatName('');
       setIsCategoryModalOpen(false);
-      // Redirigir opcionalmente al inventario filtrando o refrescar
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -220,15 +250,26 @@ export default function ProductsManager() {
     if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
 
     try {
+      const clean = newName.trim();
       const workspaceId = localStorage.getItem('activeWorkspace');
+
+      // Actualizar en customCategories
+      setCustomCategories(prev => prev.map(c => c === oldName ? clean : c));
+
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const currentConfig = ws?.config || {};
+      const customCats = (Array.isArray(currentConfig.customCategories) ? currentConfig.customCategories : [])
+        .map(c => (typeof c === 'string' ? c : c.name) === oldName ? clean : c);
+      await supabase.from('workspaces').update({ config: { ...currentConfig, customCategories: customCats } }).eq('id', workspaceId);
+
       const { error } = await supabase
         .from('ecommerce_products')
-        .update({ category: newName.trim() })
+        .update({ category: clean })
         .eq('workspace_id', workspaceId)
         .eq('category', oldName);
 
       if (error) throw error;
-      toast.success(`Categoría "${oldName}" renombrada a "${newName.trim()}"`);
+      toast.success(`Categoría "${oldName}" renombrada a "${clean}"`);
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -244,6 +285,16 @@ export default function ProductsManager() {
     if (window.confirm(`¿Seguro que deseas eliminar la categoría "${catName}"? Todos los productos asociados pasarán automáticamente a la categoría "General".`)) {
       try {
         const workspaceId = localStorage.getItem('activeWorkspace');
+
+        // Actualizar customCategories en estado y en base de datos
+        setCustomCategories(prev => prev.filter(c => c !== catName));
+
+        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+        const currentConfig = ws?.config || {};
+        const customCats = (Array.isArray(currentConfig.customCategories) ? currentConfig.customCategories : [])
+          .filter(c => (typeof c === 'string' ? c : c.name) !== catName);
+        await supabase.from('workspaces').update({ config: { ...currentConfig, customCategories: customCats } }).eq('id', workspaceId);
+
         const { error } = await supabase
           .from('ecommerce_products')
           .update({ category: 'General' })
@@ -272,10 +323,12 @@ export default function ProductsManager() {
         <div>
           <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
             <span className="w-2.5 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full inline-block"></span>
-            Combos, Paquetes & Categorías
+            {activeTab === 'categories' ? 'Categorías del Catálogo' : 'Combos & Paquetes Promocionales'}
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gestiona los paquetes promocionales y clasifica los productos de tu catálogo en un solo lugar.
+            {activeTab === 'categories'
+              ? 'Organiza los departamentos y rubros de tu negocio para que aparezcan en el POS Kiosco y el Inventario.'
+              : 'Diseña combos especiales, ofertas 2x1 y paquetes con descuento para tus clientes.'}
           </p>
         </div>
 

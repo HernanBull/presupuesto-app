@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 const initialInventory = [];
@@ -8,6 +8,7 @@ const initialInventory = [];
 export default function InventoryManager() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState(initialInventory);
+  const [customCategories, setCustomCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -78,6 +79,14 @@ export default function InventoryManager() {
         .eq('workspace_id', workspaceId)
         .order('name', { ascending: true });
         
+      // Cargar categorías configuradas en la tienda
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const rawCustom = ws?.config?.customCategories || ws?.config?.categories || [];
+      const validCats = Array.isArray(rawCustom)
+        ? rawCustom.map(c => typeof c === 'string' ? c : c.name).filter(Boolean)
+        : [];
+      setCustomCategories(validCats);
+
       if (!error && data) {
         setInventory(data.map(p => ({
           ...p,
@@ -238,9 +247,12 @@ export default function InventoryManager() {
   };
 
   const availableCategories = useMemo(() => {
-    const cats = new Set(inventory.map(i => i.category || 'General').filter(Boolean));
+    const cats = new Set([
+      ...customCategories,
+      ...inventory.map(i => i.category || 'General').filter(Boolean)
+    ]);
     return ['Todas', ...Array.from(cats).sort()];
-  }, [inventory]);
+  }, [inventory, customCategories]);
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = 
@@ -521,6 +533,18 @@ export default function InventoryManager() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Controla existencias, órdenes de compra y márgenes de ganancia.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/categories')}
+            className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm cursor-pointer"
+            title="Gestionar departamentos y categorías de la tienda"
+          >
+            <FolderTree size={16} className="text-amber-500" />
+            <span className="hidden sm:inline">Categorías</span>
+            <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-400 font-black px-1.5 py-0.5 rounded-full">
+              {availableCategories.filter(c => c !== 'Todas').length}
+            </span>
+          </button>
           <button onClick={handleExportCSV} className="hidden sm:flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
             Exportar
           </button>
@@ -692,7 +716,35 @@ export default function InventoryManager() {
         {/* Vista móvil: tarjetas */}
         <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {filteredInventory.length === 0 ? (
-            <div className="py-10 text-center text-slate-500 text-sm">No se encontraron registros.</div>
+            <div className="py-12 px-4 text-center max-w-sm mx-auto flex flex-col items-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-3">
+                <FolderTree size={24} />
+              </div>
+              <p className="font-extrabold text-sm text-slate-800 dark:text-white">
+                {searchTerm || categoryFilter !== 'Todas' ? 'Sin resultados para los filtros' : 'Tu inventario está en blanco'}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
+                {searchTerm || categoryFilter !== 'Todas' ? 'Prueba cambiando los términos de búsqueda.' : 'Crea tus categorías para clasificar tus productos o registra tu primer artículo.'}
+              </p>
+              <div className="flex flex-col w-full gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/categories')}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-200"
+                >
+                  <FolderTree size={14} className="text-amber-500" />
+                  <span>Gestionar Categorías</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEditor()}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20"
+                >
+                  <Plus size={14} />
+                  <span>+ Registrar Entrada</span>
+                </button>
+              </div>
+            </div>
           ) : (
             filteredInventory.map(item => {
               const status = getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate);
@@ -792,8 +844,38 @@ export default function InventoryManager() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="py-8 text-center text-slate-500">
-                    No se encontraron registros en el inventario.
+                  <td colSpan="9" className="py-14 text-center">
+                    <div className="max-w-md mx-auto flex flex-col items-center">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-3">
+                        <FolderTree size={28} />
+                      </div>
+                      <h4 className="font-black text-base text-slate-800 dark:text-white">
+                        {searchTerm || categoryFilter !== 'Todas' ? 'No se encontraron coincidencias' : 'Tu inventario está en blanco'}
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
+                        {searchTerm || categoryFilter !== 'Todas'
+                          ? 'Prueba modificando la búsqueda o el filtro de categoría.'
+                          : 'Crea tus categorías y departamentos para estructurar tu POS Kiosco e Inventario, o registra tu primer producto.'}
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => navigate('/categories')}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          <FolderTree size={15} className="text-amber-500" />
+                          <span>Gestionar Categorías</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditor()}
+                          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/25 active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Plus size={15} />
+                          <span>+ Registrar Entrada</span>
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -941,26 +1023,54 @@ export default function InventoryManager() {
                    />
                  </div>
 
-                 <div className="space-y-2">
-                   <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                     <span>Categoría</span>
-                     <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Elige o escribe una nueva</span>
-                   </label>
-                   <input 
-                     type="text" 
-                     name="category"
-                     list="inventory-categories-datalist"
-                     placeholder="Ej: Alimentos, Bebidas, Limpieza, Farmacia..."
-                     value={formData.category || ''}
-                     onChange={handleInputChange}
-                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white" 
-                   />
-                   <datalist id="inventory-categories-datalist">
-                     {availableCategories.filter(c => c !== 'Todas').map(cat => (
-                       <option key={cat} value={cat} />
-                     ))}
-                   </datalist>
-                 </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                        Categoría *
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cat = window.prompt('Escribe el nombre de la nueva categoría:');
+                          if (cat && cat.trim()) {
+                            const clean = cat.trim();
+                            if (!customCategories.includes(clean)) {
+                              const updated = [...customCategories, clean];
+                              setCustomCategories(updated);
+                              const wsId = localStorage.getItem('activeWorkspace');
+                              if (wsId) {
+                                supabase.from('workspaces').select('config').eq('id', wsId).single().then(({ data: ws }) => {
+                                  const cfg = ws?.config || {};
+                                  supabase.from('workspaces').update({
+                                    config: { ...cfg, customCategories: updated }
+                                  }).eq('id', wsId);
+                                });
+                              }
+                            }
+                            setFormData(prev => ({ ...prev, category: clean }));
+                            toast.success(`Categoría "${clean}" asignada`);
+                          }
+                        }}
+                        className="text-[11px] font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus size={12} /> + Nueva Categoría
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      name="category"
+                      list="inventory-categories-datalist"
+                      placeholder="Ej: Alimentos, Bebidas, Limpieza, Farmacia..."
+                      value={formData.category || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white font-medium" 
+                    />
+                    <datalist id="inventory-categories-datalist">
+                      {availableCategories.filter(c => c !== 'Todas').map(cat => (
+                        <option key={cat} value={cat} />
+                      ))}
+                    </datalist>
+                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-2">
