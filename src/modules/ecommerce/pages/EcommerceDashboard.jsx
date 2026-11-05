@@ -467,7 +467,7 @@ export default function EcommerceDashboard() {
             {/* Conversión Oficial a Bolívares (Bs.) */}
             <div className="mt-2 flex items-center gap-1.5">
               <span className="text-xs font-bold text-white/75 uppercase tracking-wide">Equivalente:</span>
-              <span className="text-lg font-black font-mono text-amber-200 tracking-tight drop-shadow-xs">
+              <span className="text-lg font-black font-mono text-white tracking-tight drop-shadow-xs">
                 {hideFinancials ? '••••••••' : `Bs. ${currentSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
               </span>
             </div>
