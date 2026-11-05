@@ -314,10 +314,10 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       ]
     },
     {
-      id: 'tareas',
-      name: 'Tareas',
-      path: '/preparation',
-      icon: Box
+      id: 'seniat',
+      name: 'Libro SENIAT',
+      path: '/invoicing',
+      icon: FileSpreadsheet
     }
   ];
 

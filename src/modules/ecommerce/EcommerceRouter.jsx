@@ -44,6 +44,7 @@ import MerchantMorePage from './pages/MerchantMorePage';
 import MerchantLoginPage from './pages/MerchantLoginPage';
 import MerchantSubscriptionPage from './pages/MerchantSubscriptionPage';
 import MerchantCashMasterView from './pages/MerchantCashMasterView';
+import FiscalSalesBookPage from './pages/FiscalSalesBookPage';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -416,7 +417,9 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="product-studio" element={<ProductStudio />} />
           <Route path="product-studio/:id" element={<ProductStudio />} />
           <Route path="orders" element={<OrdersManager />} />
-          <Route path="invoicing" element={<UnifiedPosPage />} />
+          <Route path="invoicing" element={<FiscalSalesBookPage />} />
+          <Route path="seniat" element={<FiscalSalesBookPage />} />
+          <Route path="fiscal-book" element={<FiscalSalesBookPage />} />
           <Route path="returns" element={<OrdersManager />} />
           <Route path="coupons" element={<Navigate to="/more" replace />} />
           <Route path="customers" element={<CustomersManager />} />
@@ -425,7 +428,7 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="campaigns" element={<Navigate to="/more" replace />} />
           <Route path="audiences" element={<CustomersManager />} />
           <Route path="support" element={<SupportManager />} />
-          <Route path="preparation" element={<OrderPreparation />} />
+          <Route path="preparation" element={<Navigate to="/invoicing" replace />} />
           <Route path="reviews" element={<ReviewsManager />} />
           <Route path="promotions" element={<Navigate to="/more" replace />} />
           <Route path="offers" element={<OffersManager />} />
