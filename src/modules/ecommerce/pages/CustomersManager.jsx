@@ -296,7 +296,7 @@ export default function CustomersManager() {
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                       customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
                     }`}>
-                      {customer.name.charAt(0)}
+                      {(customer.name || 'C').charAt(0)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
@@ -366,7 +366,7 @@ export default function CustomersManager() {
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                           customer.status === 'VIP' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
                         }`}>
-                          {customer.name.charAt(0)}
+                          {(customer.name || 'C').charAt(0)}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-2">

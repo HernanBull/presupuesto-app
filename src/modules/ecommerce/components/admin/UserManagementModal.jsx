@@ -376,7 +376,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
                                   className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-xs shrink-0 shadow-2xs"
                                   style={{ backgroundColor: u.avatarColor || '#FF6B00' }}
                                 >
-                                  {u.fullName.charAt(0).toUpperCase()}
+                                  {(u.fullName || 'U').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
                                   <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">

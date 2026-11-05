@@ -1347,7 +1347,7 @@ export default function MerchantSocialFeedPage() {
                             <img src={storeLogo} alt="Logo" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center font-bold text-[9px] text-black">
-                              {storeName.charAt(0)}
+                              {(storeName || 'A').charAt(0)}
                             </div>
                           )}
                         </div>

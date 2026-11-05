@@ -22,6 +22,12 @@ window.__axonPurgeCache = async () => {
   window.location.reload();
 };
 
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  console.warn('[Axon] Error en carga diferida de módulo. Recargando aplicación...');
+  window.location.reload();
+});
+
 const checkVersion = async () => {
   try {
     const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -30,7 +36,7 @@ const checkVersion = async () => {
       const storedVersion = localStorage.getItem(APP_BUILD_KEY);
 
       if (storedVersion && storedVersion !== data.version) {
-        console.log(`[AxonPWA] Versión nueva detectada (${storedVersion} -> ${data.version}). Limpiando caché...`);
+        console.log(`[AxonPWA] Versión nueva detectada (${storedVersion} -> ${data.version}). Sincronizando...`);
         localStorage.setItem(APP_BUILD_KEY, data.version);
         
         // 1. Unregister all Service Workers
@@ -51,11 +57,8 @@ const checkVersion = async () => {
           } catch(e) {}
         }
         
-        // 3. Force Hard Reload
-        document.body.innerHTML = '<div style="height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; background: #f8fafc; color: #0f172a; font-family: sans-serif; font-size: 1.1rem; font-weight: bold; flex-direction: column; gap: 12px;"><span>Actualizando a la última versión...</span><span style="font-size: 0.85rem; color: #f59e0b;">Cargando nuevo diseño Luminous White</span></div>';
-        setTimeout(() => {
-          window.location.replace(window.location.href);
-        }, 400);
+        // 3. Recargar suavemente a la nueva versión
+        window.location.reload();
         return;
       }
 
@@ -67,11 +70,13 @@ const checkVersion = async () => {
     console.warn('Failed to check version', err);
   }
 
-  // Force the Service Worker itself to check for updates
+  // Force the Service Worker itself to check for updates cleanly without throwing unhandled rejection
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistration().then(reg => {
-      if (reg) reg.update();
-    });
+      if (reg) {
+        reg.update().catch(() => {});
+      }
+    }).catch(() => {});
   }
 };
 

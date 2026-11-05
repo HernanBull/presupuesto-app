@@ -848,7 +848,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                   {storeLogo ? (
                     <img src={storeLogo} alt={storeName} className="w-full h-full object-cover" />
                   ) : (
-                    storeName.charAt(0).toUpperCase()
+                    (storeName || 'A').charAt(0).toUpperCase()
                   )}
                 </div>
                 <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-orange-600" />
@@ -1289,10 +1289,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       />
 
       {/* Centro de Control Maestro: Personal, Cajas y PINes */}
-      <UserManagementModal
-        isOpen={isUserManagementModalOpen}
-        onClose={() => setIsUserManagementModalOpen(false)}
-      />
+      {isUserManagementModalOpen && (
+        <UserManagementModal
+          isOpen={isUserManagementModalOpen}
+          onClose={() => setIsUserManagementModalOpen(false)}
+        />
+      )}
 
     </div>
   );

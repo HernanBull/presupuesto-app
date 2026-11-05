@@ -49,9 +49,87 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <title>AxonMarket</title>
+
+    <!-- ═══ Auto-recuperación ante Desincronización de Caché y Chunks ═══ -->
+    <script>
+      window.addEventListener('vite:preloadError', function(e) {
+        e.preventDefault();
+        console.warn('[Axon] Recargando por actualización de módulos...');
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var r of regs) r.unregister();
+          }).finally(function() {
+            window.location.reload();
+          });
+        } else {
+          window.location.reload();
+        }
+      });
+
+      window.addEventListener('error', function(e) {
+        var msg = (e && e.message) ? e.message.toLowerCase() : '';
+        if (msg.includes('dynamically imported module') || msg.includes('loading module')) {
+          e.preventDefault();
+          if (!sessionStorage.getItem('axon_chunk_reloaded')) {
+            sessionStorage.setItem('axon_chunk_reloaded', '1');
+            if ('caches' in window) {
+              caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              }).finally(function() {
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
+            }
+          }
+        }
+      });
+    </script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-[#09090b] text-white">
+    <div id="root">
+      <!-- Pantalla de arranque de alta velocidad anti-pantallazo blanco -->
+      <div id="axon-boot-loader" style="position:fixed;inset:0;background:#09090b;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;z-index:999999;gap:16px;">
+        <div style="width:44px;height:44px;border:3px solid rgba(249,115,22,0.2);border-top-color:#ea580c;border-radius:50%;animation:axon-spin 0.75s linear infinite;"></div>
+        <div style="color:#e2e8f0;font-size:14px;font-weight:700;letter-spacing:0.3px;">Iniciando AxonMarket...</div>
+        <button id="axon-force-reload-btn" onclick="window.__axonHardReset && window.__axonHardReset()" style="display:none;margin-top:8px;padding:8px 18px;background:#ea580c;color:#fff;border:none;border-radius:12px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(234,88,12,0.3);">
+          Limpiar caché y reintentar
+        </button>
+        <style>@keyframes axon-spin { to { transform: rotate(360deg); } }</style>
+      </div>
+    </div>
+    
+    <script>
+      window.__axonHardReset = function() {
+        try { localStorage.removeItem('axon_installed_version'); } catch(e) {}
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var r of regs) r.unregister();
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function(keys) {
+            for (var k of keys) caches.delete(k);
+          });
+        }
+        setTimeout(function() {
+          window.location.href = window.location.origin + window.location.pathname + '?r=' + Date.now();
+        }, 300);
+      };
+
+      // Watchdog: si el boot-loader no ha sido reemplazado por React en 4.5s
+      setTimeout(function() {
+        var loader = document.getElementById('axon-boot-loader');
+        if (loader && document.getElementById('root')?.contains(loader)) {
+          var btn = document.getElementById('axon-force-reload-btn');
+          if (btn) btn.style.display = 'block';
+          if (!sessionStorage.getItem('axon_auto_boot_retry')) {
+            sessionStorage.setItem('axon_auto_boot_retry', '1');
+            window.__axonHardReset();
+          }
+        }
+      }, 4500);
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

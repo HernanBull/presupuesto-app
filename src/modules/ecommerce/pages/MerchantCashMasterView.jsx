@@ -488,13 +488,15 @@ export default function MerchantCashMasterView() {
       )}
 
       {/* Modal Creador y Editor de Personal & Cajas Registradoras */}
-      <UserManagementModal
-        isOpen={isUserManagementModalOpen}
-        onClose={() => {
-          setIsUserManagementModalOpen(false);
-          fetchMerchantCashData();
-        }}
-      />
+      {isUserManagementModalOpen && (
+        <UserManagementModal
+          isOpen={isUserManagementModalOpen}
+          onClose={() => {
+            setIsUserManagementModalOpen(false);
+            fetchMerchantCashData();
+          }}
+        />
+      )}
 
     </div>
   );
