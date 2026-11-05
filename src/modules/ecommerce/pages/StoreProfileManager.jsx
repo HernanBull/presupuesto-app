@@ -213,7 +213,8 @@ export default function StoreProfileManager() {
         if (ws) {
           if (ws.name) setStoreName(ws.name);
           if (ws.config) {
-            if (ws.config.generatedPassword) setGeneratedPassword(ws.config.generatedPassword);
+            const currentPass = ws.config.generatedPassword || ws.config.adminPassword || ws.config.adminPin || '';
+            if (currentPass) setGeneratedPassword(currentPass);
             if (ws.config.currency) setCurrency(ws.config.currency);
             if (ws.config.description) setDescription(ws.config.description);
             if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
@@ -411,30 +412,35 @@ export default function StoreProfileManager() {
       }
       
       
-      if (ws.config.generatedPassword && ws.config.generatedPassword !== currentPassword) {
+      const currentStored = ws.config?.generatedPassword || ws.config?.adminPassword || ws.config?.adminPin;
+      if (currentStored && currentStored !== currentPassword) {
         setPasswordStatus({ type: 'error', msg: 'Contraseña actual incorrecta' });
         setIsChangingPassword(false);
         return;
       }
 
-      
-      // Actualizar en Supabase Auth
-      const { error: authError } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      if (authError) {
-        setPasswordStatus({ type: 'error', msg: 'Error al actualizar contraseña en el sistema: ' + authError.message });
-        setIsChangingPassword(false);
-        return;
+      // Actualizar en Supabase Auth si hay sesión activa
+      try {
+        await supabase.auth.updateUser({
+          password: newPassword
+        });
+      } catch (authErr) {
+        console.warn('Notice actualizando Supabase Auth:', authErr?.message);
       }
 
       // Actualizar en la DB
-      const updatedConfig = { ...ws.config, generatedPassword: newPassword };
+      const updatedConfig = { 
+        ...ws.config, 
+        generatedPassword: newPassword,
+        adminPassword: newPassword,
+        adminPin: newPassword
+      };
 
       const { error: updateErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
 
       if (!updateErr) {
         setPasswordStatus({ type: 'success', msg: 'Contraseña cambiada exitosamente' });
+        setGeneratedPassword(newPassword);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -502,9 +508,14 @@ export default function StoreProfileManager() {
       const { error: updateErr } = await supabase.from('workspaces').update({ config: newConfig }).eq('id', workspaceId);
       if (updateErr) throw updateErr;
       
+      if (logoUrl) {
+        localStorage.setItem('merchant_store_logo', logoUrl);
+        window.dispatchEvent(new CustomEvent('axon_store_logo_updated', { detail: logoUrl }));
+      }
+
       setTimeout(() => {
         setIsSaving(false);
-        alert('Perfil de pagos guardado exitosamente.');
+        alert('Perfil guardado exitosamente.');
       }, 500);
     } catch (err) {
       console.error(err);

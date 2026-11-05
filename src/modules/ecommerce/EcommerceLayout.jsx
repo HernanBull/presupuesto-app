@@ -25,6 +25,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [storeName, setStoreName] = useState(() => localStorage.getItem('merchant_store_name') || 'Mi Comercio');
+  const [storeLogo, setStoreLogo] = useState(() => localStorage.getItem('merchant_store_logo') || '');
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
@@ -225,6 +226,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
             if (data.name) localStorage.setItem('merchant_store_name', data.name);
 
+            const rawLogo = data.config?.logoUrl || data.config?.storefront?.logoUrl || '';
+            if (rawLogo) {
+              setStoreLogo(rawLogo);
+              localStorage.setItem('merchant_store_logo', rawLogo);
+            }
+
             // Verificar si el período de prueba de 7 días ya culminó
             const trialEndStr = data.config?.trialEndsAt;
             if (trialEndStr) {
@@ -358,12 +365,11 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       .filter(Boolean);
   }, [searchQuery, menuSections]);
 
-  // Enlaces secundarios inferiores
+  // Enlaces secundarios inferiores (Apps removido a petición)
   const bottomUtilityItems = [
     { name: 'Sucursales', path: '/location', icon: Building2 },
     { name: 'Notificaciones', path: '/notifications', icon: Bell },
     { name: 'Equipo', path: '/support', icon: Users },
-    { name: 'Apps', path: '/storefront', icon: LayoutGrid },
     { name: 'Configuración', path: '/store-profile', icon: Settings },
   ];
 
@@ -535,14 +541,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                   title="Vender · Mostrador POS"
                   className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer ${
                     currentView === 'pos'
-                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
-                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                      ? 'bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 font-bold border border-orange-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-orange-600 hover:bg-orange-50/50 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  <div className={`p-1.5 rounded-xl ${currentView === 'pos' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-zinc-400'}`}>
+                  <div className={`p-1.5 rounded-xl ${currentView === 'pos' ? 'bg-orange-500 text-white shadow-xs' : 'text-slate-600 dark:text-zinc-400'}`}>
                     <Calculator size={20} strokeWidth={2.2} />
                   </div>
-                  <span className={`text-[11px] font-bold ${currentView === 'pos' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                  <span className={`text-[11px] font-bold ${currentView === 'pos' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                     Vender
                   </span>
                 </button>
@@ -553,17 +559,17 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                   title="Pedidos y Entregas"
                   className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group relative ${
                     currentView === 'orders'
-                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
-                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                      ? 'bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 font-bold border border-orange-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-orange-600 hover:bg-orange-50/50 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  <Receipt size={20} className="group-hover:scale-110 transition-transform text-slate-600 dark:text-zinc-400" />
+                  <Receipt size={20} className={currentView === 'orders' ? 'text-orange-600 dark:text-orange-400' : 'group-hover:scale-110 group-hover:text-orange-600 transition-transform text-slate-600 dark:text-zinc-400'} />
                   {pendingOrdersCount > 0 && (
                     <span className="absolute top-2 right-3 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center animate-pulse">
                       {pendingOrdersCount}
                     </span>
                   )}
-                  <span className={`text-[11px] font-bold ${currentView === 'orders' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                  <span className={`text-[11px] font-bold ${currentView === 'orders' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                     Pedidos
                   </span>
                 </button>
@@ -574,12 +580,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                   title="Caja, Turnos y Arqueos"
                   className={`w-full py-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group ${
                     currentView === 'shifts'
-                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/80 shadow-xs'
-                      : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                      ? 'bg-orange-50 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 font-bold border border-orange-200/80 shadow-xs'
+                      : 'text-slate-500 hover:text-orange-600 hover:bg-orange-50/50 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  <DollarSign size={20} className="group-hover:scale-110 transition-transform text-slate-600 dark:text-zinc-400" />
-                  <span className={`text-[11px] font-bold ${currentView === 'shifts' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                  <DollarSign size={20} className={currentView === 'shifts' ? 'text-orange-600 dark:text-orange-400' : 'group-hover:scale-110 group-hover:text-orange-600 transition-transform text-slate-600 dark:text-zinc-400'} />
+                  <span className={`text-[11px] font-bold ${currentView === 'shifts' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                     Caja
                   </span>
                 </button>
@@ -587,17 +593,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             );
           })()}
 
-          {/* 3. Bottom: Video y Botón Salir */}
+          {/* 3. Bottom: Botón Salir */}
           <div className="flex flex-col items-center gap-3 w-full px-2">
-            <button
-              onClick={() => toast('Tutorial de uso de POS Kiosco', { icon: '📹' })}
-              title="Video Tutorial"
-              className="w-full py-2 rounded-xl flex flex-col items-center justify-center gap-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
-            >
-              <PlayCircle size={20} strokeWidth={2} />
-              <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400">Video</span>
-            </button>
-
             <button
               onClick={() => {
                 if (isCashier) {
@@ -643,8 +640,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             className="bg-white/10 hover:bg-white/15 border border-white/15 backdrop-blur-md rounded-2xl p-2.5 flex items-center justify-between transition-all cursor-pointer group shadow-xs"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-sm shrink-0 border border-white/20 group-hover:scale-105 transition-transform">
-                <Store size={18} />
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-sm shrink-0 border border-white/20 group-hover:scale-105 transition-transform overflow-hidden shadow-xs">
+                {storeLogo ? (
+                  <img src={storeLogo} alt={storeName} className="w-full h-full object-cover rounded-xl" />
+                ) : (
+                  <Store size={18} />
+                )}
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm font-extrabold text-white truncate leading-tight">
@@ -827,8 +828,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           <div className="mx-3.5 pt-2 border-t border-white/15 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="relative shrink-0">
-                <div className="w-8 h-8 rounded-full bg-white text-orange-600 font-black text-xs flex items-center justify-center shadow-xs border border-white/30">
-                  {storeName.charAt(0).toUpperCase()}
+                <div className="w-8 h-8 rounded-full bg-white text-orange-600 font-black text-xs flex items-center justify-center shadow-xs border border-white/30 overflow-hidden">
+                  {storeLogo ? (
+                    <img src={storeLogo} alt={storeName} className="w-full h-full object-cover" />
+                  ) : (
+                    storeName.charAt(0).toUpperCase()
+                  )}
                 </div>
                 <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-orange-600" />
               </div>
