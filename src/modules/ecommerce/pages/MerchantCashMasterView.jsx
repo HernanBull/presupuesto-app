@@ -74,7 +74,7 @@ export default function MerchantCashMasterView() {
       const { data: shiftsData, error: shiftsErr } = await supabase
         .from('cash_shifts')
         .select('*')
-        .or(`workspace_id.eq.${workspaceId},branch_id.eq.${workspaceId}`)
+        .eq('branch_id', workspaceId)
         .order('opened_at', { ascending: false })
         .limit(60);
 

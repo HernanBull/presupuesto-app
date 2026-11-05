@@ -118,11 +118,13 @@ export default function UserManagementModal({ isOpen, onClose }) {
     const activeWs = localStorage.getItem('activeWorkspace');
     if (activeWs) {
       try {
-        const { data: sData } = await supabase
+        const { data: sData, error: sErr } = await supabase
           .from('cash_shifts')
           .select('*')
-          .or(`branch_id.eq.${activeWs},workspace_id.eq.${activeWs}`)
+          .eq('branch_id', activeWs)
           .eq('status', 'OPEN');
+
+        if (sErr) console.warn('Aviso cargando turnos:', sErr);
         setActiveShifts(sData || []);
       } catch (errShifts) {
         console.warn('Advertencia cargando turnos en modal de usuarios:', errShifts);
