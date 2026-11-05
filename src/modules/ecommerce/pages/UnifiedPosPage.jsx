@@ -1632,21 +1632,32 @@ export default function UnifiedPosPage() {
                   </p>
                 </div>
 
-                {activeShift.status === 'ABIERTO' ? (
+                <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
                   <button 
-                    onClick={() => setIsCorteXModalOpen(true)}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-2 self-start sm:self-auto"
+                    onClick={() => navigate('/cash-master')}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-800 dark:text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200/80 dark:border-white/10"
+                    title="Ir al monitor consolidado de todas las cajas registradoras"
                   >
-                    <Printer size={15} /> Imprimir Corte X
+                    <Wallet size={15} className="text-orange-500" />
+                    <span>Caja Maestra Consolidada</span>
                   </button>
-                ) : (
-                  <button 
-                    onClick={() => setIsOpenShiftModalOpen(true)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-2 self-start sm:self-auto"
-                  >
-                    <Plus size={15} /> Abrir Nuevo Turno
-                  </button>
-                )}
+
+                  {activeShift.status === 'ABIERTO' ? (
+                    <button 
+                      onClick={() => setIsCorteXModalOpen(true)}
+                      className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-2"
+                    >
+                      <Printer size={15} /> Imprimir Corte X
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setIsOpenShiftModalOpen(true)}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-2 self-start sm:self-auto"
+                    >
+                      <Plus size={15} /> Abrir Nuevo Turno
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Métricas Principales de Fondos y Ventas */}

@@ -43,6 +43,7 @@ import QuickCashRegisterPage from './pages/QuickCashRegisterPage';
 import MerchantMorePage from './pages/MerchantMorePage';
 import MerchantLoginPage from './pages/MerchantLoginPage';
 import MerchantSubscriptionPage from './pages/MerchantSubscriptionPage';
+import MerchantCashMasterView from './pages/MerchantCashMasterView';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
@@ -395,6 +396,8 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           {/* Rutas Principales de Operación (Acceso directo sin bloqueo por PIN) */}
           <Route path="dashboard" element={<EcommerceDashboard />} />
           <Route path="pos" element={<UnifiedPosPage />} />
+          <Route path="cash-master" element={<MerchantCashMasterView />} />
+          <Route path="caja-maestra" element={<MerchantCashMasterView />} />
           <Route path="shifts" element={<UnifiedPosPage />} />
           <Route path="credits" element={<UnifiedPosPage />} />
           <Route path="setup" element={<OnboardingChecklistPage />} />

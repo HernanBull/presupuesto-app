@@ -103,7 +103,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   // Auto-expandir el menú correspondiente a la ruta actual
   useEffect(() => {
     const path = location.pathname;
-    if (['/orders', '/invoicing', '/returns', '/pos', '/shifts', '/coupons'].includes(path)) {
+    if (['/orders', '/invoicing', '/returns', '/pos', '/shifts', '/coupons', '/cash-master', '/caja-maestra'].includes(path)) {
       setOpenMenus(prev => ({ ...prev, ventas: true }));
     } else if (['/inventory', '/stock', '/combos', '/categories', '/products', '/offers', '/prices', '/goods-receipt'].includes(path)) {
       setOpenMenus(prev => ({ ...prev, inventario: true }));
@@ -289,6 +289,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       items: [
         { name: 'Órdenes', path: '/orders' },
         { name: 'POS Kiosco', path: '/pos', isPos: true },
+        { name: 'Caja Maestra', path: '/cash-master', badge: 'Global' },
         { name: 'Caja & Turnos', path: '/shifts' },
       ]
     },
@@ -323,6 +324,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   const isSubItemActive = (subPath, currentPath) => {
     if (currentPath === subPath) return true;
+    if (subPath === '/cash-master' && (currentPath === '/cash-master' || currentPath === '/caja-maestra')) return true;
     if (subPath === '/combos' && (currentPath === '/categories' || currentPath === '/products')) return true;
     if (subPath === '/inventory' && (currentPath === '/stock' || currentPath === '/prices' || currentPath === '/goods-receipt')) return true;
     if (subPath === '/orders' && currentPath === '/returns') return true;
