@@ -50,6 +50,10 @@ export default function CashShiftModal({
   const [openInitialUsd, setOpenInitialUsd] = useState('50.00');
   const [openInitialVes, setOpenInitialVes] = useState('1000.00');
 
+  // Fusión: Registro inmediato de nueva caja desde apertura de turno
+  const [isCreatingNewRegInline, setIsCreatingNewRegInline] = useState(false);
+  const [inlineRegName, setInlineRegName] = useState('');
+
   // Arqueo Ciego
   const [actualUsd, setActualUsd] = useState('');
   const [actualVes, setActualVes] = useState('');
@@ -140,11 +144,36 @@ export default function CashShiftModal({
   const expectedUsd = initialUsd + shiftTotals.cashUsd + totalInUsd - totalOutUsd;
   const expectedVes = initialVes + shiftTotals.cashVes + totalInVes - totalOutVes;
 
-  // Apertura de nuevo turno
+  // Apertura de nuevo turno (Fusionada con creación de caja si aplica)
   const handleOpenShift = async () => {
+    let finalRegisterName = openRegisterName;
+
+    if (isCreatingNewRegInline) {
+      if (!inlineRegName.trim()) {
+        toast.error('Ingrese el nombre de la nueva caja.');
+        return;
+      }
+      finalRegisterName = inlineRegName.trim();
+
+      // Guardar automáticamente la nueva caja en el sistema
+      try {
+        await authService.saveCashRegister({
+          name: finalRegisterName,
+          defaultFloatUsd: parseFloat(openInitialUsd) || 0,
+          defaultFloatVes: parseFloat(openInitialVes) || 0,
+          defaultCashier: openCashierName
+        });
+        const updatedRegs = await authService.getCashRegisters();
+        setAvailableRegisters(updatedRegs.filter(r => r.isActive));
+        setIsCreatingNewRegInline(false);
+      } catch (errReg) {
+        console.warn('Advertencia guardando nueva caja:', errReg);
+      }
+    }
+
     const newShift = {
       id: `shift-${Date.now()}`,
-      registerName: openRegisterName,
+      registerName: finalRegisterName,
       cashierName: openCashierName,
       initialUsd: parseFloat(openInitialUsd) || 0,
       initialVes: parseFloat(openInitialVes) || 0,
@@ -172,7 +201,7 @@ export default function CashShiftModal({
       if (activeWs) {
         await supabase.from('cash_shifts').insert([{
           branch_id: activeWs,
-          register_name: openRegisterName,
+          register_name: finalRegisterName,
           cashier_name: openCashierName,
           opened_at: newShift.openedAt,
           initial_usd: newShift.initialUsd,
@@ -182,7 +211,8 @@ export default function CashShiftModal({
           status: 'OPEN',
           notes: JSON.stringify({
             bcvRate: Number(bcvRate) || 888.89,
-            storeName
+            storeName,
+            fusedCreation: isCreatingNewRegInline
           })
         }]);
       }
@@ -446,20 +476,52 @@ export default function CashShiftModal({
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Caja Registradora</label>
-                      <select
-                        value={openRegisterName}
-                        onChange={e => setOpenRegisterName(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
-                      >
-                        {registers.length > 0 ? (
-                          registers.map(r => (
-                            <option key={r.id} value={r.name}>{r.name}</option>
-                          ))
-                        ) : (
-                          <option value="Caja 1 - Principal">Caja 1 - Principal</option>
-                        )}
-                      </select>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block">
+                          Caja Registradora
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCreatingNewRegInline(prev => !prev);
+                            if (!isCreatingNewRegInline && !inlineRegName) {
+                              setInlineRegName(`Caja ${registers.length + 1}`);
+                            }
+                          }}
+                          className="text-[10px] font-black text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                        >
+                          {isCreatingNewRegInline ? '← Seleccionar existente' : '+ Registrar Nueva Caja'}
+                        </button>
+                      </div>
+
+                      {isCreatingNewRegInline ? (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={inlineRegName}
+                            onChange={e => setInlineRegName(e.target.value)}
+                            placeholder="Nombre de la nueva caja (Ej. Caja 2 - Terraza)"
+                            className="w-full bg-orange-50/50 dark:bg-zinc-800 border border-orange-500/70 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                          />
+                          <p className="text-[9px] text-orange-600 font-medium">
+                            Se registrará la caja y se abrirá el turno en un solo paso.
+                          </p>
+                        </div>
+                      ) : (
+                        <select
+                          value={openRegisterName}
+                          onChange={e => setOpenRegisterName(e.target.value)}
+                          className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
+                        >
+                          {registers.length > 0 ? (
+                            registers.map(r => (
+                              <option key={r.id} value={r.name}>{r.name}</option>
+                            ))
+                          ) : (
+                            <option value="Caja 1 - Principal">Caja 1 - Principal</option>
+                          )}
+                        </select>
+                      )}
                     </div>
 
                     <div>
@@ -468,14 +530,23 @@ export default function CashShiftModal({
                         type="number"
                         step="0.01"
                         value={openInitialUsd}
-                        onChange={e => setOpenInitialUsd(e.target.value)}
+                        onChange={e => {
+                          const usd = e.target.value;
+                          setOpenInitialUsd(usd);
+                          if (!isNaN(usd) && usd !== '') {
+                            setOpenInitialVes((parseFloat(usd) * (Number(bcvRate) || 894.89)).toFixed(2));
+                          }
+                        }}
                         placeholder="50.00"
                         className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Fondo Inicial en Bolívares (Bs.)</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block">Fondo Inicial en Bolívares (Bs.)</label>
+                        <span className="text-[9px] text-orange-600 font-mono font-bold">BCV: {Number(bcvRate).toFixed(2)}</span>
+                      </div>
                       <input
                         type="number"
                         step="0.01"
@@ -492,7 +563,7 @@ export default function CashShiftModal({
                     className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <CheckCircle2 size={16} />
-                    <span>Iniciar Turno de Caja Ahora</span>
+                    <span>{isCreatingNewRegInline ? 'Crear Caja e Iniciar Turno Ahora' : 'Iniciar Turno de Caja Ahora'}</span>
                   </button>
                 </div>
               )}
@@ -780,25 +851,60 @@ export default function CashShiftModal({
           {/* TAB 4: MONITOR MULTI-CAJAS */}
           {activeTab === 'registers' && (
             <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">
-                Terminales Configuradas en el Comercio ({registers.length}):
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+                  Terminales Configuradas en el Comercio ({registers.length}):
+                </h4>
+                <button
+                  onClick={() => {
+                    setActiveTab('status');
+                    setIsCreatingNewRegInline(true);
+                    setInlineRegName(`Caja ${registers.length + 1}`);
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <PlusCircle size={13} />
+                  <span>+ Nueva Caja</span>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {registers.map(reg => (
-                  <div key={reg.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-2xs">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-1.5">
-                        <Monitor size={15} className="text-orange-500" />
-                        {reg.name}
-                      </span>
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${reg.id === activeShift?.registerId || reg.name === activeShift?.registerName ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-                        {reg.id === activeShift?.registerId || reg.name === activeShift?.registerName ? 'En Uso (Tu Caja)' : 'Disponible'}
-                      </span>
+                {registers.map(reg => {
+                  const isCurrentActive = reg.id === activeShift?.registerId || reg.name === activeShift?.registerName;
+
+                  return (
+                    <div key={reg.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-2xs flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+                            <Monitor size={15} className="text-orange-500" />
+                            {reg.name}
+                          </span>
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${isCurrentActive ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-500'}`}>
+                            {isCurrentActive ? 'En Servicio (Tu Caja)' : 'Disponible'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Código: {reg.code} • Sucursal: {reg.branchId || 'Principal'}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                          Fondo base: ${reg.defaultFloatUsd || 50} / Bs. {(Number(reg.defaultFloatVes) || (Number(reg.defaultFloatUsd || 50) * (Number(bcvRate) || 894.89))).toLocaleString('es-VE')}
+                        </p>
+                      </div>
+
+                      {!isCurrentActive && (
+                        <button
+                          onClick={() => {
+                            setOpenRegisterName(reg.name);
+                            setIsCreatingNewRegInline(false);
+                            setActiveTab('status');
+                          }}
+                          className="mt-3 w-full py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-[11px] font-bold text-center cursor-pointer transition-colors"
+                        >
+                          Abrir Turno en esta Caja →
+                        </button>
+                      )}
                     </div>
-                    <p className="text-[11px] text-slate-400">Código: {reg.code} • Sucursal: {reg.branchId || 'Principal'}</p>
-                    <p className="text-[11px] text-slate-400 mt-1">Fondo predeterminado: ${reg.defaultFloatUsd || 50} / Bs. {reg.defaultFloatVes || 1000}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

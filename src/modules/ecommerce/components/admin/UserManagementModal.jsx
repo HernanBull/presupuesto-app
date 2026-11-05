@@ -31,6 +31,8 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { authService, ROLE_PERMISSIONS, PERMISSION_DEFINITIONS } from '../../services/authService';
+import { supabase } from '../../../../supabaseClient';
+import { offlineDb } from '../../services/offlineSyncService';
 import ChangeMasterPinModal from './ChangeMasterPinModal';
 import toast from 'react-hot-toast';
 
@@ -69,15 +71,19 @@ export default function UserManagementModal({ isOpen, onClose }) {
   });
   const [showFormPin, setShowFormPin] = useState(false);
 
-  // Sub-modal para Crear / Editar Caja
+  // Sub-modal para Crear / Editar Caja (Fusionada con Apertura de Turno)
   const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
+  const [bcvRate, setBcvRate] = useState(894.89);
+  const [activeShifts, setActiveShifts] = useState([]);
   const [regFormData, setRegFormData] = useState({
     id: null,
     code: '',
     name: '',
     branchId: 'SUC-01',
+    defaultCashier: 'yende',
     defaultFloatUsd: 50.0,
-    defaultFloatVes: 1000.0
+    defaultFloatVes: 1000.0,
+    openShiftNow: true // Fusión: Abrir turno de una vez al registrar la caja
   });
 
   // Visibilidad de PINes en la tabla
@@ -101,6 +107,27 @@ export default function UserManagementModal({ isOpen, onClose }) {
     setRegisters(rList);
     const aList = await authService.getAuditLogs();
     setAuditLogs(aList);
+
+    // Obtener tasa BCV oficial
+    fetch('https://axonmarket-api.onrender.com/api/bcv')
+      .then(r => r.json())
+      .then(d => { if (d?.rate) setBcvRate(Number(d.rate)); })
+      .catch(() => {});
+
+    // Consultar turnos de caja actualmente abiertos
+    const activeWs = localStorage.getItem('activeWorkspace');
+    if (activeWs) {
+      try {
+        const { data: sData } = await supabase
+          .from('cash_shifts')
+          .select('*')
+          .or(`branch_id.eq.${activeWs},workspace_id.eq.${activeWs}`)
+          .eq('status', 'OPEN');
+        setActiveShifts(sData || []);
+      } catch (errShifts) {
+        console.warn('Advertencia cargando turnos en modal de usuarios:', errShifts);
+      }
+    }
   };
 
   if (!isOpen) return null;
@@ -205,17 +232,80 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
-  // Cajas
+  // Cajas Registradoras (Fusionada con Apertura de Turno)
   const handleSaveRegister = async (e) => {
     e.preventDefault();
     if (!regFormData.name.trim()) {
       toast.error('El nombre de la caja es requerido.');
       return;
     }
-    await authService.saveCashRegister(regFormData);
-    toast.success('Caja guardada con éxito.');
-    setIsRegisterFormOpen(false);
-    loadData();
+
+    try {
+      await authService.saveCashRegister(regFormData);
+
+      // Fusión Operativa: Iniciar turno de inmediato si está marcado
+      if (regFormData.openShiftNow && !regFormData.id) {
+        const activeWs = localStorage.getItem('activeWorkspace');
+        const chosenCashier = regFormData.defaultCashier || (users.find(u => u.role === 'CASHIER')?.fullName) || 'yende';
+        const initUsd = Number(regFormData.defaultFloatUsd) || 0;
+        const initVes = Number(regFormData.defaultFloatVes) || (initUsd * bcvRate);
+
+        if (activeWs) {
+          const shiftRecord = {
+            id: `shift-${Date.now()}`,
+            registerName: regFormData.name,
+            cashierName: chosenCashier,
+            initialUsd: initUsd,
+            initialVes: initVes,
+            openedAt: new Date().toISOString(),
+            status: 'OPEN',
+            bcvRate: Number(bcvRate) || 894.89,
+            salesCount: 0,
+            cashUsd: 0,
+            cashVes: 0,
+            pagoMovil: 0,
+            puntoVenta: 0,
+            zelle: 0,
+            credito: 0,
+            totalSalesUsd: 0,
+            totalSalesVes: 0
+          };
+
+          await offlineDb.cash_shifts.put(shiftRecord);
+          localStorage.setItem('axon_active_shift', JSON.stringify(shiftRecord));
+
+          try {
+            await supabase.from('cash_shifts').insert([{
+              branch_id: activeWs,
+              register_name: regFormData.name,
+              cashier_name: chosenCashier,
+              opened_at: shiftRecord.openedAt,
+              initial_usd: initUsd,
+              initial_ves: initVes,
+              expected_usd: initUsd,
+              expected_ves: initVes,
+              status: 'OPEN',
+              notes: JSON.stringify({
+                bcvRate: Number(bcvRate) || 894.89,
+                autoCreatedWithRegister: true
+              })
+            }]);
+          } catch (errDb) {
+            console.warn('Advertencia registrando turno en Supabase:', errDb);
+          }
+
+          toast.success(`Caja "${regFormData.name}" registrada y Turno iniciado para ${chosenCashier}.`);
+        }
+      } else {
+        toast.success('Caja guardada con éxito.');
+      }
+
+      setIsRegisterFormOpen(false);
+      loadData();
+    } catch (errSave) {
+      console.error('Error guardando caja:', errSave);
+      toast.error('Error al guardar la caja registradora.');
+    }
   };
 
   const handleDeleteRegister = async (r) => {
@@ -485,16 +575,32 @@ export default function UserManagementModal({ isOpen, onClose }) {
           {/* TAB 2: CAJAS REGISTRADORAS */}
           {activeTab === 'registers' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Cajas Registradoras Configuradas ({registers.length})
-                </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                    Cajas Registradoras Configuradas ({registers.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Gestiona tus puntos de cobro, cajeros y abre turnos con fondo bimonetario al instante.
+                  </p>
+                </div>
                 <button
                   onClick={() => {
-                    setRegFormData({ id: null, code: '', name: '', branchId: 'SUC-01', defaultFloatUsd: 50, defaultFloatVes: 1000 });
+                    const defaultCashier = users.find(u => u.role === 'CASHIER')?.fullName || 'yende';
+                    const autoVes = Math.round(50 * bcvRate);
+                    setRegFormData({
+                      id: null,
+                      code: `CAJA-0${registers.length + 1}`,
+                      name: '',
+                      branchId: 'SUC-01',
+                      defaultCashier: defaultCashier,
+                      defaultFloatUsd: 50.0,
+                      defaultFloatVes: autoVes,
+                      openShiftNow: true
+                    });
                     setIsRegisterFormOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95 w-fit"
                 >
                   <Plus size={15} />
                   <span>+ Registrar Nueva Caja</span>
@@ -502,46 +608,85 @@ export default function UserManagementModal({ isOpen, onClose }) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {registers.map(r => (
-                  <div key={r.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
-                        <Monitor size={20} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{r.name}</h4>
-                        <p className="text-xs text-slate-400">Código: {r.code} • Fondo inicial: ${r.defaultFloatUsd || 0}</p>
+                {registers.map(r => {
+                  const liveShift = activeShifts.find(s => 
+                    s.register_name?.toLowerCase() === r.name?.toLowerCase() ||
+                    s.register_name === r.name
+                  );
+                  const isOpenShift = !!liveShift;
+
+                  return (
+                    <div key={r.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs flex flex-col justify-between space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                            isOpenShift 
+                              ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20' 
+                              : 'bg-orange-500/10 text-orange-500'
+                          }`}>
+                            <Monitor size={20} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-black text-slate-900 dark:text-white text-sm">{r.name}</h4>
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                                isOpenShift 
+                                  ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
+                                  : 'bg-slate-100 dark:bg-zinc-700 text-slate-500 dark:text-slate-400'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isOpenShift ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                                {isOpenShift ? 'En Servicio' : 'Cerrada'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400 font-mono mt-0.5">
+                              Código: {r.code} • Base: ${r.defaultFloatUsd || 0} / Bs. {(Number(r.defaultFloatVes) || (Number(r.defaultFloatUsd || 0) * bcvRate)).toLocaleString('es-VE')}
+                            </p>
+                            {isOpenShift && (
+                              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                <span>👤 Cajero activo:</span>
+                                <b>{liveShift.cashier_name}</b>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => setSelectedRegisterForQr(r)}
+                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title="Generar Código QR o Enlace de Acceso Rápido"
+                          >
+                            <QrCode size={14} />
+                            <span className="hidden sm:inline">QR / Link</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setRegFormData({
+                                ...r,
+                                defaultCashier: r.defaultCashier || 'yende',
+                                defaultFloatUsd: r.defaultFloatUsd || 50,
+                                defaultFloatVes: r.defaultFloatVes || 1000,
+                                openShiftNow: false
+                              });
+                              setIsRegisterFormOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-orange-500 cursor-pointer"
+                            title="Editar Caja"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRegister(r)}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
+                            title="Eliminar Caja"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setSelectedRegisterForQr(r)}
-                        className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                        title="Generar Código QR o Enlace de Acceso Rápido"
-                      >
-                        <QrCode size={14} />
-                        <span className="hidden sm:inline">QR / Link</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRegFormData(r);
-                          setIsRegisterFormOpen(true);
-                        }}
-                        className="p-1.5 text-slate-400 hover:text-orange-500"
-                        title="Editar Caja"
-                      >
-                        <Edit2 size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRegister(r)}
-                        className="p-1.5 text-slate-400 hover:text-rose-500"
-                        title="Eliminar Caja"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -759,61 +904,169 @@ export default function UserManagementModal({ isOpen, onClose }) {
         </div>
       )}
 
-      {/* SUB-MODAL: CREAR / EDITAR CAJA */}
+      {/* SUB-MODAL: CREAR / EDITAR CAJA (FUSIÓN TOTAL CON APERTURA DE TURNO) */}
       {isRegisterFormOpen && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-md p-5 space-y-4">
-            <h3 className="text-base font-black text-slate-800 dark:text-white">
-              {regFormData.id ? 'Editar Caja' : 'Nueva Caja Registradora'}
-            </h3>
-            <form onSubmit={handleSaveRegister} className="space-y-3">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-lg p-6 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+                  <Monitor size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    {regFormData.id ? 'Editar Caja Registradora' : 'Registrar Nueva Caja & Turno'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Configura la terminal de venta y sus fondos base bimonetarios.
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsRegisterFormOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRegister} className="space-y-3.5">
+              {/* Nombre de la Caja */}
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1">Nombre de la Caja *</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                  Nombre de la Caja <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
                   value={regFormData.name}
                   onChange={e => setRegFormData({ ...regFormData, name: e.target.value })}
-                  placeholder="Ej. Caja 4 - Terraza"
-                  className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                  placeholder="Ej. Caja 2 - Pasillo / Terraza"
+                  className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Código y Cajero Asignado */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-600 block mb-1">Código Identificador</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                    Código Identificador
+                  </label>
                   <input
                     type="text"
                     value={regFormData.code}
                     onChange={e => setRegFormData({ ...regFormData, code: e.target.value })}
-                    placeholder="CAJA-04"
-                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none"
+                    placeholder="CAJA-02"
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none"
                   />
                 </div>
+
                 <div>
-                  <label className="text-xs font-bold text-slate-600 block mb-1">Fondo Inicial ($)</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                    Cajero Responsable Asignado
+                  </label>
+                  <select
+                    value={regFormData.defaultCashier}
+                    onChange={e => setRegFormData({ ...regFormData, defaultCashier: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none"
+                  >
+                    {users.length > 0 ? (
+                      users.map(u => (
+                        <option key={u.id} value={u.fullName}>
+                          {u.fullName} ({u.role === 'MASTER' ? 'Propietario' : (u.role === 'CASHIER' ? 'Cajero' : u.role)})
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="yende">yende (Cajero)</option>
+                        <option value="Axon (Propietario)">Axon (Propietario)</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Fondos Base Bimonetarios */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block mb-1">
+                    Fondo Inicial Divisas ($)
+                  </label>
                   <input
                     type="number"
+                    step="0.01"
                     value={regFormData.defaultFloatUsd}
-                    onChange={e => setRegFormData({ ...regFormData, defaultFloatUsd: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none"
+                    onChange={e => {
+                      const usd = parseFloat(e.target.value) || 0;
+                      setRegFormData({
+                        ...regFormData,
+                        defaultFloatUsd: usd,
+                        defaultFloatVes: Math.round(usd * bcvRate)
+                      });
+                    }}
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-zinc-300 block">
+                      Fondo Inicial Bolívares (Bs.)
+                    </label>
+                    <span className="text-[10px] text-orange-600 font-bold font-mono">
+                      BCV: {bcvRate.toFixed(2)}
+                    </span>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={regFormData.defaultFloatVes}
+                    onChange={e => setRegFormData({ ...regFormData, defaultFloatVes: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex gap-2 justify-end">
+              {/* Checkbox / Switch: Fusión Directa con Apertura de Turno */}
+              {!regFormData.id && (
+                <div className="p-3.5 bg-orange-50/80 dark:bg-orange-500/10 border border-orange-200/90 dark:border-orange-500/20 rounded-2xl flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="openShiftNow"
+                    checked={regFormData.openShiftNow}
+                    onChange={e => setRegFormData({ ...regFormData, openShiftNow: e.target.checked })}
+                    className="mt-0.5 w-4 h-4 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer accent-orange-600 shrink-0"
+                  />
+                  <label htmlFor="openShiftNow" className="cursor-pointer text-xs">
+                    <span className="font-black text-slate-900 dark:text-white block">
+                      Abrir e Iniciar Turno de Caja Inmediatamente
+                    </span>
+                    <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mt-0.5">
+                      Crea la caja en el sistema y activa automáticamente su turno operativo con este cajero y fondos base para facturar sin pasos dobles.
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* Botones de Acción */}
+              <div className="pt-3 border-t border-slate-100 dark:border-white/5 flex gap-2 justify-end">
                 <button
                   type="button"
                   onClick={() => setIsRegisterFormOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-black bg-orange-500 hover:bg-orange-600 text-white"
+                  className="px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/25 cursor-pointer active:scale-95 transition-all flex items-center gap-1.5"
                 >
-                  Guardar Caja
+                  <CheckCircle2 size={15} />
+                  <span>
+                    {regFormData.openShiftNow && !regFormData.id
+                      ? 'Guardar e Iniciar Turno'
+                      : (regFormData.id ? 'Guardar Cambios' : 'Guardar Caja')}
+                  </span>
                 </button>
               </div>
             </form>
