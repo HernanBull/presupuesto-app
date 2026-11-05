@@ -103,6 +103,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
+          adminPassword: password,
+          adminPin: password,
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),
           plan: 'Prueba 7 Días Gratis',
@@ -204,6 +206,8 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
+          adminPassword: password,
+          adminPin: password,
           ownerName: ownerName.trim() || businessName.trim(),
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),

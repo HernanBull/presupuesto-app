@@ -28,7 +28,16 @@ export default function MerchantLoginPage() {
     e.preventDefault();
     setErrorMessage('');
 
-    const cleanEmail = email.trim().toLowerCase();
+    let cleanEmail = email.trim().toLowerCase();
+    // Normalizar automáticamente errores tipográficos comunes en dominios (ej: gmaill.com -> gmail.com)
+    if (cleanEmail.endsWith('@gmaill.com')) {
+      cleanEmail = cleanEmail.replace('@gmaill.com', '@gmail.com');
+      setEmail(cleanEmail);
+    } else if (cleanEmail.endsWith('@gmial.com')) {
+      cleanEmail = cleanEmail.replace('@gmial.com', '@gmail.com');
+      setEmail(cleanEmail);
+    }
+
     if (!cleanEmail || !password) {
       setErrorMessage('Por favor ingresa tu correo y contraseña.');
       return;
@@ -36,39 +45,67 @@ export default function MerchantLoginPage() {
 
     setLoading(true);
     try {
-      const authData = await loginUser(cleanEmail, password);
-      if (!authData?.user) {
-        throw new Error('Credenciales inválidas. Verifica tu correo o contraseña.');
+      let authData = null;
+      try {
+        authData = await loginUser(cleanEmail, password);
+      } catch (authErr) {
+        console.warn('Supabase Auth login attempt notice:', authErr?.message);
       }
-
-      const userId = authData.user.id;
 
       // Buscar el workspace asociado a este usuario comerciante
       let ws = null;
-      const { data: byId } = await supabase
-        .from('workspaces')
-        .select('id, name, store_slug, status')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (byId) {
-        ws = byId;
-      } else {
-        const { data: byEmail } = await supabase
+      if (authData?.user?.id) {
+        const { data: byId } = await supabase
           .from('workspaces')
-          .select('id, name, store_slug, status')
-          .ilike('config->>adminEmail', cleanEmail)
+          .select('*')
+          .eq('id', authData.user.id)
           .maybeSingle();
-        if (byEmail) ws = byEmail;
+        if (byId) ws = byId;
       }
 
-      const activeWsId = ws?.id || userId;
-      const storeSlug = ws?.store_slug || 'mi-tienda';
+      if (!ws) {
+        const { data: byEmail } = await supabase
+          .from('workspaces')
+          .select('*')
+          .ilike('config->>adminEmail', cleanEmail)
+          .maybeSingle();
+
+        if (byEmail) {
+          const cfg = typeof byEmail.config === 'object' && byEmail.config !== null 
+            ? byEmail.config 
+            : JSON.parse(byEmail.config || '{}');
+          
+          // Si Supabase Auth no autenticó, verificar contra las credenciales del workspace
+          if (!authData?.user) {
+            const validPassword = cfg.adminPassword || cfg.adminPin;
+            if (validPassword && validPassword !== password) {
+              throw new Error('Contraseña incorrecta.');
+            }
+            // Si la contraseña no estaba guardada en el config, sincronizarla ahora
+            if (!validPassword) {
+              const updatedConfig = { ...cfg, adminPassword: password, adminPin: password };
+              await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', byEmail.id);
+            }
+          }
+          ws = byEmail;
+        }
+      }
+
+      if (!ws) {
+        throw new Error('Correo electrónico o contraseña incorrectos.');
+      }
+
+      if (ws.status === 'Suspendido') {
+        throw new Error('Esta tienda se encuentra temporalmente suspendida.');
+      }
+
+      const activeWsId = ws.id;
+      const storeSlug = ws.store_slug || 'mi-tienda';
 
       // Guardar credenciales de comerciante de forma limpia
       localStorage.setItem('activeWorkspace', activeWsId);
       localStorage.setItem('storeSlug', storeSlug);
-      if (ws?.name) {
+      if (ws.name) {
         localStorage.setItem('merchant_store_name', ws.name);
       }
       localStorage.setItem('merchant_onboarding_completed', 'true');
@@ -77,11 +114,11 @@ export default function MerchantLoginPage() {
       localStorage.removeItem('ecommerce_current_customer');
       localStorage.removeItem('ecommerce_user');
 
-      toast.success(`¡Bienvenido de nuevo, ${ws?.name || 'Comerciante'}!`, { icon: '👋' });
+      toast.success(`¡Bienvenido de nuevo, ${ws.name || 'Comerciante'}!`, { icon: '👋' });
 
       // Entrar directamente al Inicio (Dashboard) del comercio
-      const owner = ws?.config?.ownerName || ws?.config?.expediente?.ownerName || ws?.config?.contact?.name || '';
-      if (owner && owner.toLowerCase() !== (ws?.name || '').toLowerCase()) {
+      const owner = ws.config?.ownerName || ws.config?.expediente?.ownerName || ws.config?.contact?.name || '';
+      if (owner && owner.toLowerCase() !== (ws.name || '').toLowerCase()) {
         localStorage.setItem('merchant_owner_name', owner);
       }
       navigate('/dashboard', { replace: true });

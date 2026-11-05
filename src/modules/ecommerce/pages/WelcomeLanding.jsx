@@ -55,7 +55,7 @@ export default function WelcomeLanding() {
       
       {/* 1. HERO SECTION (Limpio y enfocado: máxima visibilidad a la foto de fondo) */}
       <section 
-        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[580px] sm:min-h-[640px] md:min-h-[680px] px-4 sm:px-6 pt-6 pb-24 sm:pb-32 md:pb-40"
+        className="axon-hero-pure-white relative overflow-hidden text-white flex flex-col justify-between min-h-[700px] sm:min-h-[740px] md:min-h-[780px] px-4 sm:px-6 pt-6 pb-28 sm:pb-36 md:pb-40"
         style={{
           background: 'linear-gradient(rgba(0, 0, 0, 0.52), rgba(0, 0, 0, 0.72)), url(/landing-hero.jpg) center center / cover no-repeat',
         }}
@@ -130,7 +130,7 @@ export default function WelcomeLanding() {
           </div>
 
           {/* Tasa Oficial BCV en el Hero */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
+          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl mt-36 sm:mt-40">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>

@@ -68,13 +68,16 @@ export default function SocialFeedCard({
   // Estados síncronos iniciales para render estático inmediato (sin parpadeos ni animaciones de recarga)
   const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, customerIdResolved));
   const [likesCount, setLikesCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, customerIdResolved));
+  const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, customerIdResolved || 'guest'));
   const [isSaved, setIsSaved] = useState(() => {
-    if (!customerIdResolved || !postId) return false;
+    const custId = customerIdResolved || 'guest';
+    if (!postId) return false;
     const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
       currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
-    return inCustomerFavs || isPostSavedLocally(postId, customerIdResolved);
+    return inCustomerFavs || isPostSavedLocally(postId, custId);
   });
+  const [showSaveBurst, setShowSaveBurst] = useState(false);
+  const [saveBounced, setSaveBounced] = useState(false);
   const [commentsCount, setCommentsCount] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -221,13 +224,12 @@ export default function SocialFeedCard({
       }
 
       // Guardados (estrictamente por ID de la publicación)
-      if (custId) {
-        const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
-          currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
-        const saveRes = await getPostSaveState(postId, custId);
-        if (mounted) {
-          setIsSaved(saveRes.isSaved || inCustomerFavs);
-        }
+      const custIdForSave = custId || 'guest';
+      const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
+        currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
+      const saveRes = custId ? await getPostSaveState(postId, custId) : { isSaved: false };
+      if (mounted) {
+        setIsSaved(saveRes.isSaved || inCustomerFavs || isPostSavedLocally(postId, custIdForSave));
       }
 
       // Comentarios count
@@ -294,51 +296,45 @@ export default function SocialFeedCard({
 
   // Manejo de Follow (Solo modifica la relación de seguimiento a la tienda)
   const handleFollow = async (e) => {
-    e.stopPropagation();
-    if (!currentCustomer) {
-      if (onRequireAuth) onRequireAuth();
-      return;
-    }
-
+    e?.stopPropagation();
+    const custId = customerIdResolved || 'guest';
     const newFollowing = !isFollowing;
     setIsFollowing(newFollowing);
 
+    if (newFollowing) {
+      toast.success(`Siguiendo a @${storeName}`, {
+        icon: '✨',
+        duration: 2000
+      });
+    }
+
     try {
-      await toggleFollowStore(workspaceId, currentCustomer.id);
+      await toggleFollowStore(workspaceId, custId);
     } catch (err) {
-      setIsFollowing(!newFollowing);
+      console.warn('Error en toggleFollowStore, guardado localmente:', err);
     }
   };
 
-  // Manejo de Guardado (Guarda exclusivamente la publicación individual)
+  // Manejo de Guardado (Guarda la publicación individual con respuesta y animación inmediata)
   const handleSave = async (e) => {
-    e.stopPropagation();
-    if (!currentCustomer) {
-      toast('Inicia sesión para guardar esta publicación en tus favoritos', {
-        icon: '🔒',
-        duration: 3500
-      });
-      if (onRequireAuth) onRequireAuth();
-      return;
-    }
-
-    const custId = currentCustomer.id || currentCustomer.uid || currentCustomer.user_id || currentCustomer.doc_id || currentCustomer.docId || currentCustomer.email;
-    if (!custId) {
-      toast.error('No se pudo verificar tu cuenta de cliente. Inicia sesión nuevamente.');
-      if (onRequireAuth) onRequireAuth();
-      return;
-    }
-
+    e?.stopPropagation();
+    const custId = customerIdResolved || 'guest';
     const newSaved = !isSaved;
     setIsSaved(newSaved);
 
+    // Animación visual de rebote y pulso
+    setSaveBounced(true);
+    setTimeout(() => setSaveBounced(false), 500);
+
     if (newSaved) {
+      setShowSaveBurst(true);
+      setTimeout(() => setShowSaveBurst(false), 700);
       toast.success('¡Publicación guardada en tus favoritos!', {
         icon: '🔖',
         duration: 2500
       });
     } else {
-      toast('Publicación eliminada de tus guardados', {
+      toast('Publicación eliminada de tus favoritos', {
         icon: '🗑️',
         duration: 2000
       });
@@ -362,9 +358,7 @@ export default function SocialFeedCard({
         setIsSaved(res.isSaved);
       }
     } catch (err) {
-      console.error('Error toggling save post:', err);
-      setIsSaved(!newSaved);
-      toast.error('Error al guardar la publicación.');
+      console.warn('Error saving post, maintained in local storage:', err);
     }
   };
 
@@ -581,15 +575,25 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Guardar en favoritos"
         >
-          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white border backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all duration-300 ${
+            saveBounced 
+              ? 'scale-125 bg-amber-500/30 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.7)]' 
+              : isSaved 
+                ? 'bg-amber-500/25 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)]' 
+                : 'bg-black/45 border-white/20 group-hover:bg-black/65'
+          }`}>
             <Bookmark 
               size={20} 
               strokeWidth={isSaved ? 0 : 2} 
               fill={isSaved ? '#f59e0b' : 'none'} 
-              className={isSaved ? 'text-amber-500 scale-105' : 'text-white'} 
+              className={`transition-all duration-300 ${
+                saveBounced ? 'scale-125 rotate-[-12deg]' : ''
+              } ${isSaved ? 'text-amber-500' : 'text-white'}`} 
             />
           </div>
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+          <span className={`text-[10px] font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight transition-colors duration-200 ${
+            isSaved ? 'text-amber-400 font-extrabold' : 'text-white'
+          }`}>
             {isSaved ? 'Guardado' : 'Guardar'}
           </span>
         </button>
@@ -633,19 +637,22 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={handleFollow}
-            className={`ml-1 text-xs font-bold rounded-full flex items-center justify-center gap-1 active:scale-95 cursor-pointer shadow-md transition-all shrink-0 ${
+            className={`ml-1.5 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-all shrink-0 backdrop-blur-md ${
               isFollowing 
-                ? 'bg-white/20 backdrop-blur-md text-emerald-400 border border-emerald-400/40 px-2 py-0.5' 
-                : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 px-2.5 py-0.5 font-black'
+                ? 'bg-emerald-500/25 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/60 px-2.5 py-1' 
+                : 'bg-black/40 hover:bg-black/60 text-white border border-white/50 hover:border-white/80 px-3 py-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]'
             }`}
             title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
           >
             {isFollowing ? (
-              <Check size={13} strokeWidth={2.8} />
+              <>
+                <Check size={12} strokeWidth={3} className="text-emerald-400" />
+                <span className="text-[11px] font-semibold text-emerald-200">Siguiendo</span>
+              </>
             ) : (
               <>
-                <UserPlus size={12} strokeWidth={2.5} />
-                <span className="text-[11px]">Seguir</span>
+                <UserPlus size={12} strokeWidth={2.5} className="text-white drop-shadow" />
+                <span className="text-[11px] font-bold text-white tracking-wide drop-shadow">Seguir</span>
               </>
             )}
           </button>
@@ -679,6 +686,13 @@ export default function SocialFeedCard({
       {showHeartBurst && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
           <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-2xl" />
+        </div>
+      )}
+
+      {/* Animated Bookmark Burst on save */}
+      {showSaveBurst && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
+          <Bookmark size={90} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.9)]" />
         </div>
       )}
 
