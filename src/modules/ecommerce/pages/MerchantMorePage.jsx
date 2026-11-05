@@ -160,8 +160,18 @@ export default function MerchantMorePage() {
     }
   };
 
-  // Menú completo de funcionalidades (Excluyendo POS Kiosco como fue indicado)
+  // Menú completo de funcionalidades (Móvil y Escritorio)
   const menuItems = [
+    {
+      id: 'caja-maestra',
+      name: 'Caja Maestra & Turnos',
+      desc: 'Ingresos consolidados, bimonetario, gavetas y arqueo de turnos',
+      path: '/cash-master',
+      icon: Wallet,
+      color: 'text-orange-500',
+      bg: 'bg-orange-50 dark:bg-orange-500/10',
+      badge: 'ACTIVO'
+    },
     {
       id: 'sucursales',
       name: 'Sucursales',

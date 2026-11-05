@@ -10,7 +10,7 @@ import {
   Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
   HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
-  Clock, RefreshCw, ShieldCheck
+  Clock, RefreshCw, ShieldCheck, Wallet
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -1150,11 +1150,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               [
                 { name: 'Caja POS', path: '/pos?view=pos', icon: ShoppingCart },
                 { name: 'Pedidos', path: '/pos?view=orders', icon: ClipboardList, badge: pendingOrdersCount },
-                { name: 'Turno', path: '/pos?view=shifts', icon: DollarSign },
+                { name: 'Caja Maestra', path: '/cash-master', icon: Wallet },
               ].map((item) => {
                 const searchParams = new URLSearchParams(location.search);
                 const currentView = searchParams.get('view') || 'pos';
                 const isActive = (item.path.includes('view=orders') && (currentView === 'orders' || location.pathname === '/orders')) ||
+                                 (item.path.includes('cash-master') && location.pathname === '/cash-master') ||
                                  (item.path.includes('view=shifts') && (currentView === 'shifts' || location.pathname === '/shifts')) ||
                                  (item.path.includes('view=pos') && location.pathname === '/pos' && currentView === 'pos');
                 return (

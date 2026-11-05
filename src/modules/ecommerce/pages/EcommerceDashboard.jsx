@@ -3,7 +3,7 @@ import {
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
   ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
-  Rocket, PackageSearch, Tag, Users, Building2, Settings
+  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet
 } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -478,30 +478,39 @@ export default function EcommerceDashboard() {
             </div>
           </div>
 
-          {/* Fila de Botones de Acción (Nueva venta | + Producto | ...) */}
-          <div className="flex items-center gap-2.5 relative z-10">
+          {/* Fila de Botones de Acción (Nueva venta | Caja Maestra | + Producto | ...) */}
+          <div className="flex items-center gap-2 relative z-10">
             <button
               onClick={() => navigate('/pos')}
-              className="flex-1 py-3.5 px-4 bg-white text-orange-600 hover:bg-orange-50 font-black rounded-2xl shadow-lg shadow-black/15 flex items-center justify-center gap-2 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer"
+              className="flex-1 py-3 px-3 bg-white text-orange-600 hover:bg-orange-50 font-black rounded-2xl shadow-lg shadow-black/15 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs cursor-pointer truncate"
             >
-              <ShoppingCart size={17} strokeWidth={2.5} />
+              <ShoppingCart size={16} strokeWidth={2.5} className="shrink-0" />
               <span>Nueva venta</span>
             </button>
 
             <button
-              onClick={() => navigate('/product-studio')}
-              className="flex-1 py-3.5 px-4 bg-white/20 hover:bg-white/30 text-white font-black rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs sm:text-sm cursor-pointer shadow-xs"
+              onClick={() => navigate('/cash-master')}
+              className="py-3 px-3 bg-white/20 hover:bg-white/30 text-white font-black rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs cursor-pointer shadow-xs shrink-0"
+              title="Caja Maestra & Turnos"
             >
-              <Plus size={17} strokeWidth={2.5} />
-              <span>Producto</span>
+              <Wallet size={16} strokeWidth={2.5} className="text-amber-300" />
+              <span>Caja Maestra</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/product-studio')}
+              className="py-3 px-3 bg-white/20 hover:bg-white/30 text-white font-black rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs cursor-pointer shadow-xs shrink-0"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              <span className="hidden sm:inline">Producto</span>
             </button>
 
             <button
               onClick={() => setIsMoreActionsOpen(true)}
-              className="py-3.5 px-3.5 bg-white/20 hover:bg-white/30 text-white rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-xs shrink-0"
+              className="py-3 px-2.5 bg-white/20 hover:bg-white/30 text-white rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-xs shrink-0"
               title="Más opciones de gestión"
             >
-              <MoreHorizontal size={18} />
+              <MoreHorizontal size={17} />
             </button>
           </div>
 
@@ -711,7 +720,7 @@ export default function EcommerceDashboard() {
                   { name: 'Inventario & Stock', path: '/inventory', icon: PackageSearch, color: 'text-blue-500' },
                   { name: 'Precios & Tarifas', path: '/prices', icon: Tag, color: 'text-amber-500' },
                   { name: 'Clientes & CRM', path: '/customers', icon: Users, color: 'text-orange-500' },
-                  { name: 'Caja & Turnos', path: '/shifts', icon: Banknote, color: 'text-teal-500' },
+                  { name: 'Caja Maestra & Turnos', path: '/cash-master', icon: Wallet, color: 'text-orange-500' },
                   { name: 'Facturación & SENIAT', path: '/invoicing', icon: FileText, color: 'text-cyan-500' },
                   { name: 'Perfil de Tienda', path: '/store-profile', icon: Settings, color: 'text-slate-500' },
                 ].map(item => (
