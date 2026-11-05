@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, Sparkles } from 'lucide-react';
+import { Boxes, Sparkles } from 'lucide-react';
 
 export const SubcategorySidebar = ({
   subcategories = [],
@@ -7,7 +7,7 @@ export const SubcategorySidebar = ({
   onSelectSubcategory,
   productCounts = {},
   totalCount = 0,
-  activeAccentColor = '#E11D48',
+  activeAccentColor = '#EA580C',
   maxHeight = 'calc(100vh - 210px)',
   style = {}
 }) => {
@@ -70,7 +70,7 @@ export const SubcategorySidebar = ({
           justifyContent: 'center',
           padding: '10px 8px',
           border: 'none',
-          backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFF5F5' : 'transparent',
+          backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFF7ED' : 'transparent',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
           marginBottom: 8
@@ -101,24 +101,24 @@ export const SubcategorySidebar = ({
           />
         )}
 
-        {/* Círculo con Icono Grid */}
+        {/* Círculo con Icono Boxes (sustituye los 4 cuadros anteriores) */}
         <div
           style={{
             width: 52,
             height: 52,
             borderRadius: '50%',
-            backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFE4E6' : '#F1F5F9',
+            backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFEDD5' : '#F1F5F9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: selectedSubcategoryId === 'ALL' ? activeAccentColor : '#64748B',
             border: selectedSubcategoryId === 'ALL' ? `2px solid ${activeAccentColor}` : '1.5px solid #E2E8F0',
-            boxShadow: selectedSubcategoryId === 'ALL' ? '0 2px 6px rgba(225, 29, 72, 0.18)' : 'none',
+            boxShadow: selectedSubcategoryId === 'ALL' ? '0 2px 6px rgba(234, 88, 12, 0.2)' : 'none',
             transition: 'all 0.15s ease',
             marginBottom: 6
           }}
         >
-          <LayoutGrid size={22} strokeWidth={selectedSubcategoryId === 'ALL' ? 2.5 : 2} />
+          <Boxes size={22} strokeWidth={selectedSubcategoryId === 'ALL' ? 2.2 : 1.8} />
         </div>
 
         {/* Etiqueta "All" */}
@@ -179,7 +179,7 @@ export const SubcategorySidebar = ({
               justifyContent: 'center',
               padding: '10px 8px',
               border: 'none',
-              backgroundColor: isSelected ? '#FFF5F5' : 'transparent',
+              backgroundColor: isSelected ? '#FFF7ED' : 'transparent',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
               marginBottom: 8
@@ -222,7 +222,7 @@ export const SubcategorySidebar = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 border: isSelected ? `2.5px solid ${activeAccentColor}` : '1.5px solid #E2E8F0',
-                boxShadow: isSelected ? '0 2px 8px rgba(225, 29, 72, 0.22)' : '0 1px 3px rgba(0,0,0,0.04)',
+                boxShadow: isSelected ? '0 2px 8px rgba(234, 88, 12, 0.22)' : '0 1px 3px rgba(0,0,0,0.04)',
                 transition: 'all 0.15s ease',
                 marginBottom: 6,
                 flexShrink: 0
