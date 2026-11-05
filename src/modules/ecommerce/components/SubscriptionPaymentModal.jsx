@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Check, Copy, CreditCard, ShieldCheck, Sparkles, 
-  Smartphone, Building2, Hash, Calendar, DollarSign, 
+import {
+  X, Check, Copy, CreditCard, ShieldCheck, Sparkles,
+  Smartphone, Building2, Hash, Calendar, DollarSign,
   AlertCircle, ChevronRight, CheckCircle2, Clock, Zap
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
@@ -148,7 +148,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
 
       await supabase
         .from('workspaces')
-        .update({ 
+        .update({
           config: updatedConfig,
           status: 'Pago_En_Revision'
         })
@@ -171,19 +171,19 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
     }
   };
 
-  const totalVesEstimado = (currentPlan.priceUsd * bcvRate).toLocaleString('es-VE', { 
-    minimumFractionDigits: 2, 
-    maximumFractionDigits: 2 
+  const totalVesEstimado = (currentPlan.priceUsd * bcvRate).toLocaleString('es-VE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 
   return (
     <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden my-auto">
-        
+
         {/* Encabezado */}
         <div className="relative p-6 sm:p-7 bg-gradient-to-br from-[#ea580c] via-[#ea580c] to-[#c2410c] text-white">
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={onClose}
             className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/35 flex items-center justify-center transition-all text-white cursor-pointer active:scale-95"
           >
@@ -213,16 +213,15 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
             <label className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider block">
               Selecciona tu Plan de Suscripción
             </label>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Opción Trimestral */}
-              <div 
+              <div
                 onClick={() => setSelectedPlan('trimestral')}
-                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
-                  selectedPlan === 'trimestral'
+                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${selectedPlan === 'trimestral'
                     ? 'border-orange-500 bg-orange-50/70 dark:bg-orange-500/10 shadow-sm'
                     : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 <div className="absolute -top-2.5 right-2 px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[9px] font-black uppercase tracking-wider shadow-xs">
                   1 Mes GRATIS
@@ -240,13 +239,12 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, storeInfo, o
               </div>
 
               {/* Opción Mensual */}
-              <div 
+              <div
                 onClick={() => setSelectedPlan('mensual')}
-                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
-                  selectedPlan === 'mensual'
+                className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${selectedPlan === 'mensual'
                     ? 'border-orange-500 bg-orange-50/70 dark:bg-orange-500/10 shadow-sm'
                     : 'border-slate-200 dark:border-white/10 hover:border-slate-300'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-black text-slate-900 dark:text-white">Plan Mensual</span>

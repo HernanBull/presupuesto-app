@@ -313,6 +313,17 @@ export const HierarchicalCategoryBar = ({
                   </button>
                 );
               })}
+
+              {filteredCategories.length === 0 && (
+                <div style={{ gridColumn: '1 / -1', padding: '30px 20px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#334155' }}>
+                    Sin categorías registradas
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 11, color: '#94A3B8' }}>
+                    Crea tus productos y departamentos desde el módulo de Inventario.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

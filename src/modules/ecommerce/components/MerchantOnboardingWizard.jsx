@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
-import { getCatalogForRubro } from '../data/seedCatalogs';
 import AxonMarketDashboardPreview from './AxonMarketDashboardPreview';
 
 const isIOSDevice = () => {
@@ -161,12 +160,7 @@ export default function MerchantOnboardingWizard({
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
 
-  // Paso 9: Precarga de catálogo
-  const [preloadCatalog, setPreloadCatalog] = useState(true);
-
   if (!isOpen) return null;
-
-  const catalog = getCatalogForRubro(rubro);
 
   // Calcular fecha de fin de prueba de 7 días
   const trialEndDate = new Date();
@@ -309,10 +303,9 @@ export default function MerchantOnboardingWizard({
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  // Guardar configuración completa en la base de datos
-  const handleFinalize = async (withCatalog = true) => {
+  // Guardar configuración completa en la base de datos (Inventario 100% limpio en cero)
+  const handleFinalize = async () => {
     setLoading(true);
-    setPreloadCatalog(withCatalog);
 
     try {
       const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
@@ -450,36 +443,6 @@ export default function MerchantOnboardingWizard({
           phone: `+58${whatsapp.replace(/\D/g, '')}`,
           ...(merchantEmail ? { email: merchantEmail } : {})
         }]);
-
-        // 3. Precarga de catálogo si withCatalog es true
-        if (withCatalog && catalog?.items?.length > 0) {
-          try {
-            const productsPayload = catalog.items.map((prod, idx) => ({
-              workspace_id: activeWs,
-              name: prod.name,
-              sku: prod.sku || `SKU-${idx + 100}`,
-              barcode: prod.barcode || `759${Date.now().toString().slice(-9)}${idx}`,
-              price: prod.priceUSD || 0,
-              ref_price: prod.priceUSD || 0,
-              cost: prod.costUSD || 0,
-              category: prod.category || catalog.rubroName,
-              stock: 25,
-              stock_vitrina: 25,
-              min_stock: 5,
-              unit: prod.unit || 'unidad',
-              tax_rate: 16,
-              image_url: prod.image || null,
-              description: prod.description || `Producto de alta rotación para ${catalog.rubroName}.`,
-              status: 'active',
-              is_featured: idx < 4,
-              created_at: new Date().toISOString()
-            }));
-
-            await supabase.from('ecommerce_products').insert(productsPayload);
-          } catch (pErr) {
-            console.warn('Notice inserting seed catalog:', pErr);
-          }
-        }
       }
 
       localStorage.setItem('merchant_onboarding_completed', 'true');
@@ -489,12 +452,12 @@ export default function MerchantOnboardingWizard({
       if (activeWs) localStorage.setItem('activeWorkspace', activeWs);
       localStorage.setItem('merchant_mode', 'true');
 
-      toast.success(withCatalog ? '¡30 productos cargados y tienda configurada!' : '¡Tienda configurada con éxito!');
+      toast.success('¡Tienda configurada con éxito!');
     } catch (err) {
       console.error('Error al finalizar onboarding:', err);
     } finally {
       setLoading(false);
-      setStep(10); // Avanzar a pantalla final de éxito / instalación
+      setStep(9); // Avanzar a pantalla final de éxito / instalación
     }
   };
 
@@ -590,9 +553,9 @@ export default function MerchantOnboardingWizard({
       )}
 
       {/* ========================================================================= */}
-      {/* VISTA FINAL (PASO 10): PANTALLA DE ÉXITO CON INSTALACIÓN PWA O ABRIR POS  */}
+      {/* VISTA FINAL (PASO 9): PANTALLA DE ÉXITO CON INSTALACIÓN PWA O ABRIR POS   */}
       {/* ========================================================================= */}
-      {step === 10 ? (
+      {step === 9 ? (
         <div className="relative z-20 bg-white rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200/90 max-w-4xl w-full p-6 sm:p-10 my-auto animate-in zoom-in-95 duration-200 m-4">
           
           <div className="text-center max-w-2xl mx-auto mb-6">
@@ -612,7 +575,7 @@ export default function MerchantOnboardingWizard({
               ¡Todo listo, {ownerName.split(' ')[0] || 'Comerciante'}!
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> {preloadCatalog ? 'ya tiene sus productos cargados, horarios y cobros configurados.' : 'está lista para comenzar a operar.'}
+              <span className="font-bold text-slate-900">{businessName || 'Tu tienda'}</span> está lista para comenzar a operar. Tu inventario está libre y en blanco para que crees tus productos y categorías.
             </p>
           </div>
 
@@ -784,7 +747,7 @@ export default function MerchantOnboardingWizard({
 
                 <div className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-white/95 shrink-0">
                   <span className="bg-white/20 px-2 py-0.5 rounded-full font-bold">
-                    Paso {step} de 9
+                    Paso {step} de 8
                   </span>
                   <span className="text-white/60">·</span>
                   <span className="text-white/80">≈2 minutos</span>
@@ -801,7 +764,6 @@ export default function MerchantOnboardingWizard({
                 {step === 6 && 'Horarios de Atención Comercial'}
                 {step === 7 && 'Datos de Cobro y Pago Móvil'}
                 {step === 8 && 'Logotipo y Foto de Portada'}
-                {step === 9 && `Comienza con 30 productos de ${catalog.rubroName}`}
               </h2>
 
               {/* Subtítulo explicativo */}
@@ -814,7 +776,6 @@ export default function MerchantOnboardingWizard({
                 {step === 6 && 'Controla cuándo tu tienda está abierta y disponible para compras.'}
                 {step === 7 && 'Configura tu cuenta bancaria nacional para recibir pagos directos.'}
                 {step === 8 && 'Sube las fotos oficiales de tu marca para personalizar tu tienda.'}
-                {step === 9 && 'Fotos y precios de referencia en USD y Bs listos para vender o editar.'}
               </p>
             </div>
 
@@ -823,7 +784,7 @@ export default function MerchantOnboardingWizard({
               <div className="w-full bg-white/30 h-1.5 rounded-full overflow-hidden">
                 <div 
                   className="bg-white h-full rounded-full transition-all duration-300 ease-out" 
-                  style={{ width: `${(step / 9) * 100}%` }}
+                  style={{ width: `${(step / 8) * 100}%` }}
                 />
               </div>
             </div>
@@ -1386,35 +1347,6 @@ export default function MerchantOnboardingWizard({
                 </div>
               )}
 
-              {/* ----------------------------------------------------------------- */}
-              {/* PASO 9: Catálogo Inicial de 30 Productos                          */}
-              {/* ----------------------------------------------------------------- */}
-              {step === 9 && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-1">
-                    {catalog.items.slice(0, 6).map((prod, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-2xl p-2 bg-white shadow-2xs flex flex-col justify-between">
-                        <img 
-                          src={prod.image} 
-                          alt={prod.name} 
-                          className="w-full h-20 object-cover rounded-xl mb-1.5" 
-                        />
-                        <div>
-                          <h4 className="text-[11px] font-bold text-slate-900 line-clamp-1">{prod.name}</h4>
-                          <span className="text-xs font-black text-orange-600 block mt-0.5">{prod.refPriceLabel}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                    <p className="text-xs text-slate-600 font-medium">
-                      <span className="font-bold text-slate-900">y 24 productos más:</span> {catalog.items.slice(6, 12).map(p => p.name.split(' ')[0].toLowerCase()).join(', ')}...
-                    </p>
-                  </div>
-                </div>
-              )}
-
             </div>
 
             {/* ================================================================= */}
@@ -1432,7 +1364,7 @@ export default function MerchantOnboardingWizard({
                 </button>
               ) : null}
 
-              {step < 9 ? (
+              {step < 8 ? (
                 <div className="flex items-center gap-2 w-full justify-end">
                   {step > 1 && (
                     <button
@@ -1453,20 +1385,12 @@ export default function MerchantOnboardingWizard({
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3 w-full">
+                <div className="flex items-center justify-end gap-3 w-full">
                   <button
                     type="button"
                     disabled={loading}
-                    onClick={() => handleFinalize(false)}
-                    className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 cursor-pointer"
-                  >
-                    Cargar los míos propios
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => handleFinalize(true)}
-                    className="px-6 py-3 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                    onClick={handleFinalize}
+                    className="w-full py-3.5 px-6 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 active:scale-[0.99] text-white font-bold text-sm shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <>
@@ -1476,7 +1400,7 @@ export default function MerchantOnboardingWizard({
                     ) : (
                       <>
                         <span>Finalizar Registro y Guardar</span>
-                        <ArrowRight size={16} />
+                        <ArrowRight size={18} />
                       </>
                     )}
                   </button>

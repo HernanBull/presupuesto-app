@@ -98,9 +98,9 @@ export default function UnifiedPosPage() {
     setActiveTab(getTabFromLocation());
   }, [location.pathname, location.search]);
   
-  // Terminal POS State & Catálogo Oficial AxonPOS
-  const [products, setProducts] = useState(AXON_PRODUCTS);
-  const [categories, setCategories] = useState(AXON_CATEGORIES);
+  // Terminal POS State (inicia limpio sin productos demo)
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [selectedMainCategory, setSelectedMainCategory] = useState('ALL');
   const [selectedSubcategory, setSelectedSubcategory] = useState('ALL');
   const [sortBy, setSortBy] = useState('name');
@@ -477,38 +477,91 @@ export default function UnifiedPosPage() {
     toast.success('Libro de Ventas SENIAT exportado en CSV/Excel con transacciones reales');
   };
 
-  // Cargar catálogo de Supabase o utilizar Catálogo Oficial AxonPOS
+  // Cargar catálogo de la tienda activa en Supabase (Sin fallback a productos demo)
   useEffect(() => {
     const fetchCatalog = async () => {
       setLoading(true);
       try {
         const wsId = localStorage.getItem('activeWorkspace');
-        let query = supabase.from('ecommerce_products').select('*');
-        if (wsId) query = query.eq('workspace_id', wsId);
-        
-        const { data, error } = await query.order('name', { ascending: true }).limit(200);
+        if (!wsId) {
+          setProducts([]);
+          setCategories([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('ecommerce_products')
+          .select('*')
+          .eq('workspace_id', wsId)
+          .order('name', { ascending: true });
+
         if (!error && data && data.length > 0) {
           const mapped = data.map(p => {
             const meta = p.metadata ? (typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata) : {};
             const skuVal = p.sku || p.batch_number || meta.sku || p.id || '';
             const barcodeVal = p.barcode || p.batch_number || p.sku || meta.barcode || meta.sku || p.id || '';
+            const catName = p.category ? String(p.category).trim() : 'General';
+            const subcatName = p.subcategory ? String(p.subcategory).trim() : '';
+
             return {
               ...p,
               sku: skuVal,
               barcode: barcodeVal,
               batch_number: p.batch_number || skuVal,
-              metadata: meta
+              metadata: meta,
+              categoryId: catName,
+              subcategoryId: subcatName || catName
             };
           });
           setProducts(mapped);
+
+          // Extraer categorías y subcategorías dinámicamente de los productos reales de la tienda
+          const catMap = new Map();
+          const subcatMap = new Map();
+
+          mapped.forEach(p => {
+            const catName = p.category ? String(p.category).trim() : 'General';
+            if (catName && !catMap.has(catName)) {
+              catMap.set(catName, {
+                id: catName,
+                name: catName,
+                level: 'main'
+              });
+            }
+
+            const subName = p.subcategory ? String(p.subcategory).trim() : '';
+            if (subName && !subcatMap.has(subName)) {
+              subcatMap.set(subName, {
+                id: subName,
+                name: subName,
+                parentId: catName,
+                level: 'sub'
+              });
+            }
+          });
+
+          const extractedCats = Array.from(catMap.values());
+          const extractedSubs = Array.from(subcatMap.values());
+
+          if (extractedSubs.length > 0) {
+            setCategories([...extractedCats, ...extractedSubs]);
+          } else {
+            const mirrorSubs = extractedCats.map(c => ({
+              id: c.id,
+              name: c.name,
+              parentId: c.id,
+              level: 'sub'
+            }));
+            setCategories([...extractedCats, ...mirrorSubs]);
+          }
         } else {
-          setProducts(AXON_PRODUCTS);
-          setCategories(AXON_CATEGORIES);
+          setProducts([]);
+          setCategories([]);
         }
       } catch (e) {
-        console.error(e);
-        setProducts(AXON_PRODUCTS);
-        setCategories(AXON_CATEGORIES);
+        console.error('Error cargando catálogo:', e);
+        setProducts([]);
+        setCategories([]);
       } finally {
         setLoading(false);
       }
@@ -1498,9 +1551,28 @@ export default function UnifiedPosPage() {
                 </div>
 
                 {visualFilteredProducts.length === 0 && (
-                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                    <ShoppingBag size={40} strokeWidth={1.5} />
-                    <p className="mt-2 text-sm font-semibold">No se encontraron productos en esta categoría</p>
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center my-auto">
+                    <div className="w-16 h-16 rounded-3xl bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-4 shadow-xs border border-orange-200/60 dark:border-white/10">
+                      <ShoppingBag size={30} strokeWidth={2} />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-1.5">
+                      {products.length === 0 ? 'Inventario Libre y en Blanco' : 'No hay productos en esta categoría'}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mb-5 leading-relaxed">
+                      {products.length === 0 
+                        ? 'Tu cuenta está lista para comenzar. Agrega tus primeros artículos y categorías en Inventario para cobrar en el mostrador.' 
+                        : 'No encontramos productos que coincidan con la búsqueda o filtro seleccionado.'}
+                    </p>
+                    {products.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate('/inventory')}
+                        className="px-5 py-2.5 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-black text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <PlusCircle size={15} />
+                        <span>Crear mi Primer Producto</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
