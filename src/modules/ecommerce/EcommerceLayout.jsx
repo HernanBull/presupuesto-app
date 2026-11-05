@@ -17,6 +17,7 @@ import { twMerge } from 'tailwind-merge';
 import { supabase } from '../../supabaseClient';
 import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
 import UserManagementModal from './components/admin/UserManagementModal';
+import BackupManagerModal from './components/admin/BackupManagerModal';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -31,6 +32,9 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isPaidSubscription, setIsPaidSubscription] = useState(false);
+  const [expirationDateStr, setExpirationDateStr] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef(null);
 
@@ -225,24 +229,33 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             if (data.store_slug) localStorage.setItem('storeSlug', data.store_slug);
             if (data.name) localStorage.setItem('merchant_store_name', data.name);
 
-            const rawLogo = data.config?.logoUrl || data.config?.storefront?.logoUrl || '';
+            const cfg = typeof data.config === 'object' && data.config !== null ? data.config : (() => {
+              try { return JSON.parse(data.config || '{}'); } catch(e) { return {}; }
+            })();
+
+            const rawLogo = cfg.logoUrl || cfg.storefront?.logoUrl || '';
             if (rawLogo) {
               setStoreLogo(rawLogo);
               localStorage.setItem('merchant_store_logo', rawLogo);
             }
 
-            // Verificar si el período de prueba de 7 días ya culminó
-            const trialEndStr = data.config?.trialEndsAt;
-            if (trialEndStr) {
-              const diffDays = Math.ceil((new Date(trialEndStr) - new Date()) / (1000 * 60 * 60 * 24));
+            // Lógica de Vencimiento de Plan Profesional & Prueba Gratuita
+            const subEndsAtStr = cfg.subscriptionEndsAt;
+            const trialEndsAtStr = cfg.trialEndsAt;
+            const subEndsDate = subEndsAtStr ? new Date(subEndsAtStr) : null;
+            const trialEndsDate = trialEndsAtStr 
+              ? new Date(trialEndsAtStr) 
+              : (data.created_at ? new Date(new Date(data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000) : null);
+
+            const isPaid = Boolean(subEndsDate && subEndsDate > new Date());
+            setIsPaidSubscription(isPaid);
+
+            const targetExpDate = subEndsDate || trialEndsDate;
+            if (targetExpDate) {
+              const diffDays = Math.ceil((targetExpDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               setTrialDaysRemaining(Math.max(0, diffDays));
-              if (diffDays <= 0 && data.status !== 'Activo') {
-                setIsTrialExpired(true);
-              }
-            } else if (data.created_at) {
-              const end = new Date(new Date(data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-              const diffDays = Math.ceil((end - new Date()) / (1000 * 60 * 60 * 24));
-              setTrialDaysRemaining(Math.max(0, diffDays));
+              setExpirationDateStr(targetExpDate.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' }));
+              
               if (diffDays <= 0 && data.status !== 'Activo') {
                 setIsTrialExpired(true);
               }
@@ -365,6 +378,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: Users, 
       onClick: () => setIsUserManagementModalOpen(true),
       badge: 'Maestro'
+    },
+    { 
+      name: 'Centro de Respaldos', 
+      icon: Database, 
+      onClick: () => setIsBackupModalOpen(true),
+      badge: '.axonbak'
     },
     { name: 'Configuración', path: '/store-profile', icon: Settings },
   ];
@@ -647,9 +666,21 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                 <h2 className="text-sm font-extrabold text-white truncate leading-tight">
                   {storeName}
                 </h2>
-                <span className="text-[11px] text-white/75 font-medium block truncate">
-                  Profesional
-                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[11px] text-white/90 font-bold truncate">
+                    {isPaidSubscription ? 'Plan Profesional' : 'Plan Profesional'}
+                  </span>
+                  <span className="text-white/40 text-[9px]">•</span>
+                  <span className={`text-[10px] font-black px-1.5 py-0.2 rounded-full leading-none flex items-center shrink-0 ${
+                    trialDaysRemaining <= 3 
+                      ? 'bg-amber-400 text-orange-950 font-black' 
+                      : 'bg-white/20 text-white'
+                  }`}>
+                    {trialDaysRemaining > 0 
+                      ? `${trialDaysRemaining}d restantes` 
+                      : 'Vence hoy'}
+                  </span>
+                </div>
               </div>
             </div>
             <ExternalLink size={14} className="text-white/60 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -777,29 +808,40 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         {/* 5. Bottom Section: Trial Card + Utilities + User Card */}
         <div className="shrink-0 pt-2 pb-3 border-t border-white/15 bg-black/5 backdrop-blur-xs">
           
-          {/* Trial Progress Card (7 Días de Prueba) */}
-          {workspaceStatus !== 'Activo' && (
-            <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md">
-              <div className="flex items-center justify-between text-xs font-bold text-white mb-2">
-                <span className="flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${trialDaysRemaining <= 2 ? 'bg-red-400 animate-ping' : 'bg-white animate-pulse'}`} />
-                  Prueba · {trialDaysRemaining > 0 ? `${trialDaysRemaining} días` : 'Expirada'}
+          {/* Tarjeta de Vigencia / Vencimiento del Plan Profesional y Prueba */}
+          <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-xs">
+            <div className="flex items-center justify-between text-xs font-bold text-white mb-1.5">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${trialDaysRemaining <= 3 ? 'bg-amber-300 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
+                <span className="truncate text-[11px]">
+                  {isPaidSubscription ? 'Plan Profesional' : 'Plan Profesional (Prueba)'}
                 </span>
-                <button 
-                  onClick={() => setIsSubscriptionModalOpen(true)}
-                  className="bg-white hover:bg-slate-50 text-orange-600 font-extrabold text-[10px] px-3 py-1 rounded-full shadow-xs active:scale-95 transition-all cursor-pointer"
-                >
-                  Activar
-                </button>
-              </div>
-              <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div 
-                  className="bg-white h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${Math.min(100, Math.max(12, (trialDaysRemaining / 7) * 100))}%` }}
-                />
-              </div>
+              </span>
+              <button 
+                type="button"
+                onClick={() => setIsSubscriptionModalOpen(true)}
+                className="bg-white hover:bg-orange-50 text-orange-600 font-black text-[10px] px-2.5 py-0.5 rounded-full shadow-xs active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                {isPaidSubscription ? 'Renovar' : 'Renovar'}
+              </button>
             </div>
-          )}
+            
+            <div className="flex items-center justify-between text-[10px] text-white/80 font-medium mb-1.5">
+              <span>{trialDaysRemaining > 0 ? `${trialDaysRemaining} días vigentes` : 'Vence hoy'}</span>
+              {expirationDateStr && <span className="font-mono text-white/90">Hasta {expirationDateStr}</span>}
+            </div>
+
+            <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${
+                  trialDaysRemaining <= 3 ? 'bg-amber-300' : 'bg-white'
+                }`}
+                style={{ 
+                  width: `${Math.min(100, Math.max(8, isPaidSubscription ? (trialDaysRemaining / 30) * 100 : (trialDaysRemaining / 7) * 100))}%` 
+                }}
+              />
+            </div>
+          </div>
 
           {/* Secondary Utility Links (Sucursales, Notificaciones, Chat, Personal & Usuarios, Configuración) */}
           <div className="px-3.5 space-y-0.5 mb-2">
@@ -1293,6 +1335,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         <UserManagementModal
           isOpen={isUserManagementModalOpen}
           onClose={() => setIsUserManagementModalOpen(false)}
+        />
+      )}
+
+      {/* Centro de Respaldos ACID .axonbak */}
+      {isBackupModalOpen && (
+        <BackupManagerModal
+          isOpen={isBackupModalOpen}
+          onClose={() => setIsBackupModalOpen(false)}
         />
       )}
 
