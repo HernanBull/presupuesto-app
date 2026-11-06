@@ -42,6 +42,22 @@ export default function SuperAdminDashboard({ superKey }) {
   const [copiedRef, setCopiedRef] = useState(null);
   const [previewReceiptUrl, setPreviewReceiptUrl] = useState(null);
   
+  // Auto-refresco de lista VIP y eventos
+  useEffect(() => {
+    fetchVipWaitlist();
+    const handleVipUpdate = () => fetchVipWaitlist();
+    window.addEventListener('axon_vip_updated', handleVipUpdate);
+    const interval = setInterval(() => {
+      if (activeTab === 'vip_waitlist') {
+        fetchVipWaitlist();
+      }
+    }, 5000);
+    return () => {
+      window.removeEventListener('axon_vip_updated', handleVipUpdate);
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -111,29 +127,7 @@ export default function SuperAdminDashboard({ superKey }) {
       }
 
       // Conteo y carga de lista de espera Club VIP
-      try {
-        let vList = [];
-        try {
-          const vRes = await fetch('/api/vip-waitlist');
-          const vJson = await vRes.json();
-          if (vJson.data && Array.isArray(vJson.data)) vList = vJson.data;
-        } catch (_) {
-          try {
-            const vRes = await fetch('http://localhost:3001/api/vip-waitlist');
-            const vJson = await vRes.json();
-            if (vJson.data && Array.isArray(vJson.data)) vList = vJson.data;
-          } catch (e) {}
-        }
-        if (vList.length === 0) {
-          try {
-            const { data: vSup } = await supabase.from('axon_vip_waitlist').select('*').order('created_at', { ascending: false });
-            if (vSup && Array.isArray(vSup)) vList = vSup;
-          } catch (_) {}
-        }
-        setVipWaitlist(vList);
-      } catch (vipErr) {
-        console.warn('Error consultando VIP waitlist:', vipErr);
-      }
+      await fetchVipWaitlist();
 
       if (activeTab === 'subscriptions') {
         const { data: wsData } = await supabase.from('workspaces').select('*').order('created_at', { ascending: false });
@@ -931,6 +925,101 @@ export default function SuperAdminDashboard({ superKey }) {
       setKeyError('Error de conexión');
     }
     setIsActionLoading(false);
+  };
+
+  const fetchVipWaitlist = async () => {
+    try {
+      const map = new Map();
+
+      // 1. Obtener de la API local Express (a través de /api o puerto 3001)
+      try {
+        const vRes = await fetch('/api/vip-waitlist');
+        if (vRes.ok) {
+          const vJson = await vRes.json();
+          if (vJson.data && Array.isArray(vJson.data)) {
+            vJson.data.forEach(item => {
+              if (item.phone) map.set(item.phone.replace(/\D/g, ''), item);
+            });
+          }
+        }
+      } catch (_) {
+        try {
+          const vRes = await fetch('http://localhost:3001/api/vip-waitlist');
+          if (vRes.ok) {
+            const vJson = await vRes.json();
+            if (vJson.data && Array.isArray(vJson.data)) {
+              vJson.data.forEach(item => {
+                if (item.phone) map.set(item.phone.replace(/\D/g, ''), item);
+              });
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 2. Obtener de Supabase (ecommerce_customers)
+      try {
+        if (supabase) {
+          const { data: custData } = await supabase
+            .from('ecommerce_customers')
+            .select('*')
+            .or('status.eq.VIP_WAITLIST,payment_profile->>vip_waitlist.eq.true');
+          
+          if (custData && Array.isArray(custData)) {
+            custData.forEach(c => {
+              if (c.phone) {
+                const digits = c.phone.replace(/\D/g, '');
+                if (!map.has(digits)) {
+                  map.set(digits, {
+                    id: c.id,
+                    phone: c.phone,
+                    name: c.name || 'Cliente Registrado',
+                    customer_id: c.id,
+                    status: 'pending',
+                    created_at: c.payment_profile?.vip_registered_at || c.join_date || new Date().toISOString()
+                  });
+                }
+              }
+            });
+          }
+        }
+      } catch (sbErr) {
+        console.warn('Error leyendo VIP de Supabase:', sbErr);
+      }
+
+      // 3. Obtener de localStorage local
+      try {
+        const localItems = JSON.parse(localStorage.getItem('axon_vip_local_submissions') || '[]');
+        localItems.forEach(item => {
+          if (item.phone) {
+            const digits = item.phone.replace(/\D/g, '');
+            if (!map.has(digits)) {
+              map.set(digits, item);
+            }
+          }
+        });
+
+        const singlePhone = localStorage.getItem('axon_vip_user_phone');
+        if (singlePhone) {
+          const singleDigits = singlePhone.replace(/\D/g, '');
+          if (!map.has(singleDigits)) {
+            map.set(singleDigits, {
+              id: `vip_local_${Date.now()}`,
+              phone: singlePhone,
+              name: localStorage.getItem('axon_vip_user_name') || 'Cliente Visitante',
+              status: 'pending',
+              created_at: localStorage.getItem('axon_vip_registered_at') || new Date().toISOString()
+            });
+          }
+        }
+      } catch (_) {}
+
+      const combined = Array.from(map.values()).sort((a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0));
+      setVipWaitlist(combined);
+      return combined;
+    } catch (err) {
+      console.warn('Error general obteniendo lista VIP:', err);
+      return [];
+    }
   };
 
   const downloadVipCSV = () => {
@@ -2570,6 +2659,15 @@ export default function SuperAdminDashboard({ superKey }) {
                 </div>
 
                 <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    onClick={() => fetchVipWaitlist()}
+                    className="px-3.5 py-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+                    title="Actualizar lista en vivo"
+                  >
+                    <RefreshCw size={15} className="text-orange-600" />
+                    <span>Actualizar</span>
+                  </button>
+
                   <button
                     onClick={copyVipPhones}
                     disabled={vipWaitlist.length === 0}

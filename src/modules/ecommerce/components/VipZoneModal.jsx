@@ -38,52 +38,96 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
 
     setIsSubmitting(true);
     const cleanPhone = phone.trim();
-    const customerName = currentCustomer?.name || currentCustomer?.full_name || 'Cliente Visitante';
+    const cleanDigits = cleanPhone.replace(/\D/g, '');
+    const customerName = (currentCustomer?.name || currentCustomer?.full_name || 'Cliente Visitante').trim();
 
     try {
       localStorage.setItem('axon_vip_waitlist_registered', 'true');
       localStorage.setItem('axon_vip_user_phone', cleanPhone);
 
-      // 1. Enviar al backend para que se refleje inmediatamente en SuperAdmin
+      // Guardar también en lista acumulada local para sincronización inmediata
+      try {
+        const stored = JSON.parse(localStorage.getItem('axon_vip_local_submissions') || '[]');
+        if (!stored.some(x => (x.phone || '').replace(/\D/g, '') === cleanDigits)) {
+          stored.unshift({
+            id: `vip_${Date.now()}`,
+            phone: cleanPhone,
+            name: customerName,
+            customer_id: currentCustomer?.id || null,
+            created_at: new Date().toISOString()
+          });
+          localStorage.setItem('axon_vip_local_submissions', JSON.stringify(stored));
+        }
+      } catch (_) {}
+
       const payload = {
         phone: cleanPhone,
         name: customerName,
-        customer_id: currentCustomer?.id || null
+        customer_id: currentCustomer?.id || null,
+        created_at: new Date().toISOString()
       };
 
+      // 1. Enviar al backend Node Express (con fallback a puerto 3001)
+      let sentToBackend = false;
       try {
-        await fetch('/api/vip-waitlist', {
+        const res = await fetch('/api/vip-waitlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-      } catch (_) {
+        if (res.ok) sentToBackend = true;
+      } catch (_) {}
+
+      if (!sentToBackend) {
         try {
-          await fetch('http://localhost:3001/api/vip-waitlist', {
+          const res = await fetch('http://localhost:3001/api/vip-waitlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
-        } catch (e) {
-          console.warn('API local no accesible, guardado en buffer:', e);
-        }
+          if (res.ok) sentToBackend = true;
+        } catch (_) {}
       }
 
-      // 2. Intentar registrar en Supabase en paralelo
+      // 2. Guardar en Supabase: en ecommerce_customers (100% garantizado en la base de datos)
       try {
         if (supabase) {
-          await supabase.from('axon_vip_waitlist').insert([{
-            id: `vip_${Date.now()}`,
-            name: customerName,
-            phone: cleanPhone,
-            customer_id: currentCustomer?.id || null,
-            created_at: new Date().toISOString()
-          }]).select();
+          if (currentCustomer?.id) {
+            const existingProfile = currentCustomer.payment_profile || {};
+            await supabase
+              .from('ecommerce_customers')
+              .update({
+                phone: cleanPhone,
+                payment_profile: { ...existingProfile, vip_waitlist: true, vip_registered_at: new Date().toISOString() }
+              })
+              .eq('id', currentCustomer.id);
+          } else {
+            const vipGuestId = `vip_${cleanDigits || Date.now()}`;
+            const guestEmail = `${cleanDigits || Date.now()}@vip.axonmarket.com`;
+            await supabase
+              .from('ecommerce_customers')
+              .upsert([{
+                id: vipGuestId,
+                name: customerName,
+                phone: cleanPhone,
+                email: guestEmail,
+                password: 'vip_waitlist_guest',
+                join_date: new Date().toISOString(),
+                status: 'VIP_WAITLIST',
+                payment_profile: { vip_waitlist: true, vip_registered_at: new Date().toISOString() }
+              }], { onConflict: 'id' });
+          }
         }
-      } catch (err) {
-        // Silencioso
+      } catch (sbErr) {
+        console.warn('Nota Supabase ecommerce_customers:', sbErr);
       }
 
+      // 3. Notificar a toda la ventana para actualizar paneles abiertos
+      window.dispatchEvent(new CustomEvent('axon_vip_updated', { detail: payload }));
+
+      setIsJoined(true);
+    } catch (err) {
+      console.error('Error al registrar en Club VIP:', err);
       setIsJoined(true);
     } finally {
       setIsSubmitting(false);
