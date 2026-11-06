@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
+import * as XLSX from "xlsx"
+import JSZip from "jszip"
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || Deno.env.get('VITE_TELEGRAM_BOT_TOKEN') || '8931657407:AAHJtYXikKfBtYowHHB0HBKhaRUskhyyfHo';
 const TELEGRAM_BOT_USERNAME = 'DeliveryAxonbot';
@@ -21,7 +23,8 @@ const SUPERUSER_KEYBOARD = {
     [{ text: "📈 Esta Semana (7d)" }, { text: "🗓️ Mes en Curso" }],
     [{ text: "🛵 Flota en Vivo" }, { text: "🏬 Comercios Activos" }],
     [{ text: "⏱️ Tiempos de Entrega" }, { text: "🚨 Novedades / Alertas" }],
-    [{ text: "🔍 Buscar Pedido" }, { text: "❓ Ayuda Gerencial" }]
+    [{ text: "📁 Importar Excel/Word" }, { text: "🔍 Buscar Pedido" }],
+    [{ text: "❓ Ayuda Gerencial" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -394,6 +397,11 @@ async function handleTelegramUpdate(update, supabase) {
     return new Response("OK", { status: 200, headers: corsHeaders });
   }
 
+  // --- INTERCEPCIÓN DE DOCUMENTOS (EXCEL .xlsx, .csv, WORD .docx) ---
+  if (update.message.document) {
+    return await handleTelegramDocument(update.message, supabase);
+  }
+
   let text = update.message.text || '';
   const rawText = text.trim();
   const chatId = update.message.chat?.id?.toString();
@@ -504,6 +512,21 @@ async function handleTelegramUpdate(update, supabase) {
     }
     if (text === "🚨 Novedades / Alertas" || text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
       return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
+    }
+    if (text === "📁 Importar Excel/Word" || cleanCmd === "/importar" || cleanCmd === "/import") {
+      const importInfoMsg = `📁 <b>MÓDULO DE IMPORTACIÓN ADMINISTRATIVA</b> 📊\n\nPuedes enviar o reenviar directamente a este chat un archivo:\n• <b>Excel:</b> <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>\n• <b>Word:</b> <code>.docx</code> (con tablas de productos)\n\n💡 <i>El bot detectará automáticamente los productos, precios, categorías y stock, mostrándote una vista previa con confirmación antes de guardar.</i>\n\n👇 <i>Toca abajo si deseas descargar la plantilla de ejemplo:</i>`;
+      const importKeyboard = {
+        inline_keyboard: [
+          [{ text: "📥 Descargar Plantilla Excel (.xlsx)", callback_data: "send_plantilla" }]
+        ]
+      };
+      await sendMessageToChat(chatId, importInfoMsg, importKeyboard);
+      return new Response("OK", { headers: corsHeaders });
+    }
+    if (cleanCmd === "/plantilla" || cleanCmd === "/plantilla_excel" || cleanCmd === "/plantilla_productos") {
+      const templateBuf = generateExcelTemplate();
+      await sendDocumentToChat(chatId, templateBuf, 'plantilla_productos_axonmarket.xlsx', '📥 <b>Plantilla Oficial para Importación de Productos — AxonMarket</b>\n\nLlena los datos en esta hoja de cálculo y reenvíala a este chat.');
+      return new Response("OK", { headers: corsHeaders });
     }
     if (text === "🔍 Buscar Pedido" || cleanCmd.startsWith('/buscar')) {
       const q = text.replace('/buscar', '').replace('🔍 Buscar Pedido', '').trim();
@@ -1028,6 +1051,278 @@ async function isUserInGroup(userId, groupId) {
   }
 }
 
+async function sendDocumentToChat(chatId: string, documentBuffer: Uint8Array, fileName: string, caption?: string) {
+  try {
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    if (caption) {
+      formData.append('caption', caption);
+      formData.append('parse_mode', 'HTML');
+    }
+    const blob = new Blob([documentBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    formData.append('document', blob, fileName);
+
+    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument`, {
+      method: 'POST',
+      body: formData
+    });
+    return await res.json();
+  } catch (e) {
+    console.error("Error enviando documento a Telegram:", e);
+    return { ok: false };
+  }
+}
+
+function parsePrice(str: string | number): number {
+  if (typeof str === 'number') return str;
+  if (!str) return 0;
+  let clean = String(str).replace(/[^0-9,\.]/g, '').trim();
+  if (clean.includes(',') && clean.includes('.')) {
+    if (clean.lastIndexOf(',') > clean.lastIndexOf('.')) {
+      clean = clean.replace(/\./g, '').replace(',', '.');
+    } else {
+      clean = clean.replace(/,/g, '');
+    }
+  } else if (clean.includes(',')) {
+    clean = clean.replace(',', '.');
+  }
+  const num = parseFloat(clean);
+  return isNaN(num) ? 0 : num;
+}
+
+function parseDocxTables(xml: string): any[] {
+  const rows: any[] = [];
+  const trMatches = xml.match(/<w:tr[\s>][\s\S]*?<\/w:tr>/g);
+  if (!trMatches || trMatches.length < 2) return rows;
+
+  const tableData: string[][] = [];
+  for (const tr of trMatches) {
+    const rowCells: string[] = [];
+    const tcMatches = tr.match(/<w:tc[\s>][\s\S]*?<\/w:tc>/g);
+    if (tcMatches) {
+      for (const tc of tcMatches) {
+        const tMatches = tc.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
+        const cellText = tMatches.map(t => t.replace(/<[^>]+>/g, '')).join('').trim();
+        rowCells.push(cellText);
+      }
+      if (rowCells.some(c => c.length > 0)) {
+        tableData.push(rowCells);
+      }
+    }
+  }
+
+  if (tableData.length < 2) return rows;
+  const headers = tableData[0].map(h => h.trim());
+  for (let i = 1; i < tableData.length; i++) {
+    const rowObj: Record<string, string> = {};
+    const cells = tableData[i];
+    headers.forEach((h, colIdx) => {
+      rowObj[h] = cells[colIdx] || '';
+    });
+    rows.push(rowObj);
+  }
+  return rows;
+}
+
+function normalizeProductRow(row: Record<string, any>) {
+  let name = '';
+  let price = 0;
+  let stock = 0;
+  let category = 'Víveres';
+  let barcode = '';
+  let cost = 0;
+
+  for (const [rawKey, rawVal] of Object.entries(row)) {
+    const key = rawKey.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const val = String(rawVal || '').trim();
+
+    if (!name && (key.includes('nombre') || key.includes('producto') || key.includes('articulo') || key.includes('descrip') || key.includes('item') || key === 'name' || key === 'title')) {
+      name = val;
+    } else if (!barcode && (key.includes('cod') || key.includes('sku') || key.includes('bar') || key === 'id' || key.includes('ref'))) {
+      barcode = val;
+    } else if (price === 0 && (key.includes('precio') || key.includes('pvp') || key.includes('venta') || key === 'price' || key.includes('usd') || key.includes('monto'))) {
+      price = parsePrice(val);
+    } else if (cost === 0 && (key.includes('costo') || key.includes('cogs') || key.includes('compra') || key === 'cost')) {
+      cost = parsePrice(val);
+    } else if (stock === 0 && (key.includes('stock') || key.includes('cant') || key.includes('exist') || key.includes('qty'))) {
+      const cleanNum = val.replace(/[^0-9]/g, '');
+      const parsed = parseInt(cleanNum, 10);
+      if (!isNaN(parsed)) stock = parsed;
+    } else if (key.includes('cat') || key.includes('rubro') || key.includes('dep') || key.includes('secc')) {
+      if (val) category = val;
+    }
+  }
+
+  if (!name || price <= 0) return null;
+
+  return {
+    name,
+    price,
+    stock: stock > 0 ? stock : 10,
+    category: category || 'Víveres',
+    barcode: barcode || null,
+    cost: cost > 0 ? cost : Number((price * 0.75).toFixed(2))
+  };
+}
+
+function generateExcelTemplate(): Uint8Array {
+  const templateRows = [
+    {
+      "Código": "PROD-001",
+      "Nombre": "Harina de Maíz Precocida 1kg",
+      "Precio USD": 1.20,
+      "Stock": 50,
+      "Categoría": "Víveres",
+      "Costo COGS": 0.95
+    },
+    {
+      "Código": "PROD-002",
+      "Nombre": "Arroz Blanco Grano Entero 1kg",
+      "Precio USD": 1.15,
+      "Stock": 40,
+      "Categoría": "Víveres",
+      "Costo COGS": 0.90
+    },
+    {
+      "Código": "PROD-003",
+      "Nombre": "Aceite Vegetal 1L",
+      "Precio USD": 3.40,
+      "Stock": 30,
+      "Categoría": "Víveres",
+      "Costo COGS": 2.80
+    },
+    {
+      "Código": "PROD-004",
+      "Nombre": "Café Molido 500g",
+      "Precio USD": 4.50,
+      "Stock": 25,
+      "Categoría": "Bebidas",
+      "Costo COGS": 3.50
+    }
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(templateRows);
+  ws['!cols'] = [{ wch: 15 }, { wch: 35 }, { wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 12 }];
+  XLSX.utils.book_append_sheet(wb, ws, "Productos");
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  return new Uint8Array(buf);
+}
+
+async function handleTelegramDocument(message: any, supabase: any) {
+  const chatId = message.chat?.id?.toString();
+  const fromUserId = message.from?.id?.toString() || chatId;
+  const doc = message.document;
+  if (!doc || !chatId) return new Response("OK", { headers: corsHeaders });
+
+  // 1. Validar autorización de Superusuario
+  const superuser = await isAgencySuperuser(fromUserId, supabase);
+  if (!superuser) {
+    await sendMessageToChat(chatId, "⛔ <b>Acceso Restringido:</b> Solo Superusuarios o personal administrativo autorizado pueden importar archivos a la plataforma.");
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  const fileName = doc.file_name || 'archivo';
+  const fileSize = doc.file_size || 0;
+  const ext = fileName.toLowerCase().split('.').pop() || '';
+
+  if (!['xlsx', 'xls', 'csv', 'docx'].includes(ext)) {
+    await sendMessageToChat(chatId, `⚠️ <b>Formato no compatible:</b> El archivo <code>${fileName}</code> no es un formato admitido.\n\nPor favor envía un documento en formato <b>.xlsx</b>, <b>.xls</b>, <b>.csv</b> o <b>.docx</b>.`);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  await sendMessageToChat(chatId, `⏳ <i>Descargando y analizando "${fileName}" (${(fileSize / 1024).toFixed(1)} KB)...</i>`);
+
+  try {
+    // 2. Obtener enlace de descarga de Telegram
+    const fileInfoRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${doc.file_id}`);
+    const fileInfo = await fileInfoRes.json();
+    if (!fileInfo.ok || !fileInfo.result?.file_path) {
+      await sendMessageToChat(chatId, `❌ Error al descargar el archivo desde los servidores de Telegram.`);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    const downloadRes = await fetch(`https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${fileInfo.result.file_path}`);
+    const arrayBuffer = await downloadRes.arrayBuffer();
+
+    // 3. Parsear según extensión
+    let rawRows: any[] = [];
+    if (ext === 'docx') {
+      const zip = await JSZip.loadAsync(arrayBuffer);
+      const docXml = await zip.file("word/document.xml")?.async("text");
+      if (docXml) {
+        rawRows = parseDocxTables(docXml);
+      }
+    } else {
+      const wb = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+      const firstSheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[firstSheetName];
+      rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    }
+
+    if (!rawRows || rawRows.length === 0) {
+      await sendMessageToChat(chatId, `⚠️ No se detectaron filas de datos en <code>${fileName}</code>.\nAsegúrate de que la hoja de cálculo contenga datos estructurados o que el documento Word incluya una tabla.`);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    // 4. Normalizar productos
+    const validItems: any[] = [];
+    for (const row of rawRows) {
+      const norm = normalizeProductRow(row);
+      if (norm) validItems.push(norm);
+    }
+
+    if (validItems.length === 0) {
+      await sendMessageToChat(chatId, `⚠️ Se leyeron <b>${rawRows.length}</b> filas pero no se encontraron columnas válidas de productos (ej. <code>Nombre</code> y <code>Precio</code>).\n\n💡 Usa <code>/plantilla</code> para descargar el formato oficial recomendado.`);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    // 5. Guardar sesión pendiente en platform_settings
+    await supabase.from('platform_settings').upsert({
+      key: `telegram_pending_import_${chatId}`,
+      value: JSON.stringify({
+        fileName,
+        items: validItems,
+        createdAt: Date.now()
+      })
+    });
+
+    // 6. Enviar vista previa con confirmación
+    const previewCount = Math.min(validItems.length, 4);
+    const previewList = validItems.slice(0, previewCount).map((item, idx) => {
+      return `${idx + 1}. 📦 <b>${item.name}</b> — $${item.price.toFixed(2)} USD | Stock: ${item.stock} | <i>${item.category}</i>`;
+    }).join('\n');
+
+    const previewMsg = `📄 <b>ARCHIVO RECIBIDO:</b> <code>${fileName}</code> (${(fileSize / 1024).toFixed(1)} KB)
+━━━━━━━━━━━━━━━━━━━━━━
+🔍 <b>TIPO:</b> Catálogo de Productos / Inventario
+• <b>Total productos detectados:</b> ${validItems.length}
+• <b>Moneda:</b> USD ($)
+
+👁️ <b>VISTA PREVIA (Primeros ${previewCount}):</b>
+${previewList}
+${validItems.length > previewCount ? `\n<i>... y ${validItems.length - previewCount} productos más.</i>\n` : '\n'}━━━━━━━━━━━━━━━━━━━━━━
+¿Deseas confirmar la importación y aplicarla en el inventario?`;
+
+    const confirmKeyboard = {
+      inline_keyboard: [
+        [
+          { text: `✅ Confirmar e Importar (${validItems.length})`, callback_data: `import_confirm:${chatId}` },
+          { text: "❌ Cancelar", callback_data: `import_cancel:${chatId}` }
+        ]
+      ]
+    };
+
+    await sendMessageToChat(chatId, previewMsg, confirmKeyboard);
+    return new Response("OK", { headers: corsHeaders });
+
+  } catch (err: any) {
+    console.error("Error procesando documento:", err);
+    await sendMessageToChat(chatId, `❌ Ocurrió un error al procesar el archivo: <i>${err.message || err}</i>`);
+    return new Response("OK", { headers: corsHeaders });
+  }
+}
+
 // ==============================================================================
 // FUNCIONES GERENCIALES PARA SUPERUSUARIO / DUEÑO DE AGENCIA (ENMINUTOS)
 // ==============================================================================
@@ -1327,6 +1622,112 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     if (range) {
       return await sendGerenciaReport(chatId, agencySuperuser, range, supabase, messageId);
     }
+  }
+
+  // --- CONFIRMAR O CANCELAR IMPORTACIÓN DE ARCHIVOS ---
+  if (data.startsWith('import_confirm:')) {
+    const targetChatId = data.replace('import_confirm:', '');
+    const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', `telegram_pending_import_${targetChatId}`).maybeSingle();
+
+    if (!setting || !setting.value) {
+      await sendMessageToChat(chatId, "⚠️ La sesión de importación ha expirado o ya fue procesada. Por favor sube el archivo nuevamente.", SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    let parsedSetting: any = null;
+    try {
+      parsedSetting = JSON.parse(setting.value);
+    } catch (e) {}
+
+    if (!parsedSetting || !parsedSetting.items || parsedSetting.items.length === 0) {
+      await sendMessageToChat(chatId, "⚠️ No se encontraron productos pendientes en esta sesión.", SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    const items = parsedSetting.items;
+    let createdCount = 0;
+    let updatedCount = 0;
+
+    // Procesar inserción y actualización (modo híbrido inteligente)
+    for (const item of items) {
+      try {
+        const { data: existing } = await supabase
+          .from('ecommerce_products')
+          .select('id, name')
+          .ilike('name', item.name.trim())
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase.from('ecommerce_products').update({
+            price: item.price,
+            stock: item.stock,
+            category: item.category,
+            cogs: item.cost,
+            publish_status: 'Publicado'
+          }).eq('id', existing.id);
+          updatedCount++;
+        } else {
+          const newId = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+          await supabase.from('ecommerce_products').insert([{
+            id: newId,
+            name: item.name.trim(),
+            price: item.price,
+            stock: item.stock,
+            category: item.category,
+            cogs: item.cost,
+            publish_status: 'Publicado',
+            workspace_id: '8af58fb7-0948-4fdb-9c7e-bd242e83fb19',
+            stock_vitrina: 1,
+            unit_type: 'unidad',
+            step_size: 1
+          }]);
+          createdCount++;
+        }
+      } catch (err) {
+        console.error("Error guardando producto importado:", err);
+      }
+    }
+
+    // Limpiar sesión pendiente
+    await supabase.from('platform_settings').delete().eq('key', `telegram_pending_import_${targetChatId}`);
+
+    const resultMsg = `🎉 <b>¡IMPORTACIÓN COMPLETADA CON ÉXITO!</b> 🚀
+━━━━━━━━━━━━━━━━━━━━━━
+📁 <b>Archivo:</b> <code>${parsedSetting.fileName}</code>
+• 🟢 <b>Nuevos creados:</b> ${createdCount} productos
+• 🔄 <b>Actualizados:</b> ${updatedCount} productos
+• 📦 <b>Total procesados:</b> ${items.length} productos
+
+<i>Todos los productos ya están disponibles en AxonMarket y sincronizados con el punto de venta.</i>`;
+
+    if (messageId) {
+      await editMessageText(chatId, messageId, resultMsg);
+    } else {
+      await sendMessageToChat(chatId, resultMsg, SUPERUSER_KEYBOARD);
+    }
+
+    await logEvent('INFO', `Importación vía Telegram por ${fromUserId}: ${createdCount} creados, ${updatedCount} actualizados`, { fileName: parsedSetting.fileName }, supabase);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  if (data.startsWith('import_cancel:')) {
+    const targetChatId = data.replace('import_cancel:', '');
+    await supabase.from('platform_settings').delete().eq('key', `telegram_pending_import_${targetChatId}`);
+
+    const cancelMsg = `❌ <b>Importación cancelada.</b>\nNo se realizaron cambios en la base de datos.`;
+    if (messageId) {
+      await editMessageText(chatId, messageId, cancelMsg);
+    } else {
+      await sendMessageToChat(chatId, cancelMsg, SUPERUSER_KEYBOARD);
+    }
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  if (data === 'send_plantilla') {
+    const templateBuf = generateExcelTemplate();
+    await sendDocumentToChat(chatId, templateBuf, 'plantilla_productos_axonmarket.xlsx', '📥 <b>Plantilla Oficial para Importación de Productos — AxonMarket</b>\n\nLlena los datos en esta hoja de cálculo y reenvíala a este chat.');
+    return new Response("OK", { headers: corsHeaders });
   }
 
   return new Response("OK", { headers: corsHeaders });
