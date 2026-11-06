@@ -18,6 +18,7 @@ import { HeroShowcase } from '../components/HeroShowcase';
 import { supabase } from '../../../supabaseClient';
 import { registerUser, loginUser } from '../../../supabaseAuth';
 import MerchantTrialAuthModal from '../components/MerchantTrialAuthModal';
+import VipZoneModal from '../components/VipZoneModal';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -153,6 +154,7 @@ export default function MarketplaceDirectory() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [isVipModalOpen, setIsVipModalOpen] = useState(false);
   const [authConfirmPassword, setAuthConfirmPassword] = useState('');
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [showAuthConfirmPassword, setShowAuthConfirmPassword] = useState(false);
@@ -1850,14 +1852,17 @@ export default function MarketplaceDirectory() {
               <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
             </button>
 
-            {/* Floating Action Button */}
+            {/* Botón Central Dorado - Zona VIP & IA */}
             <div className="flex-1 flex justify-center relative -top-6">
               <div 
-                onClick={() => { mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                className="w-14 h-14 bg-gradient-to-tr from-amber-500 to-amber-400 rounded-full flex items-center justify-center text-zinc-950 shadow-[0_10px_25px_rgba(245,158,11,0.55)] cursor-pointer active:scale-95 transition-transform"
-                title="Subir al inicio"
+                onClick={() => setIsVipModalOpen(true)} 
+                className="relative w-14 h-14 bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 rounded-full flex items-center justify-center text-zinc-950 shadow-[0_10px_28px_rgba(245,158,11,0.65)] ring-4 ring-amber-400/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
+                title="Zona VIP AxonMarket (Próximamente con Inteligencia Artificial)"
               >
-                <ShoppingBag size={24} className="stroke-[2.5]" />
+                <ShoppingBag size={24} className="stroke-[2.5] group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[8.5px] font-black uppercase tracking-wider bg-black text-amber-400 border border-amber-400/60 rounded-full shadow-md animate-pulse">
+                  VIP
+                </span>
               </div>
             </div>
 
@@ -2079,6 +2084,12 @@ export default function MarketplaceDirectory() {
             setPendingStoreSlug(null);
           }
         }}
+      />
+
+      <VipZoneModal
+        isOpen={isVipModalOpen}
+        onClose={() => setIsVipModalOpen(false)}
+        currentCustomer={currentCustomer}
       />
 
       {isMerchantModalOpen && (merchantAuthMode === 'register' || merchantAuthMode === 'login') && merchantRegStep === 1 ? (
