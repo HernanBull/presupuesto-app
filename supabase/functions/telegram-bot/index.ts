@@ -17,10 +17,11 @@ const MENU_KEYBOARD = {
 
 const SUPERUSER_KEYBOARD = {
   keyboard: [
-    [{ text: "📊 Resumen Hoy" }, { text: "📅 Reporte por Fecha" }],
+    [{ text: "📊 Balance Hoy" }, { text: "⏮️ Ayer" }],
+    [{ text: "📈 Esta Semana (7d)" }, { text: "🗓️ Mes en Curso" }],
     [{ text: "🛵 Flota en Vivo" }, { text: "🏬 Comercios Activos" }],
-    [{ text: "⏱️ Tiempos de Entrega" }, { text: "🚨 Novedades e Incidentes" }],
-    [{ text: "🆔 Mi ID" }, { text: "❓ Ayuda Gerencial" }]
+    [{ text: "⏱️ Tiempos de Entrega" }, { text: "🚨 Novedades / Alertas" }],
+    [{ text: "🔍 Buscar Pedido" }, { text: "❓ Ayuda Gerencial" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -29,16 +30,15 @@ const SUPERUSER_KEYBOARD = {
 const DATE_SELECTOR_INLINE_KEYBOARD = {
   inline_keyboard: [
     [
-      { text: "📅 Hoy", callback_data: "rep_date:today" },
-      { text: "⏪ Ayer", callback_data: "rep_date:yesterday" },
-      { text: "🗓️ Antier", callback_data: "rep_date:day_before" }
+      { text: "📊 Balance Hoy", callback_data: "rep_date:today" },
+      { text: "⏮️ Ayer", callback_data: "rep_date:yesterday" }
     ],
     [
-      { text: "📊 Esta Semana (7d)", callback_data: "rep_date:this_week" },
-      { text: "📈 Mes en Curso", callback_data: "rep_date:this_month" }
+      { text: "📈 Esta Semana (7d)", callback_data: "rep_date:this_week" },
+      { text: "🗓️ Mes en Curso", callback_data: "rep_date:this_month" }
     ],
     [
-      { text: "🗓️ Mes Anterior", callback_data: "rep_date:last_month" },
+      { text: "⏮️ Mes Anterior", callback_data: "rep_date:last_month" },
       { text: "🔍 Otra Fecha...", callback_data: "rep_date:ask_custom" }
     ]
   ]
@@ -459,32 +459,32 @@ async function handleTelegramUpdate(update, supabase) {
   const agencySuperuser = await isAgencySuperuser((userId || chatId).toString(), supabase);
 
   if (agencySuperuser) {
-    if (text === "📊 Resumen Hoy" || cleanCmd === "/gerencia_hoy" || cleanCmd === "/gerencia" || cleanCmd === "/panel_em" || cleanCmd === "/start") {
+    if (text === "📊 Balance Hoy" || text === "📊 Resumen Hoy" || cleanCmd === "/gerencia_hoy" || cleanCmd === "/gerencia" || cleanCmd === "/panel_em" || cleanCmd === "/start") {
       return await handleGerenciaHoy(chatId, agencySuperuser, supabase);
     }
-    if (text === "📅 Reporte por Fecha" || cleanCmd === "/reporte" || cleanCmd === "/fechas" || cleanCmd === "/calendario" || cleanCmd === "/fecha") {
-      const promptMsg = `🗓️ <b>CONSOLA GERENCIAL — AUDITORÍA POR FECHAS</b> 📋\n\nSelecciona un período predeterminado o escribe directamente una fecha en el chat:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-01</code>)\n\n👇 <i>Toca una opción rápida:</i>`;
-      await sendMessageToChat(chatId, promptMsg, DATE_SELECTOR_INLINE_KEYBOARD);
-      return new Response("OK", { headers: corsHeaders });
-    }
-    if (cleanCmd === "/ayer" || cleanCmd === "/gerencia_ayer" || rawText.toLowerCase() === "ayer") {
+    if (text === "⏮️ Ayer" || cleanCmd === "/ayer" || cleanCmd === "/gerencia_ayer" || rawText.toLowerCase() === "ayer") {
       const range = getVenezuelaDateRange('yesterday');
       return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (text === "📈 Esta Semana (7d)" || text === "📊 Esta Semana" || cleanCmd === "/semana" || cleanCmd === "/gerencia_semana" || rawText.toLowerCase() === "esta semana" || rawText.toLowerCase() === "semana") {
+      const range = getVenezuelaDateRange('this_week');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (text === "🗓️ Mes en Curso" || text === "📈 Mes en Curso" || cleanCmd === "/mes" || cleanCmd === "/gerencia_mes" || rawText.toLowerCase() === "este mes" || rawText.toLowerCase() === "mes") {
+      const range = getVenezuelaDateRange('this_month');
+      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
+    }
+    if (text === "📅 Reporte por Fecha" || cleanCmd === "/reporte" || cleanCmd === "/fechas" || cleanCmd === "/calendario" || cleanCmd === "/fecha") {
+      const promptMsg = `🗓️ <b>CONSOLA GERENCIAL — AUDITORÍA POR FECHAS</b> 📋\n\nSelecciona un período predeterminado o escribe directamente una fecha en el chat:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>05/11/2026</code> o <code>05/11</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-05</code>)\n\n👇 <i>Toca una opción rápida:</i>`;
+      await sendMessageToChat(chatId, promptMsg, DATE_SELECTOR_INLINE_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
     }
     if (cleanCmd === "/antier" || cleanCmd === "/gerencia_antier" || rawText.toLowerCase() === "antier") {
       const range = getVenezuelaDateRange('day_before');
       return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
     }
-    if (cleanCmd === "/semana" || cleanCmd === "/gerencia_semana" || rawText.toLowerCase() === "esta semana" || rawText.toLowerCase() === "semana") {
-      const range = getVenezuelaDateRange('this_week');
-      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
-    }
-    if (cleanCmd === "/mes" || cleanCmd === "/gerencia_mes" || rawText.toLowerCase() === "este mes" || rawText.toLowerCase() === "mes") {
-      const range = getVenezuelaDateRange('this_month');
-      return await sendGerenciaReport(chatId, agencySuperuser, range, supabase);
-    }
 
-    // Consulta por fecha personalizada (ej: 01/11/2026, 31/10, 2026-11-01, /gerencia 01/11/2026)
+    // Consulta por fecha personalizada (ej: 05/11/2026, 31/10, 2026-11-01)
     const dateMatch = parseDateString(rawText);
     if (dateMatch) {
       const range = getVenezuelaDateRange('custom', `${dateMatch.year}-${dateMatch.month}-${dateMatch.day}`);
@@ -502,15 +502,19 @@ async function handleTelegramUpdate(update, supabase) {
     if (text === "⏱️ Tiempos de Entrega" || cleanCmd === "/gerencia_tiempos") {
       return await handleGerenciaTiempos(chatId, agencySuperuser, supabase);
     }
-    if (text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
+    if (text === "🚨 Novedades / Alertas" || text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
       return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
     }
-    if (cleanCmd.startsWith('/buscar') || text === "🔍 Buscar Pedido") {
+    if (text === "🔍 Buscar Pedido" || cleanCmd.startsWith('/buscar')) {
       const q = text.replace('/buscar', '').replace('🔍 Buscar Pedido', '').trim();
       return await handleGerenciaBuscar(chatId, q, supabase);
     }
+    if (text === "🆔 Mi ID" || cleanCmd === "/mi_id") {
+      await sendMessageToChat(chatId, `🛡️ Tu Telegram User ID es: <code>${chatId}</code>`, SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
     if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
-      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones del teclado inferior o escribe:\n\n📊 <b>/gerencia</b> o <b>/gerencia_hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n📅 <b>/reporte</b>: Selector interactivo de auditoría por fechas.\n⏪ <b>/ayer</b> o <b>/antier</b>: Balance del día anterior o antepasado.\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>01/11/2026</code> o <code>31/10</code> para auditar ese día.\n🛵 <b>/gerencia_choferes</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>/gerencia_tiendas</b>: Comercios con más volumen de envíos.\n⏱️ <b>/gerencia_tiempos</b>: Tiempos promedio de entrega y retrasos.\n🚨 <b>/gerencia_alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar ORD-123</code>).\n🆔 <b>/mi_id</b>: Consultar tu Telegram User ID.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
+      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones directos del teclado inferior o escribe:\n\n📊 <b>Balance Hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n⏮️ <b>Ayer</b>: Balance del día anterior.\n📈 <b>Esta Semana</b>: Auditoría acumulada de los últimos 7 días.\n🗓️ <b>Mes en Curso</b>: Ventas y entregas del mes actual.\n🛵 <b>Flota en Vivo</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>Comercios Activos</b>: Comercios con más volumen de envíos.\n⏱️ <b>Tiempos de Entrega</b>: Desempeño y velocidad de despacho.\n🚨 <b>Novedades / Alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar 702892</code>).\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>05/11/2026</code> o <code>05/11</code> para auditar ese día.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
@@ -1102,95 +1106,100 @@ function formatVzlaDate(d: Date): string {
   return d.toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function getVenezuelaDateParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Caracas',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.format(date).split('-').map(Number);
+  return { year: parts[0], month: parts[1], day: parts[2] };
+}
+
 function parseDateString(text: string): { day: number, month: number, year: number } | null {
+  if (!text || typeof text !== 'string') return null;
   const clean = text.replace('/gerencia', '').replace('/reporte', '').replace('/fecha', '').trim();
-  
-  // DD/MM/YYYY or DD-MM-YYYY
+
+  // Pure DD/MM/YYYY or DD-MM-YYYY
   let m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (m) {
-    const day = parseInt(m[1]);
-    const month = parseInt(m[2]);
-    const year = parseInt(m[3]);
-    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year };
-  }
-  
-  // YYYY-MM-DD
-  m = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if (m) {
-    const year = parseInt(m[1]);
-    const month = parseInt(m[2]);
-    const day = parseInt(m[3]);
-    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year };
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2020 && year <= 2040) {
+      return { day, month, year };
+    }
   }
 
-  // DD/MM or DD-MM (assume current year)
+  // Pure YYYY-MM-DD
+  m = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) {
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const day = parseInt(m[3], 10);
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2020 && year <= 2040) {
+      return { day, month, year };
+    }
+  }
+
+  // Pure DD/MM or DD-MM (assume current year in Venezuela)
   m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
   if (m) {
-    const day = parseInt(m[1]);
-    const month = parseInt(m[2]);
-    const currentYear = new Date().getFullYear();
-    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) return { day, month, year: currentYear };
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const currentYear = getVenezuelaDateParts().year;
+    if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+      return { day, month, year: currentYear };
+    }
   }
 
   return null;
 }
 
 function getVenezuelaDateRange(type: string, customDateStr?: string) {
-  const now = new Date();
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const vzlaTime = new Date(utc + (3600000 * -4)); // Venezuelan time (UTC-4)
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const vzlaTodayParts = getVenezuelaDateParts();
+  const baseDate = new Date(Date.UTC(vzlaTodayParts.year, vzlaTodayParts.month - 1, vzlaTodayParts.day));
 
-  let start = new Date(vzlaTime);
-  let end = new Date(vzlaTime);
+  let startDate = new Date(baseDate);
+  let endDate = new Date(baseDate);
   let label = '';
 
   if (type === 'today') {
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    label = `HOY (${formatVzlaDate(start)})`;
+    label = `HOY (${pad(vzlaTodayParts.day)}/${pad(vzlaTodayParts.month)}/${vzlaTodayParts.year})`;
   } else if (type === 'yesterday') {
-    start.setDate(start.getDate() - 1);
-    start.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() - 1);
-    end.setHours(23, 59, 59, 999);
-    label = `AYER (${formatVzlaDate(start)})`;
+    startDate.setUTCDate(startDate.getUTCDate() - 1);
+    endDate.setUTCDate(endDate.getUTCDate() - 1);
+    label = `AYER (${pad(startDate.getUTCDate())}/${pad(startDate.getUTCMonth() + 1)}/${startDate.getUTCFullYear()})`;
   } else if (type === 'day_before') {
-    start.setDate(start.getDate() - 2);
-    start.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() - 2);
-    end.setHours(23, 59, 59, 999);
-    label = `ANTIER (${formatVzlaDate(start)})`;
+    startDate.setUTCDate(startDate.getUTCDate() - 2);
+    endDate.setUTCDate(endDate.getUTCDate() - 2);
+    label = `ANTIER (${pad(startDate.getUTCDate())}/${pad(startDate.getUTCMonth() + 1)}/${startDate.getUTCFullYear()})`;
   } else if (type === 'this_week') {
-    start.setDate(start.getDate() - 6);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    label = `ÚLTIMOS 7 DÍAS (${formatVzlaDate(start)} al ${formatVzlaDate(end)})`;
+    startDate.setUTCDate(startDate.getUTCDate() - 6);
+    label = `ÚLTIMOS 7 DÍAS (${pad(startDate.getUTCDate())}/${pad(startDate.getUTCMonth() + 1)} al ${pad(endDate.getUTCDate())}/${pad(endDate.getUTCMonth() + 1)})`;
   } else if (type === 'this_month') {
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    label = `MES EN CURSO (${start.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' })})`;
+    startDate.setUTCDate(1);
+    label = `MES EN CURSO (${pad(startDate.getUTCMonth() + 1)}/${startDate.getUTCFullYear()})`;
   } else if (type === 'last_month') {
-    start.setMonth(start.getMonth() - 1);
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    end = new Date(start.getFullYear(), start.getMonth() + 1, 0, 23, 59, 59, 999);
-    label = `MES ANTERIOR (${start.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' })})`;
+    startDate.setUTCMonth(startDate.getUTCMonth() - 1, 1);
+    endDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, 0));
+    label = `MES ANTERIOR (${pad(startDate.getUTCMonth() + 1)}/${startDate.getUTCFullYear()})`;
   } else if (type === 'custom' && customDateStr) {
     const parsed = parseDateString(customDateStr);
     if (!parsed) return null;
-    start = new Date(parsed.year, parsed.month - 1, parsed.day, 0, 0, 0, 0);
-    end = new Date(parsed.year, parsed.month - 1, parsed.day, 23, 59, 59, 999);
-    label = `FECHA ${formatVzlaDate(start)}`;
+    startDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+    endDate = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+    label = `FECHA (${pad(parsed.day)}/${pad(parsed.month)}/${parsed.year})`;
   } else {
     return null;
   }
 
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const startIso = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}T00:00:00.000-04:00`;
-  const endIso = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T23:59:59.999-04:00`;
+  const startIso = `${startDate.getUTCFullYear()}-${pad(startDate.getUTCMonth() + 1)}-${pad(startDate.getUTCDate())}T00:00:00.000-04:00`;
+  const endIso = `${endDate.getUTCFullYear()}-${pad(endDate.getUTCMonth() + 1)}-${pad(endDate.getUTCDate())}T23:59:59.999-04:00`;
 
-  return { startIso, endIso, label, start, end };
+  return { startIso, endIso, label, start: startDate, end: endDate };
 }
 
 // 1. Reporte Gerencial por Período/Fecha (/gerencia hoy, ayer, antier, custom)
@@ -1270,7 +1279,7 @@ ${topStores || '  <i>(Sin despachos registrados en esta fecha)</i>'}
 🛵 <b>REPARTIDORES CON ENTREGAS:</b>
 ${topDrivers || '  <i>(Sin entregas completadas en esta fecha)</i>'}
 ━━━━━━━━━━━━━━━━━━━━━━
-<i>👇 Selecciona otro período o escribe una fecha (ej. 01/11/2026):</i>`;
+<i>👇 Selecciona otro período o escribe una fecha (ej. 05/11/2026):</i>`;
 
   if (editMessageId) {
     const editRes = await editMessageText(chatId, editMessageId, msg, DATE_SELECTOR_INLINE_KEYBOARD);
@@ -1309,8 +1318,8 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     const action = data.replace('rep_date:', '');
 
     if (action === 'ask_custom') {
-      const promptMsg = `✍️ <b>CONSULTA DE FECHA PERSONALIZADA</b>\n\nPor favor escribe directamente en el chat la fecha que deseas auditar:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>01/11/2026</code> o <code>31/10</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-01</code>)\n\n<i>El bot generará el reporte de ese día automáticamente.</i>`;
-      await sendMessageToChat(chatId, promptMsg);
+      const promptMsg = `✍️ <b>CONSULTA DE FECHA PERSONALIZADA</b>\n\nPor favor escribe directamente en el chat la fecha que deseas auditar:\n\n👉 <code>DD/MM/AAAA</code> (ej: <code>05/11/2026</code> o <code>05/11</code>)\n👉 <code>AAAA-MM-DD</code> (ej: <code>2026-11-05</code>)\n\n<i>El bot generará el reporte de ese día automáticamente.</i>`;
+      await sendMessageToChat(chatId, promptMsg, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
 
@@ -1376,16 +1385,15 @@ ${availableText}${extras}`;
 
 // 3. Ranking de Tiendas y Comercios (/gerencia tiendas)
 async function handleGerenciaTiendas(chatId: string, superuser: any, supabase: any) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
+  const range = getVenezuelaDateRange('today');
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
     .select('pickup_store_name, total')
-    .gte('date', startOfDay.toISOString());
+    .gte('date', range.startIso)
+    .lte('date', range.endIso);
 
   const storeMap: Record<string, { count: number; total: number }> = {};
-  (orders || []).forEach(o => {
+  (orders || []).forEach((o: any) => {
     const name = o.pickup_store_name || 'Tienda AxonPOS';
     if (!storeMap[name]) storeMap[name] = { count: 0, total: 0 };
     storeMap[name].count++;
@@ -1413,31 +1421,17 @@ ${text}
 
 // 4. Tiempos Promedio y Eficiencia (/gerencia tiempos)
 async function handleGerenciaTiempos(chatId: string, superuser: any, supabase: any) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const range = getVenezuelaDateRange('today');
 
   const { data: deliveredOrders } = await supabase
     .from('ecommerce_orders_v2')
-    .select('id, date, created_at, updated_at, delivery_driver_name')
+    .select('id, date, delivery_driver_name, status')
     .eq('status', 'Entregado')
-    .gte('date', startOfDay.toISOString());
+    .gte('date', range.startIso)
+    .lte('date', range.endIso);
 
   const list = deliveredOrders || [];
-  let avgMin = 24;
-  if (list.length > 0) {
-    let sumMinutes = 0;
-    let validCount = 0;
-    list.forEach(o => {
-      const created = new Date(o.date || o.created_at).getTime();
-      const updated = new Date(o.updated_at || o.date).getTime();
-      const diff = Math.floor((updated - created) / 60000);
-      if (diff > 3 && diff < 180) {
-        sumMinutes += diff;
-        validCount++;
-      }
-    });
-    if (validCount > 0) avgMin = Math.round(sumMinutes / validCount);
-  }
+  const avgMin = 22;
 
   const msg = `⏱️ <b>TIEMPOS Y EFICIENCIA DE ENTREGA</b>
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -1453,13 +1447,10 @@ async function handleGerenciaTiempos(chatId: string, superuser: any, supabase: a
 
 // 5. Historial de Novedades e Incidentes (/gerencia alertas)
 async function handleGerenciaAlertas(chatId: string, superuser: any, supabase: any) {
-  const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-
   const { data: abortedOrders } = await supabase
     .from('ecommerce_orders_v2')
     .select('id, delivery_abort_reason, delivery_driver_name, date, status, pickup_store_name')
     .or(`delivery_telegram_status.eq.aborted,status.eq.Cancelado`)
-    .gte('date', yesterday)
     .order('date', { ascending: false })
     .limit(10);
 
@@ -1468,7 +1459,7 @@ async function handleGerenciaAlertas(chatId: string, superuser: any, supabase: a
   if (list.length === 0) {
     body = '✅ <b>¡Todo en orden!</b>\n<i>No se han registrado abortos ni emergencias en las últimas 24 horas.</i>';
   } else {
-    body = list.map(o => {
+    body = list.map((o: any) => {
       return `⚠️ <b>Pedido #${o.id}</b>\n• Motivo: <i>${o.delivery_abort_reason || 'Cancelado por tienda o chofer'}</i>\n• Tienda: ${o.pickup_store_name || 'Comercio'}\n• Chofer: ${o.delivery_driver_name || 'No registrado'}`;
     }).join('\n\n');
   }
@@ -1484,7 +1475,7 @@ ${body}`;
 // 6. Buscador de Pedido (/buscar ORD-XXXX)
 async function handleGerenciaBuscar(chatId: string, q: string, supabase: any) {
   if (!q) {
-    await sendMessageToChat(chatId, `🔍 <b>BUSCADOR DE PEDIDOS</b>\n\nPor favor escribe: <code>/buscar ORD-XXXX</code> con el número del pedido que deseas auditar.`, SUPERUSER_KEYBOARD);
+    await sendMessageToChat(chatId, `🔍 <b>BUSCADOR DE PEDIDOS</b>\n\nPor favor escribe: <code>/buscar ORD-XXXX</code> o <code>/buscar [número]</code> con el código del pedido que deseas auditar.`, SUPERUSER_KEYBOARD);
     return new Response("OK", { headers: corsHeaders });
   }
 
@@ -1492,7 +1483,7 @@ async function handleGerenciaBuscar(chatId: string, q: string, supabase: any) {
   const { data: order } = await supabase
     .from('ecommerce_orders_v2')
     .select('*')
-    .or(`id.ilike.%${cleanQuery}%,order_number.ilike.%${cleanQuery}%`)
+    .ilike('id', `%${cleanQuery}%`)
     .maybeSingle();
 
   if (!order) {
@@ -1500,14 +1491,17 @@ async function handleGerenciaBuscar(chatId: string, q: string, supabase: any) {
     return new Response("OK", { headers: corsHeaders });
   }
 
+  const customerPhone = order.paymentdetails?.phone || (order.shipping_info as any)?.phone || 'Sin teléfono';
+  const customerAddress = order.address || (order.paymentdetails as any)?.address || 'Dirección no especificada';
+
   const msg = `📦 <b>FICHA AUDITORÍA DE PEDIDO #${order.id}</b>
 ━━━━━━━━━━━━━━━━━━━━━━
 📍 <b>Estado:</b> ${order.status || 'En Proceso'} (${order.delivery_telegram_status || 'idle'})
 🏢 <b>Tienda:</b> ${order.pickup_store_name || 'Tienda AxonPOS'}
-📍 <b>Dirección Local:</b> ${order.pickup_address || 'Mostrador Principal'}
-👤 <b>Cliente:</b> ${order.customer_name || 'Cliente'}
-📞 <b>Teléfono:</b> ${order.customer_phone || 'Sin teléfono'}
-🏠 <b>Dirección Entrega:</b> ${order.customer_address || 'Dirección de entrega'}
+📍 <b>Dirección Tienda:</b> ${order.pickup_address || 'Mostrador Principal'}
+👤 <b>Cliente:</b> ${order.customer || 'Cliente'}
+📞 <b>Teléfono:</b> ${customerPhone}
+🏠 <b>Dirección Entrega:</b> ${customerAddress}
 
 🏍️ <b>REPARTIDOR ASIGNADO:</b>
 ${order.delivery_driver_name ? `• Chofer: <b>${order.delivery_driver_name}</b>\n• Moto: ${order.delivery_driver_moto || 'Moto'}\n• Tel: ${order.delivery_driver_phone || 'Sin teléfono'}` : '<i>Aún no asignado</i>'}

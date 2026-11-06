@@ -18,3 +18,4 @@ CREATE POLICY "Inserción pública VIP waitlist"
 CREATE POLICY "Lectura y gestión pública o superadmin VIP waitlist"
   ON axon_vip_waitlist FOR ALL
   USING (true);
+

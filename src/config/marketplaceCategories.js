@@ -32,3 +32,4 @@ export const MARKETPLACE_CATEGORIES = [
   { id: 'Tecnología y Celulares', name: 'Tecnología', fullName: 'Tecnología y Celulares', icon: Smartphone },
   { id: 'Hogar y Electrodomésticos', name: 'Hogar', fullName: 'Hogar y Electrodomésticos', icon: Home }
 ];
+
