@@ -4,7 +4,7 @@ import {
   Trash2, Users, Store, ShieldAlert, Loader2, X, Activity, DollarSign, Package, 
   BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, 
   ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check, Clock, CreditCard, 
-  Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw,
+  Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw, Crown, PhoneCall,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -44,6 +44,11 @@ export default function SuperAdminDashboard({ superKey }) {
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
+
+  // VIP Waitlist State
+  const [vipWaitlist, setVipWaitlist] = useState([]);
+  const [vipSearchTerm, setVipSearchTerm] = useState('');
+  const [vipCopied, setVipCopied] = useState(false);
 
   // Details Modal State
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -103,6 +108,31 @@ export default function SuperAdminDashboard({ superKey }) {
         setPendingPaymentsCount(pendingCount);
       } catch (countErr) {
         console.warn('Conteo de pagos pendientes:', countErr);
+      }
+
+      // Conteo y carga de lista de espera Club VIP
+      try {
+        let vList = [];
+        try {
+          const vRes = await fetch('/api/vip-waitlist');
+          const vJson = await vRes.json();
+          if (vJson.data && Array.isArray(vJson.data)) vList = vJson.data;
+        } catch (_) {
+          try {
+            const vRes = await fetch('http://localhost:3001/api/vip-waitlist');
+            const vJson = await vRes.json();
+            if (vJson.data && Array.isArray(vJson.data)) vList = vJson.data;
+          } catch (e) {}
+        }
+        if (vList.length === 0) {
+          try {
+            const { data: vSup } = await supabase.from('axon_vip_waitlist').select('*').order('created_at', { ascending: false });
+            if (vSup && Array.isArray(vSup)) vList = vSup;
+          } catch (_) {}
+        }
+        setVipWaitlist(vList);
+      } catch (vipErr) {
+        console.warn('Error consultando VIP waitlist:', vipErr);
       }
 
       if (activeTab === 'subscriptions') {
@@ -903,6 +933,76 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(false);
   };
 
+  const downloadVipCSV = () => {
+    if (!vipWaitlist || vipWaitlist.length === 0) return;
+    const headers = ['ID', 'Telefono', 'Nombre', 'Fecha_Registro', 'Enlace_WhatsApp'];
+    const rows = [headers.join(',')];
+    vipWaitlist.forEach(item => {
+      const cleanDigits = (item.phone || '').replace(/\D/g, '');
+      const waLink = cleanDigits ? `https://wa.me/${cleanDigits}` : '';
+      rows.push([
+        `"${item.id || ''}"`,
+        `"${item.phone || ''}"`,
+        `"${item.name || 'Cliente Visitante'}"`,
+        `"${new Date(item.created_at || item.date || Date.now()).toLocaleString()}"`,
+        `"${waLink}"`
+      ].join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `club_vip_contactos_${Date.now()}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const copyVipPhones = () => {
+    const phones = vipWaitlist
+      .map(x => (x.phone || '').trim())
+      .filter(Boolean);
+    if (phones.length === 0) return;
+    navigator.clipboard.writeText(phones.join(', '));
+    setVipCopied(true);
+    setTimeout(() => setVipCopied(false), 2500);
+  };
+
+  const handleDeleteVipItem = async (item) => {
+    if (!window.confirm(`¿Eliminar a ${item.phone} de la lista del Club VIP?`)) return;
+    try {
+      await fetch(`/api/vip-waitlist/${encodeURIComponent(item.id || item.phone)}`, { method: 'DELETE' });
+    } catch (_) {
+      try {
+        await fetch(`http://localhost:3001/api/vip-waitlist/${encodeURIComponent(item.id || item.phone)}`, { method: 'DELETE' });
+      } catch (e) {}
+    }
+    try {
+      if (supabase) {
+        await supabase.from('axon_vip_waitlist').delete().or(`id.eq.${item.id},phone.eq.${item.phone}`);
+      }
+    } catch (_) {}
+    setVipWaitlist(prev => prev.filter(x => x.id !== item.id && x.phone !== item.phone));
+  };
+
+  const handleClearVipList = async () => {
+    if (!window.confirm('¿Seguro que deseas depurar toda la lista de pruebas del Club VIP? Se borrarán todos los registros.')) return;
+    try {
+      await fetch('/api/vip-waitlist', { method: 'DELETE' });
+    } catch (_) {
+      try {
+        await fetch('http://localhost:3001/api/vip-waitlist', { method: 'DELETE' });
+      } catch (e) {}
+    }
+    try {
+      if (supabase) {
+        await supabase.from('axon_vip_waitlist').delete().neq('phone', '___');
+      }
+    } catch (_) {}
+    setVipWaitlist([]);
+  };
+
   const downloadCSV = () => {
     const dataToExport = (activeTab === 'merchants' || activeTab === 'pending_merchants') ? filteredMerchants : filteredCustomers;
     if (!dataToExport || dataToExport.length === 0) return;
@@ -1113,6 +1213,22 @@ export default function SuperAdminDashboard({ superKey }) {
             }`}
           >
             <Users size={18} /> Clientes
+          </button>
+          <button 
+            onClick={() => setActiveTab('vip_waitlist')}
+            className={`min-w-[150px] flex-1 py-4 px-3 rounded-2xl flex items-center justify-center gap-2.5 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer relative ${
+              activeTab === 'vip_waitlist' 
+                ? 'bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.35)]' 
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-950 border border-slate-200/90 shadow-xs'
+            }`}
+          >
+            <Crown size={18} className={activeTab === 'vip_waitlist' ? 'text-white' : 'text-orange-500'} /> 
+            <span>Club VIP</span>
+            {vipWaitlist.length > 0 && (
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs ${activeTab === 'vip_waitlist' ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'}`}>
+                {vipWaitlist.length}
+              </span>
+            )}
           </button>
 
         </div>
@@ -2435,6 +2551,221 @@ export default function SuperAdminDashboard({ superKey }) {
                   </div>
                 </div>
               )}
+            </div>
+          ) : activeTab === 'vip_waitlist' ? (
+            <div className="flex flex-col h-full space-y-6">
+              {/* Cabecera del Panel VIP */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-[11px] font-bold uppercase tracking-wider mb-2">
+                    <Crown size={13} className="text-orange-500" />
+                    <span>Club VIP · Personas Interesadas (Waitlist)</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    Lista de Personas — Club VIP
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                    Números telefónicos y clientes registrados desde la Zona VIP para recibir avisos y novedades en Venezuela.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <button
+                    onClick={copyVipPhones}
+                    disabled={vipWaitlist.length === 0}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/90 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    title="Copiar lista de números para difusión masiva de WhatsApp"
+                  >
+                    <Copy size={16} className="text-slate-500" />
+                    <span>{vipCopied ? '¡Números Copiados!' : 'Copiar Números WhatsApp'}</span>
+                  </button>
+
+                  <button
+                    onClick={downloadVipCSV}
+                    disabled={vipWaitlist.length === 0}
+                    className="px-3.5 py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Download size={16} />
+                    <span>Exportar CSV</span>
+                  </button>
+
+                  <button
+                    onClick={handleClearVipList}
+                    disabled={vipWaitlist.length === 0}
+                    className="px-3.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                    title="Depurar lista de pruebas"
+                  >
+                    <Trash2 size={16} />
+                    <span>Depurar Lista</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* KPIs Resumen */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-orange-500/10 via-orange-50 to-white border border-orange-200/80 rounded-2xl p-4 flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
+                    <Crown size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-orange-600">Total Personas Registradas</p>
+                    <p className="text-2xl font-black text-slate-900 mt-0.5">{vipWaitlist.length}</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-50 to-white border border-emerald-200/80 rounded-2xl p-4 flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
+                    <MessageCircle size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Con WhatsApp Activo</p>
+                    <p className="text-2xl font-black text-slate-900 mt-0.5">
+                      {vipWaitlist.filter(x => x.phone && x.phone.replace(/\D/g, '').length >= 10).length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-blue-500/10 via-blue-50 to-white border border-blue-200/80 rounded-2xl p-4 flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/30">
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Registrados Hoy</p>
+                    <p className="text-2xl font-black text-slate-900 mt-0.5">
+                      {vipWaitlist.filter(x => {
+                        try {
+                          const d = new Date(x.created_at || x.date);
+                          const today = new Date();
+                          return d.toDateString() === today.toDateString();
+                        } catch(e) { return false; }
+                      }).length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra de Filtro / Búsqueda */}
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Search size={18} className="text-slate-400" />
+                  </div>
+                  <input 
+                    type="text" 
+                    value={vipSearchTerm}
+                    onChange={(e) => setVipSearchTerm(e.target.value)}
+                    placeholder="Buscar por número de WhatsApp o nombre de cliente..."
+                    className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 shadow-xs transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Tabla de Personas VIP */}
+              <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/75">
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700 w-12 text-center">#</th>
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Teléfono / WhatsApp</th>
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Nombre / Cliente</th>
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700">Fecha de Registro</th>
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center">Estado</th>
+                        <th className="py-3.5 px-4 text-xs font-black uppercase tracking-wider text-slate-700 text-center w-36">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {vipWaitlist
+                        .filter(x => {
+                          if (!vipSearchTerm) return true;
+                          const term = vipSearchTerm.toLowerCase();
+                          return (x.phone || '').toLowerCase().includes(term) || (x.name || '').toLowerCase().includes(term);
+                        })
+                        .map((item, idx) => {
+                          const cleanDigits = (item.phone || '').replace(/\D/g, '');
+                          const waUrl = cleanDigits 
+                            ? `https://wa.me/${cleanDigits.startsWith('58') ? cleanDigits : (cleanDigits.startsWith('0') ? '58' + cleanDigits.slice(1) : cleanDigits)}?text=${encodeURIComponent('¡Hola! Te escribimos del equipo de AxonMarket. Vemos que te registraste en nuestra lista de espera del Club VIP.')}` 
+                            : null;
+
+                          return (
+                            <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-4 px-4 text-xs font-bold text-slate-400 text-center">{idx + 1}</td>
+                              <td className="py-4 px-4">
+                                {waUrl ? (
+                                  <a 
+                                    href={waUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200/80 transition-all cursor-pointer group"
+                                    title="Abrir chat en WhatsApp"
+                                  >
+                                    <MessageCircle size={15} className="text-emerald-600 group-hover:scale-110 transition-transform" />
+                                    <span className="font-mono">{item.phone}</span>
+                                    <ExternalLink size={12} className="text-emerald-500 opacity-60 group-hover:opacity-100" />
+                                  </a>
+                                ) : (
+                                  <span className="font-mono text-sm font-semibold text-slate-700">{item.phone || '—'}</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-900">{item.name || 'Cliente Visitante'}</span>
+                                  {item.customer_id && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                                      Usuario Registrado
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-xs font-medium text-slate-600">
+                                {item.created_at ? new Date(item.created_at).toLocaleString() : 'Reciente'}
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                  En Espera
+                                </span>
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                <div className="flex items-center justify-center gap-2">
+                                  {waUrl && (
+                                    <a
+                                      href={waUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition-colors"
+                                      title="Enviar WhatsApp"
+                                    >
+                                      <MessageCircle size={15} />
+                                    </a>
+                                  )}
+                                  <button
+                                    onClick={() => handleDeleteVipItem(item)}
+                                    className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer"
+                                    title="Eliminar de la lista"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {vipWaitlist.length === 0 && (
+                  <div className="py-16 text-center text-slate-400">
+                    <div className="w-16 h-16 rounded-2xl bg-orange-50 text-orange-500 border border-orange-200 mx-auto flex items-center justify-center mb-3">
+                      <Crown size={32} />
+                    </div>
+                    <p className="text-base font-bold text-slate-700">Aún no hay clientes en la lista de espera VIP</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      Cuando los clientes ingresen su número de WhatsApp en la ventana del Club VIP en la tienda, aparecerán listados aquí en tiempo real.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col h-full">

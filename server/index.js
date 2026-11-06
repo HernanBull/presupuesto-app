@@ -2164,6 +2164,124 @@ app.post('/api/workspaces/notify-pin-login', async (req, res) => {
   }
 });
 
+// ==========================================
+// RUTAS: CLUB VIP - LISTA DE ESPERA (SUPERADMIN)
+// ==========================================
+const VIP_WAITLIST_FILE = path.join(__dirname, 'vip_waitlist.json');
+
+const getVipWaitlistData = () => {
+  try {
+    if (!fs.existsSync(VIP_WAITLIST_FILE)) {
+      fs.writeFileSync(VIP_WAITLIST_FILE, JSON.stringify([]));
+      return [];
+    }
+    const content = fs.readFileSync(VIP_WAITLIST_FILE, 'utf-8');
+    return JSON.parse(content || '[]');
+  } catch (e) {
+    return [];
+  }
+};
+
+const saveVipWaitlistData = (data) => {
+  try {
+    fs.writeFileSync(VIP_WAITLIST_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Error guardando vip_waitlist.json:', e);
+  }
+};
+
+app.get('/api/vip-waitlist', async (req, res) => {
+  try {
+    let supabaseList = [];
+    try {
+      const { data } = await supabase.from('axon_vip_waitlist').select('*').order('created_at', { ascending: false });
+      if (data && Array.isArray(data)) supabaseList = data;
+    } catch (_) {}
+
+    const localList = getVipWaitlistData();
+    const map = new Map();
+    localList.forEach(item => map.set(item.phone, item));
+    supabaseList.forEach(item => {
+      if (!map.has(item.phone)) map.set(item.phone, item);
+      else map.set(item.phone, { ...map.get(item.phone), ...item });
+    });
+
+    const combined = Array.from(map.values()).sort((a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0));
+    res.json({ success: true, count: combined.length, data: combined });
+  } catch (err) {
+    console.error('Error obteniendo lista VIP:', err);
+    res.status(500).json({ error: 'Error al consultar lista VIP' });
+  }
+});
+
+app.post('/api/vip-waitlist', async (req, res) => {
+  try {
+    const { phone, name, customer_id } = req.body;
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ error: 'Número de WhatsApp requerido' });
+    }
+
+    const cleanPhone = phone.trim();
+    const entry = {
+      id: `vip_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      phone: cleanPhone,
+      name: (name || 'Cliente Visitante').trim(),
+      customer_id: customer_id || null,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+
+    const current = getVipWaitlistData();
+    const cleanDigits = cleanPhone.replace(/\D/g, '');
+    const existingIndex = current.findIndex(x => (x.phone || '').replace(/\D/g, '') === cleanDigits);
+    if (existingIndex >= 0) {
+      current[existingIndex].updated_at = new Date().toISOString();
+      if (name && name !== 'Cliente Visitante') current[existingIndex].name = name;
+    } else {
+      current.unshift(entry);
+    }
+    saveVipWaitlistData(current);
+
+    try {
+      await supabase.from('axon_vip_waitlist').upsert([entry], { onConflict: 'phone' });
+    } catch (_) {}
+
+    res.json({ success: true, entry });
+  } catch (err) {
+    console.error('Error registrando en lista VIP:', err);
+    res.status(500).json({ error: 'Error al registrar en Club VIP' });
+  }
+});
+
+app.delete('/api/vip-waitlist/:idOrPhone', async (req, res) => {
+  try {
+    const { idOrPhone } = req.params;
+    let list = getVipWaitlistData();
+    list = list.filter(item => item.id !== idOrPhone && item.phone !== idOrPhone);
+    saveVipWaitlistData(list);
+
+    try {
+      await supabase.from('axon_vip_waitlist').delete().or(`id.eq.${idOrPhone},phone.eq.${idOrPhone}`);
+    } catch (_) {}
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar registro VIP' });
+  }
+});
+
+app.delete('/api/vip-waitlist', async (req, res) => {
+  try {
+    saveVipWaitlistData([]);
+    try {
+      await supabase.from('axon_vip_waitlist').delete().neq('phone', '___');
+    } catch (_) {}
+    res.json({ success: true, message: 'Lista VIP depurada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al depurar lista VIP' });
+  }
+});
+
 // Inicializar el servidor
 server.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);

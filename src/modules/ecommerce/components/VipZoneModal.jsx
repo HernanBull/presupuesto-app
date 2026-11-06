@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Crown, 
-  Sparkles, 
   CheckCircle2, 
   X, 
   ArrowRight, 
-  BellRing,
-  Zap,
-  Gift,
-  Heart
+  Zap, 
+  Gift, 
+  Heart 
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 
@@ -39,21 +37,51 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
     }
 
     setIsSubmitting(true);
+    const cleanPhone = phone.trim();
+    const customerName = currentCustomer?.name || currentCustomer?.full_name || 'Cliente Visitante';
+
     try {
       localStorage.setItem('axon_vip_waitlist_registered', 'true');
-      localStorage.setItem('axon_vip_user_phone', phone.trim());
+      localStorage.setItem('axon_vip_user_phone', cleanPhone);
 
+      // 1. Enviar al backend para que se refleje inmediatamente en SuperAdmin
+      const payload = {
+        phone: cleanPhone,
+        name: customerName,
+        customer_id: currentCustomer?.id || null
+      };
+
+      try {
+        await fetch('/api/vip-waitlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (_) {
+        try {
+          await fetch('http://localhost:3001/api/vip-waitlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          console.warn('API local no accesible, guardado en buffer:', e);
+        }
+      }
+
+      // 2. Intentar registrar en Supabase en paralelo
       try {
         if (supabase) {
           await supabase.from('axon_vip_waitlist').insert([{
+            id: `vip_${Date.now()}`,
+            name: customerName,
+            phone: cleanPhone,
             customer_id: currentCustomer?.id || null,
-            name: currentCustomer?.name || 'Cliente VIP',
-            phone: phone.trim(),
             created_at: new Date().toISOString()
           }]).select();
         }
       } catch (err) {
-        // Silencioso, guardado local listo
+        // Silencioso
       }
 
       setIsJoined(true);
@@ -89,28 +117,34 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
           <X size={18} />
         </button>
 
-        <div className="p-6 sm:p-7 text-center">
-          {/* Ícono de Corona Anaranjado */}
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-500/30 mb-4">
-            <Crown size={32} className="stroke-[2.3]" />
+        <div className="p-6 sm:p-7">
+          {/* Cabecera: Cuadro anaranjado con la coronita + Club VIP + Próximamente al lado */}
+          <div className="flex items-center gap-3.5 mb-3 text-left">
+            <div className="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
+              <Crown size={28} className="stroke-[2.3]" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                  Club VIP
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold tracking-wide">
+                  Próximamente
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Zona VIP para clientes exclusivos
+              </p>
+            </div>
           </div>
 
-          {/* Insignia Próximamente */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-600 text-xs font-bold tracking-wide mb-2.5">
-            <Sparkles size={13} className="text-orange-500" />
-            <span>Zona VIP · Próximamente</span>
-          </div>
-
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Club VIP
-          </h2>
-
-          <p className="text-sm text-slate-600 mt-2 leading-relaxed">
+          <p className="text-sm text-slate-600 mb-4 text-left leading-relaxed">
             Estamos preparando funciones sorpresa diseñadas para resolver el día a día de todos los venezolanos.
           </p>
 
           {/* Puntos Clave Sencillos (Sin revelar detalles a la competencia) */}
-          <div className="mt-5 space-y-2.5 text-left">
+          <div className="space-y-2.5 text-left">
             <div className="p-3 rounded-2xl bg-orange-50/70 border border-orange-100 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0">
                 <Zap size={16} />
@@ -143,7 +177,7 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
           </div>
 
           {/* Sección de Notificación Rápida */}
-          <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="mt-5 pt-4 border-t border-slate-100 text-center">
             {isJoined ? (
               <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center gap-2">
                 <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
@@ -175,12 +209,14 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
           </div>
 
           {/* Botón Cerrar / Volver */}
-          <button 
-            onClick={onClose}
-            className="mt-4 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-          >
-            Volver a la tienda
-          </button>
+          <div className="text-center">
+            <button 
+              onClick={onClose}
+              className="mt-4 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+            >
+              Volver a la tienda
+            </button>
+          </div>
         </div>
       </div>
     </div>
