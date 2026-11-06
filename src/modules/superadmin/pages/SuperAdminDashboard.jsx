@@ -5,7 +5,6 @@ import {
   BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, 
   ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check, Clock, CreditCard, 
   Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw,
-  Wallet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -14,7 +13,6 @@ import DeliveryFleetDashboard from './DeliveryFleetDashboard';
 import BotControlPanel from './BotControlPanel';
 import HardwareSecurityPanel from './HardwareSecurityPanel';
 import AgencySuperuserManager from './AgencySuperuserManager';
-import GlobalCashMasterView from './GlobalCashMasterView';
 
 const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899'];
 
@@ -63,6 +61,12 @@ export default function SuperAdminDashboard({ superKey }) {
   const [twoFaSetup, setTwoFaSetup] = useState(null);
   const [newKeyInput, setNewKeyInput] = useState('');
   const [keyError, setKeyError] = useState('');
+
+  // Purge & Test Cleanup State
+  const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
+  const [purgeMode, setPurgeMode] = useState('orphaned'); // 'orphaned' | 'all_orders'
+  const [purgeConfirmationText, setPurgeConfirmationText] = useState('');
+  const [isPurging, setIsPurging] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -683,6 +687,92 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsConfirmOpen(true);
   };
 
+    const handleExecutePurge = async () => {
+    if (purgeConfirmationText.trim().toUpperCase() !== 'LIMPIAR') {
+      alert('Escribe la palabra LIMPIAR para autorizar la depuración.');
+      return;
+    }
+
+    setIsPurging(true);
+    try {
+      if (purgeMode === 'orphaned') {
+        // 1. Obtener los IDs de workspaces actualmente activos
+        const { data: activeWorkspaces, error: wsErr } = await supabase
+          .from('workspaces')
+          .select('id');
+        if (wsErr) throw wsErr;
+
+        const activeIds = new Set((activeWorkspaces || []).map(w => String(w.id)));
+
+        // 2. Obtener todas las órdenes para identificar huérfanas
+        const { data: allOrders, error: ordErr } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('id, workspace_id');
+        if (ordErr) throw ordErr;
+
+        const orphanedOrderIds = (allOrders || [])
+          .filter(o => !o.workspace_id || !activeIds.has(String(o.workspace_id)))
+          .map(o => o.id);
+
+        let deletedCount = 0;
+        if (orphanedOrderIds.length > 0) {
+          const batchSize = 100;
+          for (let i = 0; i < orphanedOrderIds.length; i += batchSize) {
+            const batch = orphanedOrderIds.slice(i, i + batchSize);
+            const { error: delErr } = await supabase
+              .from('ecommerce_orders_v2')
+              .delete()
+              .in('id', batch);
+            if (delErr) throw delErr;
+            deletedCount += batch.length;
+          }
+        }
+
+        // 3. Limpiar productos huérfanos de tiendas que ya no existen
+        const { data: allProducts } = await supabase
+          .from('ecommerce_products')
+          .select('id, workspace_id');
+        const orphanedProdIds = (allProducts || [])
+          .filter(p => !p.workspace_id || !activeIds.has(String(p.workspace_id)))
+          .map(p => p.id);
+        if (orphanedProdIds.length > 0) {
+          for (let i = 0; i < orphanedProdIds.length; i += 100) {
+            const batch = orphanedProdIds.slice(i, i + 100);
+            await supabase.from('ecommerce_products').delete().in('id', batch);
+          }
+        }
+
+        alert(`✅ Depuración completada: Se eliminaron ${deletedCount} pedidos huérfanos y ${orphanedProdIds.length} productos residuales de tiendas borradas.`);
+      } else if (purgeMode === 'all_orders') {
+        // Reset total de pedidos de prueba
+        const { data: allOrders } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('id');
+        const allIds = (allOrders || []).map(o => o.id);
+        if (allIds.length > 0) {
+          for (let i = 0; i < allIds.length; i += 100) {
+            const batch = allIds.slice(i, i + 100);
+            const { error: delErr } = await supabase
+              .from('ecommerce_orders_v2')
+              .delete()
+              .in('id', batch);
+            if (delErr) throw delErr;
+          }
+        }
+        alert(`✅ Reset total completado: Se borraron ${allIds.length} pedidos de prueba. Las métricas del dashboard iniciarán limpias en $0.00.`);
+      }
+
+      setIsPurgeModalOpen(false);
+      setPurgeConfirmationText('');
+      await fetchData();
+    } catch (err) {
+      console.error('Error al depurar dashboard:', err);
+      alert('Error en la depuración: ' + (err.message || 'Error desconocido'));
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (confirmText.trim().toUpperCase() !== 'ELIMINAR') return;
     setIsActionLoading(true);
@@ -704,8 +794,9 @@ export default function SuperAdminDashboard({ superKey }) {
          throw new Error("Error del servidor: " + data.error);
       }
 
-      // 2. Borrar datos en las tablas públicas
+      // 2. Borrar datos en las tablas públicas con cascada completa
       if (itemToDelete.type === 'merchant') {
+        await supabase.from('ecommerce_orders_v2').delete().eq('workspace_id', itemToDelete.id);
         await supabase.from('ecommerce_products').delete().eq('workspace_id', itemToDelete.id);
         const { error } = await supabase.from('workspaces').delete().eq('id', itemToDelete.id);
         if (error) throw error;
@@ -980,17 +1071,7 @@ export default function SuperAdminDashboard({ superKey }) {
           >
             <Users size={18} /> Clientes
           </button>
-          <button 
-            onClick={() => setActiveTab('global_cash')}
-            className={`min-w-[170px] flex-1 py-4 px-3 rounded-2xl flex items-center justify-center gap-2.5 font-bold uppercase tracking-widest text-[10px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
-              activeTab === 'global_cash' 
-                ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-[0_0_25px_rgba(234,88,12,0.4)]' 
-                : 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200/80 shadow-xs'
-            }`}
-          >
-            <Wallet size={18} /> 
-            <span>Caja Maestra Global</span>
-          </button>
+
         </div>
 
         {/* Content Box */}
@@ -1001,6 +1082,32 @@ export default function SuperAdminDashboard({ superKey }) {
             </div>
           ) : activeTab === 'dashboard' && stats ? (
             <div className="space-y-8">
+              {/* Cabecera y Acción de Depuración */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+                <div>
+                  <h2 className="text-base font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Métricas Consolidadas de la Red
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Monitoreo en tiempo real del ecosistema de tiendas, clientes y transacciones activas.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPurgeConfirmationText('');
+                    setPurgeMode('orphaned');
+                    setIsPurgeModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
+                  title="Depurar órdenes huérfanas de pruebas o reiniciar el dashboard"
+                >
+                  <Trash2 size={15} />
+                  <span>Depurar Datos de Pruebas</span>
+                </button>
+              </div>
+
               {/* KPIs */}
               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center col-span-2 md:col-span-1 shadow-xs">
@@ -1667,8 +1774,7 @@ export default function SuperAdminDashboard({ superKey }) {
               </div>
 
             </div>
-          ) : activeTab === 'global_cash' ? (
-            <GlobalCashMasterView />
+
           ) : activeTab === 'security' ? (
             <HardwareSecurityPanel superKey={superKey} />
           ) : activeTab === 'delivery_fleet' ? (
@@ -2237,6 +2343,142 @@ export default function SuperAdminDashboard({ superKey }) {
           )}
         </div>
       </main>
+
+
+      {/* Modal de Depuración y Limpieza de Datos de Pruebas */}
+      <AnimatePresence>
+        {isPurgeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
+            <motion.div initial={{scale:0.95, opacity:0, y: 20}} animate={{scale:1, opacity:1, y: 0}} exit={{scale:0.95, opacity:0, y: 20}} className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full relative z-10 shadow-2xl">
+              <button 
+                onClick={() => !isPurging && setIsPurgeModalOpen(false)} 
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
+                disabled={isPurging}
+              >
+                <X size={22} />
+              </button>
+              
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                  <ShieldAlert size={26} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-slate-950 uppercase tracking-wider">
+                    Depurar Dashboard de Pruebas
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Limpia transacciones residuales para reflejar datos limpios y precisos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Selector de Modo */}
+              <div className="space-y-3 mb-5">
+                <label 
+                  onClick={() => setPurgeMode('orphaned')}
+                  className={`block p-4 rounded-2xl border cursor-pointer transition-all ${
+                    purgeMode === 'orphaned' 
+                      ? 'border-rose-500 bg-rose-50/50 shadow-xs' 
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input 
+                      type="radio" 
+                      name="purgeMode" 
+                      checked={purgeMode === 'orphaned'} 
+                      onChange={() => setPurgeMode('orphaned')}
+                      className="mt-1 text-rose-600 focus:ring-rose-500" 
+                    />
+                    <div>
+                      <p className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                        1. Limpiar Pedidos Huérfanos (Recomendado)
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Elimina únicamente los pedidos y registros de tiendas de prueba que ya fueron borradas de la base de datos. <strong>Conserva intactas las tiendas reales activas y sus ventas legítimas.</strong>
+                      </p>
+                    </div>
+                  </div>
+                </label>
+
+                <label 
+                  onClick={() => setPurgeMode('all_orders')}
+                  className={`block p-4 rounded-2xl border cursor-pointer transition-all ${
+                    purgeMode === 'all_orders' 
+                      ? 'border-rose-500 bg-rose-50/50 shadow-xs' 
+                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input 
+                      type="radio" 
+                      name="purgeMode" 
+                      checked={purgeMode === 'all_orders'} 
+                      onChange={() => setPurgeMode('all_orders')}
+                      className="mt-1 text-rose-600 focus:ring-rose-500" 
+                    />
+                    <div>
+                      <p className="text-xs font-black text-rose-700 uppercase tracking-wider">
+                        2. Reset Total de Pedidos de Prueba
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Vacía por completo el historial de pedidos para iniciar el volumen GMV y pedidos en <strong>$0.00 y 0</strong>. <strong>No elimina las tiendas activas ni sus productos en catálogo.</strong>
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Confirmación con palabra clave */}
+              <div className="mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-widest mb-2 text-center">
+                  Para autorizar la depuración, escribe <span className="text-rose-600 font-black">"LIMPIAR"</span>:
+                </label>
+                <input 
+                  type="text" 
+                  value={purgeConfirmationText}
+                  onChange={(e) => setPurgeConfirmationText(e.target.value)}
+                  placeholder="LIMPIAR"
+                  autoFocus
+                  disabled={isPurging}
+                  className="w-full bg-white border border-rose-300 rounded-xl px-4 py-2.5 text-center text-slate-950 font-black uppercase tracking-widest text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+                />
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPurgeModalOpen(false)}
+                  disabled={isPurging}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecutePurge}
+                  disabled={purgeConfirmationText.trim().toUpperCase() !== 'LIMPIAR' || isPurging}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-rose-600/30 transition-all cursor-pointer"
+                >
+                  {isPurging ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Depurando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      <span>Ejecutar Depuración</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Confirmation Modal */}
       <AnimatePresence>
