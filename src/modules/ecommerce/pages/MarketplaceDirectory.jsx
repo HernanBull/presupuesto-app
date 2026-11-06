@@ -1852,15 +1852,15 @@ export default function MarketplaceDirectory() {
               <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
             </button>
 
-            {/* Botón Central Dorado - Zona VIP & IA */}
+            {/* Botón Central - Club VIP */}
             <div className="flex-1 flex justify-center relative -top-6">
               <div 
                 onClick={() => setIsVipModalOpen(true)} 
-                className="relative w-14 h-14 bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 rounded-full flex items-center justify-center text-zinc-950 shadow-[0_10px_28px_rgba(245,158,11,0.65)] ring-4 ring-amber-400/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
-                title="Zona VIP AxonMarket (Próximamente con Inteligencia Artificial)"
+                className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.45)] ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
+                title="Club VIP · Zona VIP Próximamente"
               >
-                <ShoppingBag size={24} className="stroke-[2.5] group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 text-[8.5px] font-black uppercase tracking-wider bg-black text-amber-400 border border-amber-400/60 rounded-full shadow-md animate-pulse">
+                <ShoppingBag size={24} className="stroke-[2.5] text-white group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
                   VIP
                 </span>
               </div>
