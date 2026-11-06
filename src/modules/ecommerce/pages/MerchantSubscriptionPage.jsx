@@ -16,6 +16,8 @@ export default function MerchantSubscriptionPage() {
   const [storeInfo, setStoreInfo] = useState({ name: 'Mi Comercio', status: 'En_Prueba' });
   const [trialDaysRemaining, setTrialDaysRemaining] = useState(7);
   const [subscriptionEndsAt, setSubscriptionEndsAt] = useState(null);
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [deliveredVolume, setDeliveredVolume] = useState(0);
 
   // Selector de Plan: 'mensual' ($30) o 'trimestral' ($60 - 3 meses con 1 mes gratis)
   const [selectedPlan, setSelectedPlan] = useState('trimestral');
@@ -89,6 +91,27 @@ export default function MerchantSubscriptionPage() {
             if (data.config?.subscriptionEndsAt) {
               setSubscriptionEndsAt(data.config.subscriptionEndsAt);
             }
+          }
+        })
+        .catch(console.error);
+
+      // Cargar consumo de pedidos entregados en vitrina del mes actual
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      supabase
+        .from('ecommerce_orders_v2')
+        .select('id, total, status')
+        .eq('workspace_id', wsId)
+        .eq('status', 'Entregado')
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth)
+        .then(({ data: orders }) => {
+          if (orders) {
+            setDeliveredCount(orders.length);
+            const vol = orders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+            setDeliveredVolume(vol);
           }
         })
         .catch(console.error);
@@ -347,6 +370,86 @@ export default function MerchantSubscriptionPage() {
             )}
           </div>
         </div>
+
+        {/* Consumo Mensual de Pedidos Entregados (Vitrina Virtual) */}
+        {(() => {
+          const limit = 500;
+          const excess = Math.max(0, deliveredCount - limit);
+          const percent = Math.min(100, Math.round((deliveredCount / limit) * 100));
+          const hasExcess = excess > 0;
+          const tariffAmount = excess * 0.10;
+
+          return (
+            <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                    <FileText size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-wide">
+                      Consumo Mensual de Vitrina Virtual
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                      Conteo exacto de pedidos entregados en tu gestión Kanban durante el mes en curso.
+                    </p>
+                  </div>
+                </div>
+
+                <span className={`px-3 py-1 rounded-full text-xs font-black self-start sm:self-auto ${
+                  hasExcess 
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  {hasExcess ? `Exceso: +${excess} pedidos` : 'Plan al Día (Dentro del Límite)'}
+                </span>
+              </div>
+
+              <div className="bg-slate-50 dark:bg-zinc-800/50 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-600 dark:text-slate-300">
+                    Pedidos entregados: <strong className="text-slate-900 dark:text-white text-sm">{deliveredCount}</strong> de {limit} incluidos
+                  </span>
+                  <span className="font-mono text-slate-500">{percent}% consumido</span>
+                </div>
+
+                <div className="w-full bg-slate-200 dark:bg-zinc-700 h-3 rounded-full overflow-hidden p-0.5">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      hasExcess ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs">
+                  <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-slate-200/80 dark:border-white/10">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Ventas en Vitrina</p>
+                    <p className="font-mono font-black text-slate-900 dark:text-white text-sm">
+                      ${deliveredVolume.toFixed(2)} USD
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-slate-200/80 dark:border-white/10">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Cupo Incluido</p>
+                    <p className="font-mono font-black text-slate-900 dark:text-white text-sm">
+                      {Math.max(0, limit - deliveredCount)} pedidos libres
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl border border-slate-200/80 dark:border-white/10">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Tarifa por Exceso ($0.10)</p>
+                    <p className={`font-mono font-black text-sm ${hasExcess ? 'text-rose-600' : 'text-slate-900 dark:text-white'}`}>
+                      ${tariffAmount.toFixed(2)} USD
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed">
+                  💡 Tu plan profesional incluye hasta <strong>500 pedidos entregados al mes</strong>. Si superas esa cantidad, cada pedido entregado adicional tiene un costo de <strong>$0.10 USD</strong> facturado al corte mensual de tu bodega.
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* 1. Selector de Planes (Mensual vs Trimestral) */}
         <div className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-3xl p-6 shadow-xs space-y-4">

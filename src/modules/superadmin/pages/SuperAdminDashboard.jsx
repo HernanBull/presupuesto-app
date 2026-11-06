@@ -68,6 +68,12 @@ export default function SuperAdminDashboard({ superKey }) {
   const [purgeConfirmationText, setPurgeConfirmationText] = useState('');
   const [isPurging, setIsPurging] = useState(false);
 
+  // Billing Tab State
+  const [billingSearch, setBillingSearch] = useState('');
+  const [billingFilter, setBillingFilter] = useState('all'); // 'all' | 'excess' | 'normal'
+  const [selectedBillingStore, setSelectedBillingStore] = useState(null);
+  const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+
   useEffect(() => {
     fetchData();
     setSearchTerm('');
@@ -348,52 +354,89 @@ export default function SuperAdminDashboard({ superKey }) {
         const { data: driversData } = await supabase.from('delivery_drivers').select('*');
         setDrivers(driversData || []);
       } else if (activeTab === 'billing') {
-        // Fetch workspaces
-        const { data: activeWorkspaces } = await supabase.from('workspaces').select('id, name, store_slug, config').eq('status', 'Activo');
+        // 1. Obtener comercios activos
+        const { data: activeWorkspaces } = await supabase
+          .from('workspaces')
+          .select('id, name, store_slug, config, created_at')
+          .eq('status', 'Activo');
         
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
-        // Get delivered orders for this month
+        // 2. Obtener pedidos con estado 'Entregado' en el mes actual (columna Entregado de la gestión de pedidos)
         const { data: deliveredOrders } = await supabase
           .from('ecommerce_orders_v2')
-          .select('workspace_id')
+          .select('id, workspace_id, total, items, date, customer, status')
           .eq('status', 'Entregado')
           .gte('date', startOfMonth)
-          .lte('date', endOfMonth);
+          .lte('date', endOfMonth)
+          .order('date', { ascending: false });
 
         const orderCounts = {};
+        const orderVolumes = {};
+        const orderUnitsMap = {};
+        const ordersByStore = {};
+
         if (deliveredOrders) {
           deliveredOrders.forEach(o => {
-            if (!orderCounts[o.workspace_id]) orderCounts[o.workspace_id] = 0;
-            orderCounts[o.workspace_id]++;
+            const wsId = o.workspace_id || 'unknown';
+            if (!orderCounts[wsId]) {
+              orderCounts[wsId] = 0;
+              orderVolumes[wsId] = 0;
+              orderUnitsMap[wsId] = 0;
+              ordersByStore[wsId] = [];
+            }
+            orderCounts[wsId]++;
+            orderVolumes[wsId] += Number(o.total || 0);
+            ordersByStore[wsId].push(o);
+
+            if (o.items) {
+              try {
+                const parsed = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(it => {
+                    orderUnitsMap[wsId] += Number(it.quantity || 1);
+                  });
+                }
+              } catch(e) {}
+            }
           });
         }
 
         const billingList = (activeWorkspaces || []).map(w => {
           const count = orderCounts[w.id] || 0;
-          const limit = 500;
+          const volume = orderVolumes[w.id] || 0;
+          const units = orderUnitsMap[w.id] || 0;
+          const storeOrders = ordersByStore[w.id] || [];
+          const limit = 500; // 500 pedidos incluidos por mes en el plan
           const excess = Math.max(0, count - limit);
-          const totalTariff = excess * 0.10;
+          const totalTariff = excess * 0.10; // $0.10 USD por pedido adicional
           
           let email = '-';
+          let phone = '-';
           try {
             const config = safeParseConfig(w.config);
-            email = config.adminEmail || config.contact?.email || '-';
+            email = config.adminEmail || config.contact?.email || config.email || '-';
+            phone = config.contactPhone || config.phone || config.contact?.phone || '-';
           } catch(e) {}
           
           return {
             ...w,
             deliveredCount: count,
+            deliveredVolume: volume,
+            deliveredUnits: units,
+            ordersList: storeOrders,
+            limit,
             excess,
             totalTariff,
-            email
+            email,
+            phone
           };
         });
 
-        // Sort by highest excess/tariff first
-        billingList.sort((a, b) => b.totalTariff - a.totalTariff);
+        // Ordenar: primero las que tienen exceso o mayor cantidad de pedidos entregados
+        billingList.sort((a, b) => b.excess - a.excess || b.deliveredCount - a.deliveredCount);
         setBillingData(billingList);
       }
     } catch (e) {
@@ -2074,6 +2117,324 @@ export default function SuperAdminDashboard({ superKey }) {
                    </table>
                  </div>
                </div>
+            </div>
+          ) : activeTab === 'billing' ? (
+            <div className="flex flex-col h-full space-y-6">
+              {/* Cabecera y Contexto de Facturación */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+                <div>
+                  <h2 className="text-base font-black text-slate-950 uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    Facturación y Consumo Mensual por Bodega
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Conteo exacto de pedidos entregados en vitrina virtual (columna 'Entregado' del Kanban). Base: 500 pedidos incluidos + $0.10 por exceso.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchData}
+                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    title="Recalcular pedidos entregados"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      const csvRows = [
+                        ['Bodega', 'Slug', 'Email', 'Telefono', 'Pedidos Entregados', 'Limite Plan', 'Exceso', 'Tarifa Exceso ($0.10)', 'Ventas Vitrina ($)'],
+                        ...billingData.map(b => [
+                          `"${b.name}"`,
+                          `"${b.store_slug || ''}"`,
+                          `"${b.email}"`,
+                          `"${b.phone}"`,
+                          b.deliveredCount,
+                          b.limit,
+                          b.excess,
+                          b.totalTariff.toFixed(2),
+                          b.deliveredVolume.toFixed(2)
+                        ])
+                      ];
+                      const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map(e => e.join(',')).join('\n');
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement('a');
+                      link.setAttribute('href', encodedUri);
+                      link.setAttribute('download', `Facturacion_Consumo_Bodegas_${new Date().toISOString().slice(0, 10)}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="px-4 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-600 hover:text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download size={15} />
+                    <span>Exportar CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* KPIs de Facturación del Mes */}
+              {(() => {
+                const totalStores = billingData.length;
+                const totalDelivered = billingData.reduce((acc, b) => acc + (b.deliveredCount || 0), 0);
+                const totalVitrinaSales = billingData.reduce((acc, b) => acc + (b.deliveredVolume || 0), 0);
+                const excessStores = billingData.filter(b => b.excess > 0).length;
+                const totalTariffPayable = billingData.reduce((acc, b) => acc + (b.totalTariff || 0), 0);
+
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-xs">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Bodegas Activas</p>
+                      <p className="text-2xl font-mono font-black text-slate-900">{totalStores}</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-xs">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Pedidos Entregados (Mes)</p>
+                      <p className="text-2xl font-mono font-black text-blue-600">{totalDelivered}</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-xs">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Ventas Vitrina (GMV)</p>
+                      <p className="text-2xl font-mono font-black text-emerald-600">${totalVitrinaSales.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-xs">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Bodegas con Exceso (&gt;500)</p>
+                      <p className={`text-2xl font-mono font-black ${excessStores > 0 ? 'text-amber-600' : 'text-slate-900'}`}>{excessStores}</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center shadow-xs col-span-2 md:col-span-1">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Tarifa Exceso</p>
+                      <p className="text-2xl font-mono font-black text-rose-600">${totalTariffPayable.toFixed(2)}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Filtros y Buscador */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="relative flex-1 w-full max-w-md">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={billingSearch}
+                    onChange={(e) => setBillingSearch(e.target.value)}
+                    placeholder="Buscar bodega por nombre, slug o ID..."
+                    className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+                  <button
+                    onClick={() => setBillingFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      billingFilter === 'all' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Todas ({billingData.length})
+                  </button>
+                  <button
+                    onClick={() => setBillingFilter('excess')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      billingFilter === 'excess' ? 'bg-rose-500 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Con Exceso ({billingData.filter(b => b.excess > 0).length})
+                  </button>
+                  <button
+                    onClick={() => setBillingFilter('normal')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      billingFilter === 'normal' ? 'bg-emerald-500 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Dentro del Plan ({billingData.filter(b => b.excess === 0).length})
+                  </button>
+                </div>
+              </div>
+
+              {/* Tabla de Facturación por Bodega */}
+              {(() => {
+                const filtered = billingData.filter(b => {
+                  const q = billingSearch.toLowerCase().trim();
+                  const matchSearch = !q || 
+                    b.name.toLowerCase().includes(q) || 
+                    (b.store_slug && b.store_slug.toLowerCase().includes(q)) || 
+                    b.id.toLowerCase().includes(q);
+                  if (!matchSearch) return false;
+                  if (billingFilter === 'excess') return b.excess > 0;
+                  if (billingFilter === 'normal') return b.excess === 0;
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-14 text-center bg-slate-50 border border-slate-200 rounded-2xl">
+                      <p className="font-bold text-slate-800 text-sm">No se encontraron bodegas con los criterios seleccionados</p>
+                      <p className="text-xs text-slate-500 mt-1">Prueba cambiando los términos de búsqueda o filtros.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-xs">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50/70">
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500">Bodega / Comercio</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Ventas Vitrina</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Pedidos Entregados (Kanban)</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Exceso Facturable</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Tarifa Exceso</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-center">Estado</th>
+                          <th className="py-3.5 px-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filtered.map(store => {
+                          const percent = Math.min(100, Math.round((store.deliveredCount / store.limit) * 100));
+                          const hasExcess = store.excess > 0;
+
+                          return (
+                            <tr key={store.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-4 px-4">
+                                <p className="font-black text-slate-900 text-sm">{store.name}</p>
+                                <p className="text-[11px] text-slate-500 font-mono">slug: /{store.store_slug || 'n-a'} · ID: {store.id.slice(0, 8)}...</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{store.email}</p>
+                              </td>
+                              <td className="py-4 px-4 text-right font-mono font-bold text-slate-900 text-sm">
+                                ${store.deliveredVolume.toFixed(2)}
+                              </td>
+                              <td className="py-4 px-4 text-center min-w-[180px]">
+                                <div className="flex items-center justify-between text-xs font-bold mb-1">
+                                  <span className={hasExcess ? 'text-rose-600 font-black' : 'text-slate-800'}>
+                                    {store.deliveredCount} entregados
+                                  </span>
+                                  <span className="text-slate-400 text-[11px]">de {store.limit} inc.</span>
+                                </div>
+                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                      hasExcess ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-emerald-500'
+                                    }`}
+                                    style={{ width: `${percent}%` }}
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {hasExcess ? (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200">
+                                    +{store.excess} pedidos
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-slate-400 font-bold">0 (Dentro del plan)</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right font-mono font-black text-sm">
+                                {hasExcess ? (
+                                  <span className="text-rose-600">${store.totalTariff.toFixed(2)}</span>
+                                ) : (
+                                  <span className="text-slate-400">$0.00</span>
+                                )}
+                                <span className="block text-[9px] text-slate-400 font-normal">($0.10 / ped)</span>
+                              </td>
+                              <td className="py-4 px-4 text-center">
+                                {hasExcess ? (
+                                  <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-300">
+                                    Exceso Facturable
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    Al Día
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-4 px-4 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBillingStore(store);
+                                      setIsBillingModalOpen(true);
+                                    }}
+                                    className="p-2 rounded-xl text-slate-600 hover:text-slate-950 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+                                    title="Ver pedidos entregados este mes"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const text = `📋 Resumen de Facturación AxonMarket\nBodega: ${store.name}\nPedidos Entregados en Vitrina: ${store.deliveredCount}\nLímite Incluido: ${store.limit}\nExceso de Pedidos: ${store.excess}\nTarifa a Pagar ($0.10/ped): $${store.totalTariff.toFixed(2)} USD\nVentas Realizadas en Vitrina: $${store.deliveredVolume.toFixed(2)} USD`;
+                                      navigator.clipboard.writeText(text);
+                                      alert('Resumen copiado al portapapeles listo para enviar por WhatsApp');
+                                    }}
+                                    className="p-2 rounded-xl text-slate-600 hover:text-amber-600 hover:bg-amber-50 text-xs font-bold transition-colors cursor-pointer"
+                                    title="Copiar desglose para WhatsApp"
+                                  >
+                                    <Copy size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              {/* Modal de Detalle de Pedidos Entregados de la Bodega */}
+              {isBillingModalOpen && selectedBillingStore && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                      <div>
+                        <h3 className="text-base font-black text-slate-900 uppercase tracking-wider">
+                          Pedidos Entregados — {selectedBillingStore.name}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Total: {selectedBillingStore.deliveredCount} pedidos entregados (${selectedBillingStore.deliveredVolume.toFixed(2)} GMV)
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setIsBillingModalOpen(false)}
+                        className="p-1 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1 divide-y divide-slate-100 pr-1">
+                      {selectedBillingStore.ordersList.length === 0 ? (
+                        <p className="py-8 text-center text-slate-500 text-xs">No hay pedidos registrados en estado 'Entregado' para esta tienda en el mes actual.</p>
+                      ) : (
+                        selectedBillingStore.ordersList.map(order => (
+                          <div key={order.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                            <div>
+                              <p className="font-bold text-slate-900">{order.customer || 'Cliente Mostrador'}</p>
+                              <p className="text-[10px] text-slate-400 font-mono">{new Date(order.date).toLocaleString()} · ID: {order.id.slice(0, 8)}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-mono font-black text-slate-900">${Number(order.total || 0).toFixed(2)}</p>
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold">
+                                Entregado
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-slate-500">Tarifa por exceso: </span>
+                        <strong className={selectedBillingStore.excess > 0 ? 'text-rose-600 font-black' : 'text-emerald-600'}>
+                          ${selectedBillingStore.totalTariff.toFixed(2)} USD
+                        </strong>
+                      </div>
+                      <button
+                        onClick={() => setIsBillingModalOpen(false)}
+                        className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-xs cursor-pointer"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col h-full">
