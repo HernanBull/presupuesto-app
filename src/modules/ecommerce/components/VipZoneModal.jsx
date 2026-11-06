@@ -4,7 +4,7 @@ import {
   CheckCircle2, 
   X, 
   ArrowRight, 
-  Zap, 
+  ShoppingBag, 
   Gift, 
   Heart 
 } from 'lucide-react';
@@ -191,7 +191,7 @@ export default function VipZoneModal({ isOpen, onClose, currentCustomer }) {
           <div className="space-y-2.5 text-left">
             <div className="p-3 rounded-2xl bg-orange-50/70 border border-orange-100 flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0">
-                <Zap size={16} />
+                <ShoppingBag size={16} className="stroke-[2.2]" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-900">Funciones para tu día a día</h4>
