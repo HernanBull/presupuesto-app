@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import AxonMarketDashboardPreview from './AxonMarketDashboardPreview';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
 
 const isIOSDevice = () => {
   return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -114,10 +115,25 @@ export default function MerchantOnboardingWizard({
   // Paso 1: Identidad y Expediente Fiscal
   const [ownerName, setOwnerName] = useState(initialData.ownerName || '');
   const [businessName, setBusinessName] = useState(initialData.businessName || '');
-  const [rubro, setRubro] = useState(initialData.rubro || 'ferreteria');
+  const [selectedCategories, setSelectedCategories] = useState(
+    Array.isArray(initialData.categories) && initialData.categories.length > 0 
+      ? initialData.categories 
+      : (initialData.rubro ? [initialData.rubro] : ['Víveres'])
+  );
+  const rubro = selectedCategories[0] || 'Víveres';
   const [whatsapp, setWhatsapp] = useState(initialData.whatsapp || '');
   const [rifPrefix, setRifPrefix] = useState('V');
   const [rifNumber, setRifNumber] = useState('');
+
+  const handleToggleCategory = (catId) => {
+    if (selectedCategories.includes(catId)) {
+      if (selectedCategories.length > 1) {
+        setSelectedCategories(selectedCategories.filter(c => c !== catId));
+      }
+    } else {
+      setSelectedCategories([...selectedCategories, catId]);
+    }
+  };
 
   // Paso 2: ¿Por dónde vendes? (Commercy step)
   const [salesChannels, setSalesChannels] = useState(['local']);
@@ -167,21 +183,8 @@ export default function MerchantOnboardingWizard({
   trialEndDate.setDate(trialEndDate.getDate() + 7);
   const formattedTrialEnd = trialEndDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'numeric' });
 
-  // 12 Rubros adaptados al comercio venezolano profesional
-  const RUBROS = [
-    { id: 'ferreteria', name: 'Ferretería', icon: Hammer },
-    { id: 'perfumeria', name: 'Perfumería', icon: Flower2 },
-    { id: 'dietetica', name: 'Salud y Fitness', icon: Apple },
-    { id: 'petshop', name: 'Mascotas', icon: PawPrint },
-    { id: 'almacen', name: 'Bodega y Abasto', icon: Store },
-    { id: 'libreria', name: 'Librería y Papelería', icon: BookOpen },
-    { id: 'bazar', name: 'Hogar y Variedades', icon: Armchair },
-    { id: 'indumentaria', name: 'Ropa y Calzado', icon: Shirt },
-    { id: 'gastronomia', name: 'Gastronomía', icon: Utensils },
-    { id: 'farmacia', name: 'Farmacia', icon: PlusSquare },
-    { id: 'distribuidora', name: 'Distribuidora', icon: Truck },
-    { id: 'otro', name: 'Otro', icon: MoreHorizontal }
-  ];
+  // 15 Departamentos y Categorías oficiales de AxonMarket
+  const RUBROS = MARKETPLACE_CATEGORIES;
 
   // Helper de selección múltiple
   const toggleMultiSelect = (state, setState, value) => {
@@ -363,10 +366,14 @@ export default function MerchantOnboardingWizard({
 
         const merchantEmail = prevConfig.adminEmail || prevConfig.contact?.email || '';
 
+        const primaryCat = selectedCategories[0] || 'Víveres';
+
         const updatedConfig = {
           ...prevConfig,
           adminEmail: merchantEmail,
-          business_type: rubro,
+          business_type: primaryCat,
+          category: primaryCat,
+          categories: selectedCategories,
           trialActive: true,
           plan: 'Prueba 7 Días Gratis',
           logoUrl: uploadedLogoUrl || prevConfig.logoUrl || null,
@@ -384,7 +391,8 @@ export default function MerchantOnboardingWizard({
             support_preference: supportPreference,
             owner_name: ownerName.trim(),
             business_name: businessName.trim(),
-            rubro
+            rubro: primaryCat,
+            categories: selectedCategories
           },
           paymentProfile: {
             paymentMobile: true,
@@ -433,6 +441,7 @@ export default function MerchantOnboardingWizard({
             latitude: gpsCoords?.lat || null,
             longitude: gpsCoords?.lng || null,
             map_address: resolvedAddress,
+            business_type: primaryCat,
             config: updatedConfig
           })
           .eq('id', activeWs);
@@ -831,28 +840,40 @@ export default function MerchantOnboardingWizard({
                     </div>
                   </div>
 
-                  {/* Rubro (12 rubros) */}
+                  {/* Categorías y Departamentos Oficiales del Marketplace */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1.5">
-                      Rubro Comercial
-                    </label>
-                    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-                      {RUBROS.map(r => {
-                        const Icon = r.icon;
-                        const isSelected = rubro === r.id;
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-800">
+                        Departamento / Categorías de tu Tienda
+                      </label>
+                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                        {selectedCategories.length} {selectedCategories.length === 1 ? 'seleccionada' : 'seleccionadas'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mb-2">
+                      Selecciona las categorías donde los clientes encontrarán tu tienda al filtrar en AxonMarket (puedes marcar varias):
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-2.5 max-h-56 overflow-y-auto p-1 custom-scrollbar">
+                      {MARKETPLACE_CATEGORIES.map(cat => {
+                        const Icon = cat.icon;
+                        const isSelected = selectedCategories.includes(cat.id);
                         return (
                           <button
-                            key={r.id}
+                            key={cat.id}
                             type="button"
-                            onClick={() => setRubro(r.id)}
+                            onClick={() => handleToggleCategory(cat.id)}
                             className={`flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-2xl text-center transition-all cursor-pointer ${
                               isSelected 
-                                ? 'bg-orange-50/90 border-2 border-orange-500 text-orange-950 shadow-sm ring-2 ring-orange-500/20' 
-                                : 'bg-[#fffaf5] hover:bg-orange-50/50 border border-slate-100 hover:border-orange-100 text-slate-700'
+                                ? 'bg-orange-50/90 border-2 border-orange-500 text-orange-950 shadow-xs ring-2 ring-orange-500/20' 
+                                : 'bg-[#fffaf5] hover:bg-orange-50/50 border border-slate-200/80 hover:border-orange-200 text-slate-700'
                             }`}
                           >
-                            <Icon size={20} className={isSelected ? 'text-orange-600' : 'text-slate-600'} />
-                            <span className="text-[10px] sm:text-[11px] font-semibold leading-tight mt-1 line-clamp-1">{r.name}</span>
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-transform ${
+                              isSelected ? 'bg-orange-500 text-white shadow-xs' : 'bg-white border border-slate-200 text-slate-600'
+                            }`}>
+                              <Icon size={16} />
+                            </div>
+                            <span className="text-[10px] sm:text-[11px] font-bold leading-tight mt-1 line-clamp-1">{cat.name}</span>
                           </button>
                         );
                       })}

@@ -1414,11 +1414,52 @@ export default function MarketplaceDirectory() {
     { id: 'Hogar y Electrodomésticos', name: 'Hogar', icon: Home }
   ];
 
-  const filteredStores = stores.filter(store => 
-    (activeCategory === 'Todas' || (store.config?.categories && store.config.categories.includes(activeCategory))) &&
-    (store.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (store.config?.description && store.config.description.toLowerCase().includes(searchTerm.toLowerCase())))
-  );
+  const filteredStores = stores.filter(store => {
+    let cfg = store.config;
+    if (typeof cfg === 'string') {
+      try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; }
+    } else if (!cfg) {
+      cfg = {};
+    }
+
+    const storeCats = Array.isArray(cfg.categories) 
+      ? [...cfg.categories] 
+      : (cfg.categories ? [cfg.categories] : []);
+    
+    if (cfg.category) storeCats.push(cfg.category);
+    if (cfg.rubro) storeCats.push(cfg.rubro);
+    if (cfg.business_type) storeCats.push(cfg.business_type);
+    if (store.business_type) storeCats.push(store.business_type);
+
+    let matchesCategory = (activeCategory === 'Todas');
+    if (!matchesCategory) {
+      const activeCatObj = categories.find(c => c.id === activeCategory);
+      const searchTerms = [
+        activeCategory.toLowerCase(),
+        (activeCatObj?.name || '').toLowerCase(),
+        (activeCatObj?.id || '').toLowerCase()
+      ].filter(Boolean);
+
+      matchesCategory = storeCats.some(cat => {
+        const cLower = String(cat).toLowerCase().trim();
+        return searchTerms.some(term => 
+          cLower === term || 
+          cLower.includes(term) || 
+          term.includes(cLower)
+        );
+      });
+    }
+
+    const storeDesc = (cfg.description || '').toLowerCase();
+    const storeName = (store.name || '').toLowerCase();
+    const searchLower = searchTerm.toLowerCase().trim();
+
+    const matchesSearch = !searchLower || 
+      storeName.includes(searchLower) || 
+      storeDesc.includes(searchLower);
+
+    return matchesCategory && matchesSearch;
+  });
 
   const merchantStatuses = useMemo(() => {
     const list = [];

@@ -5,6 +5,7 @@ import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import { optimizeStoreImage } from '../utils/imageOptimizer';
 import { offlineDb } from '../services/offlineSyncService';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -68,6 +69,7 @@ export default function StoreProfileManager() {
   const [adminPin, setAdminPin] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [storeCategories, setStoreCategories] = useState(['Víveres']);
   
   // Cambio de contraseña
   const [generatedPassword, setGeneratedPassword] = useState('');
@@ -220,6 +222,15 @@ export default function StoreProfileManager() {
             if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
             if (ws.config.logoUrl) setLogoUrl(ws.config.logoUrl);
             if (ws.config.coverUrl) setCoverUrl(ws.config.coverUrl);
+            if (Array.isArray(ws.config.categories) && ws.config.categories.length > 0) {
+              setStoreCategories(ws.config.categories);
+            } else if (ws.config.category) {
+              setStoreCategories([ws.config.category]);
+            } else if (ws.config.rubro) {
+              setStoreCategories([ws.config.rubro]);
+            } else if (ws.business_type) {
+              setStoreCategories([ws.business_type]);
+            }
             if (ws.config.bcvRate) setBcvRate(ws.config.bcvRate);
             if (ws.config.manualBcv !== undefined) {
               setManualBcv(ws.config.manualBcv);
@@ -462,8 +473,13 @@ export default function StoreProfileManager() {
       const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       if (fetchErr) throw fetchErr;
       
+      const primaryCat = storeCategories[0] || 'Víveres';
+      
       const newConfig = {
         ...(ws?.config || {}),
+        categories: storeCategories,
+        category: primaryCat,
+        business_type: primaryCat,
         currency,
         description,
         adminPin,
@@ -505,7 +521,10 @@ export default function StoreProfileManager() {
         }
       };
 
-      const { error: updateErr } = await supabase.from('workspaces').update({ config: newConfig }).eq('id', workspaceId);
+      const { error: updateErr } = await supabase.from('workspaces').update({ 
+        business_type: primaryCat,
+        config: newConfig 
+      }).eq('id', workspaceId);
       if (updateErr) throw updateErr;
       
       if (logoUrl) {
@@ -809,6 +828,53 @@ export default function StoreProfileManager() {
             <div className="space-y-2 md:col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descripción Breve</label>
               <textarea rows="3" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ej. Vendemos los mejores productos del mercado..." className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"></textarea>
+            </div>
+
+            <div className="space-y-2 md:col-span-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                  Categorías en el Marketplace de AxonMarket
+                </label>
+                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
+                  {storeCategories.length} {storeCategories.length === 1 ? 'categoría seleccionada' : 'categorías seleccionadas'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                Selecciona los departamentos donde los clientes encontrarán tu tienda al usar los filtros de búsqueda en AxonMarket:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 pt-2">
+                {MARKETPLACE_CATEGORIES.map(cat => {
+                  const Icon = cat.icon;
+                  const isSelected = storeCategories.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          if (storeCategories.length > 1) {
+                            setStoreCategories(storeCategories.filter(c => c !== cat.id));
+                          }
+                        } else {
+                          setStoreCategories([...storeCategories, cat.id]);
+                        }
+                      }}
+                      className={`flex flex-col items-center justify-center p-3 rounded-2xl text-center transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-orange-50/90 border-2 border-orange-500 text-orange-950 shadow-xs ring-2 ring-orange-500/20'
+                          : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-orange-50/40 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1.5 transition-transform ${
+                        isSelected ? 'bg-orange-500 text-white shadow-xs' : 'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300'
+                      }`}>
+                        <Icon size={18} />
+                      </div>
+                      <span className="text-xs font-bold leading-tight line-clamp-1">{cat.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
