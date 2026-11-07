@@ -5,7 +5,7 @@ import {
   Plus, Edit2, Trash2, Eye, EyeOff, Search, Loader2, Image as ImageIcon, 
   X, Heart, MessageSquare, Bookmark, Users, Sparkles, Share2, 
   ExternalLink, Check, ShoppingBag, ArrowUpRight, Flame, Megaphone, Star, Tag, Send,
-  Video, Camera, Volume2, VolumeX, Play
+  Video, Camera, Volume2, VolumeX, Play, Layers
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { 
@@ -22,6 +22,14 @@ import {
 } from '../services/socialService';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
 import ResponsiveModal from '../components/ResponsiveModal';
+
+const resolveImageUrl = (url) => {
+  if (!url) return '';
+  if (typeof url !== 'string') return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+  if (url.startsWith('/')) return `https://axonmarket-api.onrender.com${url}`;
+  return `https://axonmarket-api.onrender.com/${url}`;
+};
 
 const POST_BADGES = [
   { id: 'oferta', label: '🔥 Oferta Exclusiva', color: 'bg-red-500/10 text-red-600 border-red-500/20' },
@@ -863,43 +871,64 @@ export default function MerchantSocialFeedPage() {
             const isStatus = isItemStatus(item);
             const cleanTitle = (item.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
 
+            const postImages = resolvePostImages(item);
+            const isVideo = Boolean(item.media_type === 'video' || (typeof item.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(item.image_url)));
+            const primaryImage = postImages[0] || (typeof item.image_url === 'string' && !item.image_url.startsWith('[') ? item.image_url : '');
+            const hasMultipleImages = postImages.length > 1;
+
             return (
               <div 
                 key={item.id} 
                 className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-200 dark:border-white/5 overflow-hidden flex flex-col shadow-xs hover:border-amber-500/30 transition-all group"
               >
-                {/* Imagen o Video del Post */}
-                <div className="relative aspect-4/3 bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                  {item.image_url ? (
-                    (item.media_type === 'video' || /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(item.image_url)) ? (
-                      <>
-                        <video 
-                          src={item.image_url} 
-                          muted 
-                          playsInline 
-                          loop 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                        <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
-                          <Video size={12} className="text-amber-400" /> Video
-                        </div>
-                      </>
-                    ) : (
+                {/* Imagen o Video del Post (Proporción vertical móvil 4:5 estilo TikTok) */}
+                <div className="relative aspect-[4/5] bg-zinc-950 overflow-hidden">
+                  {isVideo && item.image_url ? (
+                    <>
+                      <video 
+                        src={resolveImageUrl(item.image_url)} 
+                        muted 
+                        playsInline 
+                        loop 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white flex items-center gap-1.5 font-bold z-10 border border-white/10">
+                        <Video size={12} className="text-amber-400" /> Video MP4
+                      </div>
+                    </>
+                  ) : primaryImage ? (
+                    <>
                       <img 
-                        src={item.image_url} 
+                        src={resolveImageUrl(primaryImage)} 
                         alt={cleanTitle} 
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                       />
-                    )
+                      {hasMultipleImages && (
+                        <>
+                          <div className="absolute top-3 right-3 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white flex items-center gap-1.5 font-bold z-10 border border-white/15 shadow-sm">
+                            <Layers size={12} className="text-amber-400" />
+                            <span>1/{postImages.length} fotos</span>
+                          </div>
+                          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-black/55 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10">
+                            {postImages.map((_, idx) => (
+                              <div 
+                                key={idx} 
+                                className={`h-1 rounded-full transition-all ${idx === 0 ? 'w-3.5 bg-amber-400' : 'w-1 bg-white/50'}`} 
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4 text-center">
                       <ImageIcon size={36} className="opacity-40 mb-1" />
                       <span className="text-xs">Sin multimedia adjunta</span>
                     </div>
                   )}
 
                   {/* Badges de Tipo y Estado */}
-                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+                  <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start z-10">
                     {isStatus ? (
                       <span className="px-2.5 py-1 rounded-full text-[11px] font-bold backdrop-blur-md shadow-sm flex items-center gap-1.5 bg-emerald-500/95 text-white">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -921,12 +950,14 @@ export default function MerchantSocialFeedPage() {
                     </span>
                   </div>
 
-                  {/* Fecha */}
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-md">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
+                  {/* Fecha (Solo si no hay carrusel para no chocar) */}
+                  {!hasMultipleImages && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-md">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Contenido */}
