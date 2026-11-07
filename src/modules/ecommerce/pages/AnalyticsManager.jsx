@@ -149,10 +149,33 @@ export default function AnalyticsManager() {
         }
       });
 
-      // Ordenar evolución diaria de ventas
-      const sortedDailySales = Object.keys(salesByDay).sort().map(d => ({
+      // Generar serie temporal continua completa del período para trazar una curva suave
+      const dailyTimeline = [];
+      const curr = new Date(startDate);
+      const maxDays = 60;
+      let dayCount = 0;
+      while (curr <= endDate && dayCount < maxDays) {
+        const yyyy = curr.getFullYear();
+        const mm = String(curr.getMonth() + 1).padStart(2, '0');
+        const dd = String(curr.getDate()).padStart(2, '0');
+        dailyTimeline.push(`${yyyy}-${mm}-${dd}`);
+        curr.setDate(curr.getDate() + 1);
+        dayCount++;
+      }
+
+      // Asegurar al menos 2 puntos para que Recharts dibuje una curva fluida con pendiente
+      if (dailyTimeline.length < 2) {
+        const prev = new Date(startDate);
+        prev.setDate(prev.getDate() - 1);
+        const yyyy = prev.getFullYear();
+        const mm = String(prev.getMonth() + 1).padStart(2, '0');
+        const dd = String(prev.getDate()).padStart(2, '0');
+        dailyTimeline.unshift(`${yyyy}-${mm}-${dd}`);
+      }
+
+      const sortedDailySales = dailyTimeline.map(d => ({
         date: d,
-        revenue: Number(salesByDay[d].toFixed(2))
+        revenue: Number((salesByDay[d] || 0).toFixed(2))
       }));
       setSalesData(sortedDailySales);
 

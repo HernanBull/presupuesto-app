@@ -1746,10 +1746,10 @@ export default function MarketplaceDirectory() {
                 {hasMerchantAccess && (
                   <button
                     onClick={() => navigate('/dashboard')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all cursor-pointer shrink-0"
+                    className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
                     title="Volver a mi Panel de Administrador"
                   >
-                    <LayoutDashboard size={14} className="stroke-[2.5]" />
+                    <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
                     <span>Panel Admin</span>
                   </button>
                 )}

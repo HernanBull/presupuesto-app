@@ -110,3 +110,4 @@ export default function ConfettiCelebration({ duration = 3500 }) {
     />
   );
 }
+

@@ -516,7 +516,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Me gusta"
         >
-          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
             <Heart 
               size={22} 
               strokeWidth={isLiked ? 0 : 2} 
@@ -539,7 +539,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Comentar"
         >
-          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
             <MessageCircle size={21} strokeWidth={2} className="text-white" />
           </div>
           <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
@@ -557,7 +557,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Compartir publicación"
         >
-          <div className="w-10 h-10 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.5)] group-hover:bg-black/65 transition-colors">
+          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
             <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
           </div>
           <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
@@ -575,12 +575,12 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Guardar en favoritos"
         >
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white border backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.5)] transition-all duration-300 ${
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white border backdrop-blur-xs shadow-xs transition-all duration-300 ${
             saveBounced 
               ? 'scale-125 bg-amber-500/30 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.7)]' 
               : isSaved 
                 ? 'bg-amber-500/25 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)]' 
-                : 'bg-black/45 border-white/20 group-hover:bg-black/65'
+                : 'bg-black/15 border-white/25 group-hover:bg-black/30'
           }`}>
             <Bookmark 
               size={20} 

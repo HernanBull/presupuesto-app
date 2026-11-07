@@ -50,7 +50,7 @@ export function playPosBeep() {
 }
 
 /**
- * Sonido moderno de Caja Registradora ("Ka-ching" y apertura de gaveta)
+ * Sonido auténtico de Caja Registradora con tintineo de monedas de dólar cayendo en gaveta
  */
 export function playCashRegisterSound() {
   try {
@@ -59,58 +59,65 @@ export function playCashRegisterSound() {
 
     const now = ctx.currentTime;
 
-    // 1. Primer ding de campana metálica
+    // Función auxiliar para sintetizar el "clink" metálico de una moneda
+    const playCoinClink = (startTime, freq1, freq2, gainLevel) => {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc2.type = 'triangle';
+
+      osc1.frequency.setValueAtTime(freq1, startTime);
+      osc2.frequency.setValueAtTime(freq2, startTime);
+
+      gainNode.gain.setValueAtTime(gainLevel, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.18);
+
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc1.start(startTime);
+      osc2.start(startTime);
+      osc1.stop(startTime + 0.18);
+      osc2.stop(startTime + 0.18);
+    };
+
+    // 1. Cascada de monedas de metal chocando alegremente (tintineo de dólar)
+    playCoinClink(now, 4186, 6272, 0.22); // Do8
+    playCoinClink(now + 0.07, 4698, 7040, 0.24); // Re8
+    playCoinClink(now + 0.14, 5587, 8372, 0.26); // Fa8
+
+    // 2. Campana de caja registradora clásica ("Ka-ching")
     const bellOsc = ctx.createOscillator();
     const bellGain = ctx.createGain();
     bellOsc.type = 'sine';
-    bellOsc.frequency.setValueAtTime(2489, now); // Re#7 brillante
-    bellGain.gain.setValueAtTime(0.2, now);
-    bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    bellOsc.frequency.setValueAtTime(2637, now + 0.18); // Mi7
+    bellOsc.frequency.exponentialRampToValueAtTime(3520, now + 0.28); // La7
+    bellGain.gain.setValueAtTime(0.28, now + 0.18);
+    bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
     bellOsc.connect(bellGain);
     bellGain.connect(ctx.destination);
-    bellOsc.start(now);
-    bellOsc.stop(now + 0.45);
+    bellOsc.start(now + 0.18);
+    bellOsc.stop(now + 0.7);
 
-    // 2. Segundo ding armónico de caja ("Ka-ching")
-    const bellOsc2 = ctx.createOscillator();
-    const bellGain2 = ctx.createGain();
-    bellOsc2.type = 'triangle';
-    bellOsc2.frequency.setValueAtTime(3136, now + 0.08); // Sol7
-    bellGain2.gain.setValueAtTime(0.18, now + 0.08);
-    bellGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-    bellOsc2.connect(bellGain2);
-    bellGain2.connect(ctx.destination);
-    bellOsc2.start(now + 0.08);
-    bellOsc2.stop(now + 0.55);
+    // 3. Resonador metálico de apertura de gaveta
+    const drawerOsc = ctx.createOscillator();
+    const drawerGain = ctx.createGain();
+    drawerOsc.type = 'triangle';
+    drawerOsc.frequency.setValueAtTime(120, now + 0.05);
+    drawerOsc.frequency.exponentialRampToValueAtTime(75, now + 0.22);
+    drawerGain.gain.setValueAtTime(0.15, now + 0.05);
+    drawerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-    // 3. Tintineo mecánico de monedas / gaveta (simulado con ruido blanco filtrado)
-    const bufferSize = ctx.sampleRate * 0.25;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(4200, now + 0.04);
-    filter.Q.setValueAtTime(3.5, now + 0.04);
-
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.15, now + 0.04);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-    noise.connect(filter);
-    filter.connect(noiseGain);
-    noiseGain.connect(ctx.destination);
-
-    noise.start(now + 0.04);
-    noise.stop(now + 0.28);
+    drawerOsc.connect(drawerGain);
+    drawerGain.connect(ctx.destination);
+    drawerOsc.start(now + 0.05);
+    drawerOsc.stop(now + 0.25);
   } catch (e) {
-    // Silencioso ante restricciones
+    // Silencioso
   }
 }
 
@@ -141,3 +148,4 @@ export function playItemRemovedSound() {
     // Silencioso
   }
 }
+

@@ -87,10 +87,12 @@ export class HardwareService {
 
   // --- IMPRESORA TÉRMICA & GAVETA DE DINERO (ESC/POS) ---
 
-  openCashDrawer() {
-    toast.success('Comando ESC/POS enviado: ¡Gaveta de dinero abierta!', {
-      icon: '💵'
-    });
+  openCashDrawer(options = {}) {
+    if (options.showToast) {
+      toast.success('Comando ESC/POS enviado: ¡Gaveta de dinero abierta!', {
+        icon: '💵'
+      });
+    }
     // Reproducir un sonido de clic mecánico
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -106,11 +108,13 @@ export class HardwareService {
     } catch(e) {}
   }
 
-  printTestTicket(width = '80mm') {
+  printTestTicket(width = '80mm', options = {}) {
     const is80 = width === '80mm';
-    toast.success(`Ticket de prueba (${width}) enviado a impresora térmica ESC/POS`, {
-      icon: '🖨️'
-    });
+    if (options.showToast) {
+      toast.success(`Ticket de prueba (${width}) enviado a impresora térmica ESC/POS`, {
+        icon: '🖨️'
+      });
+    }
   }
 }
 

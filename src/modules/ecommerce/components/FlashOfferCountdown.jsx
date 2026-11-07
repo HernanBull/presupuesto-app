@@ -64,3 +64,4 @@ export default function FlashOfferCountdown({ endDate, onExpire, compact = false
     </span>
   );
 }
+
