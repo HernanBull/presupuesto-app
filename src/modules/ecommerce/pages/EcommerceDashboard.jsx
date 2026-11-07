@@ -764,24 +764,6 @@ export default function EcommerceDashboard() {
               {hideFinancials ? <EyeOff size={16} /> : <Eye size={16} />}
               <span className="hidden sm:inline">{hideFinancials ? "Mostrar cifras" : "Ocultar cifras"}</span>
             </button>
-            <button 
-              onClick={() => navigate('/analytics')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-500/30 rounded-2xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 shadow-xs transition-all cursor-pointer group"
-              title="Ver análisis detallado del período"
-            >
-              <BarChart2 size={15} />
-              <span>Análisis del Período</span>
-              <ArrowUpRight size={13} className="text-blue-400 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-            <button 
-              onClick={() => navigate('/social-feed')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white rounded-2xl text-xs font-bold shadow-xs transition-all cursor-pointer group active:scale-95"
-              title="Gestionar publicaciones y estados TikTok"
-            >
-              <Flame size={15} />
-              <span>Publicaciones & Redes</span>
-              <span className="bg-white/25 text-[9px] px-1.5 py-0.2 rounded-full font-black uppercase">TikTok</span>
-            </button>
           </div>
         </div>
 
