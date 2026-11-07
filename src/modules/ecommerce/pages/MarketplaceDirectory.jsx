@@ -1569,6 +1569,8 @@ export default function MarketplaceDirectory() {
         store_name: parentStore.name || 'Comercio Axon',
         store_logo: parentStore.config?.logoUrl || parentStore.config?.storefront?.logoUrl,
         image_url: news.image_url || parentStore.config?.coverUrl || parentStore.config?.storefront?.heroUrl,
+        image_urls: news.image_urls || news.images || null,
+        media_type: news.media_type || 'image',
         content: `${news.title ? `📢 ${news.title}: ` : ''}${news.content}`,
         map_address: parentStore.map_address || parentStore.config?.address || 'Venezuela',
         is_verified: parentStore.config?.is_verified,

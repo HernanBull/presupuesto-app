@@ -17,7 +17,8 @@ import {
   getStoreRealMetrics,
   getPostSavesCount,
   getPostLikesList,
-  getStoreLikesList
+  getStoreLikesList,
+  resolvePostImages
 } from '../services/socialService';
 import PostCommentsDrawer from '../components/PostCommentsDrawer';
 import ResponsiveModal from '../components/ResponsiveModal';
@@ -63,12 +64,14 @@ export default function MerchantSocialFeedPage() {
   const videoFileInputRef = useRef(null);
   const videoRecordInputRef = useRef(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [previewPhotoIndex, setPreviewPhotoIndex] = useState(0);
 
   const [formData, setFormData] = useState({
     id: null,
     title: '',
     content: '',
     image_url: '',
+    images: [],
     media_type: 'image',
     status: 'Publicado',
     badge: '🔥 Oferta Exclusiva',
@@ -160,10 +163,13 @@ export default function MerchantSocialFeedPage() {
   }, [workspaceId]);
 
   // Centrado y Recorte Automático 9:16 Inteligente (Sin fricción ni arrastre manual)
-  const processAndCenterImage916 = async (source) => {
-    if (!source) return;
-    setUploadingImage(true);
-    const toastId = toast.loading('Centrando y optimizando foto a formato 9:16...');
+  const processAndCenterImage916 = async (source, silent = false) => {
+    if (!source) return null;
+    let toastId = null;
+    if (!silent) {
+      setUploadingImage(true);
+      toastId = toast.loading('Centrando y optimizando foto a formato 9:16...');
+    }
     try {
       // 1. Obtener DataURL si es un objeto File o Blob
       let src = source;
@@ -202,13 +208,11 @@ export default function MerchantSocialFeedPage() {
       // 4. Calcular recorte centrado perfecto automáticamente
       let sWidth, sHeight, sx, sy;
       if (imgAspect > targetAspect) {
-        // La imagen es horizontal o cuadrada (más ancha que 9:16). Se centra horizontalmente.
         sHeight = img.height;
         sWidth = img.height * targetAspect;
         sx = (img.width - sWidth) / 2;
         sy = 0;
       } else {
-        // La imagen es más alta que 9:16. Se centra verticalmente.
         sWidth = img.width;
         sHeight = img.width / targetAspect;
         sx = 0;
@@ -230,35 +234,112 @@ export default function MerchantSocialFeedPage() {
 
       if (uploadError) {
         console.error('Error al subir imagen a Supabase Storage:', uploadError);
-        toast.error(`Error al almacenar imagen: ${uploadError.message || 'Error en servidor'}`, { id: toastId });
-        return;
+        if (!silent) toast.error(`Error al almacenar imagen: ${uploadError.message || 'Error en servidor'}`, { id: toastId });
+        return null;
       }
 
       const { data } = supabase.storage.from('ecommerce').getPublicUrl(uniqueName);
       if (data?.publicUrl) {
-        setFormData(prev => ({ ...prev, image_url: data.publicUrl, media_type: 'image' }));
-        toast.success('¡Foto centrada automáticamente a 9:16!', { id: toastId });
+        if (!silent) {
+          setFormData(prev => {
+            const list = [...(prev.images || []), data.publicUrl];
+            return {
+              ...prev,
+              images: list,
+              image_url: list.length > 1 ? JSON.stringify(list) : list[0],
+              media_type: 'image'
+            };
+          });
+          toast.success('¡Foto agregada y centrada a 9:16!', { id: toastId });
+        }
+        return data.publicUrl;
       } else {
         throw new Error('No se pudo generar la URL de la imagen');
       }
     } catch (err) {
       console.warn('Error en auto-centrado:', err);
-      toast.error('No se pudo procesar la imagen seleccionada', { id: toastId });
+      if (!silent) toast.error('No se pudo procesar la imagen seleccionada', { id: toastId });
+      return null;
+    } finally {
+      if (!silent) {
+        setUploadingImage(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Manejar selección de múltiples fotos del comerciante (hasta 10 fotos)
+  const handleImageFileSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const currentCount = (formData.images || []).length;
+    if (currentCount + files.length > 10) {
+      toast.error(`Puedes subir un máximo de 10 fotos por publicación (tienes ${currentCount})`);
+      return;
+    }
+
+    setUploadingImage(true);
+    const toastId = toast.loading(`Procesando ${files.length} foto${files.length > 1 ? 's' : ''} a formato 9:16...`);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        if (file.size > 25 * 1024 * 1024) {
+          toast.error(`"${file.name}" supera los 25 MB y fue omitida`);
+          continue;
+        }
+        const url = await processAndCenterImage916(file, true);
+        if (url) uploadedUrls.push(url);
+      }
+
+      if (uploadedUrls.length > 0) {
+        setFormData(prev => {
+          const updated = [...(prev.images || []), ...uploadedUrls];
+          return {
+            ...prev,
+            images: updated,
+            image_url: updated.length > 1 ? JSON.stringify(updated) : (updated[0] || ''),
+            media_type: 'image'
+          };
+        });
+        toast.success(`¡${uploadedUrls.length} foto${uploadedUrls.length > 1 ? 's agregadas' : ' agregada'} exitosamente!`, { id: toastId });
+      } else {
+        toast.error('No se pudieron procesar las fotos seleccionadas', { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al procesar las imágenes', { id: toastId });
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  // Manejar selección de foto del comerciante
-  const handleImageFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 25 MB');
-      return;
-    }
-    await processAndCenterImage916(file);
+  const handleRemovePhoto = (indexToRemove) => {
+    setFormData(prev => {
+      const updated = (prev.images || []).filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        images: updated,
+        image_url: updated.length > 1 ? JSON.stringify(updated) : (updated[0] || '')
+      };
+    });
+    setPreviewPhotoIndex(prev => Math.max(0, Math.min(prev, (formData.images?.length || 1) - 2)));
+  };
+
+  const handleSetCoverPhoto = (indexToCover) => {
+    setFormData(prev => {
+      const list = [...(prev.images || [])];
+      const [item] = list.splice(indexToCover, 1);
+      list.unshift(item);
+      return {
+        ...prev,
+        images: list,
+        image_url: list.length > 1 ? JSON.stringify(list) : (list[0] || '')
+      };
+    });
+    setPreviewPhotoIndex(0);
+    toast.success('Foto establecida como Portada');
   };
 
   // Manejar subida y grabación de Video
@@ -351,16 +432,19 @@ export default function MerchantSocialFeedPage() {
   }, [searchParams]);
 
   const handleOpenModal = (newsItem = null, defaultType = 'post') => {
+    setPreviewPhotoIndex(0);
     if (newsItem) {
       const isVid = newsItem.media_type === 'video' || (newsItem.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(newsItem.image_url));
       const isStatus = newsItem.post_type === 'status' || (newsItem.title && newsItem.title.startsWith('[ESTADO]'));
       const cleanTitle = (newsItem.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+      const existingImages = resolvePostImages(newsItem);
 
       setFormData({
         id: newsItem.id,
         title: cleanTitle,
         content: newsItem.content || '',
         image_url: newsItem.image_url || '',
+        images: existingImages,
         media_type: isVid ? 'video' : 'image',
         status: newsItem.status || 'Publicado',
         badge: newsItem.badge || '🔥 Oferta Exclusiva',
@@ -372,6 +456,7 @@ export default function MerchantSocialFeedPage() {
         title: '',
         content: '',
         image_url: '',
+        images: [],
         media_type: 'image',
         status: 'Publicado',
         badge: '🔥 Oferta Exclusiva',
@@ -399,11 +484,21 @@ export default function MerchantSocialFeedPage() {
       const cleanTitle = formData.title.trim().replace(/^\[ESTADO\]\s*/i, '');
       const finalTitle = isStatus ? `[ESTADO] ${cleanTitle}` : cleanTitle;
 
+      const finalImages = (formData.images || []).filter(Boolean);
+      let finalImageUrl = null;
+      if (finalImages.length > 1) {
+        finalImageUrl = JSON.stringify(finalImages);
+      } else if (finalImages.length === 1) {
+        finalImageUrl = finalImages[0];
+      } else if (formData.image_url) {
+        finalImageUrl = formData.image_url.trim();
+      }
+
       const payload = {
         workspace_id: workspaceId,
         title: finalTitle,
         content: formData.content.trim(),
-        image_url: formData.image_url?.trim() || null,
+        image_url: finalImageUrl,
         media_type: isVideo ? 'video' : 'image',
         status: formData.status || 'Publicado',
         post_type: isStatus ? 'status' : 'post'
@@ -1084,6 +1179,7 @@ export default function MerchantSocialFeedPage() {
                     <input 
                       type="file" 
                       ref={fileInputRef} 
+                      multiple
                       onChange={handleImageFileSelect} 
                       accept="image/*" 
                       className="hidden" 
@@ -1104,7 +1200,7 @@ export default function MerchantSocialFeedPage() {
                       className="hidden" 
                     />
 
-                    {/* Botón Subir Foto con Auto-centrado 9:16 */}
+                    {/* Botón Subir Foto con Auto-centrado 9:16 (Carrusel múltiple) */}
                     <button
                       type="button"
                       disabled={uploadingImage || uploadingVideo}
@@ -1112,7 +1208,7 @@ export default function MerchantSocialFeedPage() {
                       className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                     >
                       {uploadingImage ? <Loader2 size={14} className="animate-spin text-amber-500" /> : <ImageIcon size={14} className="text-amber-500" />}
-                      Subir Foto (Auto-centrado 9:16)
+                      Subir Fotos (Carrusel / Hasta 10)
                     </button>
 
                     {/* Botón Grabar Video desde Cámara */}
@@ -1149,6 +1245,64 @@ export default function MerchantSocialFeedPage() {
                     )}
                   </div>
 
+                  {/* Tira de previsualización de imágenes agregadas al Carrusel */}
+                  {formData.images && formData.images.length > 0 && (
+                    <div className="p-3 bg-gray-50 dark:bg-zinc-800/80 rounded-2xl border border-gray-200 dark:border-zinc-700 space-y-2 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-gray-700 dark:text-zinc-300">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          Fotos en carrusel ({formData.images.length}/10):
+                        </span>
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                          La #1 es la portada
+                        </span>
+                      </div>
+                      <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin">
+                        {formData.images.map((imgUrl, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => setPreviewPhotoIndex(idx)}
+                            className={`relative group shrink-0 w-20 h-28 rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                              idx === 0 
+                                ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-md' 
+                                : previewPhotoIndex === idx 
+                                ? 'border-amber-400' 
+                                : 'border-gray-200 dark:border-zinc-700 hover:border-gray-400'
+                            }`}
+                          >
+                            <img src={imgUrl} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                            
+                            <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-black shadow-xs ${
+                              idx === 0 ? 'bg-amber-500 text-zinc-950' : 'bg-black/70 text-white'
+                            }`}>
+                              {idx === 0 ? 'Portada' : `#${idx + 1}`}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleRemovePhoto(idx); }}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs shadow-md opacity-90 hover:opacity-100 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                              title="Eliminar foto"
+                            >
+                              ✕
+                            </button>
+
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); handleSetCoverPhoto(idx); }}
+                                className="absolute bottom-1 inset-x-1 py-0.5 rounded bg-black/80 hover:bg-amber-500 hover:text-zinc-950 text-white text-[9px] font-bold text-center transition-colors cursor-pointer"
+                                title="Definir como foto de portada"
+                              >
+                                Portada
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Selector desplegable de productos del catálogo con centrado automático */}
                   {isProductPickerOpen && storeProducts.length > 0 && (
                     <div className="p-3 bg-gray-50 dark:bg-zinc-800/80 rounded-2xl border border-gray-200 dark:border-zinc-700 space-y-2">
@@ -1162,14 +1316,25 @@ export default function MerchantSocialFeedPage() {
                           return (
                             <div
                               key={p.id}
-                              onClick={() => {
+                              onClick={async () => {
                                 setFormData(prev => ({ 
                                   ...prev, 
                                   title: prev.title || `¡Disponible: ${p.name}!`,
                                   content: prev.content || `Aprovecha nuestro producto ${p.name} a tan solo ${p.price}. Disponible para entrega inmediata.`
                                 }));
                                 setIsProductPickerOpen(false);
-                                processAndCenterImage916(img);
+                                const url = await processAndCenterImage916(img, true);
+                                if (url) {
+                                  setFormData(prev => {
+                                    const list = [...(prev.images || []), url];
+                                    return {
+                                      ...prev,
+                                      images: list,
+                                      image_url: list.length > 1 ? JSON.stringify(list) : list[0]
+                                    };
+                                  });
+                                  toast.success(`Foto de "${p.name}" agregada al carrusel`);
+                                }
                               }}
                               className="cursor-pointer border border-transparent hover:border-amber-500 rounded-xl overflow-hidden group relative bg-white dark:bg-zinc-900"
                             >
@@ -1283,6 +1448,45 @@ export default function MerchantSocialFeedPage() {
                         playsInline 
                         className="absolute inset-0 w-full h-full object-cover z-0" 
                       />
+                    ) : (formData.images && formData.images.length > 0) ? (
+                      <div className="absolute inset-0 w-full h-full">
+                        <img 
+                          src={formData.images[previewPhotoIndex] || formData.images[0]} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+                        />
+                        {formData.images.length > 1 && (
+                          <>
+                            {previewPhotoIndex > 0 && (
+                              <button 
+                                type="button" 
+                                onClick={(e) => { e.stopPropagation(); setPreviewPhotoIndex(prev => prev - 1); }} 
+                                className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs font-bold z-30 cursor-pointer"
+                              >
+                                ‹
+                              </button>
+                            )}
+                            {previewPhotoIndex < formData.images.length - 1 && (
+                              <button 
+                                type="button" 
+                                onClick={(e) => { e.stopPropagation(); setPreviewPhotoIndex(prev => prev + 1); }} 
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs font-bold z-30 cursor-pointer"
+                              >
+                                ›
+                              </button>
+                            )}
+                            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20 flex gap-1">
+                              {formData.images.map((_, i) => (
+                                <div 
+                                  key={i} 
+                                  className={`h-1 rounded-full transition-all ${i === previewPhotoIndex ? 'w-3.5 bg-amber-400' : 'w-1 bg-white/40'}`} 
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     ) : formData.image_url ? (
                       <img 
                         src={formData.image_url} 
@@ -1304,7 +1508,7 @@ export default function MerchantSocialFeedPage() {
                     {/* Top Overlay: Pager */}
                     <div className="absolute top-8 right-3 z-20">
                       <div className="bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full text-[9px] text-white/90 border border-white/15 font-semibold">
-                        1/1
+                        {formData.images?.length > 1 ? `${previewPhotoIndex + 1}/${formData.images.length}` : (formData.media_type === 'video' ? 'VIDEO' : '1/1')}
                       </div>
                     </div>
 

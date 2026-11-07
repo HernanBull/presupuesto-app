@@ -40,6 +40,30 @@ export const notifySocialUpdate = (eventType, detail) => {
   window.dispatchEvent(new CustomEvent('axon_social_updated', { detail: { eventType, ...detail } }));
 };
 
+// Helper universal para extraer y normalizar fotos de una publicación (soporta 1 foto o múltiples en carrusel)
+export const resolvePostImages = (post) => {
+  if (!post) return [];
+  if (Array.isArray(post.image_urls) && post.image_urls.length > 0) {
+    return post.image_urls.filter(Boolean);
+  }
+  if (Array.isArray(post.images) && post.images.length > 0) {
+    return post.images.filter(Boolean);
+  }
+  const rawUrl = post.image_url || post.coverUrl || post.heroUrl || post.config?.coverUrl || post.config?.storefront?.heroUrl;
+  if (typeof rawUrl === 'string' && rawUrl.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(rawUrl);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter(Boolean);
+      }
+    } catch {}
+  }
+  if (rawUrl && typeof rawUrl === 'string') {
+    return [rawUrl];
+  }
+  return [];
+};
+
 // Comprobadores síncronos desde cache local (para evitar parpadeos y animaciones repetidas en la carga inicial)
 export const isPostLikedLocally = (postId, customerId) => {
   if (!postId || !customerId) return false;

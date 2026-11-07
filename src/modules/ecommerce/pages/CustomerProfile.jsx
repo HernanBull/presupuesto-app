@@ -20,7 +20,7 @@ L.Icon.Default.mergeOptions({
 });
 
 import ProfileWizardModal from '../components/ProfileWizardModal';
-import { getCustomerSavedPosts, isUuid } from '../services/socialService';
+import { getCustomerSavedPosts, isUuid, resolvePostImages } from '../services/socialService';
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
@@ -2018,30 +2018,42 @@ export default function CustomerProfile() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                       {savedPosts.map((post) => (
                         <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
-                          {post.image_url ? (
-                            <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
-                              {(post.media_type === 'video' || /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(post.image_url)) ? (
-                                <>
-                                  <video 
-                                    src={post.image_url} 
-                                    muted 
-                                    loop 
-                                    playsInline 
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                                  />
-                                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
-                                    <Video size={11} className="text-amber-400" /> Video
-                                  </div>
-                                </>
-                              ) : (
-                                <img src={post.image_url} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                              )}
-                            </div>
-                          ) : (
-                            <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
-                              <Store size={32} />
-                            </div>
-                          )}
+                          {(() => {
+                            const postImgs = resolvePostImages(post);
+                            const cover = postImgs[0] || post.image_url;
+                            const isVid = post.media_type === 'video' || (cover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(cover));
+                            return cover ? (
+                              <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
+                                {isVid ? (
+                                  <>
+                                    <video 
+                                      src={cover} 
+                                      muted 
+                                      loop 
+                                      playsInline 
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                    />
+                                    <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                                      <Video size={11} className="text-amber-400" /> Video
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <img src={cover} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    {postImgs.length > 1 && (
+                                      <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                                        <span>📷 {postImgs.length}</span>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
+                                <Store size={32} />
+                              </div>
+                            );
+                          })()}
                           <div className="p-5 flex-1 flex flex-col justify-between">
                             <div>
                               <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block mb-1">{post.store_name}</span>

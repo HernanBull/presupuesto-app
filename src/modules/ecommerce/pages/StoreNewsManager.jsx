@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { Plus, Edit2, Trash2, Eye, EyeOff, Search, Loader2, Image as ImageIcon, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { resolvePostImages } from '../services/socialService';
 
 export default function StoreNewsManager() {
   const [news, setNews] = useState([]);
@@ -14,6 +15,7 @@ export default function StoreNewsManager() {
     title: '',
     content: '',
     image_url: '',
+    images: [],
     status: 'Publicado'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,11 +49,13 @@ export default function StoreNewsManager() {
 
   const handleOpenModal = (newsItem = null) => {
     if (newsItem) {
+      const existingImages = resolvePostImages(newsItem);
       setFormData({
         id: newsItem.id,
         title: newsItem.title,
         content: newsItem.content,
         image_url: newsItem.image_url || '',
+        images: existingImages,
         status: newsItem.status
       });
     } else {
@@ -60,6 +64,7 @@ export default function StoreNewsManager() {
         title: '',
         content: '',
         image_url: '',
+        images: [],
         status: 'Publicado'
       });
     }
@@ -75,11 +80,21 @@ export default function StoreNewsManager() {
 
     setIsSubmitting(true);
     try {
+      const finalImages = (formData.images || []).filter(Boolean);
+      let finalImageUrl = null;
+      if (finalImages.length > 1) {
+        finalImageUrl = JSON.stringify(finalImages);
+      } else if (finalImages.length === 1) {
+        finalImageUrl = finalImages[0];
+      } else if (formData.image_url) {
+        finalImageUrl = formData.image_url.trim();
+      }
+
       const payload = {
         workspace_id: workspaceId,
         title: formData.title,
         content: formData.content,
-        image_url: formData.image_url,
+        image_url: finalImageUrl,
         status: formData.status
       };
 
@@ -187,13 +202,24 @@ export default function StoreNewsManager() {
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredNews.map((item) => (
               <div key={item.id} className="p-4 flex items-start gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                {item.image_url ? (
-                  <img src={item.image_url} alt={item.title} className="w-20 h-20 rounded-lg object-cover bg-gray-200 dark:bg-gray-600 flex-shrink-0" />
-                ) : (
-                  <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 text-gray-400">
-                    <ImageIcon size={24} />
-                  </div>
-                )}
+                {(() => {
+                  const itemImages = resolvePostImages(item);
+                  const cover = itemImages[0] || item.image_url;
+                  return cover ? (
+                    <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-600">
+                      <img src={cover} alt={item.title} className="w-full h-full object-cover" />
+                      {itemImages.length > 1 && (
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/75 text-[10px] font-black text-amber-400">
+                          {itemImages.length} fotos
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0 text-gray-400">
+                      <ImageIcon size={24} />
+                    </div>
+                  );
+                })()}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-base font-semibold text-gray-900 dark:text-white truncate">{item.title}</h4>

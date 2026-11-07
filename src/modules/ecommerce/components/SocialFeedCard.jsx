@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
-  Play, Volume2, VolumeX, ChevronRight 
+  Play, Volume2, VolumeX, ChevronRight, ChevronLeft 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -15,7 +15,8 @@ import {
   getPostComments,
   isPostLikedLocally,
   isStoreFollowedLocally,
-  isPostSavedLocally
+  isPostSavedLocally,
+  resolvePostImages
 } from '../services/socialService';
 import ResponsiveModal from './ResponsiveModal';
 import { useActiveFeedMedia } from '../context/ActiveFeedMediaContext';
@@ -93,10 +94,21 @@ export default function SocialFeedCard({
   const userPausedRef = useRef(false);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
 
-  // Gesto Swipe Left estilo TikTok hacia la vitrina del comercio
+  // Soporte de Múltiples Fotos / Carrusel horizontal dentro del feed TikTok
+  const postImages = useMemo(() => {
+    const list = resolvePostImages(post);
+    if (list.length > 0) return list;
+    if (storeCover) return [storeCover];
+    return [];
+  }, [post, storeCover]);
+
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const isCarousel = !isVideo && postImages.length > 1;
+
+  // Gesto Swipe Left estilo TikTok hacia la vitrina del comercio o cambio de slide en carrusel
   const [swipeX, setSwipeX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
-  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  const touchStartRef = useRef({ x: 0, y: 0, lastX: 0, time: 0 });
   const isHorizontalSwipeRef = useRef(null);
   const isMouseDownRef = useRef(false);
 
@@ -105,6 +117,7 @@ export default function SocialFeedCard({
     touchStartRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
+      lastX: e.touches[0].clientX,
       time: Date.now()
     };
     isHorizontalSwipeRef.current = null;
@@ -115,6 +128,7 @@ export default function SocialFeedCard({
     if (e.touches.length !== 1) return;
     const clientX = e.touches[0].clientX;
     const clientY = e.touches[0].clientY;
+    touchStartRef.current.lastX = clientX;
     const dx = clientX - touchStartRef.current.x;
     const dy = clientY - touchStartRef.current.y;
 
@@ -126,13 +140,23 @@ export default function SocialFeedCard({
 
     if (isHorizontalSwipeRef.current === true) {
       setIsSwiping(true);
-      if (dx < 0) {
-        // Deslizamiento hacia la izquierda con resistencia
-        const dampened = Math.max(dx * 0.7, -140);
-        setSwipeX(dampened);
+      if (isCarousel) {
+        // En carrusel, solo permitir efecto elástico hacia la vitrina si estamos en la última foto
+        if (currentSlideIndex === postImages.length - 1 && dx < 0) {
+          const dampened = Math.max(dx * 0.7, -140);
+          setSwipeX(dampened);
+        } else {
+          setSwipeX(0);
+        }
       } else {
-        // Leve amortiguación hacia la derecha sin abrir franjas blancas
-        setSwipeX(Math.min(dx * 0.1, 15));
+        if (dx < 0) {
+          // Deslizamiento hacia la izquierda con resistencia
+          const dampened = Math.max(dx * 0.7, -140);
+          setSwipeX(dampened);
+        } else {
+          // Leve amortiguación hacia la derecha sin abrir franjas blancas
+          setSwipeX(Math.min(dx * 0.1, 15));
+        }
       }
     }
   };
@@ -140,15 +164,46 @@ export default function SocialFeedCard({
   const handleTouchEnd = () => {
     if (isHorizontalSwipeRef.current === true) {
       const elapsed = Date.now() - touchStartRef.current.time;
-      if (swipeX <= -65 || (swipeX <= -35 && elapsed < 280)) {
-        // Swipe completado: redirigir fluidamente a la vitrina
-        setSwipeX(-window.innerWidth);
-        setIsSwiping(false);
-        setTimeout(() => {
-          if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+      const touchDist = (touchStartRef.current.lastX || 0) - touchStartRef.current.x;
+
+      if (isCarousel) {
+        // Deslizar hacia la izquierda: avanzar foto en el carrusel
+        if (touchDist < -40 && currentSlideIndex < postImages.length - 1) {
+          setCurrentSlideIndex(prev => prev + 1);
+          setIsSwiping(false);
           setSwipeX(0);
-        }, 160);
-        return;
+          isHorizontalSwipeRef.current = null;
+          return;
+        }
+        // Deslizar hacia la derecha: retroceder foto en el carrusel
+        if (touchDist > 40 && currentSlideIndex > 0) {
+          setCurrentSlideIndex(prev => prev - 1);
+          setIsSwiping(false);
+          setSwipeX(0);
+          isHorizontalSwipeRef.current = null;
+          return;
+        }
+        // En la última foto, si superó el umbral de vitrina:
+        if (currentSlideIndex === postImages.length - 1 && (swipeX <= -65 || (swipeX <= -35 && elapsed < 280))) {
+          setSwipeX(-window.innerWidth);
+          setIsSwiping(false);
+          setTimeout(() => {
+            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+            setSwipeX(0);
+          }, 160);
+          return;
+        }
+      } else {
+        if (swipeX <= -65 || (swipeX <= -35 && elapsed < 280)) {
+          // Swipe completado: redirigir fluidamente a la vitrina
+          setSwipeX(-window.innerWidth);
+          setIsSwiping(false);
+          setTimeout(() => {
+            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+            setSwipeX(0);
+          }, 160);
+          return;
+        }
       }
     }
     // Rebote elástico automático a la posición 0
@@ -163,6 +218,7 @@ export default function SocialFeedCard({
     touchStartRef.current = {
       x: e.clientX,
       y: e.clientY,
+      lastX: e.clientX,
       time: Date.now()
     };
     isHorizontalSwipeRef.current = null;
@@ -170,6 +226,7 @@ export default function SocialFeedCard({
 
   const handleMouseMove = (e) => {
     if (!isMouseDownRef.current) return;
+    touchStartRef.current.lastX = e.clientX;
     const dx = e.clientX - touchStartRef.current.x;
     const dy = e.clientY - touchStartRef.current.y;
 
@@ -181,10 +238,18 @@ export default function SocialFeedCard({
 
     if (isHorizontalSwipeRef.current === true) {
       setIsSwiping(true);
-      if (dx < 0) {
-        setSwipeX(Math.max(dx * 0.7, -140));
+      if (isCarousel) {
+        if (currentSlideIndex === postImages.length - 1 && dx < 0) {
+          setSwipeX(Math.max(dx * 0.7, -140));
+        } else {
+          setSwipeX(0);
+        }
       } else {
-        setSwipeX(Math.min(dx * 0.1, 15));
+        if (dx < 0) {
+          setSwipeX(Math.max(dx * 0.7, -140));
+        } else {
+          setSwipeX(Math.min(dx * 0.1, 15));
+        }
       }
     }
   };
@@ -553,7 +618,7 @@ export default function SocialFeedCard({
           transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)'
         }}
       >
-        {/* Background Media - 100% Pantalla Completa TikTok Instantánea */}
+        {/* Background Media - 100% Pantalla Completa TikTok Instantánea o Carrusel Multi-Foto */}
       {isVideo ? (
         <div 
           className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer"
@@ -575,6 +640,74 @@ export default function SocialFeedCard({
               </div>
             </div>
           )}
+        </div>
+      ) : isCarousel ? (
+        <div className="absolute inset-0 w-full h-full bg-black z-0 overflow-hidden">
+          {/* Tira de Fotos en Carrusel Horizontal */}
+          <div 
+            className="flex h-full w-full transition-transform duration-300 ease-out will-change-transform"
+            style={{ 
+              transform: `translateX(-${currentSlideIndex * 100}%)`,
+              width: `${postImages.length * 100}%`
+            }}
+          >
+            {postImages.map((imgUrl, i) => (
+              <div 
+                key={i} 
+                className="h-full relative shrink-0" 
+                style={{ width: `${100 / postImages.length}%` }}
+              >
+                <img 
+                  loading={i === 0 ? "eager" : "lazy"} 
+                  decoding="async"
+                  src={resolveImageUrl(imgUrl)} 
+                  alt={`${storeName} ${i + 1}`} 
+                  className="w-full h-full object-cover select-none pointer-events-none" 
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Flecha Izquierda para Computadoras / Clic Directo */}
+          {currentSlideIndex > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.max(0, prev - 1)); }}
+              className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              title="Foto anterior"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
+
+          {/* Flecha Derecha para Computadoras / Clic Directo */}
+          {currentSlideIndex < postImages.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.min(postImages.length - 1, prev + 1)); }}
+              className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              title="Siguiente foto"
+            >
+              <ChevronRight size={20} />
+            </button>
+          )}
+
+          {/* Indicadores de Diapositiva tipo Barra / Puntos */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 max-w-[60%]">
+            {postImages.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(i); }}
+                className={`h-1 rounded-full transition-all cursor-pointer ${
+                  i === currentSlideIndex 
+                    ? 'w-6 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' 
+                    : 'w-1.5 bg-white/45 hover:bg-white/80'
+                }`}
+                title={`Ir a foto ${i + 1}`}
+              />
+            ))}
+          </div>
         </div>
       ) : storeCover ? (
         <img 
@@ -608,7 +741,7 @@ export default function SocialFeedCard({
         )}
 
         <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none shadow-sm">
-          {isVideo ? 'VIDEO' : '1/1'}
+          {isVideo ? 'VIDEO' : isCarousel ? `${currentSlideIndex + 1}/${postImages.length}` : '1/1'}
         </div>
 
         <div className="relative">

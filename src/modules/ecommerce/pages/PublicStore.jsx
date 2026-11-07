@@ -371,7 +371,13 @@ export default function PublicStore() {
 
     const list = sourceNews.map((news) => {
       const cleanTitle = (news.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
-      const rawMedia = news.image_url || storeCover || storeAvatar;
+      let rawMedia = news.image_url || storeCover || storeAvatar;
+      if (typeof rawMedia === 'string' && rawMedia.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(rawMedia);
+          if (Array.isArray(parsed) && parsed.length > 0) rawMedia = parsed[0];
+        } catch {}
+      }
       const isVid = news.media_type === 'video' || (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia));
       return {
         id: news.id,
