@@ -1914,7 +1914,7 @@ export default function PublicStore() {
   // Color de marca dinámico de la vitrina (exclusivo para este comercio)
   const primaryColor = liveBrandColor || config?.primaryColor || config?.storefront?.primaryColor || config?.themeColor || DEFAULT_STOREFRONT_COLOR;
   const primaryTextColor = getContrastTextColor(primaryColor);
-  const themeStyles = useMemo(() => getStorefrontThemeStyles(primaryColor), [primaryColor]);
+  const themeStyles = getStorefrontThemeStyles(primaryColor);
   const typography = 'font-sans';
   const baseFontSize = 'text-base';
   const headingWeight = 'font-light';
@@ -2009,18 +2009,16 @@ export default function PublicStore() {
   };
 
   const recentProducts = products.slice(0, 8);
-  const offerProducts = useMemo(() => {
-    const now = Date.now();
-    return products.filter(p => {
-      if (!p.is_offer || Number(p.is_offer) === 0) return false;
-      const endDate = p.metadata?.offer_end_date;
-      if (endDate) {
-        const endMs = new Date(endDate).getTime();
-        if (!isNaN(endMs) && endMs < now) return false;
-      }
-      return true;
-    });
-  }, [products]);
+  const nowTime = Date.now();
+  const offerProducts = products.filter(p => {
+    if (!p.is_offer || Number(p.is_offer) === 0) return false;
+    const endDate = p.metadata?.offer_end_date;
+    if (endDate) {
+      const endMs = new Date(endDate).getTime();
+      if (!isNaN(endMs) && endMs < nowTime) return false;
+    }
+    return true;
+  });
   let catalogProducts = [...products];
   if (activeMainCategory !== 'Todas') {
     catalogProducts = catalogProducts.filter(p => p.category === activeMainCategory);
