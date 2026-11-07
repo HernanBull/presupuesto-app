@@ -73,12 +73,24 @@
     color: var(--text-main);
   }
   
-  .dark .bg-black, .dark .bg-slate-900, .dark .bg-slate-950, .bg-black,
+  .dark .bg-slate-900, .dark .bg-slate-950,
   .bg-zinc-950, .bg-zinc-900 {
     background-color: var(--bg-primary) !important; /* Tarjetas blancas */
     color: var(--text-main) !important;
     border: 1px solid #E5E5E5 !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
+  }
+
+  /* Forzar que bg-black sea siempre negro puro y sin ningún borde claro */
+  .bg-black,
+  .dark .bg-black,
+  .marketplace-screen-container,
+  .marketplace-app-shell {
+    background-color: #000000 !important;
+    border: none !important;
+    border-color: #000000 !important;
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* Botones secundarios que eran oscuros (zinc-800) pasan a ser botones claros */

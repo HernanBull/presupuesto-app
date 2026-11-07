@@ -510,6 +510,7 @@ export default function SocialFeedCard({
       style={{
         height: '100dvh',
         border: 'none',
+        borderColor: '#000000',
         outline: 'none',
         boxShadow: 'none'
       }}

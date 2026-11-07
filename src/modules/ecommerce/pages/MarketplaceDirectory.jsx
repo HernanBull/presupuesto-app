@@ -1884,7 +1884,10 @@ export default function MarketplaceDirectory() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500/30 relative overflow-hidden flex flex-col items-center w-full">
+      <div 
+        className="marketplace-screen-container min-h-screen bg-black text-white font-sans selection:bg-amber-500/30 relative overflow-hidden flex flex-col items-center w-full"
+        style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+      >
       {/* PWA Install Banner */}
       <PwaInstallBanner />
       
@@ -2039,7 +2042,8 @@ export default function MarketplaceDirectory() {
       {/* Centered Mobile-First App Shell (Wider for Desktop - Motor Drag-and-Snap TikTok) */}
       <div 
         ref={mainContainerRef} 
-        className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-hidden select-none border-none shadow-none"
+        className="marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-hidden select-none border-none shadow-none"
+        style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
