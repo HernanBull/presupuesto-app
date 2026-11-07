@@ -1349,14 +1349,23 @@ export default function MerchantSocialFeedPage() {
                     </div>
                   )}
 
-                  {/* Input URL alternativo */}
-                  <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    placeholder="O pega directamente la URL de la imagen..."
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
+                  {/* Indicador de video cargado si aplica */}
+                  {formData.media_type === 'video' && formData.image_url && (
+                    <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/30 rounded-2xl text-xs font-bold text-blue-600 dark:text-blue-400">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Video size={16} className="shrink-0 text-blue-500" />
+                        <span className="truncate">Video vertical cargado listo para publicar</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, image_url: '', media_type: 'image' }))}
+                        className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-semibold cursor-pointer shrink-0"
+                        title="Quitar video"
+                      >
+                        ✕ Quitar
+                      </button>
+                    </div>
+                  )}
 
                   {/* Guía informativa de formato y centrado 9:16 */}
                   <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-2.5 mt-2">
