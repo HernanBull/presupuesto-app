@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield, Palette, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield, Palette, CheckCircle2, RotateCcw, MapPin, FileText } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
@@ -72,6 +72,9 @@ export default function StoreProfileManager() {
   
   // Perfil
   const [storeName, setStoreName] = useState('Mi Tienda Online');
+  const [ownerName, setOwnerName] = useState('');
+  const [rif, setRif] = useState('');
+  const [address, setAddress] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [description, setDescription] = useState('');
   const [adminPin, setAdminPin] = useState('');
@@ -223,67 +226,98 @@ export default function StoreProfileManager() {
 
         const { data: ws, error } = await supabase.from('workspaces').select('*').eq('id', workspaceId).single();
         if (ws) {
-          if (ws.name) setStoreName(ws.name);
-          if (ws.config) {
-            const currentPass = ws.config.generatedPassword || ws.config.adminPassword || ws.config.adminPin || '';
+          const cfg = typeof ws.config === 'object' && ws.config !== null 
+            ? ws.config 
+            : (typeof ws.config === 'string' ? JSON.parse(ws.config || '{}') : {});
+
+          // Nombre de la Tienda
+          const resolvedStoreName = ws.name || cfg.onboarding?.business_name || cfg.business_name || cfg.name || 'Mi Tienda Online';
+          setStoreName(resolvedStoreName);
+
+          // Nombre del Propietario / Encargado
+          const resolvedOwnerName = cfg.expediente?.ownerName || cfg.contact?.ownerName || cfg.onboarding?.owner_name || cfg.ownerName || '';
+          setOwnerName(resolvedOwnerName);
+
+          // Cédula o RIF Fiscal
+          const resolvedRif = cfg.expediente?.rif || cfg.rif || '';
+          setRif(resolvedRif);
+
+          // Dirección física y mapa
+          const resolvedAddress = ws.map_address || cfg.address || cfg.expediente?.address || cfg.location?.address || '';
+          setAddress(resolvedAddress);
+
+          // WhatsApp comercial / Teléfono de contacto
+          const resolvedWhatsapp = cfg.socialLinks?.whatsapp || cfg.contact?.phone || cfg.expediente?.whatsapp || '';
+          if (resolvedWhatsapp) {
+            setSocialLinks(prev => ({
+              ...prev,
+              ...(cfg.socialLinks || {}),
+              whatsapp: resolvedWhatsapp
+            }));
+          } else if (cfg.socialLinks) {
+            setSocialLinks(cfg.socialLinks);
+          }
+
+          if (cfg) {
+            const currentPass = cfg.generatedPassword || cfg.adminPassword || cfg.adminPin || '';
             if (currentPass) setGeneratedPassword(currentPass);
-            if (ws.config.currency) setCurrency(ws.config.currency);
-            if (ws.config.description) setDescription(ws.config.description);
-            if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
-            if (ws.config.logoUrl) setLogoUrl(ws.config.logoUrl);
-            if (ws.config.coverUrl) setCoverUrl(ws.config.coverUrl);
-            const loadedColor = ws.config.primaryColor || ws.config.themeColor || ws.config.storefront?.primaryColor || DEFAULT_STOREFRONT_COLOR;
+            if (cfg.currency) setCurrency(cfg.currency);
+            if (cfg.description) setDescription(cfg.description);
+            if (cfg.adminPin) setAdminPin(cfg.adminPin);
+            if (cfg.logoUrl) setLogoUrl(cfg.logoUrl);
+            if (cfg.coverUrl) setCoverUrl(cfg.coverUrl);
+            const loadedColor = cfg.primaryColor || cfg.themeColor || cfg.storefront?.primaryColor || DEFAULT_STOREFRONT_COLOR;
             const normalizedColor = normalizeHex(loadedColor);
             setPrimaryColor(normalizedColor);
             setCustomHexInput(normalizedColor);
-            if (Array.isArray(ws.config.categories) && ws.config.categories.length > 0) {
-              setStoreCategories(ws.config.categories);
-            } else if (ws.config.category) {
-              setStoreCategories([ws.config.category]);
-            } else if (ws.config.rubro) {
-              setStoreCategories([ws.config.rubro]);
+            if (Array.isArray(cfg.categories) && cfg.categories.length > 0) {
+              setStoreCategories(cfg.categories);
+            } else if (cfg.category) {
+              setStoreCategories([cfg.category]);
+            } else if (cfg.rubro) {
+              setStoreCategories([cfg.rubro]);
             } else if (ws.business_type) {
               setStoreCategories([ws.business_type]);
             }
-            if (ws.config.bcvRate) setBcvRate(ws.config.bcvRate);
-            if (ws.config.manualBcv !== undefined) {
-              setManualBcv(ws.config.manualBcv);
-            } else if (ws.config.autoBcv !== undefined) {
-              setManualBcv(!ws.config.autoBcv); // Migrate from old config
+            if (cfg.bcvRate) setBcvRate(cfg.bcvRate);
+            if (cfg.manualBcv !== undefined) {
+              setManualBcv(cfg.manualBcv);
+            } else if (cfg.autoBcv !== undefined) {
+              setManualBcv(!cfg.autoBcv); // Migrate from old config
             }
             
-            if (ws.config.paymentProfile) {
-              setPaymentMobile(ws.config.paymentProfile.paymentMobile !== false);
-              setPmBank(ws.config.paymentProfile.pmBank || '');
-              setPmPhone(ws.config.paymentProfile.pmPhone || '');
-              setPmId(ws.config.paymentProfile.pmId || '');
-              setZelleActive(ws.config.paymentProfile.zelleActive || false);
-              setZelleEmail(ws.config.paymentProfile.zelleEmail || '');
-              setZelleName(ws.config.paymentProfile.zelleName || '');
-              setCashActive(ws.config.paymentProfile.cashActive || false);
+            if (cfg.paymentProfile) {
+              setPaymentMobile(cfg.paymentProfile.paymentMobile !== false);
+              setPmBank(cfg.paymentProfile.pmBank || '0102 - Banco de Venezuela');
+              setPmPhone(cfg.paymentProfile.pmPhone || resolvedWhatsapp || '');
+              setPmId(cfg.paymentProfile.pmId || resolvedRif || '');
+              setZelleActive(cfg.paymentProfile.zelleActive || false);
+              setZelleEmail(cfg.paymentProfile.zelleEmail || '');
+              setZelleName(cfg.paymentProfile.zelleName || '');
+              setCashActive(cfg.paymentProfile.cashActive || false);
+            } else {
+              if (resolvedWhatsapp) setPmPhone(resolvedWhatsapp);
+              if (resolvedRif) setPmId(resolvedRif);
             }
-            if (ws.config.shippingProfile) {
-              setFlatRate(ws.config.shippingProfile.flatRate || 0);
-              setFreeShipping(ws.config.shippingProfile.freeShipping || false);
+            if (cfg.shippingProfile) {
+              setFlatRate(cfg.shippingProfile.flatRate || 0);
+              setFreeShipping(cfg.shippingProfile.freeShipping || false);
             }
-            if (ws.config.has_enminutos_alliance !== undefined) {
-              setHasEnminutosAlliance(ws.config.has_enminutos_alliance);
+            if (cfg.has_enminutos_alliance !== undefined) {
+              setHasEnminutosAlliance(cfg.has_enminutos_alliance);
             }
-            if (ws.config.socialLinks) {
-              setSocialLinks(ws.config.socialLinks || { instagram: '', facebook: '', tiktok: '', whatsapp: '' });
-            }
-            if (ws.config.scheduleProfile) {
-              setScheduleActive(ws.config.scheduleProfile.scheduleActive || false);
-              if (ws.config.scheduleProfile.workDays) setWorkDays(ws.config.scheduleProfile.workDays);
-              if (ws.config.scheduleProfile.openTime) setOpenTime(ws.config.scheduleProfile.openTime);
-              if (ws.config.scheduleProfile.closeTime) setCloseTime(ws.config.scheduleProfile.closeTime);
-              if (ws.config.scheduleProfile.closeWarningMinutes !== undefined) setCloseWarningMinutes(ws.config.scheduleProfile.closeWarningMinutes);
+            if (cfg.scheduleProfile) {
+              setScheduleActive(cfg.scheduleProfile.scheduleActive || false);
+              if (cfg.scheduleProfile.workDays) setWorkDays(cfg.scheduleProfile.workDays);
+              if (cfg.scheduleProfile.openTime) setOpenTime(cfg.scheduleProfile.openTime);
+              if (cfg.scheduleProfile.closeTime) setCloseTime(cfg.scheduleProfile.closeTime);
+              if (cfg.scheduleProfile.closeWarningMinutes !== undefined) setCloseWarningMinutes(cfg.scheduleProfile.closeWarningMinutes);
             }
 
             // Sincronizar Personal & PINs desde config de este comercio exclusivamente (Aislamiento Multi-Tenant)
             let storeStaff = [];
-            if (ws.config.staff && Array.isArray(ws.config.staff)) {
-              storeStaff = [...ws.config.staff];
+            if (cfg.staff && Array.isArray(cfg.staff)) {
+              storeStaff = [...cfg.staff];
             } else {
               try {
                 const local = JSON.parse(localStorage.getItem('axon_staff_' + workspaceId) || '[]');
@@ -484,13 +518,28 @@ export default function StoreProfileManager() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('*').eq('id', workspaceId).single();
       if (fetchErr) throw fetchErr;
       
+      const prevCfg = typeof ws?.config === 'object' && ws?.config !== null 
+        ? ws.config 
+        : (typeof ws?.config === 'string' ? JSON.parse(ws?.config || '{}') : {});
+
       const primaryCat = storeCategories[0] || 'Víveres';
+      const cleanPhone = (socialLinks?.whatsapp || pmPhone || '').trim();
+
+      const cleanSlug = storeName
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || 'mi-tienda';
       
       const newConfig = {
-        ...(ws?.config || {}),
+        ...prevCfg,
+        name: storeName.trim(),
+        business_name: storeName.trim(),
         categories: storeCategories,
         category: primaryCat,
         business_type: primaryCat,
@@ -503,7 +552,7 @@ export default function StoreProfileManager() {
         primaryColor,
         themeColor: primaryColor,
         storefront: {
-          ...(ws?.config?.storefront || {}),
+          ...(prevCfg.storefront || {}),
           logoUrl,
           coverUrl,
           heroUrl: coverUrl,
@@ -514,13 +563,16 @@ export default function StoreProfileManager() {
         manualBcv,
         autoBcv: !manualBcv, // Keep for backward compatibility
         has_enminutos_alliance: hasEnminutosAlliance,
-        socialLinks,
+        socialLinks: {
+          ...(socialLinks || {}),
+          whatsapp: cleanPhone
+        },
         staff: staffList,
         paymentProfile: {
           paymentMobile,
           pmBank,
-          pmPhone,
-          pmId,
+          pmPhone: pmPhone || cleanPhone,
+          pmId: pmId || rif,
           zelleActive,
           zelleEmail,
           zelleName,
@@ -536,13 +588,46 @@ export default function StoreProfileManager() {
           openTime,
           closeTime,
           closeWarningMinutes
+        },
+        address: address.trim(),
+        expediente: {
+          ...(prevCfg.expediente || {}),
+          ownerName: ownerName.trim(),
+          rif: rif.trim(),
+          address: address.trim(),
+          whatsapp: cleanPhone
+        },
+        contact: {
+          ...(prevCfg.contact || {}),
+          ownerName: ownerName.trim(),
+          phone: cleanPhone
+        },
+        onboarding: {
+          ...(prevCfg.onboarding || {}),
+          owner_name: ownerName.trim(),
+          business_name: storeName.trim(),
+          categories: storeCategories
         }
       };
 
       const { error: updateErr } = await supabase.from('workspaces').update({ 
+        name: storeName.trim(),
+        store_slug: ws.store_slug || cleanSlug,
+        map_address: address.trim(),
         config: newConfig 
       }).eq('id', workspaceId);
       if (updateErr) throw updateErr;
+
+      try {
+        await supabase.from('merchant_contacts').upsert([{
+          id: workspaceId,
+          full_name: ownerName.trim(),
+          phone: cleanPhone,
+          ...(adminEmail ? { email: adminEmail } : {})
+        }]);
+      } catch (_) {}
+
+      localStorage.setItem('activeWorkspaceName', storeName.trim());
       
       if (logoUrl) {
         localStorage.setItem('merchant_store_logo', logoUrl);
@@ -555,8 +640,8 @@ export default function StoreProfileManager() {
 
       setTimeout(() => {
         setIsSaving(false);
-        alert('Perfil guardado exitosamente.');
-      }, 500);
+        alert('¡Perfil de la tienda y datos del comerciante guardados exitosamente!');
+      }, 300);
     } catch (err) {
       console.error('Error al guardar perfil:', err);
       setIsSaving(false);
@@ -835,9 +920,65 @@ export default function StoreProfileManager() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre de la Tienda</label>
-              <input type="text" value={storeName} onChange={e => setStoreName(e.target.value)} disabled className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed" />
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <Store size={16} className="text-orange-500" />
+                Nombre Comercial de la Tienda
+              </label>
+              <input 
+                type="text" 
+                value={storeName} 
+                onChange={e => setStoreName(e.target.value)} 
+                placeholder="Ej. Mi Tienda Online" 
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50" 
+              />
+              <p className="text-[11px] text-slate-400">Es el nombre público en el directorio y vitrina virtual.</p>
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <User size={16} className="text-blue-500" />
+                Nombre del Propietario / Encargado
+              </label>
+              <input 
+                type="text" 
+                value={ownerName} 
+                onChange={e => setOwnerName(e.target.value)} 
+                placeholder="Ej. Hernán Pérez" 
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50" 
+              />
+              <p className="text-[11px] text-slate-400">Representante registrado en el perfil y contacto del comercio.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <FileText size={16} className="text-emerald-500" />
+                Cédula o RIF Fiscal
+              </label>
+              <input 
+                type="text" 
+                value={rif} 
+                onChange={e => setRif(e.target.value)} 
+                placeholder="Ej. J-12345678-0 ó V-18234567" 
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50" 
+              />
+              <p className="text-[11px] text-slate-400">Identificación fiscal del comercio para pagos y notas.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <MapPin size={16} className="text-red-500" />
+                Dirección Física del Local / Negocio
+              </label>
+              <input 
+                type="text" 
+                value={address} 
+                onChange={e => setAddress(e.target.value)} 
+                placeholder="Ej. Cagua, Calle Bolívar cruce con San Juan, Local #3" 
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50" 
+              />
+              <p className="text-[11px] text-slate-400">Dirección visible para clientes en el mapa y pedidos.</p>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Moneda Principal</label>
               <select value={currency} onChange={e => setCurrency(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50">

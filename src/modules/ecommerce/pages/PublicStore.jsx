@@ -1751,7 +1751,7 @@ export default function PublicStore() {
         let saved = {
           ...baseConf,
           ...storefrontConf,
-          business_name: storeData.name
+          business_name: storeData.name || baseConf.business_name || baseConf.onboarding?.business_name || 'Comercio'
         };
 
         const resolvedLoadedColor = baseConf.primaryColor || baseConf.themeColor || storefrontConf.primaryColor || storefrontConf.themeColor || DEFAULT_STOREFRONT_COLOR;
