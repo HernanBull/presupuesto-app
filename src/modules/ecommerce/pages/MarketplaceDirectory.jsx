@@ -342,233 +342,6 @@ export default function MarketplaceDirectory() {
     isNavOpenRef.current = isBottomNavOpen;
   }, [isBottomNavOpen]);
 
-  // Control Global de Rueda de Ratón, Scroll y Teclado estilo TikTok (Ocultamiento automático de barras)
-  useEffect(() => {
-    const handleGlobalWheel = (e) => {
-      // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
-      if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
-        isCartOpen
-      ) {
-        return;
-      }
-
-      // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
-      if (e.deltaY > 12) {
-        if (!isWheelThrottledRef.current) {
-          isWheelThrottledRef.current = true;
-          setCurrentFeedIndex(prev => {
-            const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
-            const next = Math.min(prev + 1, maxIdx);
-            if (next > 0) setIsBottomNavOpen(false);
-            return next;
-          });
-          setTimeout(() => {
-            isWheelThrottledRef.current = false;
-          }, 320);
-        }
-      } else if (e.deltaY < -12) {
-        // Desplazamiento hacia arriba con rueda de ratón
-        if (!isWheelThrottledRef.current) {
-          isWheelThrottledRef.current = true;
-          setCurrentFeedIndex(prev => {
-            const next = Math.max(prev - 1, 0);
-            if (next === 0) setIsBottomNavOpen(true);
-            return next;
-          });
-          setTimeout(() => {
-            isWheelThrottledRef.current = false;
-          }, 320);
-        }
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
-        isCartOpen
-      ) {
-        return;
-      }
-
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-        e.preventDefault();
-        setCurrentFeedIndex(prev => {
-          const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
-          const next = Math.min(prev + 1, maxIdx);
-          if (next > 0) setIsBottomNavOpen(false);
-          return next;
-        });
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault();
-        setCurrentFeedIndex(prev => {
-          const next = Math.max(prev - 1, 0);
-          if (next === 0) setIsBottomNavOpen(true);
-          return next;
-        });
-      }
-    };
-
-    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('wheel', handleGlobalWheel);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [
-    activeCommentsPost, 
-    isAuthModalOpen, 
-    isMerchantModalOpen, 
-    isStatusViewerOpen, 
-    isWizardOpen, 
-    isAnalyticsOpen, 
-    isVipModalOpen, 
-    isMobileMenuOpen, 
-    isCartOpen,
-    feedPosts.length
-  ]);
-
-  // Gestos Táctiles con Físicas de Resorte y Arrastre en Tiempo Real (Drag-and-Snap TikTok)
-  const handleTouchStart = (e) => {
-    if (e.touches.length !== 1) return;
-    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
-    touchStartYRef.current = e.touches[0].clientY;
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartTimeRef.current = Date.now();
-    touchLockRef.current = null;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (e.touches.length !== 1) return;
-    if (!isDragging && touchLockRef.current !== 'vertical') return;
-    const clientY = e.touches[0].clientY;
-    const clientX = e.touches[0].clientX;
-    const dy = clientY - touchStartYRef.current;
-    const dx = clientX - touchStartXRef.current;
-
-    if (touchLockRef.current === null) {
-      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
-        touchLockRef.current = 'horizontal';
-        setIsDragging(false);
-        setDragY(0);
-        return;
-      }
-      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
-        touchLockRef.current = 'vertical';
-      }
-    }
-
-    if (touchLockRef.current === 'vertical') {
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-
-      // Resistencia elástica tipo resorte en bordes (Spring Physics)
-      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
-        setDragY(dy * 0.28);
-      } else {
-        setDragY(dy); // Arrastre 1:1 en tiempo real
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (touchLockRef.current === 'vertical') {
-      const elapsed = Date.now() - touchStartTimeRef.current;
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-      const threshold = window.innerHeight * 0.18; // Umbral del 18% para snap
-      const isFastFlick = elapsed < 280 && Math.abs(dragY) > 40;
-
-      if ((dragY < -threshold || (dragY < -40 && isFastFlick)) && idx < maxIdx) {
-        // Salto a siguiente publicación estilo TikTok
-        setCurrentFeedIndex(prev => {
-          const next = prev + 1;
-          setIsBottomNavOpen(false);
-          return next;
-        });
-      } else if ((dragY > threshold || (dragY > 40 && isFastFlick)) && idx > 0) {
-        // Salto a publicación anterior
-        setCurrentFeedIndex(prev => {
-          const next = prev - 1;
-          if (next === 0) setIsBottomNavOpen(true);
-          return next;
-        });
-      }
-    }
-    // Rebote elástico suave de retorno al card centrado
-    setDragY(0);
-    setIsDragging(false);
-    touchLockRef.current = null;
-  };
-
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
-    isMouseDownRef.current = true;
-    touchStartYRef.current = e.clientY;
-    touchStartXRef.current = e.clientX;
-    touchStartTimeRef.current = Date.now();
-    touchLockRef.current = null;
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isMouseDownRef.current) return;
-    const dy = e.clientY - touchStartYRef.current;
-    const dx = e.clientX - touchStartXRef.current;
-
-    if (touchLockRef.current === null) {
-      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
-        touchLockRef.current = 'horizontal';
-        setIsDragging(false);
-        setDragY(0);
-        return;
-      }
-      if (Math.abs(dy) > 8) {
-        touchLockRef.current = 'vertical';
-      }
-    }
-
-    if (touchLockRef.current === 'vertical') {
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
-        setDragY(dy * 0.28);
-      } else {
-        setDragY(dy);
-      }
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!isMouseDownRef.current) return;
-    isMouseDownRef.current = false;
-    handleTouchEnd();
-  };
-
-  // Carga continua anticipada (Precarga simultánea de posts)
-  useEffect(() => {
-    if (currentFeedIndex >= visibleFeedCount - 2 && visibleFeedCount < feedPosts.length) {
-      setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
-    }
-  }, [currentFeedIndex, visibleFeedCount, feedPosts.length]);
-
   useEffect(() => {
     const fetchStores = async () => {
       const cached = localStorage.getItem('ecommerce_marketplace_stores');
@@ -1881,6 +1654,233 @@ export default function MarketplaceDirectory() {
       }, 350);
     }
   }, [feedPosts.length, visibleFeedCount]);
+
+  // Control Global de Rueda de Ratón, Scroll y Teclado estilo TikTok (Ocultamiento automático de barras)
+  useEffect(() => {
+    const handleGlobalWheel = (e) => {
+      // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
+      }
+
+      // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
+      if (e.deltaY > 12) {
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          setCurrentFeedIndex(prev => {
+            const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
+            const next = Math.min(prev + 1, maxIdx);
+            if (next > 0) setIsBottomNavOpen(false);
+            return next;
+          });
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 320);
+        }
+      } else if (e.deltaY < -12) {
+        // Desplazamiento hacia arriba con rueda de ratón
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          setCurrentFeedIndex(prev => {
+            const next = Math.max(prev - 1, 0);
+            if (next === 0) setIsBottomNavOpen(true);
+            return next;
+          });
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 320);
+        }
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        setCurrentFeedIndex(prev => {
+          const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
+          const next = Math.min(prev + 1, maxIdx);
+          if (next > 0) setIsBottomNavOpen(false);
+          return next;
+        });
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        setCurrentFeedIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          if (next === 0) setIsBottomNavOpen(true);
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    activeCommentsPost, 
+    isAuthModalOpen, 
+    isMerchantModalOpen, 
+    isStatusViewerOpen, 
+    isWizardOpen, 
+    isAnalyticsOpen, 
+    isVipModalOpen, 
+    isMobileMenuOpen, 
+    isCartOpen,
+    feedPosts.length
+  ]);
+
+  // Gestos Táctiles con Físicas de Resorte y Arrastre en Tiempo Real (Drag-and-Snap TikTok)
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartTimeRef.current = Date.now();
+    touchLockRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length !== 1) return;
+    if (!isDragging && touchLockRef.current !== 'vertical') return;
+    const clientY = e.touches[0].clientY;
+    const clientX = e.touches[0].clientX;
+    const dy = clientY - touchStartYRef.current;
+    const dx = clientX - touchStartXRef.current;
+
+    if (touchLockRef.current === null) {
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+        touchLockRef.current = 'horizontal';
+        setIsDragging(false);
+        setDragY(0);
+        return;
+      }
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+        touchLockRef.current = 'vertical';
+      }
+    }
+
+    if (touchLockRef.current === 'vertical') {
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+
+      // Resistencia elástica tipo resorte en bordes (Spring Physics)
+      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
+        setDragY(dy * 0.28);
+      } else {
+        setDragY(dy); // Arrastre 1:1 en tiempo real
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchLockRef.current === 'vertical') {
+      const elapsed = Date.now() - touchStartTimeRef.current;
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+      const threshold = window.innerHeight * 0.18; // Umbral del 18% para snap
+      const isFastFlick = elapsed < 280 && Math.abs(dragY) > 40;
+
+      if ((dragY < -threshold || (dragY < -40 && isFastFlick)) && idx < maxIdx) {
+        // Salto a siguiente publicación estilo TikTok
+        setCurrentFeedIndex(prev => {
+          const next = prev + 1;
+          setIsBottomNavOpen(false);
+          return next;
+        });
+      } else if ((dragY > threshold || (dragY > 40 && isFastFlick)) && idx > 0) {
+        // Salto a publicación anterior
+        setCurrentFeedIndex(prev => {
+          const next = prev - 1;
+          if (next === 0) setIsBottomNavOpen(true);
+          return next;
+        });
+      }
+    }
+    // Rebote elástico suave de retorno al card centrado
+    setDragY(0);
+    setIsDragging(false);
+    touchLockRef.current = null;
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
+    isMouseDownRef.current = true;
+    touchStartYRef.current = e.clientY;
+    touchStartXRef.current = e.clientX;
+    touchStartTimeRef.current = Date.now();
+    touchLockRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDownRef.current) return;
+    const dy = e.clientY - touchStartYRef.current;
+    const dx = e.clientX - touchStartXRef.current;
+
+    if (touchLockRef.current === null) {
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+        touchLockRef.current = 'horizontal';
+        setIsDragging(false);
+        setDragY(0);
+        return;
+      }
+      if (Math.abs(dy) > 8) {
+        touchLockRef.current = 'vertical';
+      }
+    }
+
+    if (touchLockRef.current === 'vertical') {
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
+        setDragY(dy * 0.28);
+      } else {
+        setDragY(dy);
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isMouseDownRef.current) return;
+    isMouseDownRef.current = false;
+    handleTouchEnd();
+  };
+
+  // Carga continua anticipada (Precarga simultánea de posts)
+  useEffect(() => {
+    if (currentFeedIndex >= visibleFeedCount - 2 && visibleFeedCount < feedPosts.length) {
+      setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
+    }
+  }, [currentFeedIndex, visibleFeedCount, feedPosts.length]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
