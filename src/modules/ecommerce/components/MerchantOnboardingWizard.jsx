@@ -7,12 +7,77 @@ import {
   ShoppingBag, ShieldCheck, Loader2, X,
   LayoutDashboard, Package, Tag, BarChart3,
   Download, Smartphone, Laptop, CheckCircle2, Share,
-  MapPin, Clock, CreditCard, Camera, UploadCloud, Trash2, CheckCircle, FileText
+  MapPin, Clock, CreditCard, Camera, UploadCloud, Trash2, CheckCircle, FileText,
+  Star, Zap, Link as LinkIcon, Compass, ChevronLeft, UserPlus, Play
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import AxonMarketDashboardPreview from './AxonMarketDashboardPreview';
 import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
+const createAxonMarketPinIcon = () => {
+  return new L.DivIcon({
+    className: 'axon-map-pin',
+    html: `
+      <div style="position: relative; display: flex; flex-direction: column; align-items: center; transform: translate(-50%, -100%); pointer-events: none;">
+        <div style="width: 36px; height: 36px; border-radius: 9999px; background: linear-gradient(135deg, #f97316, #ea580c); border: 2.5px solid #ffffff; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.45); display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+            <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
+            <path d="M2 7h20"/>
+          </svg>
+        </div>
+        <div style="width: 10px; height: 10px; background-color: #ea580c; transform: rotate(45deg); margin-top: -5px; border-bottom: 2px solid #ffffff; border-right: 2px solid #ffffff;"></div>
+      </div>
+    `,
+    iconSize: [36, 46],
+    iconAnchor: [18, 46],
+    popupAnchor: [0, -46]
+  });
+};
+
+function OnboardingMapPicker({ position, onSelectPosition, onAddressFound }) {
+  const map = useMapEvents({
+    click(e) {
+      const latlng = { lat: e.latlng.lat, lng: e.latlng.lng };
+      onSelectPosition(latlng);
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data?.address) {
+            onAddressFound({
+              state: data.address.state || '',
+              city: data.address.city || data.address.town || data.address.village || data.address.municipality || '',
+              road: data.address.road || data.address.suburb || data.address.neighbourhood || ''
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  });
+
+  useEffect(() => {
+    if (position && map) {
+      map.flyTo([position.lat, position.lng], 16, { animate: true });
+    }
+  }, [position?.lat, position?.lng, map]);
+
+  return position ? <Marker position={[position.lat, position.lng]} icon={createAxonMarketPinIcon()} /> : null;
+}
 
 const isIOSDevice = () => {
   return typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -547,6 +612,16 @@ export default function MerchantOnboardingWizard({
     window.location.href = '/dashboard';
   };
 
+  const previewSlug = (businessName || 'tienda')
+    .trim()
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || 'tienda';
+
+  const previewAddress = addressLine.trim() || [addressCity.trim(), addressState.trim()].filter(Boolean).join(', ') || 'Ciudad Jardín, Cagua, Aragua';
+
   return (
     <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8 overflow-y-auto select-none animate-in fade-in duration-200 relative merchant-wizard-container">
       
@@ -598,76 +673,179 @@ export default function MerchantOnboardingWizard({
 
           {/* Resumen de la tienda creada */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-center mb-6">
-            {/* Mockup Izquierdo */}
-            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-inner">
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3 font-medium">
-                <span>👁 Tu vitrina virtual oficial</span>
-                <span>·</span>
-                <span className="text-emerald-600 font-bold">Activa</span>
+            {/* Mockup Izquierdo: Vitrina Oficial AxonMarket Estilo Instagram */}
+            <div className="bg-slate-900/5 border border-slate-200 rounded-3xl p-3 sm:p-4 shadow-inner">
+              <div className="flex items-center justify-between text-xs text-slate-500 mb-2 font-semibold px-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-slate-800 font-bold">Vitrina Oficial de tu Negocio</span>
+                </span>
+                <span className="text-[10px] text-orange-600 font-bold bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                  En Vivo
+                </span>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="bg-slate-100 px-3 py-2 border-b border-slate-200 flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+              {/* Marco de Teléfono Móvil 1:1 con AxonMarket */}
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-md overflow-hidden text-slate-900 max-w-[340px] mx-auto relative select-none">
+                
+                {/* Barra de Notificación / Modo Admin */}
+                <div className="bg-orange-500 text-white text-[9px] font-black px-2 py-1 flex items-center justify-between tracking-tight">
+                  <span>MODO ADMINISTRADOR ACTIVO · ESTÁS VIENDO TU TIENDA</span>
+                </div>
+
+                {/* Cabecera Superior con Botón Volver y Nombre/Ubicación */}
+                <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 bg-white">
+                  <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+                    <ChevronLeft size={14} className="stroke-[2.5]" />
                   </div>
-                  <div className="bg-white px-3 py-0.5 rounded-md text-[11px] font-mono text-slate-600 truncate flex-1 text-center border border-slate-200 font-bold">
-                    axonmarket.vip/{(businessName || 'tienda').toLowerCase().replace(/\s+/g, '-')}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-black text-slate-900 truncate leading-tight">
+                      {businessName || 'Mi Tienda'}
+                    </h4>
+                    <div className="flex items-center gap-1 text-[9px] text-orange-600 font-bold truncate">
+                      <MapPin size={9} className="shrink-0" />
+                      <span className="truncate">{previewAddress}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-2.5">
-                      {logoPreview ? (
-                        <img src={logoPreview} alt="Logo" className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-2xs" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
-                          {(businessName || 'A')[0].toUpperCase()}
-                        </div>
-                      )}
-                      <div>
-                        <span className="font-bold text-xs text-slate-900 truncate block max-w-[130px]">
-                          {businessName || 'Mi Tienda'}
-                        </span>
-                        <span className="text-[10px] text-orange-600 font-bold block truncate">
-                          {selectedCategories[0] || rubro}
-                        </span>
+                {/* Foto de Portada Panorámica */}
+                <div className="relative w-full h-24 bg-gradient-to-r from-zinc-900 via-zinc-800 to-amber-950 overflow-hidden">
+                  {coverPreview ? (
+                    <img src={coverPreview} alt="Portada" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white/40">
+                      <div className="text-center">
+                        <Store size={22} className="mx-auto mb-0.5 opacity-60" />
+                        <span className="text-[9px] font-bold tracking-wider uppercase opacity-75">Portada Oficial</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        {scheduleOpen} - {scheduleClose}
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                {/* Avatar Flotante + Fila de Estadísticas (Estilo Instagram) */}
+                <div className="px-3 pb-2 pt-0 relative bg-white">
+                  <div className="flex items-end justify-between -mt-8 mb-2">
+                    {/* Logo / Avatar con aro blanco */}
+                    <div className="relative">
+                      <div className="w-16 h-16 rounded-full border-3 border-white shadow-md bg-white overflow-hidden flex items-center justify-center relative z-10">
+                        {logoPreview ? (
+                          <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-orange-500 to-amber-600 text-white font-black text-xl flex items-center justify-center">
+                            {(businessName || 'A')[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 right-0 z-20 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" title="En línea" />
+                    </div>
+
+                    {/* 3 Estadísticas: Publicaciones, Seguidores, Me gusta */}
+                    <div className="flex-1 flex justify-around items-center text-center pl-2">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900 leading-none">0</span>
+                        <span className="text-[9px] font-semibold text-slate-400 mt-0.5">Publicaciones</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900 leading-none">0</span>
+                        <span className="text-[9px] font-semibold text-slate-400 mt-0.5">Seguidores</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900 leading-none">0</span>
+                        <span className="text-[9px] font-semibold text-slate-400 mt-0.5">Me gusta</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nombre Comercial, Handle, Calificar y Dirección */}
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-black text-slate-900 leading-tight truncate">
+                      {businessName || 'Mi Tienda'}
+                    </h3>
+                    <p className="text-[11px] font-extrabold text-orange-600">
+                      @{previewSlug}
+                    </p>
+
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2 py-0.5 rounded-full text-[9px] font-bold">
+                        <Star size={9} className="fill-amber-400 text-amber-500" />
+                        <span>Calificar</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 bg-slate-950 text-white px-2 py-0.5 rounded-full text-[8px] font-black">
+                        <span className="text-red-500">EM</span>
+                        <Zap size={8} className="fill-yellow-400 text-yellow-400" />
+                        <span>en minutos</span>
                       </span>
                     </div>
-                  </div>
 
-                  {/* Badges de Departamentos / Categorías seleccionadas */}
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {selectedCategories.slice(0, 3).map(catId => {
-                      const catObj = MARKETPLACE_CATEGORIES.find(c => c.id === catId);
-                      return (
-                        <span key={catId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-[10px] font-bold text-orange-700">
-                          {catObj?.name || catId}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  {/* Estado inicial de Catálogo Limpio y Listo */}
-                  <div className="border border-dashed border-orange-200 rounded-xl p-3.5 bg-orange-50/40 text-center flex flex-col items-center justify-center">
-                    <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-1.5 shadow-2xs">
-                      <Store size={18} />
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-1 font-medium truncate">
+                      <MapPin size={10} className="text-red-500 shrink-0" />
+                      <span className="truncate">{previewAddress}</span>
                     </div>
-                    <span className="text-xs font-bold text-slate-900 block">
-                      Catálogo listo para tus productos
-                    </span>
-                    <span className="text-[10px] text-slate-500 max-w-[210px] block mt-0.5 leading-tight">
-                      Tu tienda inicia limpia. Podrás agregar tus propios artículos o importarlos desde Excel en minutos.
-                    </span>
                   </div>
+
+                  {/* Fila de Botones de Acción (+ Seguir, Contactar, Enlace, Cámara) */}
+                  <div className="flex items-center gap-1.5 pt-2.5">
+                    <button type="button" className="flex-1 py-1 px-2 rounded-lg bg-orange-500 text-white font-bold text-[10px] shadow-xs flex items-center justify-center gap-1">
+                      <UserPlus size={11} />
+                      <span>Seguir</span>
+                    </button>
+                    <button type="button" className="flex-1 py-1 px-2 rounded-lg bg-slate-100 text-slate-800 font-bold text-[10px] border border-slate-200 text-center">
+                      Contactar
+                    </button>
+                    <div className="w-7 h-6 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600">
+                      <LinkIcon size={11} />
+                    </div>
+                    <div className="w-7 h-6 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600">
+                      <Camera size={11} />
+                    </div>
+                  </div>
+
+                  {/* Sección Estados y Promociones */}
+                  <div className="pt-3 pb-2 border-t border-slate-100 mt-2.5">
+                    <div className="flex items-center justify-between text-[10px] font-black mb-1.5">
+                      <span className="flex items-center gap-1 text-slate-800 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Estados y Promociones
+                      </span>
+                      <span className="text-orange-600 text-[9px] font-bold">+ Nuevo estado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-amber-500 via-orange-500 to-red-500 flex items-center justify-center">
+                          <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-white">
+                            <Play size={10} className="fill-white translate-x-0.5" />
+                          </div>
+                        </div>
+                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-orange-600 text-white rounded-full flex items-center justify-center text-[8px] font-black border border-white">+</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 font-medium leading-tight">
+                        Tus clientes podrán ver tus ofertas flash diarias.
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dock Flotante de Navegación Inferior (Idéntico a AxonMarket) */}
+                  <div className="mt-2 -mx-1 p-1 bg-zinc-900 text-zinc-400 rounded-xl flex items-center justify-around shadow-sm text-[8px] font-bold">
+                    <div className="flex flex-col items-center text-amber-400">
+                      <Store size={13} className="text-amber-400" />
+                      <span>Inicio</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <Package size={13} />
+                      <span>Catálogo</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <ShoppingBag size={13} />
+                      <span>Carrito</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <Tag size={13} />
+                      <span>Ofertas</span>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -1130,6 +1308,45 @@ export default function MerchantOnboardingWizard({
                         ✓ GPS Fijado: ({gpsCoords.lat.toFixed(4)}, {gpsCoords.lng.toFixed(4)})
                       </p>
                     )}
+
+                    {/* Mapa Interactivo con Pin Oficial de AxonMarket */}
+                    <div className="w-full mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-left">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 font-semibold px-0.5">
+                        <span className="flex items-center gap-1.5 text-slate-800 font-bold">
+                          <Compass size={14} className="text-orange-500" />
+                          <span>Toca en el mapa para ubicar tu local si estás en casa:</span>
+                        </span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                          gpsCoords ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
+                        }`}>
+                          {gpsCoords ? '✓ Pin marcado' : 'Toca el mapa'}
+                        </span>
+                      </div>
+                      <div className="h-[210px] sm:h-[240px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0 shadow-xs">
+                        <MapContainer 
+                          center={gpsCoords ? [gpsCoords.lat, gpsCoords.lng] : [10.1833, -67.4500]} 
+                          zoom={gpsCoords ? 16 : 13} 
+                          style={{ height: '100%', width: '100%' }}
+                        >
+                          <TileLayer 
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                          />
+                          <OnboardingMapPicker 
+                            position={gpsCoords} 
+                            onSelectPosition={(pos) => setGpsCoords(pos)}
+                            onAddressFound={({ state, city, road }) => {
+                              if (state && !addressState) setAddressState(state);
+                              if (city && !addressCity) setAddressCity(city);
+                              if (road && !addressLine) setAddressLine(road);
+                            }}
+                          />
+                        </MapContainer>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic px-1">
+                        Puedes acercar (+) o alejar (-) el mapa y hacer clic exactamente en el techo o puerta de tu negocio.
+                      </p>
+                    </div>
                   </div>
 
                   {/* Estado y Ciudad */}
