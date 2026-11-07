@@ -647,7 +647,7 @@ export default function SocialFeedCard({
           <div 
             className="flex h-full w-full transition-transform duration-300 ease-out will-change-transform"
             style={{ 
-              transform: `translateX(-${currentSlideIndex * 100}%)`,
+              transform: `translateX(-${(currentSlideIndex * 100) / postImages.length}%)`,
               width: `${postImages.length * 100}%`
             }}
           >
@@ -668,24 +668,24 @@ export default function SocialFeedCard({
             ))}
           </div>
 
-          {/* Flecha Izquierda para Computadoras / Clic Directo */}
+          {/* Flecha Izquierda para Computadoras / Móvil / Clic Directo */}
           {currentSlideIndex > 0 && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.max(0, prev - 1)); }}
-              className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              className="flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
               title="Foto anterior"
             >
               <ChevronLeft size={20} />
             </button>
           )}
 
-          {/* Flecha Derecha para Computadoras / Clic Directo */}
+          {/* Flecha Derecha para Computadoras / Móvil / Clic Directo */}
           {currentSlideIndex < postImages.length - 1 && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.min(postImages.length - 1, prev + 1)); }}
-              className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              className="flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
               title="Siguiente foto"
             >
               <ChevronRight size={20} />
