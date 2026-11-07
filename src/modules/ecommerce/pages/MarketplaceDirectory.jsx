@@ -120,6 +120,18 @@ export default function MarketplaceDirectory() {
   const isNavOpenRef = useRef(true);
   const isWheelThrottledRef = useRef(false);
 
+  // Motor de Física Vertical y Transición Drag-and-Snap estilo TikTok
+  const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const currentFeedIndexRef = useRef(0);
+  currentFeedIndexRef.current = currentFeedIndex;
+  const touchStartYRef = useRef(0);
+  const touchStartXRef = useRef(0);
+  const touchStartTimeRef = useRef(0);
+  const touchLockRef = useRef(null);
+  const isMouseDownRef = useRef(false);
+
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
       categoriesScrollRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
@@ -348,57 +360,33 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      const c = mainContainerRef.current;
-      if (!c) return;
-
-      const pageH = c.clientHeight || window.innerHeight;
-      const currentScroll = c.scrollTop;
-
       // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
       if (e.deltaY > 12) {
-        // Ocultar cabecera superior AxonMarket y barra inferior de navegación automáticamente
-        if (isNavOpenRef.current) {
-          setIsBottomNavOpen(false);
-        }
-
-        // Salto directo TikTok al siguiente comerciante sin animaciones web lentas
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          const maxScroll = Math.max(0, c.scrollHeight - pageH);
-          const nextScroll = Math.min(currentScroll + pageH, maxScroll);
-          c.scrollTo({ top: nextScroll, behavior: 'instant' });
+          setCurrentFeedIndex(prev => {
+            const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
+            const next = Math.min(prev + 1, maxIdx);
+            if (next > 0) setIsBottomNavOpen(false);
+            return next;
+          });
           setTimeout(() => {
             isWheelThrottledRef.current = false;
-          }, 280);
+          }, 320);
         }
       } else if (e.deltaY < -12) {
         // Desplazamiento hacia arriba con rueda de ratón
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          const prevScroll = Math.max(0, currentScroll - pageH);
-          c.scrollTo({ top: prevScroll, behavior: 'instant' });
-          if (prevScroll <= 15) {
-            // Regresando al primer comercio: mostrar cabecera y barra de navegación automáticamente
-            setIsBottomNavOpen(true);
-          }
+          setCurrentFeedIndex(prev => {
+            const next = Math.max(prev - 1, 0);
+            if (next === 0) setIsBottomNavOpen(true);
+            return next;
+          });
           setTimeout(() => {
             isWheelThrottledRef.current = false;
-          }, 280);
+          }, 320);
         }
-      }
-    };
-
-    const handleScroll = () => {
-      const c = mainContainerRef.current;
-      if (!c) return;
-      const pageH = c.clientHeight || window.innerHeight;
-      const scrollPos = c.scrollTop;
-
-      // Si está en el primer comercio (< 30% de la altura): mostrar barras
-      // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
-      const shouldBeOpen = scrollPos < (pageH * 0.3);
-      if (shouldBeOpen !== isNavOpenRef.current) {
-        setIsBottomNavOpen(shouldBeOpen);
       }
     };
 
@@ -417,85 +405,30 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      const c = mainContainerRef.current;
-      if (!c) return;
-      const pageH = c.clientHeight || window.innerHeight;
-      const currentScroll = c.scrollTop;
-
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        setIsBottomNavOpen(false);
-        const maxScroll = Math.max(0, c.scrollHeight - pageH);
-        const nextScroll = Math.min(currentScroll + pageH, maxScroll);
-        c.scrollTo({ top: nextScroll, behavior: 'instant' });
+        setCurrentFeedIndex(prev => {
+          const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
+          const next = Math.min(prev + 1, maxIdx);
+          if (next > 0) setIsBottomNavOpen(false);
+          return next;
+        });
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        const prevScroll = Math.max(0, currentScroll - pageH);
-        c.scrollTo({ top: prevScroll, behavior: 'instant' });
-        if (prevScroll <= 15) {
-          setIsBottomNavOpen(true);
-        }
-      }
-    };
-
-    // Soporte para gestos táctiles estilo TikTok (Salto de publicación en publicación en móvil)
-    let touchStartY = 0;
-    let touchStartX = 0;
-
-    const handleTouchStart = (e) => {
-      if (e.touches.length !== 1) return;
-      touchStartY = e.touches[0].clientY;
-      touchStartX = e.touches[0].clientX;
-    };
-
-    const handleTouchEnd = (e) => {
-      if (e.changedTouches.length !== 1) return;
-      const c = mainContainerRef.current;
-      if (!c) return;
-
-      const dy = e.changedTouches[0].clientY - touchStartY;
-      const dx = e.changedTouches[0].clientX - touchStartX;
-
-      // Detectar gesto vertical preponderante (ignorar swipes horizontales)
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 35) {
-        const pageH = c.clientHeight || window.innerHeight;
-        const currentScroll = c.scrollTop;
-        const currentIndex = Math.round(currentScroll / pageH);
-
-        if (dy < -35) {
-          // Deslizó hacia ARRIBA -> avanzar de golpe al siguiente comerciante estilo TikTok
-          setIsBottomNavOpen(false);
-          const maxScroll = Math.max(0, c.scrollHeight - pageH);
-          const nextScroll = Math.min((currentIndex + 1) * pageH, maxScroll);
-          c.scrollTo({ top: nextScroll, behavior: 'smooth' });
-        } else if (dy > 35) {
-          // Deslizó hacia ABAJO -> regresar al comerciante anterior
-          const prevScroll = Math.max(0, (currentIndex - 1) * pageH);
-          c.scrollTo({ top: prevScroll, behavior: 'smooth' });
-          if (prevScroll <= 15) {
-            setIsBottomNavOpen(true);
-          }
-        }
+        setCurrentFeedIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          if (next === 0) setIsBottomNavOpen(true);
+          return next;
+        });
       }
     };
 
     window.addEventListener('wheel', handleGlobalWheel, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
-    const container = mainContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll, { passive: true });
-      container.addEventListener('touchstart', handleTouchStart, { passive: true });
-      container.addEventListener('touchend', handleTouchEnd, { passive: true });
-    }
 
     return () => {
       window.removeEventListener('wheel', handleGlobalWheel);
       window.removeEventListener('keydown', handleKeyDown);
-      if (container) {
-        container.removeEventListener('scroll', handleScroll);
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchend', handleTouchEnd);
-      }
     };
   }, [
     activeCommentsPost, 
@@ -506,8 +439,135 @@ export default function MarketplaceDirectory() {
     isAnalyticsOpen, 
     isVipModalOpen, 
     isMobileMenuOpen, 
-    isCartOpen
+    isCartOpen,
+    feedPosts.length
   ]);
+
+  // Gestos Táctiles con Físicas de Resorte y Arrastre en Tiempo Real (Drag-and-Snap TikTok)
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
+    touchStartYRef.current = e.touches[0].clientY;
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartTimeRef.current = Date.now();
+    touchLockRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length !== 1) return;
+    if (!isDragging && touchLockRef.current !== 'vertical') return;
+    const clientY = e.touches[0].clientY;
+    const clientX = e.touches[0].clientX;
+    const dy = clientY - touchStartYRef.current;
+    const dx = clientX - touchStartXRef.current;
+
+    if (touchLockRef.current === null) {
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+        touchLockRef.current = 'horizontal';
+        setIsDragging(false);
+        setDragY(0);
+        return;
+      }
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+        touchLockRef.current = 'vertical';
+      }
+    }
+
+    if (touchLockRef.current === 'vertical') {
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+
+      // Resistencia elástica tipo resorte en bordes (Spring Physics)
+      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
+        setDragY(dy * 0.28);
+      } else {
+        setDragY(dy); // Arrastre 1:1 en tiempo real
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchLockRef.current === 'vertical') {
+      const elapsed = Date.now() - touchStartTimeRef.current;
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+      const threshold = window.innerHeight * 0.18; // Umbral del 18% para snap
+      const isFastFlick = elapsed < 280 && Math.abs(dragY) > 40;
+
+      if ((dragY < -threshold || (dragY < -40 && isFastFlick)) && idx < maxIdx) {
+        // Salto a siguiente publicación estilo TikTok
+        setCurrentFeedIndex(prev => {
+          const next = prev + 1;
+          setIsBottomNavOpen(false);
+          return next;
+        });
+      } else if ((dragY > threshold || (dragY > 40 && isFastFlick)) && idx > 0) {
+        // Salto a publicación anterior
+        setCurrentFeedIndex(prev => {
+          const next = prev - 1;
+          if (next === 0) setIsBottomNavOpen(true);
+          return next;
+        });
+      }
+    }
+    // Rebote elástico suave de retorno al card centrado
+    setDragY(0);
+    setIsDragging(false);
+    touchLockRef.current = null;
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
+    isMouseDownRef.current = true;
+    touchStartYRef.current = e.clientY;
+    touchStartXRef.current = e.clientX;
+    touchStartTimeRef.current = Date.now();
+    touchLockRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDownRef.current) return;
+    const dy = e.clientY - touchStartYRef.current;
+    const dx = e.clientX - touchStartXRef.current;
+
+    if (touchLockRef.current === null) {
+      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+        touchLockRef.current = 'horizontal';
+        setIsDragging(false);
+        setDragY(0);
+        return;
+      }
+      if (Math.abs(dy) > 8) {
+        touchLockRef.current = 'vertical';
+      }
+    }
+
+    if (touchLockRef.current === 'vertical') {
+      const idx = currentFeedIndexRef.current;
+      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
+        setDragY(dy * 0.28);
+      } else {
+        setDragY(dy);
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isMouseDownRef.current) return;
+    isMouseDownRef.current = false;
+    handleTouchEnd();
+  };
+
+  // Carga continua anticipada (Precarga simultánea de posts)
+  useEffect(() => {
+    if (currentFeedIndex >= visibleFeedCount - 2 && visibleFeedCount < feedPosts.length) {
+      setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
+    }
+  }, [currentFeedIndex, visibleFeedCount, feedPosts.length]);
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -1824,7 +1884,7 @@ export default function MarketplaceDirectory() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className="min-h-screen bg-zinc-100 md:bg-zinc-950/5 text-zinc-900 font-sans selection:bg-amber-500/30 relative overflow-x-hidden flex flex-col items-center">
+      <div className="min-h-screen bg-black text-white font-sans selection:bg-amber-500/30 relative overflow-hidden flex flex-col items-center w-full">
       {/* PWA Install Banner */}
       <PwaInstallBanner />
       
@@ -1976,12 +2036,29 @@ export default function MarketplaceDirectory() {
         )}
       </div>
 
-      {/* Centered Mobile-First App Shell (Wider for Desktop) */}
-      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
+      {/* Centered Mobile-First App Shell (Wider for Desktop - Motor Drag-and-Snap TikTok) */}
+      <div 
+        ref={mainContainerRef} 
+        className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-hidden select-none border-none shadow-none"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Motor Físico Drag-and-Snap) */}
         <ActiveFeedMediaProvider>
-          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
+          <div 
+            className="w-full h-full relative"
+            style={{
+              transform: `translate3d(0, calc(${-currentFeedIndex * 100}% + ${dragY}px), 0)`,
+              transition: isDragging ? 'none' : 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)',
+              willChange: 'transform'
+            }}
+          >
             {visibleFeedPosts.length === 0 ? (
               <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
                 <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -1997,48 +2074,27 @@ export default function MarketplaceDirectory() {
                 )}
               </div>
             ) : (
-              visibleFeedPosts.map((post) => (
-                <SocialFeedCard
+              visibleFeedPosts.map((post, idx) => (
+                <div 
                   key={post.id}
-                  post={post}
-                  currentCustomer={currentCustomer}
-                  onOpenComments={(target) => setActiveCommentsPost(target)}
-                  onRequireAuth={() => setIsAuthModalOpen(true)}
-                  onNavigateStore={(slug) => navigate(`/${slug}`)}
-                />
+                  className="w-full h-[100dvh] absolute top-0 left-0 overflow-hidden"
+                  style={{
+                    transform: `translate3d(0, ${idx * 100}%, 0)`
+                  }}
+                >
+                  <SocialFeedCard
+                    post={post}
+                    isActive={idx === currentFeedIndex}
+                    currentCustomer={currentCustomer}
+                    onOpenComments={(target) => setActiveCommentsPost(target)}
+                    onRequireAuth={() => setIsAuthModalOpen(true)}
+                    onNavigateStore={(slug) => navigate(`/${slug}`)}
+                  />
+                </div>
               ))
             )}
-
-            {/* Centinela de carga progresiva infinita - Altura cero invisible para cero separacion */}
-            {visibleFeedCount < feedPosts.length && (
-              <div 
-                ref={feedSentinelRef} 
-                className="w-full h-0 pointer-events-none opacity-0 m-0 p-0 border-0" 
-                aria-hidden="true"
-              />
-            )}
-
-            {/* Footer App Compacto */}
-            <div className="w-full snap-start shrink-0 py-12 px-4 text-center border-t border-zinc-800 bg-zinc-950 mt-0">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center text-zinc-950 font-black text-xs">
-                  <ShoppingBag size={14} className="stroke-[2.5]" />
-                </div>
-                <span className="font-bold text-xs tracking-widest text-zinc-100">AXON<span className="text-amber-500">MARKET</span></span>
-              </div>
-              <p className="text-[11px] text-zinc-400">Tu marketplace local en Venezuela</p>
-              <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-400">
-                <button onClick={() => navigate('/legal/terminos')} className="hover:text-amber-400">Términos</button>
-                <span>•</span>
-                <button onClick={() => navigate('/legal/privacidad')} className="hover:text-amber-400">Privacidad</button>
-                <span>•</span>
-                <button onClick={() => navigate('/legal/aviso')} className="hover:text-amber-400">Aviso Legal</button>
-              </div>
-              <p className="text-[10px] text-zinc-500 mt-2">© {new Date().getFullYear()} AxonMarket</p>
-            </div>
           </div>
         </ActiveFeedMediaProvider>
-
       </div>
 
       {/* Botón flotante en esquina izquierda (Negro transparente ultra moderno, sin parpadeo) */}
@@ -2076,8 +2132,7 @@ export default function MarketplaceDirectory() {
         <div className="flex justify-between items-center h-16 px-2 relative">
           <button 
             onClick={() => { 
-              mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); 
-              window.scrollTo({ top: 0, behavior: 'instant' }); 
+              setCurrentFeedIndex(0);
               setIsBottomNavOpen(true); 
             }}
             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
