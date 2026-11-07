@@ -113,25 +113,39 @@ export default function MarketplaceDirectory() {
   const categoriesScrollRef = useRef(null);
   const mainContainerRef = useRef(null);
 
-  // Control de Barra de Navegación y Estados (Detección de umbral ultra-liviana sin lag)
+  // Control de Barra de Navegación y Cabecera Bidireccional (Estilo TikTok)
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
+  const lastScrollTopRef = useRef(0);
 
   useEffect(() => {
-    let isScrolled = false;
     const handleScrollThreshold = () => {
       const scrollPos = mainContainerRef.current?.scrollTop || window.scrollY || 0;
-      const past = scrollPos > 25;
-      if (past !== isScrolled) {
-        isScrolled = past;
-        setIsBottomNavOpen(!past);
+      const lastPos = lastScrollTopRef.current;
+      const diff = scrollPos - lastPos;
+
+      if (scrollPos <= 20) {
+        // En el tope de la pantalla: mostrar ambas barras
+        setIsBottomNavOpen(true);
+      } else if (diff > 12) {
+        // Scrolleando hacia abajo (al siguiente comercio): ocultar barras
+        setIsBottomNavOpen(false);
+      } else if (diff < -15) {
+        // Scrolleando hacia arriba: mostrar barras
+        setIsBottomNavOpen(true);
       }
+
+      lastScrollTopRef.current = scrollPos;
     };
+
     window.addEventListener('scroll', handleScrollThreshold, { passive: true });
     const c = mainContainerRef.current;
     if (c) c.addEventListener('scroll', handleScrollThreshold, { passive: true });
-    return () => { window.removeEventListener('scroll', handleScrollThreshold); if (c) c.removeEventListener('scroll', handleScrollThreshold); };
+    return () => { 
+      window.removeEventListener('scroll', handleScrollThreshold); 
+      if (c) c.removeEventListener('scroll', handleScrollThreshold); 
+    };
   }, []);
 
   const scrollCategories = (direction) => {
@@ -1746,7 +1760,7 @@ export default function MarketplaceDirectory() {
               {hasMerchantAccess && (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
+                  className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
                   title="Volver a mi Panel de Administrador"
                 >
                   <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
@@ -1754,32 +1768,35 @@ export default function MarketplaceDirectory() {
                 </button>
               )}
 
-              {currentCustomer ? (
-                <button 
-                  onClick={() => navigate('/profile')} 
-                  className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
-                  title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
-                >
-                  {currentCustomer.profile_pic ? (
-                    <img 
-                      src={resolveImageUrl(currentCustomer.profile_pic)} 
-                      alt="Perfil" 
-                      className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
-                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </button>
-              ) : (
-                <button 
-                  onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                  className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                  title="Iniciar Sesión"
-                >
-                  <User size={20} strokeWidth={2} />
-                </button>
+              {/* Botón de Perfil o Login (Oculto si ya existe sesión de comerciante activa) */}
+              {!hasMerchantAccess && (
+                currentCustomer ? (
+                  <button 
+                    onClick={() => navigate('/profile')} 
+                    className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                    title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
+                  >
+                    {currentCustomer.profile_pic ? (
+                      <img 
+                        src={resolveImageUrl(currentCustomer.profile_pic)} 
+                        alt="Perfil" 
+                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                    title="Iniciar Sesión"
+                  >
+                    <User size={20} strokeWidth={2} />
+                  </button>
+                )
               )}
             </div>
           </div>
@@ -1805,7 +1822,7 @@ export default function MarketplaceDirectory() {
       </div>
 
       {/* Centered Mobile-First App Shell (Wider for Desktop) */}
-      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
         {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
         <ActiveFeedMediaProvider>
