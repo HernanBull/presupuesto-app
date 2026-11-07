@@ -120,143 +120,6 @@ export default function MarketplaceDirectory() {
   const isNavOpenRef = useRef(true);
   const isWheelThrottledRef = useRef(false);
 
-  useEffect(() => {
-    isNavOpenRef.current = isBottomNavOpen;
-  }, [isBottomNavOpen]);
-
-  useEffect(() => {
-    const handleGlobalWheel = (e) => {
-      // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
-      if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
-        isCartOpen
-      ) {
-        return;
-      }
-
-      const c = mainContainerRef.current;
-      if (!c) return;
-
-      const pageH = c.clientHeight || window.innerHeight;
-      const currentScroll = c.scrollTop;
-
-      // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
-      if (e.deltaY > 12) {
-        // Ocultar cabecera superior AxonMarket y barra inferior de navegación automáticamente
-        if (isNavOpenRef.current) {
-          setIsBottomNavOpen(false);
-        }
-
-        // Salto directo TikTok al siguiente comerciante sin animaciones web lentas
-        if (!isWheelThrottledRef.current) {
-          isWheelThrottledRef.current = true;
-          const maxScroll = Math.max(0, c.scrollHeight - pageH);
-          const nextScroll = Math.min(currentScroll + pageH, maxScroll);
-          c.scrollTo({ top: nextScroll, behavior: 'instant' });
-          setTimeout(() => {
-            isWheelThrottledRef.current = false;
-          }, 280);
-        }
-      } else if (e.deltaY < -12) {
-        // Desplazamiento hacia arriba con rueda de ratón
-        if (!isWheelThrottledRef.current) {
-          isWheelThrottledRef.current = true;
-          const prevScroll = Math.max(0, currentScroll - pageH);
-          c.scrollTo({ top: prevScroll, behavior: 'instant' });
-          if (prevScroll <= 15) {
-            // Regresando al primer comercio: mostrar cabecera y barra de navegación automáticamente
-            setIsBottomNavOpen(true);
-          }
-          setTimeout(() => {
-            isWheelThrottledRef.current = false;
-          }, 280);
-        }
-      }
-    };
-
-    const handleScroll = () => {
-      const c = mainContainerRef.current;
-      if (!c) return;
-      const pageH = c.clientHeight || window.innerHeight;
-      const scrollPos = c.scrollTop;
-
-      // Si está en el primer comercio (< 30% de la altura): mostrar barras
-      // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
-      const shouldBeOpen = scrollPos < (pageH * 0.3);
-      if (shouldBeOpen !== isNavOpenRef.current) {
-        setIsBottomNavOpen(shouldBeOpen);
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
-        isCartOpen
-      ) {
-        return;
-      }
-
-      const c = mainContainerRef.current;
-      if (!c) return;
-      const pageH = c.clientHeight || window.innerHeight;
-      const currentScroll = c.scrollTop;
-
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
-        e.preventDefault();
-        setIsBottomNavOpen(false);
-        const maxScroll = Math.max(0, c.scrollHeight - pageH);
-        const nextScroll = Math.min(currentScroll + pageH, maxScroll);
-        c.scrollTo({ top: nextScroll, behavior: 'instant' });
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        e.preventDefault();
-        const prevScroll = Math.max(0, currentScroll - pageH);
-        c.scrollTo({ top: prevScroll, behavior: 'instant' });
-        if (prevScroll <= 15) {
-          setIsBottomNavOpen(true);
-        }
-      }
-    };
-
-    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
-    window.addEventListener('keydown', handleKeyDown);
-    const container = mainContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', handleScroll, { passive: true });
-    }
-
-    return () => {
-      window.removeEventListener('wheel', handleGlobalWheel);
-      window.removeEventListener('keydown', handleKeyDown);
-      if (container) {
-        container.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [
-    activeCommentsPost, 
-    isAuthModalOpen, 
-    isMerchantModalOpen, 
-    isStatusViewerOpen, 
-    isWizardOpen, 
-    isAnalyticsOpen, 
-    isVipModalOpen, 
-    isMobileMenuOpen, 
-    isCartOpen
-  ]);
-
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
       categoriesScrollRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
@@ -462,6 +325,144 @@ export default function MarketplaceDirectory() {
       setGlobalCart(JSON.parse(localStorage.getItem('ecommerce_global_cart') || '{}'));
     } catch(e) {}
   };
+
+  useEffect(() => {
+    isNavOpenRef.current = isBottomNavOpen;
+  }, [isBottomNavOpen]);
+
+  // Control Global de Rueda de Ratón, Scroll y Teclado estilo TikTok (Ocultamiento automático de barras)
+  useEffect(() => {
+    const handleGlobalWheel = (e) => {
+      // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
+      }
+
+      const c = mainContainerRef.current;
+      if (!c) return;
+
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+
+      // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
+      if (e.deltaY > 12) {
+        // Ocultar cabecera superior AxonMarket y barra inferior de navegación automáticamente
+        if (isNavOpenRef.current) {
+          setIsBottomNavOpen(false);
+        }
+
+        // Salto directo TikTok al siguiente comerciante sin animaciones web lentas
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          const maxScroll = Math.max(0, c.scrollHeight - pageH);
+          const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+          c.scrollTo({ top: nextScroll, behavior: 'instant' });
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 280);
+        }
+      } else if (e.deltaY < -12) {
+        // Desplazamiento hacia arriba con rueda de ratón
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          const prevScroll = Math.max(0, currentScroll - pageH);
+          c.scrollTo({ top: prevScroll, behavior: 'instant' });
+          if (prevScroll <= 15) {
+            // Regresando al primer comercio: mostrar cabecera y barra de navegación automáticamente
+            setIsBottomNavOpen(true);
+          }
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 280);
+        }
+      }
+    };
+
+    const handleScroll = () => {
+      const c = mainContainerRef.current;
+      if (!c) return;
+      const pageH = c.clientHeight || window.innerHeight;
+      const scrollPos = c.scrollTop;
+
+      // Si está en el primer comercio (< 30% de la altura): mostrar barras
+      // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
+      const shouldBeOpen = scrollPos < (pageH * 0.3);
+      if (shouldBeOpen !== isNavOpenRef.current) {
+        setIsBottomNavOpen(shouldBeOpen);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
+      }
+
+      const c = mainContainerRef.current;
+      if (!c) return;
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        setIsBottomNavOpen(false);
+        const maxScroll = Math.max(0, c.scrollHeight - pageH);
+        const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+        c.scrollTo({ top: nextScroll, behavior: 'instant' });
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        const prevScroll = Math.max(0, currentScroll - pageH);
+        c.scrollTo({ top: prevScroll, behavior: 'instant' });
+        if (prevScroll <= 15) {
+          setIsBottomNavOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+    const container = mainContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [
+    activeCommentsPost, 
+    isAuthModalOpen, 
+    isMerchantModalOpen, 
+    isStatusViewerOpen, 
+    isWizardOpen, 
+    isAnalyticsOpen, 
+    isVipModalOpen, 
+    isMobileMenuOpen, 
+    isCartOpen
+  ]);
 
   useEffect(() => {
     const fetchStores = async () => {
