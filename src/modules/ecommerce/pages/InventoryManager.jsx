@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check, ChevronRight } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check, ChevronRight, Package, Image as ImageIcon } from 'lucide-react';
 import MultiImageUploader from '../components/MultiImageUploader';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ const initialInventory = [];
 export default function InventoryManager() {
   const navigate = useNavigate();
   const [inventory, setInventory] = useState(initialInventory);
+  const [bcvRate, setBcvRate] = useState(888.89);
   const [customCategories, setCustomCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
@@ -32,6 +33,16 @@ export default function InventoryManager() {
     }
   }, [location.search]);
   
+  useEffect(() => {
+    fetch('https://axonmarket-api.onrender.com/api/bcv')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.rate) setBcvRate(Number(data.rate));
+        else if (data?.fallbackRate) setBcvRate(Number(data.fallbackRate));
+      })
+      .catch(() => {});
+  }, []);
+
   const [settings, setSettings] = useState({
     waste: true,
     expiration: true,
@@ -884,8 +895,8 @@ export default function InventoryManager() {
           </div>
         </div>
 
-        {/* Vista móvil: tarjetas */}
-        <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
+        {/* Vista móvil: Tarjetas en cuadrícula idénticas al formato visual del sistema POS */}
+        <div className="sm:hidden p-3 bg-slate-50/50 dark:bg-slate-950/30">
           {filteredInventory.length === 0 ? (
             <div className="py-12 px-4 text-center max-w-sm mx-auto flex flex-col items-center">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mb-3">
@@ -945,98 +956,205 @@ export default function InventoryManager() {
               </div>
             </div>
           ) : (
-            filteredInventory.map(item => {
-              const status = getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate);
-              const statusColors = {
-                'Crítico': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-                'Bajo': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-                'Vence Pronto': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-                'Sobre-Stock': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                'En Stock': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-              };
-              return (
-                <div key={item.id} className="p-4 flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {/* Miniatura de Foto de Producto */}
-                      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
-                        {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <PackageSearch size={22} className="text-slate-400" />
-                        )}
+            <div className="grid grid-cols-2 gap-2.5">
+              {filteredInventory.map(item => {
+                const status = getStatus(item.stock, item.minStock, item.maxStock, item.expirationDate);
+                const statusColors = {
+                  'Crítico': 'bg-rose-500 text-white',
+                  'Bajo': 'bg-amber-500 text-white',
+                  'Vence Pronto': 'bg-orange-500 text-white',
+                  'Sobre-Stock': 'bg-blue-600 text-white',
+                  'En Stock': 'bg-emerald-600 text-white',
+                };
+                const primaryImg = item.imageUrl || (Array.isArray(item.images) && item.images[0]) || (Array.isArray(item.metadata?.images) && item.metadata.images[0]) || '';
+                const totalPhotos = Array.isArray(item.images) ? item.images.length : (Array.isArray(item.metadata?.images) ? item.metadata.images.length : (primaryImg ? 1 : 0));
+                const vesPrice = (item.price || 0) * (bcvRate || 1);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden justify-between"
+                  >
+                    {/* 1. Header Visual 5:4 idéntico al POS */}
+                    <div className="relative w-full pt-[80%] bg-slate-100 dark:bg-slate-950 overflow-hidden">
+                      {primaryImg ? (
+                        <img
+                          src={primaryImg}
+                          alt={item.name}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fb = e.currentTarget.parentElement.querySelector('.inventory-sin-foto');
+                            if (fb) fb.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+
+                      {/* Fallback "Sin Foto" idéntico al sistema POS */}
+                      <div
+                        className={`inventory-sin-foto absolute inset-0 ${primaryImg ? 'hidden' : 'flex'} flex-col items-center justify-center text-slate-400 bg-slate-100 dark:bg-slate-900`}
+                      >
+                        <Package size={28} strokeWidth={1.5} className="text-slate-400" />
+                        <span className="text-[10px] font-semibold text-slate-400 mt-1">Sin Foto</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0 inline-flex items-center gap-1">
-                            <span>{item.category || 'General'}</span>
-                            {item.subcategory && (
-                              <>
-                                <span className="text-slate-400">›</span>
-                                <span className="font-bold text-orange-600 dark:text-orange-400">{item.subcategory}</span>
-                              </>
-                            )}
+
+                      {/* Badge de Stock flotante arriba a la izquierda */}
+                      <span className={`absolute top-1.5 left-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-xs ${statusColors[status] || 'bg-slate-800 text-white'}`}>
+                        {status}
+                      </span>
+
+                      {/* Toggle de Vitrina flotante arriba a la derecha */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePublishStatus(e, item.id, item.publishStatus);
+                        }}
+                        className={`absolute top-1.5 right-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black shadow-xs transition-transform active:scale-90 ${
+                          item.publishStatus === 'Publicado'
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-900/70 backdrop-blur-xs text-white'
+                        }`}
+                        title={item.publishStatus === 'Publicado' ? 'Visible en vitrina. Clic para ocultar' : 'Oculto. Clic para publicar en vitrina'}
+                      >
+                        {item.publishStatus === 'Publicado' ? (
+                          <>
+                            <Eye size={10} />
+                            <span>Vitrina</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={10} />
+                            <span>Oculto</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Badge de contador de fotos */}
+                      {totalPhotos > 1 && (
+                        <span className="absolute bottom-1.5 left-1.5 bg-slate-900/75 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                          <ImageIcon size={9} />
+                          <span>{totalPhotos}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 2. Cuerpo de Información */}
+                    <div className="p-2.5 flex flex-col flex-1 justify-between gap-1.5">
+                      <div>
+                        {/* Título en 2 líneas */}
+                        <h4
+                          className="font-bold text-xs text-slate-800 dark:text-white line-clamp-2 leading-tight h-8"
+                          title={item.name}
+                        >
+                          {item.name}
+                        </h4>
+
+                        {/* Categoría y Subcategoría */}
+                        <div className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 font-semibold truncate mt-0.5">
+                          <span>{item.category || 'General'}</span>
+                          {item.subcategory && (
+                            <>
+                              <span className="text-slate-300 dark:text-slate-600">›</span>
+                              <span className="truncate">{item.subcategory}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {/* SKU */}
+                        <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">
+                          {item.id}
+                        </p>
+                      </div>
+
+                      {/* Precios Bimonetarios (USD + Bs BCV) idénticos al POS */}
+                      <div className="mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                            ${(item.price || 0).toFixed(2)}
+                          </span>
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                            Bs. {vesPrice.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </div>
-                        <p className="text-[10px] font-mono text-slate-500 mt-0.5">{item.id}</p>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                          <span>Stock: <strong className={item.stock <= (item.minStock || 0) ? 'text-rose-500 font-bold' : 'text-slate-700 dark:text-slate-200 font-bold'}>{item.stock}</strong></span>
+                          <span>Costo: ${item.cogs?.toFixed(2) || '0.00'}</span>
+                        </div>
+                      </div>
+
+                      {/* 3. Barra de Acciones Ergonómicas de Almacén */}
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-col gap-1.5">
+                        {/* Botón Principal: Editar */}
+                        <button
+                          type="button"
+                          onClick={() => openEditor(item)}
+                          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[11px] shadow-xs active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Edit2 size={12} />
+                          <span>Editar</span>
+                        </button>
+
+                        {/* Fila de Acciones Secundarias de Almacén */}
+                        <div className="flex items-center justify-between gap-1">
+                          {settings.transfers && (
+                            <button
+                              type="button"
+                              title="Transferir a vitrina"
+                              onClick={() => {
+                                setTransferItem(item);
+                                setTransferData({ quantity: 1, toVitrina: true });
+                                setIsTransferModalOpen(true);
+                              }}
+                              className="flex-1 flex items-center justify-center p-1.5 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-100 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <Truck size={13} />
+                            </button>
+                          )}
+                          {settings.audit && (
+                            <button
+                              type="button"
+                              title="Auditar inventario físico"
+                              onClick={() => {
+                                setAuditItem(item);
+                                setAuditData({ quantity: item.stock });
+                                setIsAuditModalOpen(true);
+                              }}
+                              className="flex-1 flex items-center justify-center p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <ClipboardCheck size={13} />
+                            </button>
+                          )}
+                          {settings.waste && (
+                            <button
+                              type="button"
+                              title="Reportar merma / pérdida"
+                              onClick={() => {
+                                setWasteItem(item);
+                                setIsWasteModalOpen(true);
+                              }}
+                              className="flex-1 flex items-center justify-center p-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <TrendingDown size={13} />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            title="Eliminar producto"
+                            onClick={() => handleDelete(item.id)}
+                            className="flex-1 flex items-center justify-center p-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-100 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 ${statusColors[status] || ''}`}>{status}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Stock</p>
-                      <p className={`text-sm font-bold ${status === 'Crítico' ? 'text-rose-500' : 'text-slate-800 dark:text-white'}`}>{item.stock}</p>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Costo</p>
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-300">${item.cogs.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-2">
-                      <p className="text-[10px] text-slate-500 mb-0.5">Precio</p>
-                      <p className="text-sm font-bold text-violet-600 dark:text-violet-400">${item.price.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {settings.transfers && (
-                      <button onClick={() => { setTransferItem(item); setTransferData({ quantity: 1, toVitrina: true }); setIsTransferModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400 rounded-lg text-xs font-bold">
-                        <Truck size={12} /> Transferir
-                      </button>
-                    )}
-                    {settings.audit && (
-                      <button onClick={() => { setAuditItem(item); setAuditData({ quantity: item.stock }); setIsAuditModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold">
-                        <ClipboardCheck size={12} /> Auditar
-                      </button>
-                    )}
-                    {settings.waste && (
-                      <button onClick={() => { setWasteItem(item); setIsWasteModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-lg text-xs font-bold">
-                        <TrendingDown size={12} /> Merma
-                      </button>
-                    )}
-                    <button onClick={() => openEditor(item)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-xs font-bold">
-                      <Edit2 size={12} /> Editar
-                    </button>
-                    <button onClick={() => handleDelete(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">
-                      <Trash2 size={12} /> Borrar
-                    </button>
-                    <button
-                      onClick={(e) => togglePublishStatus(e, item.id, item.publishStatus)}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                        item.publishStatus === 'Publicado'
-                          ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                      }`}
-                    >
-                      {item.publishStatus === 'Publicado'
-                        ? <><Eye size={12} /> En Vitrina</>
-                        : <><EyeOff size={12} /> Oculto</>
-                      }
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 

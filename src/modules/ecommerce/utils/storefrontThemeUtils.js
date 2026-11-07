@@ -134,3 +134,4 @@ export function normalizeHex(hex, fallback = DEFAULT_STOREFRONT_COLOR) {
   const withHash = clean.startsWith('#') ? clean : `#${clean}`;
   return isValidHex(withHash) ? withHash : fallback;
 }
+

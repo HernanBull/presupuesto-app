@@ -13,6 +13,10 @@ export const VisualProductCard = ({
   const isOutOfStock = product.trackInventory && product.currentStock <= 0;
   const isLowStock = product.trackInventory && product.currentStock > 0 && product.currentStock <= product.minStock;
 
+  const resolvedImg = product.imageUrl || product.image_url || product.image || 
+    (Array.isArray(product.images) && product.images[0]) || 
+    (Array.isArray(product.metadata?.images) && product.metadata.images[0]) || '';
+
   const priceUsd = Number(product.priceUsd ?? product.price ?? 0);
   const vesPrice = priceUsd * activeExchangeRate;
   const wholesaleUsd = product.wholesaleBestRateUsd ? Number(product.wholesaleBestRateUsd) : null;
@@ -100,9 +104,9 @@ export const VisualProductCard = ({
         }}
       >
         {/* Imagen del Producto */}
-        {product.imageUrl || product.image ? (
+        {resolvedImg ? (
           <img
-            src={product.imageUrl || product.image}
+            src={resolvedImg}
             alt={product.name}
             style={{
               position: 'absolute',
@@ -131,7 +135,7 @@ export const VisualProductCard = ({
             left: 0,
             width: '100%',
             height: '100%',
-            display: (product.imageUrl || product.image) ? 'none' : 'flex',
+            display: resolvedImg ? 'none' : 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play, LayoutDashboard } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -146,6 +146,14 @@ export default function MarketplaceDirectory() {
   // Auth State
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [currentMerchant, setCurrentMerchant] = useState(null);
+  const hasMerchantAccess = useMemo(() => {
+    try {
+      const ws = localStorage.getItem('activeWorkspace');
+      return Boolean((ws && ws !== 'default_workspace') || currentMerchant);
+    } catch {
+      return Boolean(currentMerchant);
+    }
+  }, [currentMerchant]);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState('register');
   const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', docId: '', phone: '', address: '' });
@@ -1734,6 +1742,18 @@ export default function MarketplaceDirectory() {
                   </button>
                 )}
 
+                {/* Botón de Retorno al Panel Administrador para Comerciantes */}
+                {hasMerchantAccess && (
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all cursor-pointer shrink-0"
+                    title="Volver a mi Panel de Administrador"
+                  >
+                    <LayoutDashboard size={14} className="stroke-[2.5]" />
+                    <span>Panel Admin</span>
+                  </button>
+                )}
+
                 {currentCustomer ? (
                   <button 
                     onClick={() => navigate('/profile')} 
@@ -2959,6 +2979,26 @@ export default function MarketplaceDirectory() {
               </div>
               
               <div className="flex-1 py-4 px-4 flex flex-col gap-6">
+                {/* Acceso para Comerciante Activo */}
+                {hasMerchantAccess && (
+                  <div className="p-3.5 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/25 rounded-2xl flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-orange-600">Mi Negocio / Tienda</span>
+                      <span className="text-[9px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full">Activo</span>
+                    </div>
+                    <button
+                      onClick={() => { setIsMobileMenuOpen(false); navigate('/dashboard'); }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <LayoutDashboard size={16} />
+                        <span>Ir al Panel Administrador</span>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+
                 {currentCustomer && (
                   <div 
                     onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}

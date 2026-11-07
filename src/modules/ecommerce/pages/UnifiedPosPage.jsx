@@ -582,8 +582,12 @@ export default function UnifiedPosPage() {
             const catName = p.category ? String(p.category).trim() : 'General';
             const subcatName = p.subcategory ? String(p.subcategory).trim() : '';
 
+            const primaryImg = p.image_url || (Array.isArray(meta.images) && meta.images[0]) || (Array.isArray(p.images) && p.images[0]) || '';
+
             return {
               ...p,
+              imageUrl: primaryImg,
+              image_url: p.image_url || primaryImg,
               sku: skuVal,
               barcode: barcodeVal,
               batch_number: p.batch_number || skuVal,
