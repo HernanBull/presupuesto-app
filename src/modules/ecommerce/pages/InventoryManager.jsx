@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+
 const initialInventory = [];
 
 export default function InventoryManager() {
@@ -12,6 +14,8 @@ export default function InventoryManager() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const location = useLocation();
 
   useEffect(() => {
@@ -246,13 +250,53 @@ export default function InventoryManager() {
     return 'En Stock';
   };
 
+  const officialCategories = useMemo(() => MARKETPLACE_CATEGORIES.map(c => c.name), []);
+
   const availableCategories = useMemo(() => {
     const cats = new Set([
+      ...officialCategories,
       ...customCategories,
       ...inventory.map(i => i.category || 'General').filter(Boolean)
     ]);
     return ['Todas', ...Array.from(cats).sort()];
-  }, [inventory, customCategories]);
+  }, [officialCategories, inventory, customCategories]);
+
+  const categoryOptions = useMemo(() => {
+    const cats = new Set([
+      'General',
+      ...officialCategories,
+      ...customCategories,
+      ...inventory.map(i => i.category || 'General').filter(Boolean)
+    ]);
+    return Array.from(cats);
+  }, [officialCategories, customCategories, inventory]);
+
+  const handleAddNewCategory = async () => {
+    const clean = newCategoryName.trim();
+    if (!clean) return;
+    if (!customCategories.includes(clean)) {
+      const updated = [...customCategories, clean];
+      setCustomCategories(updated);
+      const wsId = localStorage.getItem('activeWorkspace');
+      if (wsId) {
+        try {
+          const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+          const cfg = ws?.config || {};
+          const prevCustom = Array.isArray(cfg.customCategories) ? cfg.customCategories : [];
+          const updatedCustom = [...prevCustom, { name: clean, color: '#EA580C' }];
+          await supabase.from('workspaces').update({
+            config: { ...cfg, customCategories: updatedCustom }
+          }).eq('id', wsId);
+        } catch (err) {
+          console.error("Error saving new category:", err);
+        }
+      }
+    }
+    setFormData(prev => ({ ...prev, category: clean }));
+    setNewCategoryName('');
+    setShowNewCategoryInput(false);
+    toast.success(`Categoría "${clean}" creada y asignada`);
+  };
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = 
@@ -363,8 +407,8 @@ export default function InventoryManager() {
       ...formData,
       stock: Number(formData.stock),
       stockVitrina: formData.stockVitrina ? Number(formData.stockVitrina) : 0,
-      minStock: Number(formData.minStock),
-      maxStock: formData.maxStock ? Number(formData.maxStock) : '',
+      minStock: formData.minStock ? Number(formData.minStock) : 5,
+      maxStock: null,
       cogs: Number(formData.cogs),
       price: Number(formData.price),
     };
@@ -561,115 +605,58 @@ export default function InventoryManager() {
         </div>
       </div>
 
-      {/* Sección Financiera: Protegida con PIN Unificado tipo Acceso Restringido */}
-      {!isFinancialUnlocked ? (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-sm max-w-sm mx-auto w-full text-center">
-          <div className="bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+      {/* Sección Financiera: Métricas de Valor e Inversión de Inventario (Visible para el comerciante) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Métricas Financieras del Inventario
+            </span>
           </div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
-            Acceso Restringido
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-            Ingresa el PIN de administrador para ver este módulo.
-          </p>
-
-          <form onSubmit={handleUnlockFinancial}>
-            <input 
-              type="password" 
-              maxLength={4}
-              value={pinInput}
-              onChange={e => {
-                setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4));
-                setPinError('');
-              }}
-              className={`w-full text-center tracking-[1em] font-mono text-2xl py-3 bg-slate-50 dark:bg-slate-950 border ${pinError ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-2xl text-slate-900 dark:text-white mb-3 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold`}
-              placeholder="****"
-            />
-            {pinError && <p className="text-red-500 text-xs font-bold mb-3">{pinError}</p>}
-            <button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-bold py-3.5 rounded-2xl transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
-            >
-              Desbloquear
-            </button>
-            <div className="text-center mt-4">
-              <button 
-                type="button" 
-                onClick={() => navigate('/store-profile')}
-                className="text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors cursor-pointer"
-              >
-                ¿Olvidaste tu PIN?
-              </button>
-            </div>
-          </form>
         </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Métricas Financieras
-              </span>
-              <span className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 font-bold px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                Desbloqueado
-              </span>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Capital Invertido */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
+              <PackageSearch size={24} />
             </div>
-            <button
-              type="button"
-              onClick={() => setIsFinancialUnlocked(false)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 cursor-pointer"
-            >
-              <EyeOff size={13} />
-              <span>Ocultar Cifras</span>
-            </button>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </h3>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Card 1: Capital Invertido */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
-                <PackageSearch size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-                  ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </h3>
-              </div>
+          {/* Card 2: Ingreso Proyectado */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
+              <TrendingUp size={24} />
             </div>
-
-            {/* Card 2: Ingreso Proyectado */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
-                <TrendingUp size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-                  ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </h3>
-              </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white">
+                ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </h3>
             </div>
+          </div>
 
-            {/* Card 3: Ganancia Potencial */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                <TrendingUp size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
-                <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                  ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </h3>
-              </div>
+          {/* Card 3: Ganancia Potencial */}
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <TrendingUp size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
+              <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              </h3>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
@@ -1023,251 +1010,159 @@ export default function InventoryManager() {
                    />
                  </div>
 
+                  {/* Selector de Categoría Nativo y Funcional */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                        Categoría *
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Categoría del Producto *
                       </label>
                       <button
                         type="button"
-                        onClick={() => {
-                          const cat = window.prompt('Escribe el nombre de la nueva categoría:');
-                          if (cat && cat.trim()) {
-                            const clean = cat.trim();
-                            if (!customCategories.includes(clean)) {
-                              const updated = [...customCategories, clean];
-                              setCustomCategories(updated);
-                              const wsId = localStorage.getItem('activeWorkspace');
-                              if (wsId) {
-                                supabase.from('workspaces').select('config').eq('id', wsId).single().then(({ data: ws }) => {
-                                  const cfg = ws?.config || {};
-                                  supabase.from('workspaces').update({
-                                    config: { ...cfg, customCategories: updated }
-                                  }).eq('id', wsId);
-                                });
-                              }
-                            }
-                            setFormData(prev => ({ ...prev, category: clean }));
-                            toast.success(`Categoría "${clean}" asignada`);
-                          }
-                        }}
-                        className="text-[11px] font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        onClick={() => setShowNewCategoryInput(prev => !prev)}
+                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
                       >
-                        <Plus size={12} /> + Nueva Categoría
+                        <Plus size={12} /> {showNewCategoryInput ? 'Cancelar' : '+ Nueva Categoría'}
                       </button>
                     </div>
-                    <input 
-                      type="text" 
-                      name="category"
-                      list="inventory-categories-datalist"
-                      placeholder="Ej: Alimentos, Bebidas, Limpieza, Farmacia..."
-                      value={formData.category || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white font-medium" 
-                    />
-                    <datalist id="inventory-categories-datalist">
-                      {availableCategories.filter(c => c !== 'Todas').map(cat => (
-                        <option key={cat} value={cat} />
-                      ))}
-                    </datalist>
-                  </div>
 
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Proveedor</label>
-                     <input 
-                       type="text" 
-                       name="supplier"
-                       value={formData.supplier}
-                       onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                     />
-                   </div>
-                   {settings.expiration && (
-                     <div className="space-y-2">
-                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Fecha Vencimiento (Opcional)</label>
-                       <input 
-                         type="date" 
-                         name="expirationDate"
-                         value={formData.expirationDate || ''}
-                         onChange={handleInputChange}
-                         className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                       />
-                     </div>
-                   )}
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stock {settings.transfers ? 'Depósito ' : ''}*</label>
-                     <input 
-                       type="number" 
-                       name="stock"
-                       value={formData.stock}
-                       onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                     />
-                   </div>
-                   {settings.transfers && (
-                     <div className="space-y-2">
-                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stock Vitrina</label>
-                       <input 
-                         type="number" 
-                         name="stockVitrina"
-                         value={formData.stockVitrina}
-                         onChange={handleInputChange}
-                         className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                       />
-                     </div>
-                   )}
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                   {settings.reorder && (
-                     <div className="space-y-2">
-                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Punto de Reorden (Min) *</label>
-                       <input 
-                         type="number" 
-                         name="minStock"
-                         value={formData.minStock}
-                         onChange={handleInputChange}
-                         className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                       />
-                     </div>
-                   )}
-                   {settings.overstock && (
-                     <div className="space-y-2">
-                       <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stock Máximo (Sobre-Stock)</label>
-                       <input 
-                         type="number" 
-                         name="maxStock"
-                         value={formData.maxStock || ''}
-                         onChange={handleInputChange}
-                         className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                       />
-                     </div>
-                   )}
-                 </div>
-
-                 {/* Combos Promocionales */}
-                 {settings.combos && (
-                   <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                   <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800">
-                     <input 
-                       type="checkbox" 
-                       name="isCombo"
-                       checked={formData.isCombo || false}
-                       onChange={handleInputChange}
-                       className="w-4 h-4 text-violet-600 rounded border-slate-300 focus:ring-violet-500"
-                     />
-                     <div>
-                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Este producto es un Combo / Kit Promocional</p>
-                       <p className="text-[10px] text-slate-500">Descuenta inventario de otros productos al crearse o venderse.</p>
-                     </div>
-                   </label>
-                   
-                   {formData.isCombo && (
-                     <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 space-y-3">
-                       <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Productos incluidos en el Combo:</p>
-                       
-                       <div className="space-y-2">
-                         {formData.comboItems?.map((cItem, i) => {
-                           const p = inventory.find(inv => inv.id === cItem.id);
-                           return (
-                             <div key={i} className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-                               <span className="flex-1 text-xs text-slate-700 dark:text-slate-300 font-medium truncate">{p?.name || cItem.id}</span>
-                               <span className="text-xs font-bold text-slate-500">x{cItem.qty}</span>
-                               <button 
-                                 onClick={() => {
-                                   const newItems = [...formData.comboItems];
-                                   newItems.splice(i, 1);
-                                   setFormData({...formData, comboItems: newItems});
-                                 }}
-                                 className="text-red-400 hover:text-red-500"
-                               >
-                                 <X size={14} />
-                               </button>
-                             </div>
-                           )
-                         })}
-                       </div>
-
-                       <div className="flex gap-2">
-                         <select 
-                           id="comboSelect" 
-                           className="flex-1 px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs focus:outline-none dark:text-white"
-                         >
-                           <option value="">Selecciona producto...</option>
-                           {inventory.filter(i => !i.isCombo && i.id !== formData.id).map(i => (
-                             <option key={i.id} value={i.id}>{i.name}</option>
-                           ))}
-                         </select>
-                         <input type="number" id="comboQty" defaultValue="1" min="1" className="w-16 px-2 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs focus:outline-none dark:text-white" />
-                         <button 
-                           onClick={() => {
-                             const sel = document.getElementById('comboSelect');
-                             const qty = document.getElementById('comboQty');
-                             if(sel.value && qty.value > 0) {
-                               const exists = formData.comboItems?.find(c => c.id === sel.value);
-                               if(exists) {
-                                 setFormData({...formData, comboItems: formData.comboItems.map(c => c.id === sel.value ? {...c, qty: Number(c.qty) + Number(qty.value)} : c)});
-                               } else {
-                                 setFormData({...formData, comboItems: [...(formData.comboItems || []), {id: sel.value, qty: Number(qty.value)}]});
-                               }
-                               sel.value = '';
-                               qty.value = '1';
-                             }
-                           }}
-                            className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-3 rounded-lg text-xs font-bold"
+                    {showNewCategoryInput && (
+                      <div className="p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl space-y-2 animate-in fade-in duration-150">
+                        <label className="text-[11px] font-bold text-orange-950 dark:text-orange-300">
+                          Crear y asignar nueva categoría:
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newCategoryName}
+                            onChange={e => setNewCategoryName(e.target.value)}
+                            placeholder="Ej: Bebidas Frías, Licores, Postres..."
+                            className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-950 border border-orange-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddNewCategory}
+                            className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
                           >
                             Añadir
                           </button>
                         </div>
                       </div>
                     )}
-                  </div>
-                 )}
-                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                   <div className="space-y-2">
-                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400" title="Cost Of Goods Sold (Lo que te cuesta)">Costo Unitario de Entrada $ *</label>
-                     <input 
-                       type="number" 
-                       name="cogs"
-                       value={formData.cogs}
-                       onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                     />
-                     {editingId && (
-                       <p className="text-[10px] text-slate-500 leading-tight">Si sumas stock, el sistema usará este valor para recalcular el <strong>Costo Promedio Ponderado</strong> total.</p>
-                     )}
-                   </div>
-                   <div className="space-y-2">
-                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Precio de Venta $ *</label>
-                     <input 
-                       type="number" 
-                       name="price"
-                       value={formData.price}
-                       onChange={handleInputChange}
-                       className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50 dark:text-white" 
-                     />
-                   </div>
-                 </div>
 
-                 {/* Margen Calculado en vivo */}
-                 <div className="mt-4 p-4 bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-900/50 rounded-xl flex items-center justify-between">
-                   <span className="text-xs font-bold text-violet-700 dark:text-violet-400">Margen de Ganancia Proyectado:</span>
-                   <span className="text-lg font-black text-violet-600 dark:text-violet-400">
-                     {calculateMargin(Number(formData.cogs || 0), Number(formData.price || 0))}%
-                   </span>
-                 </div>
-               </div>
+                    <select
+                      name="category"
+                      value={formData.category || 'General'}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white font-bold cursor-pointer text-slate-900"
+                    >
+                      {categoryOptions.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Proveedor y Fecha de Vencimiento */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Proveedor</label>
+                      <input 
+                        type="text" 
+                        name="supplier"
+                        placeholder="Ej: Distribuidora Polar, Empresas Polar..."
+                        value={formData.supplier || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-medium" 
+                      />
+                    </div>
+                    {settings.expiration && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Fecha Vencimiento (Opcional)</label>
+                        <input 
+                          type="date" 
+                          name="expirationDate"
+                          value={formData.expirationDate || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-medium" 
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stock Depósito y Vitrina */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stock {settings.transfers ? 'Depósito ' : ''}*</label>
+                      <input 
+                        type="number" 
+                        name="stock"
+                        placeholder="0"
+                        value={formData.stock}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-bold" 
+                      />
+                    </div>
+                    {settings.transfers && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Stock Vitrina</label>
+                        <input 
+                          type="number" 
+                          name="stockVitrina"
+                          placeholder="0"
+                          value={formData.stockVitrina}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-bold" 
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Costo de Entrada y Precio de Venta */}
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400" title="Costo Unitario (Lo que te cuesta)">Costo de Entrada $ *</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        placeholder="0.00"
+                        name="cogs"
+                        value={formData.cogs}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-bold" 
+                      />
+                      {editingId && (
+                        <p className="text-[10px] text-slate-500 leading-tight">Si sumas stock, se calculará el <strong>Costo Promedio Ponderado</strong>.</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Precio de Venta $ *</label>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        placeholder="0.00"
+                        name="price"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 text-slate-900 dark:text-white font-bold" 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Margen Calculado en vivo */}
+                  <div className="mt-3 p-3.5 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl flex items-center justify-between">
+                    <span className="text-xs font-bold text-orange-800 dark:text-orange-300">Margen de Ganancia Proyectado:</span>
+                    <span className="text-lg font-black text-orange-600 dark:text-orange-400">
+                      {calculateMargin(Number(formData.cogs || 0), Number(formData.price || 0))}%
+                    </span>
+                  </div>
+                </div>
             </div>
 
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex gap-3 justify-end">
-               <button onClick={closeEditor} className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors">
+               <button onClick={closeEditor} className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer">
                  Cancelar
                </button>
-               <button onClick={handleSave} className="px-6 py-2 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20">
+               <button onClick={handleSave} className="px-6 py-2.5 text-sm font-bold bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer">
                  Guardar
                </button>
             </div>
