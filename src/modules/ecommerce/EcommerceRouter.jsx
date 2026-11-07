@@ -412,10 +412,10 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="products" element={<ProductsManager />} />
           <Route path="combos" element={<ProductsManager />} />
           <Route path="categories" element={<ProductsManager />} />
-          <Route path="suggestions" element={<ProductStudio />} />
+          <Route path="suggestions" element={<Navigate to="/inventory" replace />} />
           <Route path="migrations" element={<UnifiedPosPage />} />
-          <Route path="product-studio" element={<ProductStudio />} />
-          <Route path="product-studio/:id" element={<ProductStudio />} />
+          <Route path="product-studio" element={<Navigate to="/inventory" replace />} />
+          <Route path="product-studio/:id" element={<Navigate to="/inventory" replace />} />
           <Route path="orders" element={<OrdersManager />} />
           <Route path="invoicing" element={<FiscalSalesBookPage />} />
           <Route path="seniat" element={<FiscalSalesBookPage />} />

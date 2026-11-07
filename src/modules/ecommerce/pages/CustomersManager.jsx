@@ -11,46 +11,98 @@ export default function CustomersManager() {
   const fetchCustomers = async () => {
     try {
       setIsLoading(true);
-      // 1. Obtener clientes de Supabase
-      const { data: custData, error: custErr } = await supabase
-        .from('ecommerce_customers')
-        .select('*')
-        .order('join_date', { ascending: false });
+      const activeWs = localStorage.getItem('activeWorkspace');
+      if (!activeWs) {
+        setCustomers([]);
+        setIsLoading(false);
+        return;
+      }
 
-      if (custErr) throw custErr;
-
-      // 2. Obtener pedidos para computar pedidos reales y LTV por cliente
+      // 1. Obtener pedidos EXCLUSIVOS de este workspace para computar clientes reales y LTV
       const { data: ordersData } = await supabase
         .from('ecommerce_orders_v2')
-        .select('customer, customer_email, total, status');
+        .select('id, customer, customer_email, customer_phone, customer_dni, total, status, created_at')
+        .eq('workspace_id', activeWs);
 
       const ordersList = ordersData || [];
 
-      const mapped = (custData || []).map(c => {
-        // Encontrar pedidos asociados por email o por nombre
-        const matchedOrders = ordersList.filter(o => 
-          (c.email && o.customer_email && o.customer_email.toLowerCase() === c.email.toLowerCase()) ||
-          (c.name && o.customer && o.customer.toLowerCase() === c.name.toLowerCase())
-        );
+      // 2. Obtener clientes registrados manualmente en este workspace
+      const { data: wsData } = await supabase
+        .from('workspaces')
+        .select('config')
+        .eq('id', activeWs)
+        .maybeSingle();
 
-        const totalOrders = matchedOrders.length;
-        const ltv = matchedOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const wsConfig = typeof wsData?.config === 'object' && wsData?.config !== null 
+        ? wsData.config 
+        : (typeof wsData?.config === 'string' ? JSON.parse(wsData.config || '{}') : {});
 
-        return {
+      const manualCustomers = Array.isArray(wsConfig.crm_customers) ? wsConfig.crm_customers : [];
+
+      // 3. Consolidar clientes de órdenes que no estén aún en manualCustomers
+      const customerMap = new Map();
+
+      // Primero agregamos los clientes manuales de la tienda
+      manualCustomers.forEach(c => {
+        customerMap.set(c.id, {
           id: c.id,
           name: c.name || 'Sin Nombre',
           email: c.email || '',
           phone: c.phone || '',
-          docId: c.doc_id || '',
+          docId: c.docId || c.doc_id || '',
           address: c.address || '',
           status: c.status || 'Activo',
-          joinDate: c.join_date ? c.join_date.split('T')[0] : 'Reciente',
-          totalOrders,
-          ltv
-        };
+          joinDate: c.joinDate || c.created_at || (c.join_date ? c.join_date.split('T')[0] : 'Reciente'),
+          totalOrders: 0,
+          ltv: 0,
+          isManual: true
+        });
       });
 
-      setCustomers(mapped);
+      // Luego agregamos o actualizamos con los compradores de órdenes en este comercio
+      ordersList.forEach(o => {
+        const custName = (o.customer || '').trim();
+        const custEmail = (o.customer_email || '').trim();
+        if (!custName && !custEmail) return;
+        if (custName.toLowerCase() === 'consumidor final') return;
+
+        // Buscar si ya existe por email o nombre
+        let foundKey = null;
+        for (const [key, c] of customerMap.entries()) {
+          if ((custEmail && c.email && c.email.toLowerCase() === custEmail.toLowerCase()) ||
+              (custName && c.name && c.name.toLowerCase() === custName.toLowerCase())) {
+            foundKey = key;
+            break;
+          }
+        }
+
+        const orderTotal = Number(o.total) || 0;
+
+        if (foundKey) {
+          const existing = customerMap.get(foundKey);
+          existing.totalOrders += 1;
+          existing.ltv += orderTotal;
+          if (!existing.phone && o.customer_phone) existing.phone = o.customer_phone;
+          if (!existing.docId && o.customer_dni) existing.docId = o.customer_dni;
+        } else {
+          const autoId = `ORD-CUS-${customerMap.size + 1}`;
+          customerMap.set(autoId, {
+            id: autoId,
+            name: custName || 'Cliente de Pedido',
+            email: custEmail,
+            phone: o.customer_phone || '',
+            docId: o.customer_dni || '',
+            address: '',
+            status: 'Activo',
+            joinDate: o.created_at ? o.created_at.split('T')[0] : 'Reciente',
+            totalOrders: 1,
+            ltv: orderTotal,
+            isManual: false
+          });
+        }
+      });
+
+      setCustomers(Array.from(customerMap.values()));
     } catch (e) {
       console.error('Error fetching customers in CRM:', e);
       toast.error('Error al cargar la lista de clientes.');
@@ -148,62 +200,102 @@ export default function CustomersManager() {
       return;
     }
 
-    const payload = {
-      name: formData.name.trim(),
-      email: formData.email.trim() || `${formData.name.trim().toLowerCase().replace(/\s+/g, '')}@cliente.axon`,
-      phone: formData.phone.trim(),
-      doc_id: formData.docId.trim(),
-      address: formData.address.trim(),
-      status: formData.status
-    };
+    const activeWs = localStorage.getItem('activeWorkspace');
+    if (!activeWs) {
+      toast.error("No hay un comercio activo identificado.");
+      return;
+    }
 
     try {
-      if (editingId) {
-        // Editar en Supabase
-        const { error } = await supabase
-          .from('ecommerce_customers')
-          .update(payload)
-          .eq('id', editingId);
+      const { data: wsData } = await supabase
+        .from('workspaces')
+        .select('config')
+        .eq('id', activeWs)
+        .maybeSingle();
 
-        if (error) throw error;
+      const wsConfig = typeof wsData?.config === 'object' && wsData?.config !== null 
+        ? wsData.config 
+        : (typeof wsData?.config === 'string' ? JSON.parse(wsData.config || '{}') : {});
+
+      let currentCrm = Array.isArray(wsConfig.crm_customers) ? [...wsConfig.crm_customers] : [];
+
+      if (editingId) {
+        currentCrm = currentCrm.map(c => c.id === editingId ? {
+          ...c,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          docId: formData.docId.trim(),
+          address: formData.address.trim(),
+          status: formData.status
+        } : c);
         toast.success('Cliente actualizado correctamente');
       } else {
-        // Crear en Supabase
-        const newId = `CUS-${Date.now().toString().slice(-6)}`;
-        const { error } = await supabase
-          .from('ecommerce_customers')
-          .insert([{
-            ...payload,
-            id: newId,
-            password: 'SUPABASE_AUTH',
-            join_date: new Date().toISOString()
-          }]);
-
-        if (error) throw error;
-        toast.success(`Cliente ${payload.name} registrado con éxito`);
+        const newCustomer = {
+          id: `CUS-${Date.now().toString().slice(-6)}`,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          docId: formData.docId.trim(),
+          address: formData.address.trim(),
+          status: formData.status,
+          joinDate: new Date().toISOString().split('T')[0]
+        };
+        currentCrm.unshift(newCustomer);
+        toast.success(`Cliente ${newCustomer.name} registrado con éxito`);
       }
+
+      await supabase
+        .from('workspaces')
+        .update({
+          config: {
+            ...wsConfig,
+            crm_customers: currentCrm
+          }
+        })
+        .eq('id', activeWs);
 
       await fetchCustomers();
       closeEditor();
     } catch (e) {
-      console.error('Error guardando cliente en Supabase:', e);
-      toast.error('No se pudo guardar el cliente en la base de datos.');
+      console.error('Error guardando cliente en CRM:', e);
+      toast.error('No se pudo guardar el cliente.');
     }
   };
 
   const handleDelete = async (id, name) => {
-    if(window.confirm(`¿Estás seguro de eliminar al cliente ${name || ''}? Esta acción no se puede deshacer.`)) {
-      try {
-        const { error } = await supabase
-          .from('ecommerce_customers')
-          .delete()
-          .eq('id', id);
+    if (window.confirm(`¿Estás seguro de eliminar al cliente ${name || ''}? Esta acción no se puede deshacer.`)) {
+      const activeWs = localStorage.getItem('activeWorkspace');
+      if (!activeWs) return;
 
-        if (error) throw error;
+      try {
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('config')
+          .eq('id', activeWs)
+          .maybeSingle();
+
+        const wsConfig = typeof wsData?.config === 'object' && wsData?.config !== null 
+          ? wsData.config 
+          : (typeof wsData?.config === 'string' ? JSON.parse(wsData.config || '{}') : {});
+
+        const currentCrm = Array.isArray(wsConfig.crm_customers) ? wsConfig.crm_customers : [];
+        const updatedCrm = currentCrm.filter(c => c.id !== id);
+
+        await supabase
+          .from('workspaces')
+          .update({
+            config: {
+              ...wsConfig,
+              crm_customers: updatedCrm
+            }
+          })
+          .eq('id', activeWs);
+
         toast.success('Cliente eliminado con éxito');
         setCustomers(prev => prev.filter(c => c.id !== id));
       } catch (e) {
-        console.error('Error eliminando cliente:', e);
+        console.error('Error eliminando cliente en CRM:', e);
         toast.error('Error al eliminar el cliente.');
       }
     }
@@ -287,7 +379,15 @@ export default function CustomersManager() {
         {/* Mobile View: Cards */}
         <div className="sm:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {filteredCustomers.length === 0 ? (
-            <div className="py-10 text-center text-slate-500 text-sm">No se encontraron clientes.</div>
+            <div className="py-12 px-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-3 border border-orange-200 dark:border-orange-500/20 shadow-xs">
+                <User size={26} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">Sin clientes registrados aún</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                Los clientes de tu tienda aparecerán aquí automáticamente al realizar ventas, o puedes crear uno con "+ Nuevo Cliente".
+              </p>
+            </div>
           ) : (
             filteredCustomers.map(customer => (
               <div key={customer.id} className="p-4 flex flex-col gap-3">
@@ -354,8 +454,12 @@ export default function CustomersManager() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-slate-500">
-                    No se encontraron clientes con esos criterios.
+                  <td colSpan="5" className="py-12 text-center">
+                    <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-2 border border-orange-200 dark:border-orange-500/20 shadow-xs">
+                      <User size={22} />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">Sin clientes registrados aún</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Los clientes aparecerán automáticamente con tus ventas o agrégalos con "+ Nuevo Cliente".</p>
                   </td>
                 </tr>
               ) : (

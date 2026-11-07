@@ -230,27 +230,61 @@ export default function UnifiedPosPage() {
   const [newCustDoc, setNewCustDoc] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
 
-  // Cargar clientes reales desde Supabase
+  // Cargar clientes reales propios del comercio
   useEffect(() => {
     const fetchPosCustomers = async () => {
       try {
-        const { data, error } = await supabase
-          .from('ecommerce_customers')
-          .select('id, name, doc_id, phone')
-          .order('name', { ascending: true });
-        
-        if (!error && Array.isArray(data)) {
-          const mapped = data.map(c => ({
-            id: c.id,
-            name: c.name || 'Sin Nombre',
-            doc: c.doc_id || 'V-00000000',
-            phone: c.phone || '-'
-          }));
-          setCustomerList([
-            { id: 'cf', name: 'Consumidor Final', doc: 'V-00000000', phone: '-' },
-            ...mapped.filter(c => c.name !== 'Consumidor Final')
-          ]);
-        }
+        const activeWs = localStorage.getItem('activeWorkspace');
+        if (!activeWs) return;
+
+        // 1. Clientes manuales de la tienda
+        const { data: wsData } = await supabase
+          .from('workspaces')
+          .select('config')
+          .eq('id', activeWs)
+          .maybeSingle();
+
+        const wsConfig = typeof wsData?.config === 'object' && wsData?.config !== null 
+          ? wsData.config 
+          : (typeof wsData?.config === 'string' ? JSON.parse(wsData.config || '{}') : {});
+
+        const manualCustomers = Array.isArray(wsConfig.crm_customers) ? wsConfig.crm_customers : [];
+
+        // 2. Clientes de órdenes de este comercio
+        const { data: ordersData } = await supabase
+          .from('ecommerce_orders_v2')
+          .select('customer, customer_dni, customer_phone')
+          .eq('workspace_id', activeWs);
+
+        const posCustomerMap = new Map();
+
+        manualCustomers.forEach(c => {
+          if (c.name && c.name.toLowerCase() !== 'consumidor final') {
+            posCustomerMap.set(c.name.toLowerCase(), {
+              id: c.id,
+              name: c.name,
+              doc: c.docId || c.doc_id || 'V-00000000',
+              phone: c.phone || '-'
+            });
+          }
+        });
+
+        (ordersData || []).forEach(o => {
+          const cName = (o.customer || '').trim();
+          if (cName && cName.toLowerCase() !== 'consumidor final' && !posCustomerMap.has(cName.toLowerCase())) {
+            posCustomerMap.set(cName.toLowerCase(), {
+              id: `ORD-${posCustomerMap.size + 1}`,
+              name: cName,
+              doc: o.customer_dni || 'V-00000000',
+              phone: o.customer_phone || '-'
+            });
+          }
+        });
+
+        setCustomerList([
+          { id: 'cf', name: 'Consumidor Final', doc: 'V-00000000', phone: '-' },
+          ...Array.from(posCustomerMap.values())
+        ]);
       } catch (e) {
         console.warn('Error cargando clientes en POS:', e);
       }
@@ -2973,21 +3007,31 @@ export default function UnifiedPosPage() {
                   setNewCustPhone('');
                   setIsCustomerModalOpen(false);
 
-                  // Persistir en Supabase ecommerce_customers
+                  // Persistir en CRM del comercio
                   try {
-                    await supabase.from('ecommerce_customers').insert([{
-                      id: newId,
-                      name: trimmedName,
-                      email: `${trimmedName.toLowerCase().replace(/\s+/g, '')}@cliente.axon`,
-                      password: 'SUPABASE_AUTH',
-                      doc_id: trimmedDoc,
-                      phone: trimmedPhone,
-                      status: 'Activo',
-                      join_date: new Date().toISOString()
-                    }]);
+                    const activeWs = localStorage.getItem('activeWorkspace');
+                    if (activeWs) {
+                      const { data: wsData } = await supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle();
+                      const wsConfig = typeof wsData?.config === 'object' && wsData?.config !== null 
+                        ? wsData.config 
+                        : (typeof wsData?.config === 'string' ? JSON.parse(wsData.config || '{}') : {});
+                      const currentCrm = Array.isArray(wsConfig.crm_customers) ? [...wsConfig.crm_customers] : [];
+                      currentCrm.unshift({
+                        id: newId,
+                        name: trimmedName,
+                        email: `${trimmedName.toLowerCase().replace(/\s+/g, '')}@cliente.axon`,
+                        docId: trimmedDoc,
+                        phone: trimmedPhone,
+                        status: 'Activo',
+                        joinDate: new Date().toISOString().split('T')[0]
+                      });
+                      await supabase.from('workspaces').update({
+                        config: { ...wsConfig, crm_customers: currentCrm }
+                      }).eq('id', activeWs);
+                    }
                     toast.success(`Cliente ${newObj.name} guardado en el CRM y asignado`);
                   } catch (e) {
-                    console.error('Error guardando cliente en base de datos:', e);
+                    console.error('Error guardando cliente en CRM de tienda:', e);
                     toast.success(`Cliente asignado a la venta actual`);
                   }
                 }}

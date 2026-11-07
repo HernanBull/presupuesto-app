@@ -262,13 +262,15 @@ export default function EcommerceDashboard() {
         // 4. Últimas ventas para el feed móvil
         setRecentOrders(curOrders.slice(0, 4));
 
-        // 5. Clientes nuevos de este mes
-        const startOfMonthIso = startMonth.toISOString();
-        const { count: custCount } = await supabase
-          .from('ecommerce_customers')
-          .select('*', { count: 'exact', head: true })
-          .gte('join_date', startOfMonthIso);
-        setNewCustomersCount(custCount || 0);
+        // 5. Clientes nuevos de este mes (exclusivos de este comercio)
+        const uniqueCustomers = new Set();
+        curOrders.forEach(o => {
+          const custIdentifier = (o.customer_email || o.customer || '').trim().toLowerCase();
+          if (custIdentifier && custIdentifier !== 'consumidor final' && custIdentifier !== 'cliente general' && custIdentifier !== 'cliente') {
+            uniqueCustomers.add(custIdentifier);
+          }
+        });
+        setNewCustomersCount(uniqueCustomers.size);
 
         // 6. Gráfico Desktop
         const salesMap = {};
@@ -478,7 +480,7 @@ export default function EcommerceDashboard() {
             </div>
           </div>
 
-          {/* Fila de Botones de Acción (Nueva venta | Caja Maestra | + Producto | ...) */}
+          {/* Fila de Botones de Acción (Nueva venta | Caja Maestra | ...) */}
           <div className="flex items-center gap-2 relative z-10">
             <button
               onClick={() => navigate('/pos')}
@@ -495,14 +497,6 @@ export default function EcommerceDashboard() {
             >
               <Wallet size={16} strokeWidth={2.5} className="text-amber-300" />
               <span>Caja Maestra</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/product-studio')}
-              className="py-3 px-3 bg-white/20 hover:bg-white/30 text-white font-black rounded-2xl backdrop-blur-md border border-white/25 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs cursor-pointer shadow-xs shrink-0"
-            >
-              <Plus size={16} strokeWidth={2.5} />
-              <span className="hidden sm:inline">Producto</span>
             </button>
 
             <button
