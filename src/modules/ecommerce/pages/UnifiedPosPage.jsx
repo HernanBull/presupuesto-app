@@ -24,6 +24,8 @@ import CashShiftModal from '../components/admin/CashShiftModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import { authService } from '../services/authService';
+import { playPosBeep, playCashRegisterSound, playItemRemovedSound } from '../utils/posAudioService';
+import ConfettiCelebration from '../components/ConfettiCelebration';
 
 export default function UnifiedPosPage() {
   const location = useLocation();
@@ -330,21 +332,9 @@ export default function UnifiedPosPage() {
     };
   }, []);
 
-  // Sonido de Beep tipo lector láser / balanza
+  // Sonido de Beep tipo lector láser / balanza con motor moderno
   const playBeep = () => {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
-    } catch(e) {}
+    playPosBeep();
   };
   
   const [paymentEntries, setPaymentEntries] = useState([]);
@@ -1104,6 +1094,7 @@ export default function UnifiedPosPage() {
     };
     setInvoices(prev => [newInvoiceRecord, ...prev]);
 
+    playCashRegisterSound();
     setCompletedSale(completedSaleData);
     setIsCheckoutOpen(false);
     setCart([]);
@@ -2858,10 +2849,12 @@ export default function UnifiedPosPage() {
       )}
 
       {/* ========================================================
-          MODAL DE TICKET FINALIZADO
+          MODAL DE TICKET FINALIZADO CON LLUVIA DE PAPELILLOS (CONFETTI)
           ======================================================== */}
       {completedSale && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <>
+          <ConfettiCelebration />
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 p-7 text-center space-y-4 animate-in zoom-in-95">
             <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
               <Check size={28} strokeWidth={3} />
@@ -2905,6 +2898,7 @@ export default function UnifiedPosPage() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* ========================================================

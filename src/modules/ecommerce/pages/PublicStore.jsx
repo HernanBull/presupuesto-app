@@ -15,11 +15,13 @@ import {
   normalizeHex, 
   getContrastTextColor, 
   hexToRgba, 
-  isValidHex 
+  isValidHex,
+  getStorefrontThemeStyles
 } from '../utils/storefrontThemeUtils';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
+import FlashOfferCountdown from '../components/FlashOfferCountdown';
 
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -1912,6 +1914,7 @@ export default function PublicStore() {
   // Color de marca dinámico de la vitrina (exclusivo para este comercio)
   const primaryColor = liveBrandColor || config?.primaryColor || config?.storefront?.primaryColor || config?.themeColor || DEFAULT_STOREFRONT_COLOR;
   const primaryTextColor = getContrastTextColor(primaryColor);
+  const themeStyles = useMemo(() => getStorefrontThemeStyles(primaryColor), [primaryColor]);
   const typography = 'font-sans';
   const baseFontSize = 'text-base';
   const headingWeight = 'font-light';
@@ -2006,7 +2009,18 @@ export default function PublicStore() {
   };
 
   const recentProducts = products.slice(0, 8);
-  const offerProducts = products.filter(p => !!p.is_offer);
+  const offerProducts = useMemo(() => {
+    const now = Date.now();
+    return products.filter(p => {
+      if (!p.is_offer || Number(p.is_offer) === 0) return false;
+      const endDate = p.metadata?.offer_end_date;
+      if (endDate) {
+        const endMs = new Date(endDate).getTime();
+        if (!isNaN(endMs) && endMs < now) return false;
+      }
+      return true;
+    });
+  }, [products]);
   let catalogProducts = [...products];
   if (activeMainCategory !== 'Todas') {
     catalogProducts = catalogProducts.filter(p => p.category === activeMainCategory);
@@ -2114,7 +2128,10 @@ export default function PublicStore() {
       <div className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] min-h-[100dvh] bg-slate-50 md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
       
       {isMerchantOwner && (
-        <div className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-3 sm:px-4 flex flex-col sm:flex-row items-center justify-between gap-2 z-[100] relative shadow-md">
+        <div 
+          className="w-full text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-3 sm:px-4 flex flex-col sm:flex-row items-center justify-between gap-2 z-[100] relative shadow-md transition-all"
+          style={{ background: themeStyles.bannerGradient }}
+        >
           <div className="flex items-center gap-2">
             <Zap size={14} className="animate-pulse" />
             <span>Modo Administrador Activo - Estás viendo tu tienda</span>
@@ -2129,7 +2146,7 @@ export default function PublicStore() {
               className="bg-white hover:bg-slate-100 text-slate-950 px-3 py-1 rounded-full transition-all flex items-center gap-1.5 shadow-sm font-black text-[10px] sm:text-[11px] cursor-pointer hover:scale-105"
               title="Personalizar color de marca de tu vitrina"
             >
-              <Palette size={13} className="text-amber-600" />
+              <Palette size={13} style={{ color: primaryColor }} />
               <span>Color Vitrina</span>
               <span className="w-3.5 h-3.5 rounded-full border border-black/25 shrink-0 shadow-2xs" style={{ backgroundColor: primaryColor }} />
             </button>
@@ -2364,9 +2381,12 @@ export default function PublicStore() {
                   />
                 </>
               ) : (
-                <div className="w-full h-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
-                  <Store size={56} className="text-white/40" />
+                <div 
+                  className="w-full h-full flex items-center justify-center relative transition-all"
+                  style={{ background: themeStyles.coverGradient }}
+                >
+                  <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+                  <Store size={56} className="text-white/60 drop-shadow-sm" />
                 </div>
               )}
             </div>
@@ -2385,8 +2405,9 @@ export default function PublicStore() {
                         className={`relative rounded-full cursor-pointer hover:scale-105 active:scale-95 transition-all p-[3.5px] ${
                           hasViewedStatus
                             ? 'bg-zinc-400'
-                            : 'bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 shadow-md shadow-orange-500/20 ring-2 ring-orange-400/20'
+                            : 'shadow-md ring-2 ring-white/40'
                         }`}
+                        style={!hasViewedStatus ? { background: themeStyles.bannerGradient } : {}}
                         title={hasViewedStatus ? 'Estado ya visto' : 'Toca para ver el estado del comercio'}
                       >
                         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white overflow-hidden bg-white flex items-center justify-center">
@@ -2397,7 +2418,10 @@ export default function PublicStore() {
                               className="w-full h-full object-cover object-center rounded-full block" 
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
+                            <div 
+                              className="w-full h-full flex items-center justify-center transition-colors"
+                              style={{ backgroundColor: themeStyles.subtleBg, color: primaryColor }}
+                            >
                               <Store size={36} />
                             </div>
                           )}
@@ -2420,7 +2444,10 @@ export default function PublicStore() {
                             className="w-full h-full object-cover object-center rounded-full block" 
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-600">
+                          <div 
+                            className="w-full h-full flex items-center justify-center transition-colors"
+                            style={{ backgroundColor: themeStyles.subtleBg, color: primaryColor }}
+                          >
                             <Store size={36} />
                           </div>
                         )}
@@ -2465,7 +2492,7 @@ export default function PublicStore() {
                       {config?.business_name || 'Mi Tienda'}
                     </h1>
                   </div>
-                  <p className="font-extrabold text-xs sm:text-sm text-orange-600">
+                  <p className="font-extrabold text-xs sm:text-sm" style={{ color: primaryColor }}>
                     @{slug}
                   </p>
 
@@ -2479,7 +2506,7 @@ export default function PublicStore() {
                         }
                         setShowReviewModal(true);
                       }} 
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-orange-300 text-slate-800 shadow-2xs hover:bg-orange-50/50 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer"
                     >
                       <Star size={13} className="fill-amber-400 text-amber-500" />
                       <span>Calificar {storeRatingAvg > 0 ? `(${storeRatingAvg})` : ''}</span>
@@ -2538,7 +2565,8 @@ export default function PublicStore() {
                         setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
                       }
                     }}
-                    className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm shadow-orange-500/25'} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer`}
+                    style={!isFollowing ? themeStyles.buttonStyle : {}}
+                    className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : ''} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95`}
                   >
                     {isFollowing ? (
                       <>
@@ -2665,8 +2693,8 @@ export default function PublicStore() {
                   {isMerchantOwner && (
                     <button
                       onClick={() => navigate('/social-feed?type=status&create=true')}
-                      className="text-[11px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors cursor-pointer"
-                      style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
+                      className="text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer hover:opacity-85"
+                      style={{ color: primaryColor, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
                     >
                       <Plus size={13} className="stroke-[2.5]" />
                       <span>Nuevo estado</span>
@@ -3143,6 +3171,9 @@ export default function PublicStore() {
                         <span className="text-[10px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
                           {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
                         </span>
+                        {p.metadata?.offer_end_date && (
+                          <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
+                        )}
                         {p.metadata?.offer_limit_qty && (
                           <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
                             Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
@@ -3636,8 +3667,13 @@ export default function PublicStore() {
                         {selectedProduct.metadata?.combo_badge || "🎁 COMBO"}
                       </div>
                     ) : Boolean(selectedProduct.is_offer) && (
-                      <div className="absolute top-1 left-1 bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg z-20 shadow-sm">
-                        {selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH"}
+                      <div className="absolute top-1 left-1 z-20 flex flex-col gap-1 items-start">
+                        <div className="bg-gradient-to-r from-red-500 to-amber-500 text-white text-[10px] md:text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg shadow-sm">
+                          {selectedProduct.metadata?.offer_badge || "🔥 OFERTA FLASH"}
+                        </div>
+                        {selectedProduct.metadata?.offer_end_date && (
+                          <FlashOfferCountdown endDate={selectedProduct.metadata.offer_end_date} compact />
+                        )}
                       </div>
                     )}
                   </div>

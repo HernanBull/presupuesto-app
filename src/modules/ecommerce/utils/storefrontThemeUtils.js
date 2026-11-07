@@ -135,3 +135,46 @@ export function normalizeHex(hex, fallback = DEFAULT_STOREFRONT_COLOR) {
   return isValidHex(withHash) ? withHash : fallback;
 }
 
+/**
+ * Ajusta el brillo de un HEX (-100 a 100)
+ */
+export function adjustBrightness(hex, percent) {
+  const cleanHex = normalizeHex(hex).replace('#', '');
+  const num = parseInt(cleanHex, 16);
+  let r = (num >> 16) + Math.round(255 * (percent / 100));
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+  let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+  r = Math.min(255, Math.max(0, r));
+  g = Math.min(255, Math.max(0, g));
+  b = Math.min(255, Math.max(0, b));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+/**
+ * Genera gradientes y estilos para la vitrina del comerciante
+ */
+export function getStorefrontThemeStyles(hex) {
+  const base = normalizeHex(hex);
+  const darker = adjustBrightness(base, -18);
+  const lighter = adjustBrightness(base, 15);
+  const subtleBg = hexToRgba(base, 0.08);
+  const borderLight = hexToRgba(base, 0.25);
+  const textContrast = getContrastTextColor(base);
+
+  return {
+    base,
+    darker,
+    lighter,
+    subtleBg,
+    borderLight,
+    textContrast,
+    bannerGradient: `linear-gradient(135deg, ${darker} 0%, ${base} 55%, ${lighter} 100%)`,
+    coverGradient: `linear-gradient(135deg, ${darker} 0%, ${base} 50%, ${lighter} 100%)`,
+    buttonStyle: {
+      backgroundColor: base,
+      color: textContrast,
+      boxShadow: `0 4px 14px ${hexToRgba(base, 0.35)}`
+    }
+  };
+}
+

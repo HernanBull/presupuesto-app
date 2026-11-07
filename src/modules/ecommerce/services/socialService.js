@@ -391,7 +391,7 @@ export const getPostComments = async (postId, workspaceId) => {
   }
 };
 
-export const addPostComment = async ({ postId, workspaceId, customerId, customerName, customerAvatar, content }) => {
+export const addPostComment = async ({ postId, workspaceId, customerId, customerName, customerAvatar, content, parentId = null, replyToName = null }) => {
   if (!postId || !customerId || !content?.trim()) {
     throw new Error('Datos de comentario incompletos');
   }
@@ -405,6 +405,9 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
     customer_name: customerName || 'Cliente Axon',
     customer_avatar: customerAvatar || '',
     content: content.trim(),
+    parent_id: parentId ? String(parentId) : null,
+    reply_to_name: replyToName || null,
+    reactions: {},
     created_at: new Date().toISOString()
   };
 
@@ -423,6 +426,67 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
     notifySocialUpdate('comment_added', { postId, comment: localComment });
     return localComment;
   }
+};
+
+export const deletePostComment = async (commentId, postId, workspaceId) => {
+  if (!commentId) return;
+  try {
+    await supabase.from('ecommerce_post_comments').delete().eq('id', commentId);
+  } catch (err) {
+    console.warn('Error borrando comentario en Supabase, aplicando local:', err);
+  }
+
+  // Borrar del respaldo local si existe
+  try {
+    const targetKey = postId ? `${LOCAL_STORAGE_PREFIX}comments_${postId}` : null;
+    if (targetKey) {
+      const raw = localStorage.getItem(targetKey);
+      if (raw) {
+        const comments = JSON.parse(raw);
+        const filtered = comments.filter(c => String(c.id) !== String(commentId) && String(c.parent_id) !== String(commentId));
+        localStorage.setItem(targetKey, JSON.stringify(filtered));
+      }
+    }
+  } catch (e) {
+    console.error('Error actualizando almacenamiento local de comentarios:', e);
+  }
+
+  notifySocialUpdate('comment_deleted', { commentId, postId });
+  return true;
+};
+
+export const toggleCommentReaction = async ({ commentId, postId, reactionType = 'like', userKey }) => {
+  if (!commentId || !userKey) return null;
+  const storageKey = `${LOCAL_STORAGE_PREFIX}comment_reactions_${commentId}`;
+  let currentReactions = {};
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) currentReactions = JSON.parse(raw);
+  } catch {}
+
+  const previousReaction = currentReactions[userKey];
+  if (previousReaction === reactionType) {
+    // Si ya tenía la misma reacción, se retira (toggle off)
+    delete currentReactions[userKey];
+  } else {
+    // Se asigna la nueva emoción
+    currentReactions[userKey] = reactionType;
+  }
+
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(currentReactions));
+  } catch {}
+
+  // Intento de actualización en Supabase si la columna jsonb existe
+  try {
+    await supabase
+      .from('ecommerce_post_comments')
+      .update({ reactions: currentReactions })
+      .eq('id', commentId);
+  } catch {}
+
+  notifySocialUpdate('comment_reaction_updated', { commentId, reactions: currentReactions });
+  return currentReactions;
 };
 
 // ==========================================
