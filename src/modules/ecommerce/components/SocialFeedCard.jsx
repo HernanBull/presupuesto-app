@@ -780,7 +780,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-3 bottom-16 sm:bottom-14 z-20 flex flex-col items-center gap-3.5 select-none"
+        className="absolute right-3 bottom-28 sm:bottom-24 z-30 flex flex-col items-center gap-3.5 select-none"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Like / Corazón */}
@@ -790,7 +790,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Me gusta"
         >
-          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
             <Heart 
               size={22} 
               strokeWidth={isLiked ? 0 : 2} 
@@ -813,7 +813,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Comentar"
         >
-          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
             <MessageCircle size={21} strokeWidth={2} className="text-white" />
           </div>
           <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
@@ -831,7 +831,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Compartir publicación"
         >
-          <div className="w-10 h-10 rounded-full bg-black/15 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/30 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
             <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
           </div>
           <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
@@ -839,7 +839,7 @@ export default function SocialFeedCard({
           </span>
         </button>
 
-        {/* Favoritos / Guardar */}
+        {/* Favoritos / Guardar (Naranja Corporativo Axon con rebote y pulso) */}
         <button 
           type="button"
           onClick={(e) => {
@@ -849,24 +849,24 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Guardar en favoritos"
         >
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white border backdrop-blur-xs shadow-xs transition-all duration-300 ${
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border backdrop-blur-xs shadow-xs transition-all duration-300 ${
             saveBounced 
-              ? 'scale-125 bg-amber-500/30 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.7)]' 
+              ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
               : isSaved 
-                ? 'bg-amber-500/25 border-amber-400/80 shadow-[0_0_10px_rgba(245,158,11,0.4)]' 
-                : 'bg-black/15 border-white/25 group-hover:bg-black/30'
+                ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] scale-105' 
+                : 'bg-black/25 border-white/25 group-hover:bg-black/40 hover:border-orange-400/50'
           }`}>
             <Bookmark 
               size={20} 
               strokeWidth={isSaved ? 0 : 2} 
-              fill={isSaved ? '#f59e0b' : 'none'} 
+              fill={isSaved ? '#ffffff' : 'none'} 
               className={`transition-all duration-300 ${
                 saveBounced ? 'scale-125 rotate-[-12deg]' : ''
-              } ${isSaved ? 'text-amber-500' : 'text-white'}`} 
+              } text-white ${isSaved ? 'drop-shadow-sm' : ''}`} 
             />
           </div>
           <span className={`text-[10px] font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight transition-colors duration-200 ${
-            isSaved ? 'text-amber-400 font-extrabold' : 'text-white'
+            isSaved ? 'text-orange-400 font-black' : 'text-white'
           }`}>
             {isSaved ? 'Guardado' : 'Guardar'}
           </span>
@@ -875,7 +875,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
       <div 
-        className="relative z-20 p-4 pb-16 sm:pb-14 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
+        className="relative z-20 p-4 pb-28 sm:pb-24 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Merchant Profile Row */}
@@ -965,8 +965,11 @@ export default function SocialFeedCard({
 
       {/* Animated Bookmark Burst on save */}
       {showSaveBurst && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
-          <Bookmark size={90} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.9)]" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-300">
+          <div className="p-5 rounded-3xl bg-black/80 backdrop-blur-md border border-orange-500/50 shadow-[0_0_50px_rgba(249,115,22,0.85)] flex flex-col items-center gap-2.5 animate-bounce">
+            <Bookmark size={56} className="fill-orange-500 text-orange-500 drop-shadow-[0_0_25px_rgba(249,115,22,1)]" />
+            <span className="text-white font-black text-xs sm:text-sm tracking-wide">¡Guardado en Favoritos!</span>
+          </div>
         </div>
       )}
 
