@@ -3,7 +3,7 @@ import {
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
   ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
-  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet
+  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame
 } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -765,6 +765,24 @@ export default function EcommerceDashboard() {
               <span className="hidden sm:inline">{hideFinancials ? "Mostrar cifras" : "Ocultar cifras"}</span>
             </button>
             <button 
+              onClick={() => navigate('/analytics')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-500/10 border border-blue-500/30 rounded-2xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 shadow-xs transition-all cursor-pointer group"
+              title="Ver análisis detallado del período"
+            >
+              <BarChart2 size={15} />
+              <span>Análisis del Período</span>
+              <ArrowUpRight size={13} className="text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+            <button 
+              onClick={() => navigate('/social-feed')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white rounded-2xl text-xs font-bold shadow-xs transition-all cursor-pointer group active:scale-95"
+              title="Gestionar publicaciones y estados TikTok"
+            >
+              <Flame size={15} />
+              <span>Publicaciones & Redes</span>
+              <span className="bg-white/25 text-[9px] px-1.5 py-0.2 rounded-full font-black uppercase">TikTok</span>
+            </button>
+            <button 
               onClick={() => navigate('/setup')}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:border-orange-500 hover:text-orange-600 shadow-xs transition-all w-fit cursor-pointer group"
             >
@@ -812,6 +830,47 @@ export default function EcommerceDashboard() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Accesos Destacados: Análisis del Período & Feed Social TikTok (Desktop) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div 
+            onClick={() => navigate('/analytics')}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[1.75rem] p-5 text-white shadow-md flex items-center justify-between cursor-pointer hover:shadow-lg hover:scale-[1.008] transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+                <BarChart2 size={24} className="text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-sm sm:text-base tracking-tight text-white">Análisis del Período</h4>
+                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white/20 rounded-full">7 a 90 Días</span>
+                </div>
+                <p className="text-xs text-white/90 mt-0.5">Gráficos de ventas brutas, netas, ticket promedio y rotación de stock</p>
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
+          </div>
+
+          <div 
+            onClick={() => navigate('/social-feed')}
+            className="bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 rounded-[1.75rem] p-5 text-white shadow-md flex items-center justify-between cursor-pointer hover:shadow-lg hover:scale-[1.008] transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-xs">
+                <Flame size={24} className="text-white fill-white/20" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-black text-sm sm:text-base tracking-tight text-white">Publicaciones & Redes Sociales</h4>
+                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white text-rose-600 rounded-full shadow-xs">TikTok</span>
+                </div>
+                <p className="text-xs text-white/90 mt-0.5">Crea posts, sube carruseles de fotos y estados interactivos para tu vitrina</p>
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
+          </div>
         </div>
 
         {/* Main Charts & Alerts Area (Desktop) */}

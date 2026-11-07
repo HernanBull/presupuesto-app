@@ -10,7 +10,7 @@ import {
   Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
   HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
-  Clock, RefreshCw, ShieldCheck, Wallet
+  Clock, RefreshCw, ShieldCheck, Wallet, Flame, BarChart2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -293,6 +293,19 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       name: 'Estadísticas',
       path: '/dashboard',
       icon: BarChart3
+    },
+    {
+      id: 'analytics',
+      name: 'Análisis del Período',
+      path: '/analytics',
+      icon: TrendingUp
+    },
+    {
+      id: 'social-feed',
+      name: 'Publicaciones & Redes',
+      path: '/social-feed',
+      icon: Flame,
+      badge: 'TikTok'
     },
     {
       id: 'ventas',
