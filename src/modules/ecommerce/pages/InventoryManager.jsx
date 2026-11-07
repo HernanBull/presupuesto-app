@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check, ChevronRight, Camera, Image as ImageIcon } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check, ChevronRight } from 'lucide-react';
+import MultiImageUploader from '../components/MultiImageUploader';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 
@@ -109,19 +110,25 @@ export default function InventoryManager() {
       setCustomCategories(parsedCategories);
 
       if (!error && data) {
-        setInventory(data.map(p => ({
-          ...p,
-          stock: p.stock || 0,
-          cogs: p.cogs || 0,
-          category: p.category || '',
-          subcategory: p.subcategory || '',
-          minStock: p.min_stock || 5,
-          maxStock: p.max_stock || '',
-          supplier: p.supplier || '',
-          stockVitrina: p.stock_vitrina || 0,
-          publishStatus: p.publish_status || 'Publicado',
-          imageUrl: p.image_url || (Array.isArray(p.images) && p.images[0]) || '',
-        })));
+        setInventory(data.map(p => {
+          const loadedImages = Array.isArray(p.images) && p.images.length > 0
+            ? p.images
+            : (p.image_url ? [p.image_url] : []);
+          return {
+            ...p,
+            stock: p.stock || 0,
+            cogs: p.cogs || 0,
+            category: p.category || '',
+            subcategory: p.subcategory || '',
+            minStock: p.min_stock || 5,
+            maxStock: p.max_stock || '',
+            supplier: p.supplier || '',
+            stockVitrina: p.stock_vitrina || 0,
+            publishStatus: p.publish_status || 'Publicado',
+            images: loadedImages,
+            imageUrl: loadedImages[0] || p.image_url || '',
+          };
+        }));
       }
     } catch(e) { console.error("Error loading inventory:", e) }
   };
@@ -132,49 +139,11 @@ export default function InventoryManager() {
   
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [imageUploading, setImageUploading] = useState(false);
-  const productImageInputRef = useRef(null);
-
-  const handleProductImageUpload = async (file) => {
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error('La imagen no debe superar los 8 MB');
-      return;
-    }
-    setImageUploading(true);
-    try {
-      const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
-      const fileExt = file.name.split('.').pop() || 'png';
-      const filePath = `products/${activeWs}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const { error: uploadErr } = await supabase.storage.from('ecommerce').upload(filePath, file, { upsert: true });
-      if (uploadErr) {
-        console.warn('Storage fallback:', uploadErr);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFormData(prev => ({ ...prev, imageUrl: reader.result }));
-          setImageUploading(false);
-          toast.success('Foto cargada correctamente');
-        };
-        reader.readAsDataURL(file);
-        return;
-      }
-
-      const { data: urlData } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
-      const publicUrl = urlData?.publicUrl || '';
-      setFormData(prev => ({ ...prev, imageUrl: publicUrl }));
-      toast.success('Foto de producto subida con éxito');
-    } catch (e) {
-      console.error('Error subiendo imagen:', e);
-      toast.error('Error al subir la imagen');
-    } finally {
-      setImageUploading(false);
-    }
-  };
 
   const [formData, setFormData] = useState({
     id: '',
     name: '',
+    images: [],
     imageUrl: '',
     category: '',
     subcategory: '',
@@ -525,11 +494,15 @@ export default function InventoryManager() {
   const openEditor = (item = null, defaultCat = null, defaultSub = null) => {
     if (item) {
       setEditingId(item.id);
+      const loadedImages = Array.isArray(item.images) && item.images.length > 0
+        ? item.images
+        : (item.imageUrl || item.image_url ? [item.imageUrl || item.image_url] : []);
       setFormData({ 
         ...item,
         category: item.category || '',
         subcategory: item.subcategory || '',
-        imageUrl: item.imageUrl || item.image_url || ''
+        images: loadedImages,
+        imageUrl: loadedImages[0] || item.imageUrl || item.image_url || ''
       });
     } else {
       setEditingId(null);
@@ -538,6 +511,7 @@ export default function InventoryManager() {
       setFormData({
         id: `SKU-00${inventory.length + 1}`,
         name: '',
+        images: [],
         imageUrl: '',
         category: catToUse,
         subcategory: subToUse,
@@ -606,6 +580,11 @@ export default function InventoryManager() {
         ? Number(newItem.stockVitrina)
         : Number(newItem.stock || 0);
 
+      const productImages = Array.isArray(newItem.images) && newItem.images.length > 0
+        ? newItem.images
+        : (newItem.imageUrl ? [newItem.imageUrl] : []);
+      const primaryImageUrl = productImages[0] || newItem.imageUrl || null;
+
       const payload = {
           name: newItem.name,
           category: newItem.category ? newItem.category.trim() : 'General',
@@ -615,8 +594,8 @@ export default function InventoryManager() {
           price: newItem.price,
           supplier: newItem.supplier || '',
           stock_vitrina: resolvedVitrinaStock,
-          image_url: newItem.imageUrl || null,
-          images: newItem.imageUrl ? [newItem.imageUrl] : [],
+          image_url: primaryImageUrl,
+          images: productImages,
           workspace_id: workspaceId
       };
       
@@ -1265,92 +1244,22 @@ export default function InventoryManager() {
 
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
                <div className="space-y-4">
-                 {/* Foto del Producto */}
-                 <div className="space-y-2">
-                   <div className="flex items-center justify-between">
-                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                       Foto del Producto <span className="text-[10px] text-slate-400 font-normal">(Vitrina e Inventario)</span>
-                     </label>
-                     {formData.imageUrl && (
-                       <button
-                         type="button"
-                         onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                         className="text-[11px] text-red-500 hover:text-red-600 font-bold flex items-center gap-1 cursor-pointer"
-                       >
-                         <Trash2 size={12} /> Quitar foto
-                       </button>
-                     )}
-                   </div>
-
-                   {formData.imageUrl ? (
-                     <div className="relative w-full h-44 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 overflow-hidden group flex items-center justify-center shadow-xs">
-                       <img 
-                         src={formData.imageUrl} 
-                         alt="Foto del producto" 
-                         className="w-full h-full object-contain p-2" 
-                       />
-                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                         <button
-                           type="button"
-                           onClick={() => productImageInputRef.current?.click()}
-                           className="px-3 py-1.5 bg-white text-slate-900 rounded-xl text-xs font-bold shadow-md cursor-pointer hover:bg-slate-100 flex items-center gap-1.5"
-                         >
-                           <Camera size={14} /> Cambiar foto
-                         </button>
-                         <button
-                           type="button"
-                           onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
-                           className="px-3 py-1.5 bg-red-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer hover:bg-red-700 flex items-center gap-1.5"
-                         >
-                           <Trash2 size={14} /> Eliminar
-                         </button>
-                       </div>
-                     </div>
-                   ) : (
-                     <div 
-                       onClick={() => productImageInputRef.current?.click()}
-                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                       onDrop={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         const file = e.dataTransfer.files?.[0];
-                         if (file) handleProductImageUpload(file);
-                       }}
-                       className="w-full h-36 rounded-2xl border-2 border-dashed border-orange-200 dark:border-orange-500/20 bg-orange-50/30 dark:bg-orange-500/5 hover:bg-orange-50/60 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer p-4 text-center group"
-                     >
-                       <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                         <UploadCloud size={20} />
-                       </div>
-                       <div>
-                         <p className="text-xs font-bold text-slate-800 dark:text-white">
-                           {imageUploading ? 'Subiendo imagen...' : 'Haz clic o arrastra la foto del producto'}
-                         </p>
-                         <p className="text-[11px] text-slate-400 mt-0.5">PNG, JPG, WEBP hasta 8 MB</p>
-                       </div>
-                     </div>
-                   )}
-
-                   <input 
-                     type="file" 
-                     ref={productImageInputRef} 
-                     onChange={(e) => {
-                       const file = e.target.files?.[0];
-                       if (file) handleProductImageUpload(file);
-                     }} 
-                     accept="image/*" 
-                     className="hidden" 
+                 {/* Fotos del Producto (Hasta 8 fotos, portada con ⭐, sin exponer URLs internas de Supabase) */}
+                 <div>
+                   <MultiImageUploader
+                     images={formData.images || []}
+                     onChange={(newImages) => {
+                       setFormData(prev => ({
+                         ...prev,
+                         images: newImages,
+                         imageUrl: newImages[0] || ''
+                       }));
+                     }}
+                     folder="products"
+                     maxImages={8}
+                     title="Fotos del Producto"
+                     subtitle="Agrega fotos desde distintos ángulos. La primera será la portada principal en tu tienda."
                    />
-
-                   {/* Opción de pegar URL directa */}
-                   <div className="pt-1">
-                     <input 
-                       type="url"
-                       placeholder="O pega el enlace web de la foto (https://...)"
-                       value={formData.imageUrl || ''}
-                       onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-medium text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500/40"
-                     />
-                   </div>
                  </div>
 
                  <div className="space-y-2">
