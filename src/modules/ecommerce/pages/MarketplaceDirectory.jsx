@@ -146,7 +146,6 @@ export default function MarketplaceDirectory() {
 
       const pageH = c.clientHeight || window.innerHeight;
       const currentScroll = c.scrollTop;
-      const currentIndex = Math.round(currentScroll / pageH);
 
       // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
       if (e.deltaY > 12) {
@@ -158,9 +157,9 @@ export default function MarketplaceDirectory() {
         // Salto directo TikTok al siguiente comerciante sin animaciones web lentas
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-          const nextIdx = Math.min(currentIndex + 1, maxIdx);
-          c.scrollTo({ top: nextIdx * pageH, behavior: 'instant' });
+          const maxScroll = Math.max(0, c.scrollHeight - pageH);
+          const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+          c.scrollTo({ top: nextScroll, behavior: 'instant' });
           setTimeout(() => {
             isWheelThrottledRef.current = false;
           }, 280);
@@ -169,9 +168,9 @@ export default function MarketplaceDirectory() {
         // Desplazamiento hacia arriba con rueda de ratón
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          const prevIdx = Math.max(currentIndex - 1, 0);
-          c.scrollTo({ top: prevIdx * pageH, behavior: 'instant' });
-          if (prevIdx === 0) {
+          const prevScroll = Math.max(0, currentScroll - pageH);
+          c.scrollTo({ top: prevScroll, behavior: 'instant' });
+          if (prevScroll <= 15) {
             // Regresando al primer comercio: mostrar cabecera y barra de navegación automáticamente
             setIsBottomNavOpen(true);
           }
@@ -215,19 +214,18 @@ export default function MarketplaceDirectory() {
       if (!c) return;
       const pageH = c.clientHeight || window.innerHeight;
       const currentScroll = c.scrollTop;
-      const currentIndex = Math.round(currentScroll / pageH);
 
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
         setIsBottomNavOpen(false);
-        const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-        const nextIdx = Math.min(currentIndex + 1, maxIdx);
-        c.scrollTo({ top: nextIdx * pageH, behavior: 'instant' });
+        const maxScroll = Math.max(0, c.scrollHeight - pageH);
+        const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+        c.scrollTo({ top: nextScroll, behavior: 'instant' });
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        const prevIdx = Math.max(currentIndex - 1, 0);
-        c.scrollTo({ top: prevIdx * pageH, behavior: 'instant' });
-        if (prevIdx === 0) {
+        const prevScroll = Math.max(0, currentScroll - pageH);
+        c.scrollTo({ top: prevScroll, behavior: 'instant' });
+        if (prevScroll <= 15) {
           setIsBottomNavOpen(true);
         }
       }
@@ -248,7 +246,6 @@ export default function MarketplaceDirectory() {
       }
     };
   }, [
-    visibleFeedPosts.length, 
     activeCommentsPost, 
     isAuthModalOpen, 
     isMerchantModalOpen, 
@@ -1829,7 +1826,7 @@ export default function MarketplaceDirectory() {
 
       {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable */}
       <div 
-        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out pointer-events-auto ${
+        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-300 pointer-events-auto ${
           !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
       >
