@@ -558,6 +558,10 @@ export default function InventoryManager() {
 
     try {
       const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+      const resolvedVitrinaStock = (Number(newItem.stockVitrina) > 0)
+        ? Number(newItem.stockVitrina)
+        : Number(newItem.stock || 0);
+
       const payload = {
           name: newItem.name,
           category: newItem.category ? newItem.category.trim() : 'General',
@@ -565,10 +569,8 @@ export default function InventoryManager() {
           stock: newItem.stock,
           cogs: newItem.cogs,
           price: newItem.price,
-          min_stock: newItem.minStock,
-          max_stock: newItem.maxStock || null,
-          supplier: newItem.supplier,
-          stock_vitrina: newItem.stockVitrina,
+          supplier: newItem.supplier || '',
+          stock_vitrina: resolvedVitrinaStock,
           workspace_id: workspaceId
       };
       
@@ -578,9 +580,10 @@ export default function InventoryManager() {
       } else {
         payload.id = newItem.id;
         payload.created_at = new Date().toISOString();
-        payload.publish_status = 'Borrador';
+        payload.publish_status = 'Publicado';
+        payload.status = 'Activo';
         await supabase.from('ecommerce_products').insert([payload]);
-        toast.success("Producto registrado correctamente.");
+        toast.success("Producto registrado y publicado en vitrina.");
       }
       await fetchInventory();
     } catch(e) { 

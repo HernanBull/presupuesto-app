@@ -325,6 +325,85 @@ export default function MerchantOnboardingWizard({
     }
   };
 
+  // Guardar datos esenciales del Paso 1 inmediatamente para evitar tiendas huérfanas en SuperAdmin
+  const persistStep1Data = async () => {
+    try {
+      const activeWs = workspaceId || localStorage.getItem('activeWorkspace');
+      if (!activeWs || !businessName.trim()) return;
+
+      const cleanSlug = businessName
+        .trim()
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') || `tienda-${Date.now().toString().slice(-4)}`;
+
+      const cleanPhone = whatsapp.trim()
+        ? (whatsapp.replace(/\D/g, '').startsWith('58') ? `+${whatsapp.replace(/\D/g, '')}` : `+58${whatsapp.replace(/\D/g, '')}`)
+        : '';
+      const fullRif = rifNumber.trim() ? `${rifPrefix}-${rifNumber.trim()}` : `${rifPrefix}-00000000`;
+      const primaryCat = selectedCategories[0] || 'Víveres';
+
+      const { data: currentWs } = await supabase.from('workspaces').select('config').eq('id', activeWs).maybeSingle();
+      const prevConfig = typeof currentWs?.config === 'object' && currentWs?.config !== null 
+        ? currentWs.config 
+        : (typeof currentWs?.config === 'string' ? JSON.parse(currentWs.config || '{}') : {});
+
+      const merchantEmail = prevConfig.adminEmail || prevConfig.contact?.email || '';
+
+      const updatedConfig = {
+        ...prevConfig,
+        adminEmail: merchantEmail,
+        business_type: primaryCat,
+        category: primaryCat,
+        categories: selectedCategories,
+        contact: {
+          ...(prevConfig.contact || {}),
+          ownerName: ownerName.trim(),
+          phone: cleanPhone,
+          ...(merchantEmail ? { email: merchantEmail } : {})
+        },
+        expediente: {
+          ...(prevConfig.expediente || {}),
+          ownerName: ownerName.trim(),
+          legalType: rifPrefix,
+          rif: fullRif,
+          whatsapp: cleanPhone
+        },
+        onboarding: {
+          ...(prevConfig.onboarding || {}),
+          owner_name: ownerName.trim(),
+          business_name: businessName.trim(),
+          rubro: primaryCat,
+          categories: selectedCategories
+        }
+      };
+
+      await supabase
+        .from('workspaces')
+        .update({
+          name: businessName.trim(),
+          store_slug: cleanSlug,
+          business_type: primaryCat,
+          config: updatedConfig
+        })
+        .eq('id', activeWs);
+
+      await supabase.from('merchant_contacts').upsert([{
+        id: activeWs,
+        full_name: ownerName.trim(),
+        business_name: businessName.trim(),
+        phone: cleanPhone,
+        ...(merchantEmail ? { email: merchantEmail } : {})
+      }]);
+
+      localStorage.setItem('storeSlug', cleanSlug);
+    } catch (e) {
+      console.warn("Notice persistStep1Data:", e);
+    }
+  };
+
   const handleNext = () => {
     if (step === 1) {
       if (!ownerName.trim()) {
@@ -343,6 +422,9 @@ export default function MerchantOnboardingWizard({
         toast.error('El RIF o cédula debe tener al menos 6 dígitos');
         return;
       }
+
+      // Guardado inmediato en base de datos al avanzar del Paso 1
+      persistStep1Data();
     } else if (step === 5) {
       if (!gpsCoords && (!addressState.trim() || !addressCity.trim() || !addressLine.trim())) {
         toast.error('Ingresa al menos estado, ciudad y dirección, o detecta el GPS.');
@@ -636,7 +718,12 @@ export default function MerchantOnboardingWizard({
       {/* Botón flotante para cerrar */}
       {onClose && (
         <button
-          onClick={onClose}
+          onClick={async () => {
+            if (businessName.trim()) {
+              await persistStep1Data();
+            }
+            onClose();
+          }}
           className="fixed top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95 border border-white/20"
           title="Cerrar"
         >

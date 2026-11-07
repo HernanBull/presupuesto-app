@@ -98,7 +98,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
 
       const newWorkspace = {
         id: userId,
-        name: 'Mi Tienda',
+        name: 'Nuevo Comercio',
         store_slug: generatedSlug,
         status: 'Pendiente',
         config: {
@@ -354,23 +354,35 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
 
       setCreatedWorkspaceId(newWsId);
       const initialOwner = payload.name || '';
-      const initialStore = payload.name ? `Tienda de ${payload.name.split(' ')[0]}` : 'Mi Tienda';
       setOwnerName(initialOwner);
-      setBusinessName(initialStore);
+      setBusinessName('');
 
       const newWorkspace = {
         id: newWsId,
-        name: initialStore,
+        name: 'Nuevo Comercio',
         store_slug: generatedSlug,
         status: 'Pendiente',
         config: {
           adminEmail: cleanEmail,
           trialActive: true,
           trialEndsAt: trialEndsAt.toISOString(),
-          plan: 'Prueba 7 Días Gratis'
+          plan: 'Prueba 7 Días Gratis',
+          contact: {
+            email: cleanEmail,
+            ownerName: initialOwner
+          },
+          expediente: {
+            ownerName: initialOwner
+          }
         }
       };
       await supabase.from('workspaces').upsert([newWorkspace]);
+
+      await supabase.from('merchant_contacts').upsert([{
+        id: newWsId,
+        email: cleanEmail,
+        full_name: initialOwner
+      }]);
 
       localStorage.setItem('activeWorkspace', newWsId);
       localStorage.setItem('storeSlug', generatedSlug);
@@ -392,7 +404,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         workspaceId={createdWorkspaceId}
         initialData={{
           ownerName: ownerName || '',
-          businessName: businessName || '',
+          businessName: '',
           whatsapp: contactPhone || ''
         }}
         onClose={onClose}

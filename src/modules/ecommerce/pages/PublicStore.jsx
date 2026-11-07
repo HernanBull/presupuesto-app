@@ -1699,7 +1699,15 @@ export default function PublicStore() {
              const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', 'default_workspace');
              if (!pError && pData) {
                const published = pData
-                 .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo' || p.publish_status === 'published')
+                 .filter(p => {
+                   const s = (p.publish_status || '').toLowerCase();
+                   const st = (p.status || '').toLowerCase();
+                   return s === 'publicado' || s === 'activo' || s === 'published' || st === 'activo' || (!p.publish_status && !p.status);
+                 })
+                 .map(p => ({
+                   ...p,
+                   stock_vitrina: (Number(p.stock_vitrina) > 0) ? Number(p.stock_vitrina) : (Number(p.stock) > 0 ? Number(p.stock) : (p.stock_vitrina || 0))
+                 }))
                  .sort((a, b) => {
                     const aStock = a.stock_vitrina || 0;
                     const bStock = b.stock_vitrina || 0;
@@ -1799,7 +1807,15 @@ export default function PublicStore() {
         const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', storeData.id);
         if (!pError && pData) {
           const published = pData
-             .filter(p => p.publish_status === 'Publicado' || p.publish_status === 'Activo' || p.publish_status === 'published')
+             .filter(p => {
+               const s = (p.publish_status || '').toLowerCase();
+               const st = (p.status || '').toLowerCase();
+               return s === 'publicado' || s === 'activo' || s === 'published' || st === 'activo' || (!p.publish_status && !p.status);
+             })
+             .map(p => ({
+               ...p,
+               stock_vitrina: (Number(p.stock_vitrina) > 0) ? Number(p.stock_vitrina) : (Number(p.stock) > 0 ? Number(p.stock) : (p.stock_vitrina || 0))
+             }))
              .sort((a, b) => {
                 const aStock = a.stock_vitrina || 0;
                 const bStock = b.stock_vitrina || 0;
