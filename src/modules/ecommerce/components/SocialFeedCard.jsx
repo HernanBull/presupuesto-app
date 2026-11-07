@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
-  Play, Volume2, VolumeX 
+  Play, Volume2, VolumeX, ChevronRight 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -91,6 +91,108 @@ export default function SocialFeedCard({
   const containerRef = useRef(null);
   const userPausedRef = useRef(false);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
+
+  // Gesto Swipe Left estilo TikTok hacia la vitrina del comercio
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  const isHorizontalSwipeRef = useRef(null);
+  const isMouseDownRef = useRef(false);
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length !== 1) return;
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now()
+    };
+    isHorizontalSwipeRef.current = null;
+    setIsSwiping(false);
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length !== 1) return;
+    const clientX = e.touches[0].clientX;
+    const clientY = e.touches[0].clientY;
+    const dx = clientX - touchStartRef.current.x;
+    const dy = clientY - touchStartRef.current.y;
+
+    if (isHorizontalSwipeRef.current === null) {
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+        isHorizontalSwipeRef.current = Math.abs(dx) > Math.abs(dy);
+      }
+    }
+
+    if (isHorizontalSwipeRef.current === true) {
+      setIsSwiping(true);
+      if (dx < 0) {
+        // Deslizamiento hacia la izquierda con resistencia
+        const dampened = Math.max(dx * 0.7, -140);
+        setSwipeX(dampened);
+      } else {
+        // Leve amortiguación hacia la derecha sin abrir franjas blancas
+        setSwipeX(Math.min(dx * 0.1, 15));
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isHorizontalSwipeRef.current === true) {
+      const elapsed = Date.now() - touchStartRef.current.time;
+      if (swipeX <= -65 || (swipeX <= -35 && elapsed < 280)) {
+        // Swipe completado: redirigir fluidamente a la vitrina
+        setSwipeX(-window.innerWidth);
+        setIsSwiping(false);
+        setTimeout(() => {
+          if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+          setSwipeX(0);
+        }, 160);
+        return;
+      }
+    }
+    // Rebote elástico automático a la posición 0
+    setIsSwiping(false);
+    setSwipeX(0);
+    isHorizontalSwipeRef.current = null;
+  };
+
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return;
+    isMouseDownRef.current = true;
+    touchStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now()
+    };
+    isHorizontalSwipeRef.current = null;
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDownRef.current) return;
+    const dx = e.clientX - touchStartRef.current.x;
+    const dy = e.clientY - touchStartRef.current.y;
+
+    if (isHorizontalSwipeRef.current === null) {
+      if (Math.abs(dx) > 10) {
+        isHorizontalSwipeRef.current = true;
+      }
+    }
+
+    if (isHorizontalSwipeRef.current === true) {
+      setIsSwiping(true);
+      if (dx < 0) {
+        setSwipeX(Math.max(dx * 0.7, -140));
+      } else {
+        setSwipeX(Math.min(dx * 0.1, 15));
+      }
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isMouseDownRef.current) return;
+    isMouseDownRef.current = false;
+    handleTouchEnd();
+  };
 
   // Control manual de Play/Pausa al tocar el video
   const togglePlayPause = (e) => {
@@ -403,16 +505,53 @@ export default function SocialFeedCard({
     <div 
       id={`post-${postId}`}
       ref={containerRef}
-      className="tiktok-feed-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end will-change-transform m-0 p-0"
+      className="tiktok-feed-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end will-change-transform m-0 p-0 touch-pan-y"
       style={{
         height: '100dvh',
         border: 'none',
         outline: 'none',
         boxShadow: 'none'
       }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
       onDoubleClick={handleDoubleTap}
     >
-      {/* Background Media - 100% Pantalla Completa TikTok */}
+      {/* Vista previa tras bastidores al deslizar hacia la izquierda (Estilo TikTok Perfil) */}
+      <div 
+        className="absolute inset-y-0 right-0 w-36 bg-gradient-to-l from-zinc-950 via-zinc-900 to-black flex flex-col items-center justify-center p-3 text-center z-0 pointer-events-none transition-opacity duration-150"
+        style={{ opacity: swipeX < -12 ? Math.min(1, Math.abs(swipeX) / 60) : 0 }}
+      >
+        <div className="w-12 h-12 rounded-full border-2 border-amber-500 overflow-hidden shadow-lg mb-2 bg-white flex items-center justify-center">
+          {storeLogo ? (
+            <img src={resolveImageUrl(storeLogo)} alt={storeName} className="w-full h-full object-cover" />
+          ) : (
+            <Store size={22} className="text-amber-500" />
+          )}
+        </div>
+        <span className="text-white text-xs font-black truncate max-w-full drop-shadow">
+          @{storeName}
+        </span>
+        <span className="text-amber-400 text-[10px] font-bold mt-1.5 flex items-center gap-0.5">
+          <span>Ver Vitrina</span>
+          <ChevronRight size={12} strokeWidth={3} />
+        </span>
+      </div>
+
+      {/* Capa Principal Desplazable con Retorno Elástico Automático */}
+      <div 
+        className="relative w-full h-full flex flex-col justify-end z-10 will-change-transform"
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)'
+        }}
+      >
+        {/* Background Media - 100% Pantalla Completa TikTok */}
       {isVideo ? (
         <div 
           className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer"
@@ -695,6 +834,8 @@ export default function SocialFeedCard({
           <Bookmark size={90} className="fill-amber-400 text-amber-400 drop-shadow-[0_0_30px_rgba(245,158,11,0.9)]" />
         </div>
       )}
+
+      </div>
 
       {/* Modal / Menú de Compartir Publicación */}
       <ResponsiveModal

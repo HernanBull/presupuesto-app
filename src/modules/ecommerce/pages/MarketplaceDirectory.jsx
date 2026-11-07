@@ -1702,7 +1702,7 @@ export default function MarketplaceDirectory() {
       </div>
 
       {/* Centered Mobile-First App Shell (Wider for Desktop) */}
-      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-auto snap-y snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
         {/* Cabecera Superior y Explorar Destacados (Snap Start - Oculta fluidamente al bajar al feed) */}
         <div className="w-full snap-start shrink-0 bg-white z-40 flex flex-col">
@@ -1806,7 +1806,7 @@ export default function MarketplaceDirectory() {
 
         {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
         <ActiveFeedMediaProvider>
-          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black">
+          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
             {visibleFeedPosts.length === 0 ? (
               <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
                 <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -3120,6 +3120,7 @@ export default function MarketplaceDirectory() {
         postTitle={activeCommentsPost?.postTitle}
         workspaceId={activeCommentsPost?.workspaceId}
         currentCustomer={currentCustomer}
+        currentMerchant={currentMerchant}
         onRequireAuth={() => setIsAuthModalOpen(true)}
       />
 

@@ -368,6 +368,23 @@ export const toggleLikePost = async (postId, workspaceId, customerId) => {
 export const getPostComments = async (postId, workspaceId) => {
   if (!postId && !workspaceId) return [];
 
+  const parseReactions = (rawReactions, commentId) => {
+    let reactions = {};
+    if (typeof rawReactions === 'string') {
+      try { reactions = JSON.parse(rawReactions); } catch { reactions = {}; }
+    } else if (rawReactions && typeof rawReactions === 'object') {
+      reactions = { ...rawReactions };
+    }
+    // Combinar con respaldo local para reflejar reacciones inmediatas
+    try {
+      const local = localStorage.getItem(`${LOCAL_STORAGE_PREFIX}comment_reactions_${commentId}`);
+      if (local) {
+        reactions = { ...reactions, ...JSON.parse(local) };
+      }
+    } catch {}
+    return reactions;
+  };
+
   try {
     let query = supabase
       .from('ecommerce_post_comments')
@@ -382,16 +399,24 @@ export const getPostComments = async (postId, workspaceId) => {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    
+    return (data || []).map(item => ({
+      ...item,
+      reactions: parseReactions(item.reactions, item.id)
+    }));
   } catch (err) {
     console.warn('Error al obtener comentarios de Supabase, usando respaldo local:', err);
     const key = `${LOCAL_STORAGE_PREFIX}comments_${postId || workspaceId}`;
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
+    const localComments = raw ? JSON.parse(raw) : [];
+    return localComments.map(item => ({
+      ...item,
+      reactions: parseReactions(item.reactions, item.id)
+    }));
   }
 };
 
-export const addPostComment = async ({ postId, workspaceId, customerId, customerName, customerAvatar, content, parentId = null, replyToName = null }) => {
+export const addPostComment = async ({ postId, workspaceId, customerId, customerName, customerAvatar, content, parentId = null, replyToName = null, isMerchant = false }) => {
   if (!postId || !customerId || !content?.trim()) {
     throw new Error('Datos de comentario incompletos');
   }
@@ -402,11 +427,12 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
   const baseRecord = {
     post_id: String(postId),
     workspace_id: workspaceId ? String(workspaceId) : null,
-    customer_name: customerName || 'Cliente Axon',
+    customer_name: customerName || (isMerchant ? 'Tienda Oficial' : 'Cliente Axon'),
     customer_avatar: customerAvatar || '',
     content: content.trim(),
     parent_id: parentId ? String(parentId) : null,
     reply_to_name: replyToName || null,
+    is_merchant: Boolean(isMerchant),
     reactions: {},
     created_at: new Date().toISOString()
   };

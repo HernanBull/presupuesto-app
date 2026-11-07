@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, Send, MessageCircle, Loader2, Trash2, CornerDownRight, Heart, Smile, Sparkles } from 'lucide-react';
+import { X, Send, MessageCircle, Loader2, Trash2, CornerDownRight, Heart, Smile, Sparkles, Store } from 'lucide-react';
 import { getPostComments, addPostComment, deletePostComment, toggleCommentReaction } from '../services/socialService';
+import { supabase } from '../../../supabaseClient';
 
 const REACTION_EMOJIS = [
   { type: 'like', emoji: '👍', label: 'Me gusta', color: 'text-blue-500' },
@@ -34,20 +35,86 @@ export default function PostCommentsDrawer({
   workspaceId,
   post,
   currentCustomer,
+  currentMerchant,
   onRequireAuth
 }) {
   const effectivePostId = postId || post?.id || post?.postId;
   const effectiveWorkspaceId = workspaceId || post?.workspaceId || post?.workspace_id;
   const effectivePostTitle = postTitle || post?.title || post?.postTitle || '';
 
-  const activeWorkspace = localStorage.getItem('activeWorkspace');
-  const isMerchantOwner = Boolean(activeWorkspace && effectiveWorkspaceId && activeWorkspace === effectiveWorkspaceId);
+  const activeWorkspace = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspace') : null;
+  const isMerchantSession = Boolean((activeWorkspace && activeWorkspace !== 'default_workspace') || currentMerchant);
+  const isMerchantOwner = Boolean(isMerchantSession && effectiveWorkspaceId && String(activeWorkspace) === String(effectiveWorkspaceId));
+
+  // Datos de la tienda si el usuario conectado es comerciante
+  const [merchantStoreData, setMerchantStoreData] = useState(() => {
+    if (currentMerchant) {
+      return {
+        id: currentMerchant.id || activeWorkspace,
+        name: currentMerchant.name || 'Tienda Oficial',
+        logo: currentMerchant.logo || ''
+      };
+    }
+    if (activeWorkspace) {
+      try {
+        const cached = localStorage.getItem('ecommerce_marketplace_stores');
+        if (cached) {
+          const stores = JSON.parse(cached);
+          const found = stores.find(s => String(s.id) === String(activeWorkspace));
+          if (found) {
+            return {
+              id: activeWorkspace,
+              name: found.name || 'Tienda Oficial',
+              logo: found.config?.logoUrl || found.config?.storefront?.logoUrl || ''
+            };
+          }
+        }
+      } catch {}
+      return {
+        id: activeWorkspace,
+        name: localStorage.getItem('storeName') || 'Tienda Oficial',
+        logo: ''
+      };
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (isMerchantSession && (!merchantStoreData || !merchantStoreData.logo)) {
+      const wsId = currentMerchant?.id || activeWorkspace;
+      if (wsId) {
+        supabase.from('workspaces').select('name, config').eq('id', wsId).maybeSingle().then(({ data }) => {
+          if (data) {
+            setMerchantStoreData({
+              id: wsId,
+              name: data.name,
+              logo: data.config?.logoUrl || data.config?.storefront?.logoUrl || ''
+            });
+          }
+        });
+      }
+    }
+  }, [isMerchantSession, activeWorkspace, currentMerchant]);
+
+  // ID persistente para invitados si no hay sesión
+  const guestId = useMemo(() => {
+    try {
+      let g = localStorage.getItem('axon_guest_id');
+      if (!g) {
+        g = 'guest_' + Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('axon_guest_id', g);
+      }
+      return g;
+    } catch {
+      return 'guest_' + Date.now();
+    }
+  }, []);
 
   const currentUserKey = useMemo(() => {
     if (currentCustomer?.id) return `cust_${currentCustomer.id}`;
-    if (isMerchantOwner) return `merch_${activeWorkspace}`;
-    return null;
-  }, [currentCustomer, isMerchantOwner, activeWorkspace]);
+    if (isMerchantSession) return `merch_${activeWorkspace || currentMerchant?.id}`;
+    return guestId;
+  }, [currentCustomer, isMerchantSession, activeWorkspace, currentMerchant, guestId]);
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,19 +133,50 @@ export default function PostCommentsDrawer({
     }
   }, [isOpen, effectivePostId, effectiveWorkspaceId]);
 
+  // Escuchar actualizaciones de reacciones en tiempo real
+  useEffect(() => {
+    const handleSocialUpdate = (e) => {
+      const detail = e.detail;
+      if (detail?.eventType === 'comment_reaction_updated' && detail.commentId) {
+        setComments(prev => prev.map(c => {
+          if (String(c.id) === String(detail.commentId)) {
+            return { ...c, reactions: detail.reactions };
+          }
+          return c;
+        }));
+      } else if (detail?.eventType === 'comment_added' && String(detail.postId) === String(effectivePostId)) {
+        if (detail.comment) {
+          setComments(prev => {
+            if (prev.some(c => String(c.id) === String(detail.comment.id))) return prev;
+            return [...prev, detail.comment];
+          });
+        }
+      }
+    };
+
+    window.addEventListener('axon_social_updated', handleSocialUpdate);
+    return () => window.removeEventListener('axon_social_updated', handleSocialUpdate);
+  }, [effectivePostId]);
+
   const loadComments = async () => {
     setLoading(true);
     try {
       const data = await getPostComments(effectivePostId, effectiveWorkspaceId);
       // Asignar reacciones locales por si no vienen en la BD
       const enhanced = (data || []).map(c => {
+        let reactions = c.reactions;
+        if (typeof reactions === 'string') {
+          try { reactions = JSON.parse(reactions); } catch { reactions = {}; }
+        } else if (!reactions || typeof reactions !== 'object') {
+          reactions = {};
+        }
         try {
           const localReactions = localStorage.getItem(`axon_social_comment_reactions_${c.id}`);
           if (localReactions) {
-            return { ...c, reactions: JSON.parse(localReactions) };
+            reactions = { ...reactions, ...JSON.parse(localReactions) };
           }
         } catch {}
-        return c;
+        return { ...c, reactions };
       });
       setComments(enhanced);
     } catch (err) {
@@ -92,7 +190,7 @@ export default function PostCommentsDrawer({
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    if (!currentCustomer && !isMerchantOwner) {
+    if (!currentCustomer && !isMerchantSession) {
       if (onRequireAuth) onRequireAuth();
       return;
     }
@@ -102,15 +200,18 @@ export default function PostCommentsDrawer({
 
     setIsSubmitting(true);
     try {
+      const isMerchantPosting = !currentCustomer && isMerchantSession;
       const authorName = currentCustomer
         ? (currentCustomer.name || currentCustomer.email?.split('@')[0] || 'Cliente')
-        : (post?.storeName || 'Comercio Oficial');
+        : (merchantStoreData?.name || 'Tienda Oficial');
 
       const authorAvatar = currentCustomer
         ? (currentCustomer.profile_pic || currentCustomer.profilePic || '')
-        : (post?.storeAvatar || '');
+        : (merchantStoreData?.logo || '');
 
-      const authorId = currentCustomer ? currentCustomer.id : (activeWorkspace || 'merchant');
+      const authorId = currentCustomer
+        ? currentCustomer.id
+        : `merch_${activeWorkspace || currentMerchant?.id || 'store'}`;
 
       const saved = await addPostComment({
         postId: targetPostId,
@@ -120,7 +221,8 @@ export default function PostCommentsDrawer({
         customerAvatar: authorAvatar,
         content: newComment.trim(),
         parentId: replyingTo?.id || null,
-        replyToName: replyingTo?.customer_name || null
+        replyToName: replyingTo?.customer_name || null,
+        isMerchant: isMerchantPosting
       });
 
       setComments(prev => [...prev, saved]);
@@ -150,21 +252,21 @@ export default function PostCommentsDrawer({
   };
 
   const handleToggleReaction = async (commentId, reactionType) => {
-    if (!currentUserKey) {
-      if (onRequireAuth) onRequireAuth();
-      return;
-    }
     setActiveReactionPickerCommentId(null);
+    const keyToUse = currentUserKey || guestId;
 
-    // Actualización optimista
+    // Actualización optimista inmediata en estado para respuesta instantánea
     setComments(prev => prev.map(c => {
       if (c.id !== commentId) return c;
       const current = { ...(c.reactions || {}) };
-      if (current[currentUserKey] === reactionType) {
-        delete current[currentUserKey];
+      if (current[keyToUse] === reactionType) {
+        delete current[keyToUse];
       } else {
-        current[currentUserKey] = reactionType;
+        current[keyToUse] = reactionType;
       }
+      try {
+        localStorage.setItem(`axon_social_comment_reactions_${commentId}`, JSON.stringify(current));
+      } catch {}
       return { ...c, reactions: current };
     }));
 
@@ -173,7 +275,7 @@ export default function PostCommentsDrawer({
         commentId,
         postId: effectivePostId,
         reactionType,
-        userKey: currentUserKey
+        userKey: keyToUse
       });
     } catch (err) {
       console.error('Error guardando reacción:', err);
@@ -200,6 +302,10 @@ export default function PostCommentsDrawer({
   const canDeleteComment = (c) => {
     if (isMerchantOwner) return true;
     if (currentCustomer && String(c.customer_id) === String(currentCustomer.id)) return true;
+    if (isMerchantSession && activeWorkspace && (
+      String(c.customer_id) === String(activeWorkspace) ||
+      String(c.customer_id) === `merch_${activeWorkspace}`
+    )) return true;
     return false;
   };
 
@@ -208,6 +314,7 @@ export default function PostCommentsDrawer({
     const reactionsList = Object.values(c.reactions || {});
     const uniqueReactionTypes = [...new Set(reactionsList)];
     const isPickerOpen = activeReactionPickerCommentId === c.id;
+    const isCommentMerchant = c.is_merchant || String(c.customer_id).startsWith('merch_') || (effectiveWorkspaceId && String(c.customer_id) === String(effectiveWorkspaceId));
 
     return (
       <div key={c.id} className={`flex gap-2.5 items-start group relative ${isReply ? 'ml-8 mt-2' : ''}`}>
@@ -216,11 +323,15 @@ export default function PostCommentsDrawer({
           <img 
             src={c.customer_avatar} 
             alt={c.customer_name} 
-            className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200 dark:border-white/10" 
+            className={`w-8 h-8 rounded-full object-cover shrink-0 ${
+              isCommentMerchant ? 'border-2 border-amber-400 ring-1 ring-amber-400/40' : 'border border-slate-200 dark:border-white/10'
+            }`} 
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
-            {(c.customer_name || 'U').charAt(0).toUpperCase()}
+          <div className={`w-8 h-8 rounded-full text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs ${
+            isCommentMerchant ? 'bg-gradient-to-tr from-amber-500 to-orange-500 ring-1 ring-amber-400' : 'bg-gradient-to-tr from-slate-600 to-zinc-700'
+          }`}>
+            {isCommentMerchant ? <Store size={14} /> : (c.customer_name || 'U').charAt(0).toUpperCase()}
           </div>
         )}
 
@@ -232,6 +343,14 @@ export default function PostCommentsDrawer({
                 <span className="font-bold text-xs text-slate-900 dark:text-white">
                   {c.customer_name}
                 </span>
+
+                {/* Badge Oficial para Comercios */}
+                {isCommentMerchant && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 flex items-center gap-0.5 shadow-2xs">
+                    <span>🏬 Tienda Oficial</span>
+                  </span>
+                )}
+
                 {c.reply_to_name && (
                   <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
                     <CornerDownRight size={10} /> @{c.reply_to_name}
@@ -249,14 +368,14 @@ export default function PostCommentsDrawer({
 
             {/* Badges de reacciones agregadas */}
             {reactionsList.length > 0 && (
-              <div className="absolute -bottom-2 right-2 bg-white dark:bg-zinc-800 shadow-sm border border-slate-200 dark:border-zinc-700 rounded-full px-1.5 py-0.5 flex items-center gap-1 text-[10px] font-bold">
+              <div className="absolute -bottom-2 right-2 bg-white dark:bg-zinc-800 shadow-md border border-slate-200 dark:border-zinc-700 rounded-full px-2 py-0.5 flex items-center gap-1 text-[10px] font-bold z-10 animate-in fade-in duration-150">
                 <span className="flex items-center -space-x-1">
                   {uniqueReactionTypes.map(t => {
                     const match = REACTION_EMOJIS.find(r => r.type === t);
                     return match ? <span key={t} className="text-xs">{match.emoji}</span> : null;
                   })}
                 </span>
-                <span className="text-slate-600 dark:text-zinc-300 ml-0.5 text-[10px]">
+                <span className="text-slate-600 dark:text-zinc-300 ml-0.5 text-[10px] font-extrabold">
                   {reactionsList.length}
                 </span>
               </div>
@@ -276,12 +395,12 @@ export default function PostCommentsDrawer({
               >
                 {userReaction ? (
                   <>
-                    <span>{REACTION_EMOJIS.find(r => r.type === userReaction)?.emoji || '👍'}</span>
+                    <span className="text-sm">{REACTION_EMOJIS.find(r => r.type === userReaction)?.emoji || '👍'}</span>
                     <span>{REACTION_EMOJIS.find(r => r.type === userReaction)?.label || 'Reacción'}</span>
                   </>
                 ) : (
                   <>
-                    <Smile size={12} />
+                    <Smile size={13} />
                     <span>Reaccionar</span>
                   </>
                 )}
@@ -294,14 +413,14 @@ export default function PostCommentsDrawer({
                     className="fixed inset-0 z-30" 
                     onClick={() => setActiveReactionPickerCommentId(null)}
                   />
-                  <div className="absolute bottom-6 left-0 z-40 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-full p-1.5 shadow-2xl flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute bottom-6 left-0 z-40 bg-white dark:bg-zinc-850 border border-slate-200 dark:border-zinc-700 rounded-full px-2 py-1 shadow-2xl flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md">
                     {REACTION_EMOJIS.map(item => (
                       <button
                         key={item.type}
                         type="button"
                         onClick={() => handleToggleReaction(c.id, item.type)}
-                        className={`text-lg p-1 rounded-full hover:scale-130 active:scale-95 transition-transform cursor-pointer ${
-                          userReaction === item.type ? 'bg-amber-100 dark:bg-amber-950/60 ring-2 ring-amber-400' : ''
+                        className={`text-xl p-1 rounded-full hover:scale-135 active:scale-95 transition-transform cursor-pointer ${
+                          userReaction === item.type ? 'bg-amber-100 dark:bg-amber-950/80 ring-2 ring-amber-400 scale-110' : ''
                         }`}
                         title={item.label}
                       >
@@ -426,7 +545,15 @@ export default function PostCommentsDrawer({
             </div>
           )}
 
-          {(currentCustomer || isMerchantOwner) ? (
+          {/* Si está comentando como Comercio Oficial */}
+          {!currentCustomer && isMerchantSession && (
+            <div className="flex items-center gap-1.5 mb-1.5 px-2 text-[10px] text-amber-600 dark:text-amber-400 font-bold">
+              <Store size={12} />
+              <span>Publicando como Tienda Oficial: <strong>@{merchantStoreData?.name || 'Mi Tienda'}</strong></span>
+            </div>
+          )}
+
+          {(currentCustomer || isMerchantSession) ? (
             <form onSubmit={handleSendComment} className="flex items-center gap-2">
               {currentCustomer?.profile_pic ? (
                 <img 
@@ -434,15 +561,31 @@ export default function PostCommentsDrawer({
                   alt="Avatar" 
                   className="w-8 h-8 rounded-full object-cover shrink-0 border border-slate-200" 
                 />
+              ) : merchantStoreData?.logo ? (
+                <img 
+                  src={merchantStoreData.logo} 
+                  alt="Logo Tienda" 
+                  className="w-8 h-8 rounded-full object-cover shrink-0 border-2 border-amber-400" 
+                />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center shrink-0">
-                  {((currentCustomer?.name || currentCustomer?.email || (isMerchantOwner ? 'Comercio' : 'U'))).charAt(0).toUpperCase()}
+                <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                  {currentCustomer ? (
+                    ((currentCustomer.name || currentCustomer.email || 'U')).charAt(0).toUpperCase()
+                  ) : (
+                    <Store size={14} />
+                  )}
                 </div>
               )}
               <input
                 ref={inputRef}
                 type="text"
-                placeholder={replyingTo ? `Responde a @${replyingTo.customer_name}...` : "Escribe un comentario..."}
+                placeholder={
+                  replyingTo 
+                    ? `Responde a @${replyingTo.customer_name}...` 
+                    : isMerchantSession && !currentCustomer
+                      ? `Comentar como @${merchantStoreData?.name || 'Tienda'}...`
+                      : "Escribe un comentario..."
+                }
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 className="flex-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
