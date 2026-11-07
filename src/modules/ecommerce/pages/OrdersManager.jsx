@@ -105,8 +105,15 @@ export default function OrdersManager() {
           
         if (error) throw error;
         
+        // Excluir ventas de mostrador (POS): el tablero Kanban es exclusivo para pedidos de clientes (delivery / pickup / tienda virtual)
+        const onlineOrdersOnly = (data || []).filter(order => {
+          const type = (order.order_type || '').toLowerCase();
+          const addr = (order.address || '').toLowerCase();
+          return type !== 'pos' && !addr.includes('venta en mostrador') && !addr.includes('(pos)');
+        });
+
         // Map snake_case from DB to camelCase for UI
-        const mappedOrders = (data || []).map(order => ({
+        const mappedOrders = onlineOrdersOnly.map(order => ({
           ...order,
           dateRaw: order.date,
           date: new Date(order.date).toLocaleString(),

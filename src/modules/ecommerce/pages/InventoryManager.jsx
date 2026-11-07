@@ -1764,19 +1764,20 @@ export default function InventoryManager() {
                   <Plus size={14} className="text-orange-600" />
                   Crear Nueva Categoría Principal
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={modalNewCatName}
                     onChange={e => setModalNewCatName(e.target.value)}
-                    placeholder="Ej: Víveres, Bebidas, Limpieza, Carnes..."
+                    placeholder="Ej: Víveres, Bebidas, Internet..."
                     className="flex-1 px-3.5 py-2 bg-white dark:bg-slate-950 border border-orange-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer whitespace-nowrap active:scale-95 transition-all"
+                    className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer whitespace-nowrap active:scale-95 transition-all flex items-center justify-center gap-1.5"
                   >
-                    + Crear Categoría
+                    <Plus size={14} />
+                    <span>Crear Categoría</span>
                   </button>
                 </div>
               </form>
@@ -1805,7 +1806,7 @@ export default function InventoryManager() {
                       return (
                         <div
                           key={cat.name}
-                          className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3"
+                          className="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2.5"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1825,11 +1826,11 @@ export default function InventoryManager() {
                           </div>
 
                           {/* Subcategorías Chips */}
-                          <div className="pl-4 border-l-2 border-orange-200 dark:border-orange-900/50 space-y-2">
+                          <div className="pl-3 sm:pl-4 border-l-2 border-orange-200 dark:border-orange-900/50 space-y-2">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-[11px] font-bold text-slate-500 mr-1">Subcategorías:</span>
                               {subs.length === 0 ? (
-                                <span className="text-[11px] text-slate-400 italic">Ninguna aún (los productos irán directo a {cat.name})</span>
+                                <span className="text-[11px] text-slate-400 italic">Ninguna aún (directo a {cat.name})</span>
                               ) : (
                                 subs.map(sub => (
                                   <span
@@ -1840,7 +1841,7 @@ export default function InventoryManager() {
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteSubcategory(cat.name, sub)}
-                                      className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer ml-0.5"
+                                      className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
                                       title="Eliminar subcategoría"
                                     >
                                       <X size={12} />
@@ -1851,7 +1852,7 @@ export default function InventoryManager() {
                             </div>
 
                             {/* Input rápido para añadir subcategoría */}
-                            <div className="flex gap-2 max-w-sm pt-1">
+                            <div className="flex gap-2 max-w-full pt-1">
                               <input
                                 type="text"
                                 value={modalSubcategoryInputs[cat.name] || ''}
@@ -1865,13 +1866,13 @@ export default function InventoryManager() {
                                     handleAddSubcategoryFromModal(cat.name);
                                   }
                                 }}
-                                placeholder={`+ Añadir subcategoría a ${cat.name}...`}
-                                className="flex-1 px-3 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                                placeholder={`+ Subcategoría en ${cat.name}...`}
+                                className="flex-1 min-w-0 px-3 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
                               />
                               <button
                                 type="button"
                                 onClick={() => handleAddSubcategoryFromModal(cat.name)}
-                                className="px-3 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-orange-500 hover:text-white text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                                className="px-3.5 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-orange-500 hover:text-white text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer shrink-0"
                               >
                                 Añadir
                               </button>

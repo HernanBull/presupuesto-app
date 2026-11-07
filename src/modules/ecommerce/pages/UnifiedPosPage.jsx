@@ -134,29 +134,31 @@ export default function UnifiedPosPage() {
     return categories.filter(c => !c.parentId || c.level === 'main');
   }, [categories]);
 
-  // Subcategorías activas (Nivel 2)
+  // Subcategorías activas vinculadas a la categoría principal seleccionada (Nivel 2)
   const activeSubcategories = useMemo(() => {
     if (selectedMainCategory === 'ALL') {
-      return categories.filter(c => c.level === 'sub');
+      return [];
     }
-    return categories.filter(c => c.parentId === selectedMainCategory && c.level === 'sub');
+    return categories.filter(c => c.level === 'sub' && (c.parentId || '').toLowerCase() === selectedMainCategory.toLowerCase());
   }, [categories, selectedMainCategory]);
 
   // Conteo de productos por categoría principal
   const mainCategoryCounts = useMemo(() => {
     const counts = {};
     mainCategories.forEach(mCat => {
-      const subIds = categories.filter(c => c.parentId === mCat.id).map(c => c.id);
-      counts[mCat.id] = products.filter(p => p.categoryId === mCat.id || (p.subcategoryId && subIds.includes(p.subcategoryId))).length;
+      counts[mCat.id] = products.filter(p => (p.categoryId || '').toLowerCase() === mCat.id.toLowerCase()).length;
     });
     return counts;
-  }, [mainCategories, categories, products]);
+  }, [mainCategories, products]);
 
   // Conteo de productos por subcategoría
   const subcategoryCounts = useMemo(() => {
     const counts = {};
     activeSubcategories.forEach(sCat => {
-      counts[sCat.id] = products.filter(p => p.subcategoryId === sCat.id).length;
+      counts[sCat.id] = products.filter(p => 
+        (p.categoryId || '').toLowerCase() === (sCat.parentId || '').toLowerCase() &&
+        (p.subcategoryId || '').toLowerCase() === sCat.id.toLowerCase()
+      ).length;
     });
     return counts;
   }, [activeSubcategories, products]);
@@ -167,13 +169,12 @@ export default function UnifiedPosPage() {
 
     // Filtro por categoría principal
     if (selectedMainCategory !== 'ALL') {
-      const subIds = categories.filter(c => c.parentId === selectedMainCategory).map(c => c.id);
-      list = list.filter(p => p.categoryId === selectedMainCategory || (p.subcategoryId && subIds.includes(p.subcategoryId)));
+      list = list.filter(p => (p.categoryId || '').toLowerCase() === selectedMainCategory.toLowerCase());
     }
 
-    // Filtro por subcategoría lateral
+    // Filtro por subcategoría lateral o cinta superior
     if (selectedSubcategory !== 'ALL') {
-      list = list.filter(p => p.subcategoryId === selectedSubcategory);
+      list = list.filter(p => (p.subcategoryId || '').toLowerCase() === selectedSubcategory.toLowerCase());
     }
 
     // Búsqueda por texto (SKU, nombre, código de barras)
@@ -511,9 +512,9 @@ export default function UnifiedPosPage() {
         const catMap = new Map();
         const subcatMap = new Map();
 
-        // Registrar primero las categorías creadas por el comerciante
+        // Registrar categorías y subcategorías configuradas por el comerciante
         customCategoriesList.forEach(c => {
-          const cName = String(c.name).trim();
+          const cName = String(c.name || '').trim();
           if (cName && !catMap.has(cName)) {
             catMap.set(cName, {
               id: cName,
@@ -521,12 +522,20 @@ export default function UnifiedPosPage() {
               color: c.color || '#EA580C',
               level: 'main'
             });
-            // Espejo subcategoría inicial para permitir filtro
-            subcatMap.set(cName, {
-              id: cName,
-              name: cName,
-              parentId: cName,
-              level: 'sub'
+
+            // Registrar subcategorías reales del inventario
+            const rawSubs = Array.isArray(c.subcategories) ? c.subcategories : [];
+            rawSubs.forEach(sub => {
+              const sName = typeof sub === 'string' ? sub.trim() : (sub?.name || '').trim();
+              if (sName) {
+                const subKey = `${cName}::${sName}`;
+                subcatMap.set(subKey, {
+                  id: sName,
+                  name: sName,
+                  parentId: cName,
+                  level: 'sub'
+                });
+              }
             });
           }
         });
@@ -546,12 +555,12 @@ export default function UnifiedPosPage() {
               batch_number: p.batch_number || skuVal,
               metadata: meta,
               categoryId: catName,
-              subcategoryId: subcatName || catName
+              subcategoryId: subcatName || ''
             };
           });
           setProducts(mapped);
 
-          // Extraer categorías adicionales de productos
+          // Extraer categorías y subcategorías adicionales de productos que no estén aún en el config
           mapped.forEach(p => {
             const catName = p.category ? String(p.category).trim() : 'General';
             if (catName && !catMap.has(catName)) {
@@ -563,13 +572,16 @@ export default function UnifiedPosPage() {
             }
 
             const subName = p.subcategory ? String(p.subcategory).trim() : '';
-            if (subName && !subcatMap.has(subName)) {
-              subcatMap.set(subName, {
-                id: subName,
-                name: subName,
-                parentId: catName,
-                level: 'sub'
-              });
+            if (subName) {
+              const subKey = `${catName}::${subName}`;
+              if (!subcatMap.has(subKey)) {
+                subcatMap.set(subKey, {
+                  id: subName,
+                  name: subName,
+                  parentId: catName,
+                  level: 'sub'
+                });
+              }
             }
           });
         } else {
