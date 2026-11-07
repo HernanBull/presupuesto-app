@@ -44,9 +44,22 @@ export default function PostCommentsDrawer({
   const effectivePostTitle = postTitle || post?.title || post?.postTitle || '';
 
   const activeWorkspace = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspace') : null;
-  const isMerchantSession = Boolean((activeWorkspace && activeWorkspace !== 'default_workspace') || currentMerchant);
+  const isMerchantAuth = Boolean(
+    (currentMerchant && currentMerchant.id) ||
+    (activeWorkspace && 
+      activeWorkspace !== 'default_workspace' && 
+      activeWorkspace !== 'null' && 
+      activeWorkspace !== 'undefined' && 
+      activeWorkspace.trim() !== '')
+  );
+  const isMerchantSession = isMerchantAuth;
   const isMerchantOwner = Boolean(isMerchantSession && effectiveWorkspaceId && String(activeWorkspace) === String(effectiveWorkspaceId));
-  const isUserAuthenticated = Boolean(currentCustomer?.id || currentCustomer?.uid || currentMerchant?.id || (activeWorkspace && activeWorkspace !== 'default_workspace'));
+  const isCustomerAuth = Boolean(
+    currentCustomer &&
+    (currentCustomer.id || currentCustomer.uid) &&
+    !String(currentCustomer.id || currentCustomer.uid).startsWith('guest_')
+  );
+  const isUserAuthenticated = isCustomerAuth || isMerchantAuth;
 
   // Datos de la tienda si el usuario conectado es comerciante
   const [merchantStoreData, setMerchantStoreData] = useState(() => {
@@ -98,25 +111,11 @@ export default function PostCommentsDrawer({
     }
   }, [isMerchantSession, activeWorkspace, currentMerchant]);
 
-  // ID persistente para invitados si no hay sesión
-  const guestId = useMemo(() => {
-    try {
-      let g = localStorage.getItem('axon_guest_id');
-      if (!g) {
-        g = 'guest_' + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem('axon_guest_id', g);
-      }
-      return g;
-    } catch {
-      return 'guest_' + Date.now();
-    }
-  }, []);
-
   const currentUserKey = useMemo(() => {
-    if (currentCustomer?.id) return `cust_${currentCustomer.id}`;
-    if (isMerchantSession) return `merch_${activeWorkspace || currentMerchant?.id}`;
-    return guestId;
-  }, [currentCustomer, isMerchantSession, activeWorkspace, currentMerchant, guestId]);
+    if (isCustomerAuth) return `cust_${currentCustomer.id || currentCustomer.uid}`;
+    if (isMerchantAuth) return `merch_${activeWorkspace || currentMerchant?.id}`;
+    return null;
+  }, [isCustomerAuth, currentCustomer, isMerchantAuth, activeWorkspace, currentMerchant]);
 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -192,7 +191,8 @@ export default function PostCommentsDrawer({
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    if (!currentCustomer && !isMerchantSession) {
+    if (!isUserAuthenticated || !currentUserKey) {
+      toast.error('Debes registrarte o iniciar sesión para comentar', { icon: '🔒' });
       if (onRequireAuth) onRequireAuth();
       return;
     }
@@ -255,7 +255,7 @@ export default function PostCommentsDrawer({
 
   const handleToggleReaction = async (commentId, reactionType) => {
     setActiveReactionPickerCommentId(null);
-    if (!isUserAuthenticated) {
+    if (!isUserAuthenticated || !currentUserKey) {
       toast.error('Debes iniciar sesión para reaccionar a los comentarios', { icon: '🔒' });
       if (onRequireAuth) onRequireAuth();
       return;
@@ -396,7 +396,7 @@ export default function PostCommentsDrawer({
               <button
                 type="button"
                 onClick={() => {
-                  if (!isUserAuthenticated) {
+                  if (!isUserAuthenticated || !currentUserKey) {
                     toast.error('Debes iniciar sesión para reaccionar a los comentarios', { icon: '🔒' });
                     if (onRequireAuth) onRequireAuth();
                     return;
@@ -450,7 +450,7 @@ export default function PostCommentsDrawer({
             <button
               type="button"
               onClick={() => {
-                if (!isUserAuthenticated) {
+                if (!isUserAuthenticated || !currentUserKey) {
                   toast.error('Debes iniciar sesión para responder a los comentarios', { icon: '🔒' });
                   if (onRequireAuth) onRequireAuth();
                   return;

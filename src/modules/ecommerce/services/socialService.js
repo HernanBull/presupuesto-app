@@ -482,7 +482,7 @@ export const deletePostComment = async (commentId, postId, workspaceId) => {
 };
 
 export const toggleCommentReaction = async ({ commentId, postId, reactionType = 'like', userKey }) => {
-  if (!commentId || !userKey) return null;
+  if (!commentId || !userKey || String(userKey).startsWith('guest_')) return null;
   const storageKey = `${LOCAL_STORAGE_PREFIX}comment_reactions_${commentId}`;
   let currentReactions = {};
   try {

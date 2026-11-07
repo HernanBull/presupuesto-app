@@ -512,7 +512,7 @@ export default function CustomerAuthModal({
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 animate-in fade-in duration-200">
         
         {/* Fondo translúcido suave */}
         <div 
