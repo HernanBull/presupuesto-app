@@ -111,9 +111,14 @@ export default function InventoryManager() {
 
       if (!error && data) {
         setInventory(data.map(p => {
+          const pMeta = typeof p.metadata === 'object' && p.metadata !== null 
+            ? p.metadata 
+            : (() => { try { return JSON.parse(p.metadata || '{}'); } catch(e) { return {}; } })();
           const loadedImages = Array.isArray(p.images) && p.images.length > 0
             ? p.images
-            : (p.image_url ? [p.image_url] : []);
+            : (Array.isArray(pMeta.images) && pMeta.images.length > 0 
+                ? pMeta.images 
+                : (p.image_url ? [p.image_url] : []));
           return {
             ...p,
             stock: p.stock || 0,
@@ -127,6 +132,7 @@ export default function InventoryManager() {
             publishStatus: p.publish_status || 'Publicado',
             images: loadedImages,
             imageUrl: loadedImages[0] || p.image_url || '',
+            metadata: pMeta
           };
         }));
       }
@@ -585,8 +591,12 @@ export default function InventoryManager() {
         : (newItem.imageUrl ? [newItem.imageUrl] : []);
       const primaryImageUrl = productImages[0] || newItem.imageUrl || null;
 
+      const prevMetadata = typeof newItem.metadata === 'object' && newItem.metadata !== null
+        ? newItem.metadata
+        : {};
+
       const payload = {
-          name: newItem.name,
+          name: newItem.name.trim(),
           category: newItem.category ? newItem.category.trim() : 'General',
           subcategory: newItem.subcategory ? newItem.subcategory.trim() : '',
           stock: newItem.stock,
@@ -595,27 +605,31 @@ export default function InventoryManager() {
           supplier: newItem.supplier || '',
           stock_vitrina: resolvedVitrinaStock,
           image_url: primaryImageUrl,
-          images: productImages,
+          metadata: {
+            ...prevMetadata,
+            images: productImages
+          },
+          publish_status: 'Publicado',
           workspace_id: workspaceId
       };
       
       if (editingId) {
-        await supabase.from('ecommerce_products').update(payload).eq('id', editingId);
+        const { error: updErr } = await supabase.from('ecommerce_products').update(payload).eq('id', editingId);
+        if (updErr) throw updErr;
         toast.success("Producto actualizado correctamente.");
       } else {
-        payload.id = newItem.id;
+        payload.id = (newItem.id || `SKU-${Date.now()}`).trim();
         payload.created_at = new Date().toISOString();
-        payload.publish_status = 'Publicado';
-        payload.status = 'Activo';
-        await supabase.from('ecommerce_products').insert([payload]);
+        const { error: insErr } = await supabase.from('ecommerce_products').insert([payload]);
+        if (insErr) throw insErr;
         toast.success("Producto registrado y publicado en vitrina.");
       }
       await fetchInventory();
+      closeEditor();
     } catch(e) { 
-      console.error(e);
-      toast.error("Ocurrió un error al guardar el producto.");
+      console.error('Error guardando producto:', e);
+      toast.error(e.message || "Ocurrió un error al guardar el producto.");
     }
-    closeEditor();
   };
 
   const handleRegisterWaste = async () => {
