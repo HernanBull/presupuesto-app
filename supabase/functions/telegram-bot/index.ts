@@ -513,19 +513,19 @@ async function handleTelegramUpdate(update, supabase) {
     if (text === "🚨 Novedades / Alertas" || text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
       return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
     }
-    if (text === "📁 Importar Excel/Word" || cleanCmd === "/importar" || cleanCmd === "/import") {
-      const importInfoMsg = `📁 <b>MÓDULO DE IMPORTACIÓN ADMINISTRATIVA</b> 📊\n\nPuedes enviar o reenviar directamente a este chat un archivo:\n• <b>Excel:</b> <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>\n• <b>Word:</b> <code>.docx</code> (con tablas de productos)\n\n💡 <i>El bot detectará automáticamente los productos, precios, categorías y stock, mostrándote una vista previa con confirmación antes de guardar.</i>\n\n👇 <i>Toca abajo si deseas descargar la plantilla de ejemplo:</i>`;
+    if (text === "📁 Importar Excel/Word" || cleanCmd === "/importar" || cleanCmd === "/import" || cleanCmd === "/despachos") {
+      const importInfoMsg = `⚡ <b>MÓDULO DE GESTIÓN OPERATIVA — ENMINUTOS (EM)</b> 🛵\n\nPuedes enviar o reenviar directamente a este chat tus archivos de gestión:\n• <b>Planillas de Despachos:</b> <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>\n• <b>Reportes o Tablas Word:</b> <code>.docx</code>\n\n💡 <i>El bot auditará automáticamente las fechas, comercios aliados, repartidores, fletes y montos, mostrándote un balance previo antes de actualizar los reportes gerenciales.</i>\n\n👇 <i>Toca abajo para obtener la plantilla oficial de la agencia:</i>`;
       const importKeyboard = {
         inline_keyboard: [
-          [{ text: "📥 Descargar Plantilla Excel (.xlsx)", callback_data: "send_plantilla" }]
+          [{ text: "📥 Descargar Plantilla Oficial EnMinutos (.xlsx)", callback_data: "send_plantilla" }]
         ]
       };
       await sendMessageToChat(chatId, importInfoMsg, importKeyboard);
       return new Response("OK", { headers: corsHeaders });
     }
-    if (cleanCmd === "/plantilla" || cleanCmd === "/plantilla_excel" || cleanCmd === "/plantilla_productos") {
+    if (cleanCmd === "/plantilla" || cleanCmd === "/plantilla_excel" || cleanCmd === "/plantilla_enminutos" || cleanCmd === "/plantilla_despachos") {
       const templateBuf = generateExcelTemplate();
-      await sendDocumentToChat(chatId, templateBuf, 'plantilla_productos_axonmarket.xlsx', '📥 <b>Plantilla Oficial para Importación de Productos — AxonMarket</b>\n\nLlena los datos en esta hoja de cálculo y reenvíala a este chat.');
+      await sendDocumentToChat(chatId, templateBuf, 'plantilla_despachos_enminutos.xlsx', '⚡ <b>PLANTILLA OFICIAL DE DESPACHOS — ENMINUTOS (EM)</b> 🛵\n\nPlanilla profesional para registro y auditoría de envíos, fletes de repartidores y ventas de comercios aliados.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
       return new Response("OK", { headers: corsHeaders });
     }
     if (text === "🔍 Buscar Pedido" || cleanCmd.startsWith('/buscar')) {
@@ -1165,46 +1165,172 @@ function normalizeProductRow(row: Record<string, any>) {
   };
 }
 
+function normalizeDeliveryRow(row: Record<string, any>, idx: number) {
+  let orderId = '';
+  let dateStr = '';
+  let storeName = '';
+  let customerName = '';
+  let customerPhone = '';
+  let customerAddress = '';
+  let driverName = '';
+  let status = 'Entregado';
+  let deliveryFee = 2.00;
+  let storeGmv = 0;
+  let paymentMethod = 'pago_movil';
+  let notes = '';
+
+  for (const [rawKey, rawVal] of Object.entries(row)) {
+    const key = rawKey.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    const val = String(rawVal || '').trim();
+    if (!val) continue;
+
+    if (!dateStr && (key.includes('fecha') || key.includes('date') || key.includes('dia'))) {
+      dateStr = val;
+    } else if (!orderId && (key.includes('pedido') || key.includes('guia') || key.includes('orden') || key.includes('ticket') || key === 'id' || key === 'nro')) {
+      orderId = val.startsWith('#') ? val.substring(1) : val;
+    } else if (!storeName && (key.includes('comercio') || key.includes('tienda') || key.includes('bodega') || key.includes('origen') || key.includes('local'))) {
+      storeName = val;
+    } else if (!customerName && (key.includes('cliente') || key.includes('comprador') || key.includes('destinatario') || key === 'nombre')) {
+      customerName = val;
+    } else if (!customerPhone && (key.includes('tel') || key.includes('cel') || key.includes('phone') || key.includes('movil') || key.includes('whatsapp'))) {
+      customerPhone = val;
+    } else if (!customerAddress && (key.includes('dir') || key.includes('destino') || key.includes('ubicacion') || key.includes('entrega'))) {
+      customerAddress = val;
+    } else if (!driverName && (key.includes('repartidor') || key.includes('chofer') || key.includes('motorizado') || key.includes('rider') || key.includes('driver') || key.includes('moto'))) {
+      driverName = val;
+    } else if (key.includes('estado') || key.includes('status')) {
+      const lower = val.toLowerCase();
+      if (lower.includes('entreg') || lower.includes('listo') || lower.includes('ok') || lower.includes('complet')) {
+        status = 'Entregado';
+      } else if (lower.includes('ruta') || lower.includes('enviad') || lower.includes('camino') || lower.includes('asign')) {
+        status = 'Enviado';
+      } else if (lower.includes('cancel') || lower.includes('abort') || lower.includes('devuel') || lower.includes('fall')) {
+        status = 'Cancelado';
+      }
+    } else if (key.includes('flete') || key.includes('delivery') || key.includes('envio') || key.includes('tarifa') || key.includes('costoenvio')) {
+      deliveryFee = parsePrice(val);
+    } else if (key.includes('venta') || key.includes('comercio') || key.includes('total') || key.includes('monto') || key.includes('subtotal') || key.includes('gmv')) {
+      storeGmv = parsePrice(val);
+    } else if (key.includes('pago') || key.includes('metodo')) {
+      paymentMethod = val;
+    } else if (key.includes('nota') || key.includes('obser') || key.includes('novedad') || key.includes('comentario')) {
+      notes = val;
+    }
+  }
+
+  if (!orderId) {
+    orderId = `EM-${Date.now().toString().slice(-4)}${idx + 1}`;
+  }
+
+  let finalDateIso = '';
+  if (dateStr) {
+    const parsed = parseDateString(dateStr);
+    if (parsed) {
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      finalDateIso = `${parsed.year}-${pad(parsed.month)}-${pad(parsed.day)}T12:00:00.000-04:00`;
+    }
+  }
+  if (!finalDateIso) {
+    finalDateIso = new Date().toISOString();
+  }
+
+  return {
+    orderId,
+    dateIso: finalDateIso,
+    storeName: storeName || 'Comercio General Cagua',
+    customerName: customerName || 'Cliente Delivery',
+    customerPhone: customerPhone || 'Sin teléfono',
+    customerAddress: customerAddress || 'Cagua, Aragua',
+    driverName: driverName || 'Repartidor EnMinutos',
+    status,
+    deliveryFee: deliveryFee > 0 ? deliveryFee : 2.00,
+    storeGmv: storeGmv > 0 ? storeGmv : 0,
+    paymentMethod,
+    notes
+  };
+}
+
 function generateExcelTemplate(): Uint8Array {
-  const templateRows = [
+  const wb = XLSX.utils.book_new();
+
+  // Hoja 1: Despachos y Viajes de Delivery EnMinutos
+  const despachosData = [
     {
-      "Código": "PROD-001",
-      "Nombre": "Harina de Maíz Precocida 1kg",
-      "Precio USD": 1.20,
-      "Stock": 50,
-      "Categoría": "Víveres",
-      "Costo COGS": 0.95
+      "Fecha (AAAA-MM-DD)": "2026-11-06",
+      "Nro Pedido / Guia": "ORD-702892",
+      "Comercio Aliado": "Bodega Luz Cagua",
+      "Cliente": "Hernan Perdomo",
+      "Telefono Cliente": "0424-3592392",
+      "Direccion Entrega": "Urb. Ciudad Jardín, Calle 4, Casa 12",
+      "Repartidor / Chofer": "Pedro Moto 01",
+      "Estado Despacho": "Entregado",
+      "Flete EnMinutos USD": 2.00,
+      "Monto Venta Comercio USD": 24.50,
+      "Metodo Pago": "Pago Móvil",
+      "Notas / Novedad": "Entregado conforme con PIN de seguridad"
     },
     {
-      "Código": "PROD-002",
-      "Nombre": "Arroz Blanco Grano Entero 1kg",
-      "Precio USD": 1.15,
-      "Stock": 40,
-      "Categoría": "Víveres",
-      "Costo COGS": 0.90
+      "Fecha (AAAA-MM-DD)": "2026-11-06",
+      "Nro Pedido / Guia": "ORD-702893",
+      "Comercio Aliado": "Pizzería Nápoles",
+      "Cliente": "María Delgado",
+      "Telefono Cliente": "0412-8877665",
+      "Direccion Entrega": "Urb. Corinsa, Manzana E",
+      "Repartidor / Chofer": "Carlos Delivery",
+      "Estado Despacho": "Entregado",
+      "Flete EnMinutos USD": 2.00,
+      "Monto Venta Comercio USD": 18.00,
+      "Metodo Pago": "Efectivo USD",
+      "Notas / Novedad": "Sin novedad"
     },
     {
-      "Código": "PROD-003",
-      "Nombre": "Aceite Vegetal 1L",
-      "Precio USD": 3.40,
-      "Stock": 30,
-      "Categoría": "Víveres",
-      "Costo COGS": 2.80
-    },
-    {
-      "Código": "PROD-004",
-      "Nombre": "Café Molido 500g",
-      "Precio USD": 4.50,
-      "Stock": 25,
-      "Categoría": "Bebidas",
-      "Costo COGS": 3.50
+      "Fecha (AAAA-MM-DD)": "2026-11-06",
+      "Nro Pedido / Guia": "ORD-702894",
+      "Comercio Aliado": "Farmacia Central Cagua",
+      "Cliente": "José Rodríguez",
+      "Telefono Cliente": "0414-9988112",
+      "Direccion Entrega": "Centro de Cagua, Calle Bolívar",
+      "Repartidor / Chofer": "Pedro Moto 01",
+      "Estado Despacho": "Cancelado",
+      "Flete EnMinutos USD": 0.00,
+      "Monto Venta Comercio USD": 12.00,
+      "Metodo Pago": "Pago Móvil",
+      "Notas / Novedad": "Cliente canceló por tiempo de espera"
     }
   ];
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(templateRows);
-  ws['!cols'] = [{ wch: 15 }, { wch: 35 }, { wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 12 }];
-  XLSX.utils.book_append_sheet(wb, ws, "Productos");
+  const ws = XLSX.utils.json_to_sheet(despachosData);
+  ws['!cols'] = [
+    { wch: 18 }, // Fecha
+    { wch: 18 }, // Nro Pedido
+    { wch: 24 }, // Comercio
+    { wch: 20 }, // Cliente
+    { wch: 16 }, // Teléfono
+    { wch: 35 }, // Dirección
+    { wch: 22 }, // Chofer
+    { wch: 16 }, // Estado
+    { wch: 18 }, // Flete USD
+    { wch: 24 }, // Monto Comercio
+    { wch: 15 }, // Metodo Pago
+    { wch: 35 }  // Notas
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, "Despachos_EnMinutos");
+
+  // Hoja 2: Guía Oficial
+  const guiaData = [
+    { "GUÍA OFICIAL": "ENMINUTOS (EM) ⚡ — AGENCIA DE DELIVERY" },
+    { "GUÍA OFICIAL": "Instrucciones para la carga y auditoría de planillas:" },
+    { "GUÍA OFICIAL": "1. Fecha: Formato AAAA-MM-DD (ej: 2026-11-06) o DD/MM/AAAA." },
+    { "GUÍA OFICIAL": "2. Nro Pedido: Código único del despacho o ticket." },
+    { "GUÍA OFICIAL": "3. Estado: Entregado, Enviado (En Ruta), o Cancelado." },
+    { "GUÍA OFICIAL": "4. Flete: Tarifa del envío cobrada por la agencia (ej. 2.00)." },
+    { "GUÍA OFICIAL": "5. Monto Venta: Total facturado por el comercio para estadísticas." },
+    { "GUÍA OFICIAL": "Guarda los cambios y envía este archivo directamente al bot de Telegram." }
+  ];
+  const wsGuia = XLSX.utils.json_to_sheet(guiaData);
+  wsGuia['!cols'] = [{ wch: 75 }];
+  XLSX.utils.book_append_sheet(wb, wsGuia, "Instrucciones");
+
   const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
   return new Uint8Array(buf);
 }
@@ -1218,7 +1344,7 @@ async function handleTelegramDocument(message: any, supabase: any) {
   // 1. Validar autorización de Superusuario
   const superuser = await isAgencySuperuser(fromUserId, supabase);
   if (!superuser) {
-    await sendMessageToChat(chatId, "⛔ <b>Acceso Restringido:</b> Solo Superusuarios o personal administrativo autorizado pueden importar archivos a la plataforma.");
+    await sendMessageToChat(chatId, "⛔ <b>Acceso Restringido:</b> Solo directores de la agencia EnMinutos pueden importar archivos a la plataforma.");
     return new Response("OK", { headers: corsHeaders });
   }
 
@@ -1231,7 +1357,7 @@ async function handleTelegramDocument(message: any, supabase: any) {
     return new Response("OK", { headers: corsHeaders });
   }
 
-  await sendMessageToChat(chatId, `⏳ <i>Descargando y analizando "${fileName}" (${(fileSize / 1024).toFixed(1)} KB)...</i>`);
+  await sendMessageToChat(chatId, `⏳ <i>Descargando y auditando "${fileName}" (${(fileSize / 1024).toFixed(1)} KB) para EnMinutos (EM) ⚡...</i>`);
 
   try {
     // 2. Obtener enlace de descarga de Telegram
@@ -1265,7 +1391,84 @@ async function handleTelegramDocument(message: any, supabase: any) {
       return new Response("OK", { headers: corsHeaders });
     }
 
-    // 4. Normalizar productos
+    // 4. Identificar si es Planilla de Despachos de Delivery o Catálogo de Productos
+    const firstRow = rawRows[0] || {};
+    const allKeys = Object.keys(firstRow).join(' ').toLowerCase();
+    const isDeliverySheet = allKeys.includes('pedido') || allKeys.includes('flete') || allKeys.includes('comercio') || allKeys.includes('chofer') || allKeys.includes('repartidor') || allKeys.includes('delivery') || allKeys.includes('guia') || allKeys.includes('despacho') || allKeys.includes('orden') || allKeys.includes('moto') || allKeys.includes('viaje');
+
+    if (isDeliverySheet) {
+      const validDeliveries: any[] = [];
+      let deliveredCount = 0;
+      let inRouteCount = 0;
+      let cancelledCount = 0;
+      let totalFletes = 0;
+      let totalGmv = 0;
+
+      rawRows.forEach((row, i) => {
+        const d = normalizeDeliveryRow(row, i);
+        if (d) {
+          validDeliveries.push(d);
+          if (d.status === 'Entregado') deliveredCount++;
+          else if (d.status === 'Enviado') inRouteCount++;
+          else if (d.status === 'Cancelado') cancelledCount++;
+          totalFletes += Number(d.deliveryFee || 0);
+          totalGmv += Number(d.storeGmv || 0);
+        }
+      });
+
+      if (validDeliveries.length === 0) {
+        await sendMessageToChat(chatId, `⚠️ Se leyeron <b>${rawRows.length}</b> filas pero no se encontraron columnas válidas de despachos.\n\n💡 Usa <code>/plantilla</code> para descargar la planilla oficial de EnMinutos.`);
+        return new Response("OK", { headers: corsHeaders });
+      }
+
+      await supabase.from('platform_settings').upsert({
+        key: `telegram_pending_import_${chatId}`,
+        value: JSON.stringify({
+          type: 'delivery',
+          fileName,
+          items: validDeliveries,
+          totalFletes,
+          totalGmv,
+          createdAt: Date.now()
+        })
+      });
+
+      const previewCount = Math.min(validDeliveries.length, 3);
+      const previewList = validDeliveries.slice(0, previewCount).map((item, idx) => {
+        const icon = item.status === 'Entregado' ? '✅' : item.status === 'Cancelado' ? '⚠️' : '🛵';
+        return `${idx + 1}. <code>#${item.orderId}</code> | ${item.storeName} ➔ ${item.customerName}\n    ${icon} ${item.status} | 🛵 ${item.driverName} | Flete: $${item.deliveryFee.toFixed(2)}`;
+      }).join('\n\n');
+
+      const previewMsg = `⚡ <b>AGENCIA ENMINUTOS (EM) — AUDITORÍA DE DESPACHOS</b> 🛵
+📄 <b>PLANILLA OPERATIVA:</b> <code>${fileName}</code> (${(fileSize / 1024).toFixed(1)} KB)
+━━━━━━━━━━━━━━━━━━━━━━
+📊 <b>BALANCE DETECTADO:</b>
+• 📦 <b>Total Despachos:</b> ${validDeliveries.length} viajes
+• ✅ <b>Entregados:</b> ${deliveredCount} pedidos
+• 🛵 <b>En Ruta:</b> ${inRouteCount} pedidos
+• ⚠️ <b>Cancelados / Novedades:</b> ${cancelledCount} pedidos
+• 💰 <b>Fletes EnMinutos (Estimado):</b> $${totalFletes.toFixed(2)} USD
+• 🏬 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
+
+👁️ <b>VISTA PREVIA (Últimos Despachos):</b>
+${previewList}
+${validDeliveries.length > previewCount ? `\n<i>... y ${validDeliveries.length - previewCount} despachos adicionales.</i>\n` : '\n'}━━━━━━━━━━━━━━━━━━━━━━
+¿Deseas confirmar e integrar estos despachos al histórico de EnMinutos?`;
+
+      const confirmKeyboard = {
+        inline_keyboard: [
+          [
+            { text: `✅ Confirmar Despachos (${validDeliveries.length})`, callback_data: `import_confirm:${chatId}` },
+            { text: "❌ Cancelar", callback_data: `import_cancel:${chatId}` }
+          ]
+        ]
+      };
+
+      await sendMessageToChat(chatId, previewMsg, confirmKeyboard);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    // Caso secundario: Archivo de Catálogo de Productos
     const validItems: any[] = [];
     for (const row of rawRows) {
       const norm = normalizeProductRow(row);
@@ -1273,41 +1476,36 @@ async function handleTelegramDocument(message: any, supabase: any) {
     }
 
     if (validItems.length === 0) {
-      await sendMessageToChat(chatId, `⚠️ Se leyeron <b>${rawRows.length}</b> filas pero no se encontraron columnas válidas de productos (ej. <code>Nombre</code> y <code>Precio</code>).\n\n💡 Usa <code>/plantilla</code> para descargar el formato oficial recomendado.`);
+      await sendMessageToChat(chatId, `⚠️ Se leyeron <b>${rawRows.length}</b> filas pero no se encontraron columnas reconocibles.\n\n💡 Usa <code>/plantilla</code> para descargar la planilla oficial de EnMinutos.`);
       return new Response("OK", { headers: corsHeaders });
     }
 
-    // 5. Guardar sesión pendiente en platform_settings
     await supabase.from('platform_settings').upsert({
       key: `telegram_pending_import_${chatId}`,
       value: JSON.stringify({
+        type: 'products',
         fileName,
         items: validItems,
         createdAt: Date.now()
       })
     });
 
-    // 6. Enviar vista previa con confirmación
-    const previewCount = Math.min(validItems.length, 4);
+    const previewCount = Math.min(validItems.length, 3);
     const previewList = validItems.slice(0, previewCount).map((item, idx) => {
-      return `${idx + 1}. 📦 <b>${item.name}</b> — $${item.price.toFixed(2)} USD | Stock: ${item.stock} | <i>${item.category}</i>`;
+      return `${idx + 1}. 📦 <b>${item.name}</b> — $${item.price.toFixed(2)} USD | Stock: ${item.stock}`;
     }).join('\n');
 
-    const previewMsg = `📄 <b>ARCHIVO RECIBIDO:</b> <code>${fileName}</code> (${(fileSize / 1024).toFixed(1)} KB)
+    const previewMsg = `📄 <b>CATÁLOGO DE PRODUCTOS:</b> <code>${fileName}</code>
 ━━━━━━━━━━━━━━━━━━━━━━
-🔍 <b>TIPO:</b> Catálogo de Productos / Inventario
-• <b>Total productos detectados:</b> ${validItems.length}
-• <b>Moneda:</b> USD ($)
-
-👁️ <b>VISTA PREVIA (Primeros ${previewCount}):</b>
+• <b>Total productos:</b> ${validItems.length}
 ${previewList}
-${validItems.length > previewCount ? `\n<i>... y ${validItems.length - previewCount} productos más.</i>\n` : '\n'}━━━━━━━━━━━━━━━━━━━━━━
-¿Deseas confirmar la importación y aplicarla en el inventario?`;
+━━━━━━━━━━━━━━━━━━━━━━
+¿Deseas confirmar la importación de productos?`;
 
     const confirmKeyboard = {
       inline_keyboard: [
         [
-          { text: `✅ Confirmar e Importar (${validItems.length})`, callback_data: `import_confirm:${chatId}` },
+          { text: `✅ Confirmar Productos (${validItems.length})`, callback_data: `import_confirm:${chatId}` },
           { text: "❌ Cancelar", callback_data: `import_cancel:${chatId}` }
         ]
       ]
@@ -1645,10 +1843,93 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     }
 
     const items = parsedSetting.items;
+
+    if (parsedSetting.type === 'delivery') {
+      let createdCount = 0;
+      let updatedCount = 0;
+      let totalFletes = 0;
+      let totalGmv = 0;
+
+      for (const item of items) {
+        try {
+          totalFletes += Number(item.deliveryFee || 0);
+          totalGmv += Number(item.storeGmv || 0);
+
+          const { data: existing } = await supabase
+            .from('ecommerce_orders_v2')
+            .select('id')
+            .eq('id', item.orderId)
+            .maybeSingle();
+
+          const deliveryTelegramStatus = item.status === 'Entregado' ? 'delivered' : item.status === 'Cancelado' ? 'aborted' : 'assigned';
+
+          if (existing) {
+            await supabase.from('ecommerce_orders_v2').update({
+              status: item.status,
+              delivery_telegram_status: deliveryTelegramStatus,
+              total: item.storeGmv,
+              pickup_store_name: item.storeName,
+              delivery_driver_name: item.driverName,
+              address: item.customerAddress,
+              customer: item.customerName,
+              date: item.dateIso,
+              shipping_info: { cost: item.deliveryFee },
+              paymentmethod: item.paymentMethod,
+              delivery_abort_reason: item.status === 'Cancelado' ? (item.notes || 'Cancelado') : null
+            }).eq('id', existing.id);
+            updatedCount++;
+          } else {
+            await supabase.from('ecommerce_orders_v2').insert([{
+              id: item.orderId,
+              date: item.dateIso,
+              pickup_store_name: item.storeName,
+              customer: item.customerName,
+              address: item.customerAddress,
+              delivery_driver_name: item.driverName,
+              status: item.status,
+              delivery_telegram_status: deliveryTelegramStatus,
+              total: item.storeGmv,
+              order_type: 'delivery',
+              workspace_id: '830e447c-c1db-49d6-ad38-86a8adcf5cbf',
+              paymentmethod: item.paymentMethod,
+              shipping_info: { cost: item.deliveryFee },
+              paymentdetails: { phone: item.customerPhone },
+              delivery_abort_reason: item.status === 'Cancelado' ? (item.notes || 'Cancelado') : null
+            }]);
+            createdCount++;
+          }
+        } catch (err) {
+          console.error("Error guardando despacho importado:", err);
+        }
+      }
+
+      await supabase.from('platform_settings').delete().eq('key', `telegram_pending_import_${targetChatId}`);
+
+      const resultMsg = `⚡ <b>¡DESPACHOS INTEGRADOS CON ÉXITO!</b> 🛵
+━━━━━━━━━━━━━━━━━━━━━━
+📁 <b>Planilla:</b> <code>${parsedSetting.fileName}</code>
+• 📦 <b>Total Procesados:</b> ${items.length} despachos
+• 🟢 <b>Nuevas Órdenes:</b> ${createdCount} registradas
+• 🔄 <b>Actualizadas:</b> ${updatedCount} órdenes
+• 🛵 <b>Fletes EnMinutos:</b> $${totalFletes.toFixed(2)} USD
+• 🏬 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
+
+<i>Tus métricas de Hoy, Ayer y Esta Semana en el bot ya han sido actualizadas automáticamente en tiempo real.</i>`;
+
+      if (messageId) {
+        await editMessageText(chatId, messageId, resultMsg);
+      } else {
+        await sendMessageToChat(chatId, resultMsg, SUPERUSER_KEYBOARD);
+      }
+
+      await logEvent('INFO', `Importación Despachos EnMinutos vía Telegram por ${fromUserId}: ${createdCount} creados, ${updatedCount} actualizados`, { fileName: parsedSetting.fileName }, supabase);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    // Modo secundario: Productos
     let createdCount = 0;
     let updatedCount = 0;
 
-    // Procesar inserción y actualización (modo híbrido inteligente)
     for (const item of items) {
       try {
         const { data: existing } = await supabase
@@ -1689,10 +1970,9 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
       }
     }
 
-    // Limpiar sesión pendiente
     await supabase.from('platform_settings').delete().eq('key', `telegram_pending_import_${targetChatId}`);
 
-    const resultMsg = `🎉 <b>¡IMPORTACIÓN COMPLETADA CON ÉXITO!</b> 🚀
+    const resultMsg = `🎉 <b>¡IMPORTACIÓN DE PRODUCTOS COMPLETADA!</b> 🚀
 ━━━━━━━━━━━━━━━━━━━━━━
 📁 <b>Archivo:</b> <code>${parsedSetting.fileName}</code>
 • 🟢 <b>Nuevos creados:</b> ${createdCount} productos
@@ -1715,7 +1995,7 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     const targetChatId = data.replace('import_cancel:', '');
     await supabase.from('platform_settings').delete().eq('key', `telegram_pending_import_${targetChatId}`);
 
-    const cancelMsg = `❌ <b>Importación cancelada.</b>\nNo se realizaron cambios en la base de datos.`;
+    const cancelMsg = `❌ <b>Importación cancelada.</b>\nNo se realizaron cambios en la base de datos de EnMinutos.`;
     if (messageId) {
       await editMessageText(chatId, messageId, cancelMsg);
     } else {
@@ -1726,7 +2006,7 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
 
   if (data === 'send_plantilla') {
     const templateBuf = generateExcelTemplate();
-    await sendDocumentToChat(chatId, templateBuf, 'plantilla_productos_axonmarket.xlsx', '📥 <b>Plantilla Oficial para Importación de Productos — AxonMarket</b>\n\nLlena los datos en esta hoja de cálculo y reenvíala a este chat.');
+    await sendDocumentToChat(chatId, templateBuf, 'plantilla_despachos_enminutos.xlsx', '⚡ <b>PLANTILLA OFICIAL DE DESPACHOS — ENMINUTOS (EM)</b> 🛵\n\nPlanilla profesional para registro y auditoría de envíos, fletes de repartidores y ventas de comercios aliados.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
     return new Response("OK", { headers: corsHeaders });
   }
 
