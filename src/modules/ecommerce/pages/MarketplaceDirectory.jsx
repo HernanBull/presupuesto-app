@@ -1701,108 +1701,111 @@ export default function MarketplaceDirectory() {
         <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
       </div>
 
-      {/* Centered Mobile-First App Shell (Wider for Desktop) */}
-      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-
-        {/* Cabecera Superior y Explorar Destacados (Snap Start - Oculta fluidamente al bajar al feed) */}
-        <div className="w-full snap-start shrink-0 bg-white z-40 flex flex-col">
-          {/* App Header */}
-          <header className="bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
-            <div className="w-full flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setIsMobileMenuOpen(true)} 
-                  className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
-                  title="Menú de opciones"
-                >
-                  <MoreVertical size={22} strokeWidth={2.2} />
-                </button>
-                <div 
-                  className="flex items-center gap-2 select-none cursor-pointer" 
-                  onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
-                >
-                  <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                    <ShoppingBag size={16} className="stroke-[2.5]"/>
-                  </div>
-                  <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {Object.keys(globalCart).length > 0 && (
-                  <button
-                    onClick={() => setIsCartOpen(true)}
-                    className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
-                    title="Ver mis carritos de compra"
-                  >
-                    <ShoppingCart size={20} />
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
-                      {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
-                    </span>
-                  </button>
-                )}
-
-                {/* Botón de Retorno al Panel Administrador para Comerciantes */}
-                {hasMerchantAccess && (
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
-                    title="Volver a mi Panel de Administrador"
-                  >
-                    <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
-                    <span>Panel Admin</span>
-                  </button>
-                )}
-
-                {currentCustomer ? (
-                  <button 
-                    onClick={() => navigate('/profile')} 
-                    className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
-                    title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
-                  >
-                    {currentCustomer.profile_pic ? (
-                      <img 
-                        src={resolveImageUrl(currentCustomer.profile_pic)} 
-                        alt="Perfil" 
-                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
-                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
-                    title="Iniciar Sesión"
-                  >
-                    <User size={20} strokeWidth={2} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* Indicador de Categoría Activa */}
-          {activeCategory !== 'Todas' && (
-            <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                <span className="text-xs font-bold text-zinc-800">
-                  Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
-                </span>
-              </div>
-              <button
-                onClick={() => setActiveCategory('Todas')}
-                className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
+      {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable */}
+      <div 
+        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-300 pointer-events-auto ${
+          !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        <header className="bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)} 
+                className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
+                title="Menú de opciones"
               >
-                Mostrar todas
+                <MoreVertical size={22} strokeWidth={2.2} />
               </button>
+              <div 
+                className="flex items-center gap-2 select-none cursor-pointer" 
+                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
+              >
+                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                  <ShoppingBag size={16} className="stroke-[2.5]"/>
+                </div>
+                <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+              </div>
             </div>
-          )}
-        </div>
+
+            <div className="flex items-center gap-2">
+              {Object.keys(globalCart).length > 0 && (
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
+                  title="Ver mis carritos de compra"
+                >
+                  <ShoppingCart size={20} />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
+                    {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
+                  </span>
+                </button>
+              )}
+
+              {/* Botón de Retorno al Panel Administrador para Comerciantes */}
+              {hasMerchantAccess && (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
+                  title="Volver a mi Panel de Administrador"
+                >
+                  <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
+                  <span>Panel Admin</span>
+                </button>
+              )}
+
+              {currentCustomer ? (
+                <button 
+                  onClick={() => navigate('/profile')} 
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                  title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
+                >
+                  {currentCustomer.profile_pic ? (
+                    <img 
+                      src={resolveImageUrl(currentCustomer.profile_pic)} 
+                      alt="Perfil" 
+                      className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
+                  className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                  title="Iniciar Sesión"
+                >
+                  <User size={20} strokeWidth={2} />
+                </button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Indicador de Categoría Activa */}
+        {activeCategory !== 'Todas' && (
+          <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="text-xs font-bold text-zinc-800">
+                Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
+              </span>
+            </div>
+            <button
+              onClick={() => setActiveCategory('Todas')}
+              className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
+            >
+              Mostrar todas
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Centered Mobile-First App Shell (Wider for Desktop) */}
+      <div ref={mainContainerRef} className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black md:shadow-2xl md:border-x md:border-zinc-900 flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory scroll-smooth touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
         {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
         <ActiveFeedMediaProvider>

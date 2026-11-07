@@ -652,7 +652,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className={`absolute right-3 bottom-24 sm:bottom-20 z-20 flex flex-col items-center gap-3.5 select-none transition-all duration-500 delay-100 ease-out ${
+        className={`absolute right-3 bottom-16 sm:bottom-14 z-20 flex flex-col items-center gap-3.5 select-none transition-all duration-500 delay-100 ease-out ${
           isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -749,7 +749,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
       <div 
-        className={`relative z-20 p-4 pb-24 sm:pb-20 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto transition-all duration-500 delay-150 ease-out ${
+        className={`relative z-20 p-4 pb-16 sm:pb-14 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto transition-all duration-500 delay-150 ease-out ${
           isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
         }`}
         onClick={(e) => e.stopPropagation()}

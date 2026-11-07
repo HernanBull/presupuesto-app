@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Send, MessageCircle, Loader2, Trash2, CornerDownRight, Heart, Smile, Sparkles, Store } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { getPostComments, addPostComment, deletePostComment, toggleCommentReaction } from '../services/socialService';
 import { supabase } from '../../../supabaseClient';
 
@@ -45,6 +46,7 @@ export default function PostCommentsDrawer({
   const activeWorkspace = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspace') : null;
   const isMerchantSession = Boolean((activeWorkspace && activeWorkspace !== 'default_workspace') || currentMerchant);
   const isMerchantOwner = Boolean(isMerchantSession && effectiveWorkspaceId && String(activeWorkspace) === String(effectiveWorkspaceId));
+  const isUserAuthenticated = Boolean(currentCustomer?.id || currentCustomer?.uid || currentMerchant?.id || (activeWorkspace && activeWorkspace !== 'default_workspace'));
 
   // Datos de la tienda si el usuario conectado es comerciante
   const [merchantStoreData, setMerchantStoreData] = useState(() => {
@@ -253,7 +255,12 @@ export default function PostCommentsDrawer({
 
   const handleToggleReaction = async (commentId, reactionType) => {
     setActiveReactionPickerCommentId(null);
-    const keyToUse = currentUserKey || guestId;
+    if (!isUserAuthenticated) {
+      toast.error('Debes iniciar sesión para reaccionar a los comentarios', { icon: '🔒' });
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    const keyToUse = currentUserKey;
 
     // Actualización optimista inmediata en estado para respuesta instantánea
     setComments(prev => prev.map(c => {
@@ -388,7 +395,14 @@ export default function PostCommentsDrawer({
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setActiveReactionPickerCommentId(isPickerOpen ? null : c.id)}
+                onClick={() => {
+                  if (!isUserAuthenticated) {
+                    toast.error('Debes iniciar sesión para reaccionar a los comentarios', { icon: '🔒' });
+                    if (onRequireAuth) onRequireAuth();
+                    return;
+                  }
+                  setActiveReactionPickerCommentId(isPickerOpen ? null : c.id);
+                }}
                 className={`hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer ${
                   userReaction ? 'text-amber-600 dark:text-amber-400 font-black' : ''
                 }`}
@@ -436,6 +450,11 @@ export default function PostCommentsDrawer({
             <button
               type="button"
               onClick={() => {
+                if (!isUserAuthenticated) {
+                  toast.error('Debes iniciar sesión para responder a los comentarios', { icon: '🔒' });
+                  if (onRequireAuth) onRequireAuth();
+                  return;
+                }
                 setReplyingTo(c);
                 inputRef.current?.focus();
               }}
