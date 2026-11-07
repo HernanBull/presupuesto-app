@@ -1,179 +1,261 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  BarChart3, ShoppingCart, Mail, Activity, ArrowRight, 
-  CheckCircle2, RotateCcw, CalendarDays, DollarSign, Target, 
-  TrendingUp, TrendingDown, Layers, Calculator, CreditCard, 
-  Factory, LineChart as LineChartIcon, Bot, ArrowLeft, Users, 
-  Package, ChevronRight, Eye, ShieldCheck, Flame, Zap, ArrowDown
+  CalendarDays, DollarSign, Target, TrendingUp, TrendingDown, 
+  ArrowLeft, Package, ChevronRight, AlertTriangle, 
+  PackagePlus, Sparkles, ShoppingCart, Clock, CheckCircle2,
+  Boxes, ArrowUpRight, Flame, Store
 } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
-import CFOAssistantWizard from '../components/CFOAssistantWizard';
+import { 
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  CartesianGrid, BarChart, Bar 
+} from 'recharts';
 import { supabase } from '../../../supabaseClient';
 
 export default function AnalyticsManager() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('funnel');
-  const [timeRange, setTimeRange] = useState('30d');
+  const [timeRange, setTimeRange] = useState('30d'); // 'today' | '7d' | '30d' | 'month' | 'custom'
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  
-  // Data States
-  const [salesData, setSalesData] = useState([]);
-  const [funnelData, setFunnelData] = useState({ visitors: 0, addedToCart: 0, checkoutStarted: 0, purchases: 0 });
-  const [carts, setCarts] = useState([]);
-  const [topProducts, setTopProducts] = useState([]);
-  const [finData, setFinData] = useState({ revenue: 0, cogs: 0, ordersCount: 0, customersCount: 0 });
 
-  // Financial Config States
-  const [finConfig, setFinConfig] = useState({
-    marketing: 0,
-    fixedCosts: 0,
-    equity: 0,
-    dso: 0, // Days Sales Outstanding
-    dpo: 0, // Days Payable Outstanding
-    dio: 0, // Days Inventory Outstanding
-    lifespan: 12 // meses
+  // Datos del comercio
+  const [salesData, setSalesData] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [inventoryEntries, setInventoryEntries] = useState([]);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [stagnantProducts, setStagnantProducts] = useState([]);
+  const [summaryMetrics, setSummaryMetrics] = useState({
+    totalRevenue: 0,
+    totalUnits: 0,
+    ordersCount: 0,
+    avgTicket: 0,
+    peakDay: null
   });
 
   const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
 
-  const fetchAnalytics = async () => {
+  // Cálculo de fechas según el rango seleccionado
+  const { startDate, endDate } = useMemo(() => {
+    const now = new Date();
+    let start = new Date();
+    let end = new Date(now);
+
+    if (timeRange === 'today') {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    } else if (timeRange === '7d') {
+      start.setDate(now.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    } else if (timeRange === '30d') {
+      start.setDate(now.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+    } else if (timeRange === 'month') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      start.setHours(0, 0, 0, 0);
+    } else if (timeRange === 'custom') {
+      if (customStartDate) {
+        start = new Date(customStartDate + 'T00:00:00');
+      } else {
+        start.setDate(now.getDate() - 30);
+      }
+      if (customEndDate) {
+        end = new Date(customEndDate + 'T23:59:59');
+      }
+    }
+
+    return { startDate: start, endDate: end };
+  }, [timeRange, customStartDate, customEndDate]);
+
+  const fetchProductIntelligence = async () => {
     setLoading(true);
     try {
-      const limitDate = new Date();
-      if (timeRange === '7d') limitDate.setDate(limitDate.getDate() - 7);
-      else if (timeRange === '30d') limitDate.setDate(limitDate.getDate() - 30);
-      else if (timeRange === 'year') limitDate.setMonth(0, 1);
+      const startIso = startDate.toISOString();
+      const endIso = endDate.toISOString();
 
-      const { data: orders, error } = await supabase
+      // 1. Obtener órdenes EXCLUSIVAS del comercio en el rango
+      const { data: orders, error: ordersErr } = await supabase
         .from('ecommerce_orders_v2')
         .select('*')
         .eq('workspace_id', workspaceId)
-        .gte('date', limitDate.toISOString());
+        .gte('date', startIso)
+        .lte('date', endIso);
 
-      if (!error && orders) {
-        // Aggregate Sales by Date
-        const salesMap = {};
-        let totalRevenue = 0;
-        let cogs = 0;
-        const uniqueCustomers = new Set();
-        const productStats = {};
+      // 2. Obtener productos del catálogo del comercio
+      const { data: allProducts, error: prodErr } = await supabase
+        .from('ecommerce_products')
+        .select('*')
+        .eq('workspace_id', workspaceId);
 
-        orders.forEach(order => {
-          if (order.status === 'Rechazado' || order.status === 'Cancelado') return;
-          
-          const dateStr = order.date.split('T')[0];
-          salesMap[dateStr] = (salesMap[dateStr] || 0) + Number(order.total);
-          
-          totalRevenue += Number(order.total);
-          if (order.customer_email || order.customer) {
-            uniqueCustomers.add(order.customer_email || order.customer);
-          }
-          
-          let items = [];
-          try { items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items; } catch(e){}
-          if (Array.isArray(items)) {
-            items.forEach(item => {
-              if (!productStats[item.id]) productStats[item.id] = { id: item.id, name: item.name, sales: 0, revenue: 0 };
-              productStats[item.id].sales += Number(item.quantity) || 1;
-              productStats[item.id].revenue += ((Number(item.price) || 0) * (Number(item.quantity) || 1));
-              cogs += ((Number(item.price) || 0) * (Number(item.quantity) || 1)) * 0.5;
-            });
-          }
+      const catalog = allProducts || [];
+
+      // Mapa de productos de catálogo por id
+      const catalogMap = new Map();
+      catalog.forEach(p => {
+        const pImages = Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : (p.image_url ? [p.image_url] : []);
+        catalogMap.set(p.id, {
+          ...p,
+          imageUrl: pImages[0] || p.image_url || ''
         });
+      });
 
-        const sortedSalesData = Object.keys(salesMap).sort().map(date => ({
-          date, revenue: salesMap[date]
-        }));
-        setSalesData(sortedSalesData);
+      // Procesar métricas de ventas y productos
+      const salesByDay = {};
+      let totalRevenue = 0;
+      let totalUnits = 0;
+      const productStats = {};
 
-        const sortedProducts = Object.values(productStats).sort((a,b) => b.revenue - a.revenue).slice(0, 5);
-        setTopProducts(sortedProducts);
+      const validOrders = (orders || []).filter(o => 
+        o.status !== 'Rechazado' && o.status !== 'Cancelado'
+      );
 
-        setFinData({
-          revenue: totalRevenue,
-          cogs: cogs,
-          ordersCount: orders.length,
-          customersCount: uniqueCustomers.size
-        });
+      validOrders.forEach(order => {
+        const dateStr = (order.date || '').split('T')[0];
+        const orderTotal = Number(order.total) || 0;
+        totalRevenue += orderTotal;
+        salesByDay[dateStr] = (salesByDay[dateStr] || 0) + orderTotal;
 
-        setFunnelData({ 
-          visitors: uniqueCustomers.size > 0 ? uniqueCustomers.size * 3 : 0, 
-          addedToCart: uniqueCustomers.size > 0 ? uniqueCustomers.size * 2 : 0, 
-          checkoutStarted: Math.round(orders.length * 1.5), 
-          purchases: orders.length 
-        });
-        setCarts([]);
-      }
+        let items = [];
+        try { 
+          items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items; 
+        } catch(e) {}
+
+        if (Array.isArray(items)) {
+          items.forEach(item => {
+            const qty = Number(item.quantity) || 1;
+            const price = Number(item.price) || 0;
+            totalUnits += qty;
+
+            const pKey = item.id || item.name;
+            if (!productStats[pKey]) {
+              const matchedCatalog = catalogMap.get(item.id);
+              productStats[pKey] = {
+                id: item.id || pKey,
+                name: item.name || 'Producto',
+                category: matchedCatalog?.category || item.category || 'General',
+                subcategory: matchedCatalog?.subcategory || '',
+                imageUrl: matchedCatalog?.imageUrl || item.image || item.imageUrl || '',
+                currentStock: matchedCatalog?.stock ?? 'N/D',
+                vitrinaStock: matchedCatalog?.stock_vitrina ?? 0,
+                unitsSold: 0,
+                revenue: 0
+              };
+            }
+            productStats[pKey].unitsSold += qty;
+            productStats[pKey].revenue += (price * qty);
+          });
+        }
+      });
+
+      // Ordenar evolución diaria de ventas
+      const sortedDailySales = Object.keys(salesByDay).sort().map(d => ({
+        date: d,
+        revenue: Number(salesByDay[d].toFixed(2))
+      }));
+      setSalesData(sortedDailySales);
+
+      // Calcular pico de ventas (día récord)
+      let peak = null;
+      let maxRev = 0;
+      sortedDailySales.forEach(s => {
+        if (s.revenue > maxRev) {
+          maxRev = s.revenue;
+          peak = s;
+        }
+      });
+
+      const avgTicket = validOrders.length > 0 ? (totalRevenue / validOrders.length) : 0;
+      setSummaryMetrics({
+        totalRevenue,
+        totalUnits,
+        ordersCount: validOrders.length,
+        avgTicket,
+        peakDay: peak
+      });
+
+      // Ranking Top Productos Más Vendidos
+      const sortedTop = Object.values(productStats)
+        .sort((a, b) => b.unitsSold - a.unitsSold)
+        .slice(0, 10);
+      setTopProducts(sortedTop);
+
+      // 3. Entradas de Inventario en el Período
+      // Identificar productos registrados o que ingresaron en el período
+      const entriesInPeriod = catalog.filter(p => {
+        if (!p.created_at) return false;
+        const entryDate = new Date(p.created_at);
+        return entryDate >= startDate && entryDate <= endDate;
+      }).map(p => {
+        const pImages = Array.isArray(p.images) && p.images.length > 0
+          ? p.images
+          : (p.image_url ? [p.image_url] : []);
+        return {
+          id: p.id,
+          name: p.name || 'Sin Nombre',
+          sku: p.id,
+          category: p.category || 'General',
+          subcategory: p.subcategory || '',
+          imageUrl: pImages[0] || p.image_url || '',
+          stock: p.stock || 0,
+          stockVitrina: p.stock_vitrina || 0,
+          cogs: p.cogs || 0,
+          price: p.price || 0,
+          supplier: p.supplier || 'Proveedor Local',
+          createdAt: p.created_at ? p.created_at.split('T')[0] : 'Hoy'
+        };
+      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setInventoryEntries(entriesInPeriod);
+
+      // 4. Alertas de Stock Inteligente
+      // Productos con stock bajo (menor o igual a 5 unidades)
+      const lowStock = catalog.filter(p => {
+        const totalAvail = (Number(p.stock) || 0) + (Number(p.stock_vitrina) || 0);
+        return totalAvail <= 5;
+      }).map(p => {
+        const pImages = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image_url ? [p.image_url] : []);
+        return {
+          id: p.id,
+          name: p.name,
+          category: p.category || 'General',
+          imageUrl: pImages[0] || p.image_url || '',
+          stock: p.stock || 0,
+          stockVitrina: p.stock_vitrina || 0
+        };
+      }).slice(0, 6);
+      setLowStockProducts(lowStock);
+
+      // Productos estancados (tienen stock pero 0 ventas en el período)
+      const soldProductIds = new Set(Object.keys(productStats));
+      const stagnant = catalog.filter(p => {
+        const hasStock = (Number(p.stock) || 0) > 0 || (Number(p.stock_vitrina) || 0) > 0;
+        const noSales = !soldProductIds.has(p.id) && !soldProductIds.has(p.name);
+        return hasStock && noSales;
+      }).map(p => {
+        const pImages = Array.isArray(p.images) && p.images.length > 0 ? p.images : (p.image_url ? [p.image_url] : []);
+        return {
+          id: p.id,
+          name: p.name,
+          category: p.category || 'General',
+          imageUrl: pImages[0] || p.image_url || '',
+          stock: (p.stock || 0) + (p.stock_vitrina || 0),
+          cogs: p.cogs || 0,
+          tiedUpCapital: ((p.stock || 0) + (p.stock_vitrina || 0)) * (Number(p.cogs) || 0)
+        };
+      }).slice(0, 6);
+      setStagnantProducts(stagnant);
+
     } catch (e) {
-      console.error(e);
+      console.error('Error cargando inteligencia de productos:', e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    fetchAnalytics();
-    const saved = localStorage.getItem(`fin_config_${workspaceId}`);
-    if (saved) {
-      try { setFinConfig(JSON.parse(saved)); } catch(e){}
-    }
-  }, [workspaceId, timeRange]);
-
-  const saveFinConfig = (newConfig) => {
-    setFinConfig(newConfig);
-    localStorage.setItem(`fin_config_${workspaceId}`, JSON.stringify(newConfig));
-  };
-
-  const handleConfigChange = (e) => {
-    const { name, value } = e.target;
-    saveFinConfig({ ...finConfig, [name]: Number(value) || 0 });
-  };
-
-  // Funnel Calculations
-  const visitors = funnelData.visitors || 0;
-  const addedToCart = funnelData.addedToCart || 0;
-  const checkoutStarted = funnelData.checkoutStarted || 0;
-  const purchases = funnelData.purchases || 0;
-  const rateAddToCart = visitors > 0 ? ((addedToCart / visitors) * 100).toFixed(1) : "0.0";
-  const rateCheckout = addedToCart > 0 ? ((checkoutStarted / addedToCart) * 100).toFixed(1) : "0.0";
-  const ratePurchase = checkoutStarted > 0 ? ((purchases / checkoutStarted) * 100).toFixed(1) : "0.0";
-
-  // Abandoned Carts Calculation
-  const { lostRevenue, recoveredRevenue } = useMemo(() => {
-    return carts.reduce((acc, cart) => {
-      if (cart.status === 'Recuperado') acc.recoveredRevenue += cart.total;
-      else acc.lostRevenue += cart.total;
-      return acc;
-    }, { lostRevenue: 0, recoveredRevenue: 0 });
-  }, [carts]);
-
-  // Financial Metrics Calculations
-  const rev = Number(finData.revenue) || 0;
-  const cogs = Number(finData.cogs) || 0;
-  const mkt = Number(finConfig.marketing) || 0;
-  const fc = Number(finConfig.fixedCosts) || 0;
-  
-  const grossProfit = rev - cogs;
-  const grossMargin = rev > 0 ? (grossProfit / rev) * 100 : 0;
-  
-  const contributionMargin = rev - cogs - mkt; 
-  const contributionMarginPct = rev > 0 ? (contributionMargin / rev) * 100 : 0;
-  
-  const netIncome = rev - cogs - mkt - fc;
-  const netMargin = rev > 0 ? (netIncome / rev) * 100 : 0;
-  
-  const breakEvenPoint = contributionMarginPct > 0 ? (fc / (contributionMarginPct / 100)) : 0;
-  
-  const ticketPromedio = finData.ordersCount > 0 ? (rev / finData.ordersCount) : 0;
-  const cac = finData.customersCount > 0 ? (mkt / finData.customersCount) : 0;
-  
-  const avgPurchasesPerCustomer = finData.customersCount > 0 ? (finData.ordersCount / finData.customersCount) : 1;
-  const ltv = ticketPromedio * avgPurchasesPerCustomer * (finConfig.lifespan || 12);
-  
-  const operatingCashFlow = netIncome;
-  const ccc = (finConfig.dio || 0) + (finConfig.dso || 0) - (finConfig.dpo || 0);
-  const roe = finConfig.equity > 0 ? (netIncome / finConfig.equity) * 100 : 0;
+    fetchProductIntelligence();
+  }, [workspaceId, timeRange, customStartDate, customEndDate]);
 
   return (
     <div className="p-3.5 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 pb-32 md:pb-12 font-sans animate-in fade-in duration-300">
@@ -187,356 +269,429 @@ export default function AnalyticsManager() {
             type="button"
             onClick={() => navigate('/dashboard')}
             className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-400 transition-all cursor-pointer shadow-xs shrink-0 flex items-center justify-center gap-1.5 text-xs font-bold active:scale-95"
-            title="Volver a Inicio (Dashboard)"
+            title="Volver a Inicio"
           >
             <ArrowLeft size={16} />
             <span className="hidden sm:inline">Inicio</span>
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight">
-              Análisis del Período
+            <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
+              <span>Inteligencia de Producto & Ventas</span>
+              <Sparkles size={20} className="text-orange-500" />
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Métricas de conversión, inteligencia de negocio y salud financiera.
+              Evolución de ventas, rotación de productos y entradas de almacén por fecha.
             </p>
           </div>
         </div>
 
-        {/* Selector de Período Estilizado */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <select 
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl px-4 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500/30 shadow-xs cursor-pointer"
-          >
-            <option value="7d">Últimos 7 días</option>
-            <option value="30d">Últimos 30 días</option>
-            <option value="year">Este año</option>
-          </select>
+        {/* ========================================================
+            SELECTOR DE PERÍODO & CALENDARIO INTERACTIVO
+            ======================================================== */}
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {[
+            { id: 'today', label: 'Hoy' },
+            { id: '7d', label: '7 días' },
+            { id: '30d', label: '30 días' },
+            { id: 'month', label: 'Este mes' },
+            { id: 'custom', label: 'Personalizado' },
+          ].map(r => (
+            <button
+              key={r.id}
+              onClick={() => setTimeRange(r.id)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                timeRange === r.id
+                  ? 'bg-orange-500 text-white shadow-orange-500/30'
+                  : 'bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-orange-300'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ========================================================
-          SELECTOR DE PESTAÑAS MODERNO EN NARANJA CORPORATIVO (SIN SCROLLBAR RUSTICO)
-          ======================================================== */}
-      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [-webkit-overflow-scrolling:touch] pb-1">
-        {[
-          { id: 'funnel', label: 'Embudo de Ventas', icon: Layers },
-          { id: 'products', label: 'Inteligencia de Productos', icon: Package },
-          { id: 'finance', label: 'Métricas Financieras (CFO)', icon: Calculator },
-        ].map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer shadow-xs active:scale-95 ${
-                isActive
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-orange-500/25 ring-2 ring-orange-500/30'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 hover:text-orange-600'
-              }`}
-            >
-              <tab.icon size={15} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Rango de Fechas Personalizado (Aparece al seleccionar 'Personalizado') */}
+      {timeRange === 'custom' && (
+        <div className="bg-orange-50/60 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 p-4 rounded-2xl flex flex-wrap items-center gap-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-orange-950 dark:text-orange-300">Desde:</span>
+            <input 
+              type="date"
+              value={customStartDate}
+              onChange={(e) => setCustomStartDate(e.target.value)}
+              className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-orange-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-orange-950 dark:text-orange-300">Hasta:</span>
+            <input 
+              type="date"
+              value={customEndDate}
+              onChange={(e) => setCustomEndDate(e.target.value)}
+              className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-orange-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium">
+            Filtrando pedidos e inventario en este intervalo exacto.
+          </span>
+        </div>
+      )}
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-3">
-          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs font-bold">Calculando indicadores financieros...</p>
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400 space-y-3">
+          <div className="w-9 h-9 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-bold">Analizando productos y ventas del período...</p>
         </div>
       ) : (
         <>
           {/* ========================================================
-              TAB 1: EMBUDO DE CONVERSIÓN MODERNO
+              TARJETAS RESUMEN DE VENTAS Y PRODUCTOS
               ======================================================== */}
-          {activeTab === 'funnel' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              
-              {/* Tarjeta Pipeline de Conversión */}
-              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-5 sm:p-7 relative overflow-hidden">
-                <div className="mb-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">
-                      Embudo de Conversión de la Tienda
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Recorrido desde la visita del cliente hasta la compra final
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold px-3 py-1 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-full border border-orange-200/60 dark:border-orange-500/20">
-                    Tasa Global: {ratePurchase}%
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Paso 1: Visitantes */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
-                        <Users size={17} />
-                      </div>
-                      <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Paso 1</span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{visitors.toLocaleString()}</p>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Visitantes Únicos</p>
-                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div className="bg-indigo-500 h-full rounded-full w-full" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Paso 2: Carrito */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                        <ShoppingCart size={17} />
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                        {rateAddToCart}%
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{addedToCart.toLocaleString()}</p>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Añadieron al Carrito</p>
-                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(rateAddToCart))}%` }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Paso 3: Iniciaron Pago */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                        <CreditCard size={17} />
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                        {rateCheckout}%
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{checkoutStarted.toLocaleString()}</p>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Iniciaron Pago</p>
-                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div className="bg-amber-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(rateCheckout))}%` }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Paso 4: Compras Exitosas */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col justify-between">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                        <CheckCircle2 size={17} />
-                      </div>
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                        {ratePurchase}%
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">{purchases.toLocaleString()}</p>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300 mt-0.5">Compras Cerradas</p>
-                      <div className="w-full bg-slate-200 dark:bg-zinc-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${Math.min(100, Number(ratePurchase))}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-              
-              {/* Monitoreo de Carritos */}
-              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 shadow-xs flex flex-col justify-between">
-                <div>
-                  <h3 className="font-extrabold text-sm mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
-                    <ShoppingCart size={17} className="text-orange-500" /> Monitoreo de Carritos
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20">
-                      <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Recuperado</p>
-                      <p className="text-lg font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">${recoveredRevenue.toFixed(2)}</p>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200/60 dark:border-rose-500/20">
-                      <p className="text-[11px] font-bold text-rose-700 dark:text-rose-400">En riesgo</p>
-                      <p className="text-lg font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">${lostRevenue.toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => navigate('/abandoned-carts')}
-                  className="w-full py-2.5 px-4 bg-slate-50 dark:bg-white/5 hover:bg-orange-50 text-slate-700 dark:text-slate-300 hover:text-orange-600 font-bold text-xs rounded-xl border border-slate-200/60 dark:border-white/10 transition-colors text-center cursor-pointer"
-                >
-                  Ver detalle de carritos abandonados
-                </button>
-              </section>
-
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs">
+              <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+                <DollarSign size={16} className="text-orange-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Ingresos Totales</span>
+              </div>
+              <p className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
+                ${summaryMetrics.totalRevenue.toFixed(2)}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                {summaryMetrics.ordersCount} ventas en el período
+              </p>
             </div>
-          )}
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs">
+              <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+                <Package size={16} className="text-orange-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Uds. Despachadas</span>
+              </div>
+              <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+                {summaryMetrics.totalUnits}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                Artículos vendidos
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs">
+              <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+                <ShoppingCart size={16} className="text-orange-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Ticket Promedio</span>
+              </div>
+              <p className="text-2xl font-black font-mono text-slate-900 dark:text-white">
+                ${summaryMetrics.avgTicket.toFixed(2)}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                Por cada cliente/venta
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs">
+              <div className="flex items-center gap-1.5 text-slate-400 mb-2">
+                <Flame size={16} className="text-orange-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Día Récord</span>
+              </div>
+              <p className="text-2xl font-black font-mono text-orange-600 dark:text-orange-400">
+                ${summaryMetrics.peakDay ? summaryMetrics.peakDay.revenue.toFixed(2) : '0.00'}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-400 mt-1">
+                {summaryMetrics.peakDay ? `Fecha: ${summaryMetrics.peakDay.date}` : 'Sin ventas aún'}
+              </p>
+            </div>
+          </div>
 
           {/* ========================================================
-              TAB 2: INTELIGENCIA DE PRODUCTOS
+              GRÁFICO: EVOLUCIÓN DE VENTAS DEL PERÍODO
               ======================================================== */}
-          {activeTab === 'products' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              
-              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
-                <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <CalendarDays size={17} className="text-orange-500" /> Evolución de Ventas del Período
+          <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                  <TrendingUp size={18} className="text-orange-500" /> Evolución Diaria de Ventas
                 </h3>
-                <div className="w-full h-[280px] min-w-0">
-                  <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ea580c" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.15} />
-                      <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} tickFormatter={(val) => val.substring(5)} stroke="#cbd5e1" tickLine={false} axisLine={false} dy={10} />
-                      <YAxis tick={{fontSize: 10, fill: '#64748b'}} stroke="#cbd5e1" tickLine={false} axisLine={false} tickFormatter={(val) => `$${val}`} />
-                      <Tooltip contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '16px', color: '#fff' }} />
-                      <Area type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" name="Ingresos ($)" activeDot={{ r: 6, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </section>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Curva de ingresos generados día tras día durante el período seleccionado.
+                </p>
+              </div>
+            </div>
 
-              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
-                <h3 className="font-extrabold text-sm mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
-                  <Target size={17} className="text-orange-500" /> Top Productos por Ingresos
+            {salesData.length === 0 ? (
+              <div className="py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-500 flex items-center justify-center mx-auto mb-3 border border-orange-200 dark:border-orange-500/20 shadow-xs">
+                  <CalendarDays size={26} />
+                </div>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">Sin ventas registradas en este período</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  A medida que registres ventas en el POS o tu vitrina virtual, verás aquí el gráfico de crecimiento diario.
+                </p>
+              </div>
+            ) : (
+              <div className="w-full h-[280px] min-w-0">
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={salesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ea580c" stopOpacity={0.45}/>
+                        <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#94a3b8" opacity={0.15} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fontSize: 10, fill: '#64748b' }} 
+                      tickFormatter={(val) => val.substring(5)} 
+                      stroke="#cbd5e1" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      dy={10} 
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 10, fill: '#64748b' }} 
+                      stroke="#cbd5e1" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickFormatter={(val) => `$${val}`} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: '1px solid #334155', borderRadius: '16px', color: '#fff', fontSize: '12px' }} 
+                      formatter={(value) => [`$${Number(value).toFixed(2)}`, 'Venta del Día']}
+                      labelFormatter={(label) => `Fecha: ${label}`}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      stroke="#ea580c" 
+                      strokeWidth={3} 
+                      fillOpacity={1} 
+                      fill="url(#colorRev)" 
+                      name="Ingresos ($)" 
+                      activeDot={{ r: 6, fill: '#ea580c', stroke: '#fff', strokeWidth: 2 }} 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </section>
+
+          {/* ========================================================
+              TOP PRODUCTOS MÁS VENDIDOS (CON FOTO Y RENTABILIDAD)
+              ======================================================== */}
+          <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Target size={18} className="text-orange-500" /> Ranking: Productos Más Vendidos
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5">
-                  {topProducts.map((p, i) => (
-                    <div key={p.id} className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/5 flex flex-col items-center text-center">
-                      <div className="w-9 h-9 rounded-xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 font-black text-sm flex items-center justify-center mb-2.5 shadow-2xs">
-                        #{i+1}
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Artículos con mayor demanda y rotación dentro del período seleccionado.
+                </p>
+              </div>
+            </div>
+
+            {topProducts.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs font-semibold">
+                No hay ventas de productos registradas para este rango de fechas.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {topProducts.map((p, i) => (
+                  <div 
+                    key={p.id} 
+                    className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/5 flex items-center gap-3.5 hover:border-orange-300 transition-all shadow-xs"
+                  >
+                    {/* Badge de Posición */}
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                      #{i + 1}
+                    </div>
+
+                    {/* Foto del Producto */}
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package size={20} className="text-slate-400" />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-xs text-slate-800 dark:text-white truncate">{p.name}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{p.category} {p.subcategory ? `› ${p.subcategory}` : ''}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[11px] font-bold text-orange-600 dark:text-orange-400">
+                          {p.unitsSold} {p.unitsSold === 1 ? 'ud vendida' : 'uds vendidas'}
+                        </span>
+                        <span className="text-xs font-black font-mono text-emerald-600 dark:text-emerald-400">
+                          ${p.revenue.toFixed(2)}
+                        </span>
                       </div>
-                      <p className="font-bold text-xs text-slate-800 dark:text-white mb-1 line-clamp-2">{p.name}</p>
-                      <p className="text-[11px] text-slate-400 mb-2">{p.sales} uds vendidas</p>
-                      <p className="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400">${p.revenue.toFixed(2)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ========================================================
+              MÓDULO: ENTRADAS DE INVENTARIO EN EL PERÍODO
+              ======================================================== */}
+          <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-2 text-slate-900 dark:text-white">
+                  <Boxes size={18} className="text-orange-500" /> Entradas de Productos al Almacén
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Lotes y productos registrados o ingresados al inventario hasta esta fecha.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/inventory')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 hover:bg-orange-100 font-bold text-xs transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <PackagePlus size={14} /> + Registrar Nueva Entrada
+              </button>
+            </div>
+
+            {inventoryEntries.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs font-semibold">
+                No hay ingresos de productos registrados en este rango de fechas.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                {inventoryEntries.map(item => (
+                  <div 
+                    key={item.id} 
+                    className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200/60 dark:border-white/5 flex items-center gap-3 hover:border-orange-300 transition-all shadow-xs"
+                  >
+                    {/* Foto */}
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 overflow-hidden shrink-0 flex items-center justify-center shadow-xs">
+                      {item.imageUrl ? (
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Package size={20} className="text-slate-400" />
+                      )}
+                    </div>
+
+                    {/* Datos */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="font-bold text-xs text-slate-800 dark:text-white truncate">{item.name}</p>
+                        <span className="text-[9px] font-mono font-bold text-slate-400 bg-white dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-zinc-700 shrink-0">
+                          {item.createdAt}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 truncate">{item.category} • Prov: {item.supplier}</p>
+                      
+                      <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-200/50 dark:border-white/5">
+                        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                          Stock: <strong className="text-slate-900 dark:text-white">{item.stock + item.stockVitrina}</strong> uds
+                        </span>
+                        <span className="text-[10px] font-black font-mono text-emerald-600 dark:text-emerald-400">
+                          Costo: ${Number(item.cogs).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ========================================================
+              ALERTAS INTELIGENTES DE STOCK (BAJO STOCK & ESTANCADOS)
+              ======================================================== */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Tarjeta 1: Próximos a Agotarse */}
+            <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-extrabold text-sm flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <AlertTriangle size={17} /> Próximos a Agotarse (Stock ≤ 5)
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20">
+                  {lowStockProducts.length} productos
+                </span>
+              </div>
+
+              {lowStockProducts.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center font-medium">
+                  ¡Excelente! No tienes productos con inventario crítico.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {lowStockProducts.map(p => (
+                    <div key={p.id} className="p-3 bg-rose-50/40 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 rounded-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-800 border border-rose-200/60 overflow-hidden shrink-0 flex items-center justify-center">
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package size={16} className="text-rose-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{p.name}</p>
+                          <p className="text-[10px] text-slate-400">{p.category}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black font-mono text-rose-600 shrink-0">
+                        {p.stock + p.stockVitrina} uds disponibles
+                      </span>
                     </div>
                   ))}
-                  {topProducts.length === 0 && (
-                    <p className="text-slate-400 text-xs font-semibold col-span-5 text-center py-10">
-                      No hay suficientes ventas registradas en este período.
-                    </p>
-                  )}
                 </div>
-              </section>
+              )}
+            </section>
 
-            </div>
-          )}
-
-          {/* ========================================================
-              TAB 3: MÉTRICAS FINANCIERAS (CFO)
-              ======================================================== */}
-          {activeTab === 'finance' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              
-              <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                  <div>
-                    <h3 className="font-extrabold text-sm flex items-center gap-2 text-slate-900 dark:text-white">
-                      <Calculator size={17} className="text-orange-500" /> Configurador Operativo
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                      Ingresa tus datos operativos del período para calcular con precisión métricas como CAC, ROE y Flujo de Efectivo.
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => setIsWizardOpen(true)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-orange-500/20 transition-all cursor-pointer w-full sm:w-auto justify-center active:scale-95"
-                  >
-                    <Bot size={16} /> Entender mis métricas
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Gasto en Marketing ($)</label>
-                    <input type="number" name="marketing" value={finConfig.marketing} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Costos Fijos Operativos ($)</label>
-                    <input type="number" name="fixedCosts" value={finConfig.fixedCosts} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Patrimonio / Inversión ($)</label>
-                    <input type="number" name="equity" value={finConfig.equity} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días Cobro Promedio (DSO)</label>
-                    <input type="number" name="dso" value={finConfig.dso} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días Pago Proveedores (DPO)</label>
-                    <input type="number" name="dpo" value={finConfig.dpo} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Días de Inventario (DIO)</label>
-                    <input type="number" name="dio" value={finConfig.dio} onChange={handleConfigChange} className="mt-1 w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/30" />
-                  </div>
-                </div>
-              </section>
-
-              {/* Grid de KPIs Financieros */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <ModernMetricCard title="Ticket Promedio" value={`$${ticketPromedio.toFixed(2)}`} desc="Ingresos / Pedidos" icon={<ShoppingCart size={16}/>} />
-                <ModernMetricCard title="Margen Bruto" value={`${grossMargin.toFixed(1)}%`} desc="(Ingresos - COGS) / Ingresos" icon={<TrendingUp size={16}/>} />
-                <ModernMetricCard title="M. Contribución" value={`${contributionMarginPct.toFixed(1)}%`} desc="Tras Restar Marketing" icon={<Layers size={16}/>} />
-                <ModernMetricCard title="Margen Neto" value={`${netMargin.toFixed(1)}%`} desc="Ganancia Real (Tras CF)" icon={<DollarSign size={16}/>} color={netMargin >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
-                
-                <ModernMetricCard title="Pto. Equilibrio" value={`$${breakEvenPoint.toFixed(2)}`} desc="Para cubrir costos fijos" icon={<Target size={16}/>} />
-                <ModernMetricCard title="C.A.C." value={`$${cac.toFixed(2)}`} desc="Costo Adquisición Cliente" icon={<Activity size={16}/>} />
-                <ModernMetricCard title="L.T.V." value={`$${ltv.toFixed(2)}`} desc="Valor Vida (Anualizado)" icon={<LineChartIcon size={16}/>} />
-                <ModernMetricCard title="R.O.E." value={`${roe.toFixed(1)}%`} desc="Retorno sobre Patrimonio" icon={<TrendingUp size={16}/>} color={roe >= 0 ? 'text-emerald-500' : 'text-rose-500'} />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-center items-center text-center shadow-xs">
-                   <h4 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Flujo de Efectivo Operativo</h4>
-                   <p className={`text-4xl font-black font-mono ${operatingCashFlow >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
-                     ${operatingCashFlow.toFixed(2)}
-                   </p>
-                   <p className="text-[11px] text-slate-400 mt-2 max-w-xs">Dinero neto generado tras restar COGS, Marketing y Costos Fijos.</p>
-                </div>
-                <div className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-center items-center text-center shadow-xs">
-                   <h4 className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-2">Ciclo de Conversión de Efectivo</h4>
-                   <p className="text-4xl font-black font-mono text-orange-600 dark:text-orange-400">{ccc} días</p>
-                   <p className="text-[11px] text-slate-400 mt-2 max-w-xs">Días que tarda el inventario en convertirse en liquidez (DIO + DSO - DPO).</p>
-                </div>
+            {/* Tarjeta 2: Sin Rotación en el Período */}
+            <section className="bg-white dark:bg-zinc-900 rounded-[2rem] border border-slate-200/80 dark:border-white/10 shadow-xs p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-extrabold text-sm flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <Clock size={17} /> Sin Rotación (0 ventas en el período)
+                </h3>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+                  {stagnantProducts.length} productos
+                </span>
               </div>
 
-            </div>
-          )}
+              {stagnantProducts.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center font-medium">
+                  Todo tu inventario con existencia ha registrado movimiento de ventas.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {stagnantProducts.map(p => (
+                    <div key={p.id} className="p-3 bg-amber-50/40 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 rounded-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-800 border border-amber-200/60 overflow-hidden shrink-0 flex items-center justify-center">
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package size={16} className="text-amber-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{p.name}</p>
+                          <p className="text-[10px] text-slate-400">{p.category} • Capital inmóvil: ${p.tiedUpCapital.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs font-black font-mono text-amber-600 shrink-0">
+                        {p.stock} uds en almacén
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+          </div>
         </>
       )}
 
-      <CFOAssistantWizard 
-        isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)} 
-        data={{
-          rev, cogs, mkt, fc, grossMargin, netMargin, breakEvenPoint, cac, ltv
-        }}
-      />
-    </div>
-  );
-}
-
-function ModernMetricCard({ title, value, desc, icon, color = 'text-slate-900 dark:text-white' }) {
-  return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-white/10 p-4 shadow-xs hover:border-orange-300 transition-all">
-      <div className="flex items-center gap-1.5 text-slate-400 mb-2">
-        <span className="text-orange-500">{icon}</span>
-        <span className="text-[10px] font-black uppercase tracking-wider truncate">{title}</span>
-      </div>
-      <p className={`text-xl font-black font-mono ${color}`}>{value}</p>
-      <p className="text-[10px] font-semibold text-slate-400 mt-0.5 truncate">{desc}</p>
     </div>
   );
 }
