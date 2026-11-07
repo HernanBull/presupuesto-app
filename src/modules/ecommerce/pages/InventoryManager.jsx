@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check } from 'lucide-react';
+import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Trash2, X, CheckCircle, Clock, FileUp, UploadCloud, ClipboardCheck, Eye, EyeOff, Tag, Lock, Unlock, ShieldCheck, KeyRound, FolderTree, Plus, Check, ChevronRight } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
-import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
 
 const initialInventory = [];
 
@@ -13,9 +12,15 @@ export default function InventoryManager() {
   const [customCategories, setCustomCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('Todas');
+  const [subcategoryFilter, setSubcategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewSubcategoryInput, setShowNewSubcategoryInput] = useState(false);
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+  const [modalNewCatName, setModalNewCatName] = useState('');
+  const [modalSubcategoryInputs, setModalSubcategoryInputs] = useState({});
   const location = useLocation();
 
   useEffect(() => {
@@ -82,20 +87,33 @@ export default function InventoryManager() {
         .eq('workspace_id', workspaceId)
         .order('name', { ascending: true });
         
-      // Cargar categorías configuradas en la tienda
+      // Cargar categorías configuradas en la tienda (estructura limpia y jerárquica)
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       const rawCustom = ws?.config?.customCategories || ws?.config?.categories || [];
-      const validCats = Array.isArray(rawCustom)
-        ? rawCustom.map(c => typeof c === 'string' ? c : c.name).filter(Boolean)
+      const parsedCategories = Array.isArray(rawCustom)
+        ? rawCustom.map(item => {
+            if (typeof item === 'string') {
+              const clean = item.trim();
+              return clean ? { name: clean, color: '#EA580C', subcategories: [] } : null;
+            }
+            if (item && typeof item === 'object') {
+              const name = (item.name || '').trim();
+              const color = item.color || '#EA580C';
+              const rawSubs = Array.isArray(item.subcategories) ? item.subcategories : [];
+              const subcategories = rawSubs.map(s => typeof s === 'string' ? s.trim() : (s?.name || '').trim()).filter(Boolean);
+              return name ? { name, color, subcategories } : null;
+            }
+            return null;
+          }).filter(Boolean)
         : [];
-      setCustomCategories(validCats);
+      setCustomCategories(parsedCategories);
 
       if (!error && data) {
         setInventory(data.map(p => ({
           ...p,
           stock: p.stock || 0,
           cogs: p.cogs || 0,
-          category: p.category || 'General',
+          category: p.category || '',
           subcategory: p.subcategory || '',
           minStock: p.min_stock || 5,
           maxStock: p.max_stock || '',
@@ -116,7 +134,8 @@ export default function InventoryManager() {
   const [formData, setFormData] = useState({
     id: '',
     name: '',
-    category: 'General',
+    category: '',
+    subcategory: '',
     stock: '',
     stockVitrina: '0',
     minStock: '',
@@ -246,52 +265,156 @@ export default function InventoryManager() {
     return 'En Stock';
   };
 
-  const officialCategories = useMemo(() => MARKETPLACE_CATEGORIES.map(c => c.name), []);
-
+  // Categorías principales únicas creadas por el comerciante o presentes en sus productos (Inicia 100% limpio)
   const availableCategories = useMemo(() => {
-    const cats = new Set([
-      ...officialCategories,
-      ...customCategories,
-      ...inventory.map(i => i.category || 'General').filter(Boolean)
-    ]);
-    return ['Todas', ...Array.from(cats).sort()];
-  }, [officialCategories, inventory, customCategories]);
+    const names = new Set();
+    customCategories.forEach(c => {
+      if (c && c.name && c.name !== 'General') names.add(c.name);
+    });
+    inventory.forEach(i => {
+      if (i.category && i.category !== 'General') names.add(i.category);
+    });
+    return Array.from(names).sort();
+  }, [customCategories, inventory]);
 
-  const categoryOptions = useMemo(() => {
-    const cats = new Set([
-      'General',
-      ...officialCategories,
-      ...customCategories,
-      ...inventory.map(i => i.category || 'General').filter(Boolean)
-    ]);
-    return Array.from(cats);
-  }, [officialCategories, customCategories, inventory]);
+  // Subcategorías asociadas a una categoría principal
+  const getSubcategoriesForCategory = (catName) => {
+    if (!catName) return [];
+    const cleanName = catName.trim().toLowerCase();
+    const found = customCategories.find(c => c.name.trim().toLowerCase() === cleanName);
+    const customSubs = found?.subcategories || [];
+    const invSubs = inventory
+      .filter(i => (i.category || '').trim().toLowerCase() === cleanName)
+      .map(i => i.subcategory)
+      .filter(Boolean);
+    const set = new Set([...customSubs, ...invSubs]);
+    return Array.from(set).sort();
+  };
 
-  const handleAddNewCategory = async () => {
-    const clean = newCategoryName.trim();
-    if (!clean) return;
-    if (!customCategories.includes(clean)) {
-      const updated = [...customCategories, clean];
-      setCustomCategories(updated);
-      const wsId = localStorage.getItem('activeWorkspace');
-      if (wsId) {
-        try {
-          const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
-          const cfg = ws?.config || {};
-          const prevCustom = Array.isArray(cfg.customCategories) ? cfg.customCategories : [];
-          const updatedCustom = [...prevCustom, { name: clean, color: '#EA580C' }];
-          await supabase.from('workspaces').update({
-            config: { ...cfg, customCategories: updatedCustom }
-          }).eq('id', wsId);
-        } catch (err) {
-          console.error("Error saving new category:", err);
-        }
-      }
+  const saveCustomCategoriesToSupabase = async (updated) => {
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (!wsId) return;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      const cfg = ws?.config || {};
+      await supabase.from('workspaces').update({
+        config: { ...cfg, customCategories: updated }
+      }).eq('id', wsId);
+    } catch (err) {
+      console.error("Error saving customCategories:", err);
     }
-    setFormData(prev => ({ ...prev, category: clean }));
+  };
+
+  const handleAddNewCategory = async (catName) => {
+    const clean = (catName || newCategoryName).trim();
+    if (!clean) return;
+    const exists = customCategories.some(c => c.name.toLowerCase() === clean.toLowerCase());
+    let updated = [...customCategories];
+    if (!exists) {
+      updated = [...customCategories, { name: clean, color: '#EA580C', subcategories: [] }];
+      setCustomCategories(updated);
+      await saveCustomCategoriesToSupabase(updated);
+    }
+    setFormData(prev => ({ ...prev, category: clean, subcategory: '' }));
     setNewCategoryName('');
     setShowNewCategoryInput(false);
     toast.success(`Categoría "${clean}" creada y asignada`);
+  };
+
+  const handleAddNewSubcategory = async (catName, subName) => {
+    const targetCat = (catName || formData.category || '').trim();
+    const cleanSub = (subName || newSubcategoryName).trim();
+    if (!targetCat) {
+      toast.error('Primero selecciona o crea una categoría principal');
+      return;
+    }
+    if (!cleanSub) return;
+
+    let updated = [...customCategories];
+    const catIndex = updated.findIndex(c => c.name.toLowerCase() === targetCat.toLowerCase());
+    if (catIndex >= 0) {
+      const existingSubs = updated[catIndex].subcategories || [];
+      if (!existingSubs.some(s => s.toLowerCase() === cleanSub.toLowerCase())) {
+        updated[catIndex] = {
+          ...updated[catIndex],
+          subcategories: [...existingSubs, cleanSub]
+        };
+      }
+    } else {
+      updated.push({
+        name: targetCat,
+        color: '#EA580C',
+        subcategories: [cleanSub]
+      });
+    }
+
+    setCustomCategories(updated);
+    await saveCustomCategoriesToSupabase(updated);
+    setFormData(prev => ({ ...prev, subcategory: cleanSub }));
+    setNewSubcategoryName('');
+    setShowNewSubcategoryInput(false);
+    toast.success(`Subcategoría "${cleanSub}" añadida a "${targetCat}"`);
+  };
+
+  // Acciones del Modal de Categorías
+  const handleCreateCategoryFromModal = async (e) => {
+    e?.preventDefault();
+    const clean = modalNewCatName.trim();
+    if (!clean) return;
+    if (customCategories.some(c => c.name.toLowerCase() === clean.toLowerCase())) {
+      toast.error('Esta categoría ya existe');
+      return;
+    }
+    const updated = [...customCategories, { name: clean, color: '#EA580C', subcategories: [] }];
+    setCustomCategories(updated);
+    await saveCustomCategoriesToSupabase(updated);
+    setModalNewCatName('');
+    toast.success(`Categoría "${clean}" creada`);
+  };
+
+  const handleAddSubcategoryFromModal = async (catName) => {
+    const subName = (modalSubcategoryInputs[catName] || '').trim();
+    if (!subName) return;
+    let updated = customCategories.map(cat => {
+      if (cat.name.toLowerCase() === catName.toLowerCase()) {
+        const subs = cat.subcategories || [];
+        if (!subs.some(s => s.toLowerCase() === subName.toLowerCase())) {
+          return { ...cat, subcategories: [...subs, subName] };
+        }
+      }
+      return cat;
+    });
+    setCustomCategories(updated);
+    await saveCustomCategoriesToSupabase(updated);
+    setModalSubcategoryInputs(prev => ({ ...prev, [catName]: '' }));
+    toast.success(`Subcategoría "${subName}" agregada a "${catName}"`);
+  };
+
+  const handleDeleteSubcategory = async (catName, subName) => {
+    const updated = customCategories.map(cat => {
+      if (cat.name.toLowerCase() === catName.toLowerCase()) {
+        return {
+          ...cat,
+          subcategories: (cat.subcategories || []).filter(s => s.toLowerCase() !== subName.toLowerCase())
+        };
+      }
+      return cat;
+    });
+    setCustomCategories(updated);
+    await saveCustomCategoriesToSupabase(updated);
+    toast.success(`Subcategoría "${subName}" eliminada`);
+  };
+
+  const handleDeleteCategory = async (catName) => {
+    if (!confirm(`¿Eliminar la categoría "${catName}" y sus subcategorías asociadas?`)) return;
+    const updated = customCategories.filter(cat => cat.name.toLowerCase() !== catName.toLowerCase());
+    setCustomCategories(updated);
+    await saveCustomCategoriesToSupabase(updated);
+    if (categoryFilter.toLowerCase() === catName.toLowerCase()) {
+      setCategoryFilter('Todas');
+      setSubcategoryFilter('Todas');
+    }
+    toast.success(`Categoría "${catName}" eliminada`);
   };
 
   const filteredInventory = inventory.filter(item => {
@@ -300,13 +423,14 @@ export default function InventoryManager() {
       item.name?.toLowerCase().includes(s) ||
       item.id?.toLowerCase().includes(s) ||
       item.supplier?.toLowerCase().includes(s) ||
-      item.category?.toLowerCase().includes(s);
+      item.category?.toLowerCase().includes(s) ||
+      item.subcategory?.toLowerCase().includes(s);
     
     const matchesStatus = statusFilter === 'Todos' || item.publishStatus === statusFilter;
 
     let matchesCategory = true;
     if (categoryFilter !== 'Todas') {
-      const itemCat = (item.category || 'General').trim().toLowerCase();
+      const itemCat = (item.category || '').trim().toLowerCase();
       const filterCat = categoryFilter.trim().toLowerCase();
       matchesCategory = 
         itemCat === filterCat ||
@@ -314,7 +438,14 @@ export default function InventoryManager() {
         filterCat.includes(itemCat);
     }
 
-    return matchesSearch && matchesStatus && matchesCategory;
+    let matchesSubcategory = true;
+    if (subcategoryFilter !== 'Todas') {
+      const itemSub = (item.subcategory || '').trim().toLowerCase();
+      const filterSub = subcategoryFilter.trim().toLowerCase();
+      matchesSubcategory = itemSub === filterSub;
+    }
+
+    return matchesSearch && matchesStatus && matchesCategory && matchesSubcategory;
   });
 
   // KPIs
@@ -349,20 +480,23 @@ export default function InventoryManager() {
     document.body.removeChild(link);
   };
 
-  const openEditor = (item = null, defaultCat = null) => {
+  const openEditor = (item = null, defaultCat = null, defaultSub = null) => {
     if (item) {
       setEditingId(item.id);
       setFormData({ 
         ...item,
-        category: item.category || 'General'
+        category: item.category || '',
+        subcategory: item.subcategory || ''
       });
     } else {
       setEditingId(null);
-      const catToUse = defaultCat || (categoryFilter !== 'Todas' ? categoryFilter : 'General');
+      const catToUse = defaultCat || (categoryFilter !== 'Todas' ? categoryFilter : (availableCategories[0] || ''));
+      const subToUse = defaultSub || (subcategoryFilter !== 'Todas' ? subcategoryFilter : '');
       setFormData({
         id: `SKU-00${inventory.length + 1}`,
         name: '',
         category: catToUse,
+        subcategory: subToUse,
         stock: '',
         stockVitrina: '0',
         minStock: '',
@@ -375,6 +509,8 @@ export default function InventoryManager() {
         comboItems: []
       });
     }
+    setShowNewCategoryInput(false);
+    setShowNewSubcategoryInput(false);
     setIsEditorOpen(true);
   };
 
@@ -425,6 +561,7 @@ export default function InventoryManager() {
       const payload = {
           name: newItem.name,
           category: newItem.category ? newItem.category.trim() : 'General',
+          subcategory: newItem.subcategory ? newItem.subcategory.trim() : '',
           stock: newItem.stock,
           cogs: newItem.cogs,
           price: newItem.price,
@@ -572,20 +709,20 @@ export default function InventoryManager() {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/categories')}
+            onClick={() => setIsCategoryModalOpen(true)}
             className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm cursor-pointer"
-            title="Gestionar departamentos y categorías de la tienda"
+            title="Gestionar categorías y subcategorías de la tienda"
           >
             <FolderTree size={16} className="text-amber-500" />
             <span className="hidden sm:inline">Categorías</span>
             <span className="text-[10px] bg-amber-500/20 text-amber-700 dark:text-amber-400 font-black px-1.5 py-0.5 rounded-full">
-              {availableCategories.filter(c => c !== 'Todas').length}
+              {availableCategories.length}
             </span>
           </button>
-          <button onClick={handleExportCSV} className="hidden sm:flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+          <button onClick={handleExportCSV} className="hidden sm:flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
             Exportar
           </button>
-          <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm">
+          <button onClick={() => setIsImportModalOpen(true)} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
             <FileUp size={16} />
             <span className="hidden sm:inline">Importar POS (.csv)</span>
             <span className="sm:hidden">Importar</span>
@@ -667,19 +804,36 @@ export default function InventoryManager() {
           <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex-1 sm:flex-initial"
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setSubcategoryFilter('Todas');
+              }}
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 flex-1 sm:flex-initial cursor-pointer"
             >
               <option value="Todas">Todas las Categorías</option>
-              {availableCategories.filter(c => c !== 'Todas').map(cat => (
+              {availableCategories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
 
+            {/* Selector de Subcategoría dinámico */}
+            {categoryFilter !== 'Todas' && getSubcategoriesForCategory(categoryFilter).length > 0 && (
+              <select
+                value={subcategoryFilter}
+                onChange={(e) => setSubcategoryFilter(e.target.value)}
+                className="bg-orange-50/70 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-xl px-3 py-2 text-sm font-bold text-orange-900 dark:text-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 flex-1 sm:flex-initial cursor-pointer animate-in fade-in duration-150"
+              >
+                <option value="Todas">Todas las Subcategorías</option>
+                {getSubcategoriesForCategory(categoryFilter).map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            )}
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 cursor-pointer"
             >
               <option value="Todos">Todos los Estados</option>
               <option value="Publicado">Publicados</option>
@@ -764,8 +918,14 @@ export default function InventoryManager() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0">
-                          {item.category || 'General'}
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0 inline-flex items-center gap-1">
+                          <span>{item.category || 'General'}</span>
+                          {item.subcategory && (
+                            <>
+                              <span className="text-slate-400">›</span>
+                              <span className="font-bold text-orange-600 dark:text-orange-400">{item.subcategory}</span>
+                            </>
+                          )}
                         </span>
                       </div>
                       <p className="text-[10px] font-mono text-slate-500 mt-0.5">{item.id}</p>
@@ -920,7 +1080,13 @@ export default function InventoryManager() {
                       <td className="py-3 px-4">
                         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                           <Tag size={12} className="text-amber-500 shrink-0" />
-                          {item.category || 'General'}
+                          <span>{item.category || 'General'}</span>
+                          {item.subcategory && (
+                            <>
+                              <span className="text-slate-400">›</span>
+                              <span className="font-bold text-orange-600 dark:text-orange-400">{item.subcategory}</span>
+                            </>
+                          )}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -1052,56 +1218,138 @@ export default function InventoryManager() {
                    />
                  </div>
 
-                  {/* Selector de Categoría Nativo y Funcional */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Categoría del Producto *
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowNewCategoryInput(prev => !prev)}
-                        className="text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus size={12} /> {showNewCategoryInput ? 'Cancelar' : '+ Nueva Categoría'}
-                      </button>
-                    </div>
-
-                    {showNewCategoryInput && (
-                      <div className="p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl space-y-2 animate-in fade-in duration-150">
-                        <label className="text-[11px] font-bold text-orange-950 dark:text-orange-300">
-                          Crear y asignar nueva categoría:
+                  {/* Categoría Principal y Subcategoría Dinámica */}
+                  <div className="space-y-3">
+                    {/* Categoría Principal */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Categoría Principal *
                         </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newCategoryName}
-                            onChange={e => setNewCategoryName(e.target.value)}
-                            placeholder="Ej: Bebidas Frías, Licores, Postres..."
-                            className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-950 border border-orange-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
-                            autoFocus
-                          />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewCategoryInput(prev => !prev);
+                            setShowNewSubcategoryInput(false);
+                          }}
+                          className="text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus size={12} /> {showNewCategoryInput ? 'Cancelar' : '+ Nueva Categoría'}
+                        </button>
+                      </div>
+
+                      {showNewCategoryInput && (
+                        <div className="p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl space-y-2 animate-in fade-in duration-150">
+                          <label className="text-[11px] font-bold text-orange-950 dark:text-orange-300">
+                            Crear y asignar nueva categoría principal:
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newCategoryName}
+                              onChange={e => setNewCategoryName(e.target.value)}
+                              placeholder="Ej: Víveres, Bebidas, Charcutería..."
+                              className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-950 border border-orange-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleAddNewCategory()}
+                              className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                            >
+                              Añadir
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {availableCategories.length === 0 && !showNewCategoryInput ? (
+                        <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-dashed border-amber-300 dark:border-amber-800 rounded-xl text-center">
+                          <p className="text-xs text-amber-800 dark:text-amber-300 font-semibold mb-2">
+                            Aún no tienes categorías creadas en tu tienda.
+                          </p>
                           <button
                             type="button"
-                            onClick={handleAddNewCategory}
-                            className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                            onClick={() => setShowNewCategoryInput(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white font-bold text-xs rounded-lg cursor-pointer"
                           >
-                            Añadir
+                            <Plus size={12} /> Crear mi primera categoría
                           </button>
                         </div>
+                      ) : (
+                        <select
+                          name="category"
+                          value={formData.category}
+                          onChange={(e) => {
+                            setFormData(prev => ({ ...prev, category: e.target.value, subcategory: '' }));
+                          }}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white font-bold cursor-pointer text-slate-900"
+                        >
+                          <option value="">-- Seleccionar Categoría --</option>
+                          {availableCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {/* Subcategoría (Aparece cuando hay categoría seleccionada) */}
+                    {formData.category && (
+                      <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 animate-in fade-in duration-150">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                            Subcategoría en {formData.category} <span className="text-[10px] text-slate-400 font-normal">(Opcional)</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNewSubcategoryInput(prev => !prev);
+                              setShowNewCategoryInput(false);
+                            }}
+                            className="text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus size={12} /> {showNewSubcategoryInput ? 'Cancelar' : '+ Nueva Subcategoría'}
+                          </button>
+                        </div>
+
+                        {showNewSubcategoryInput && (
+                          <div className="p-3 bg-amber-50/60 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl space-y-2 animate-in fade-in duration-150">
+                            <label className="text-[11px] font-bold text-amber-950 dark:text-amber-300">
+                              Añadir subcategoría a {formData.category}:
+                            </label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={newSubcategoryName}
+                                onChange={e => setNewSubcategoryName(e.target.value)}
+                                placeholder="Ej: Arroz, Harinas, Refrescos..."
+                                className="flex-1 px-3 py-1.5 bg-white dark:bg-slate-950 border border-amber-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddNewSubcategory()}
+                                className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                              >
+                                Añadir
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <select
+                          name="subcategory"
+                          value={formData.subcategory || ''}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white font-medium cursor-pointer text-slate-900"
+                        >
+                          <option value="">Sin subcategoría / General</option>
+                          {getSubcategoriesForCategory(formData.category).map(sub => (
+                            <option key={sub} value={sub}>{sub}</option>
+                          ))}
+                        </select>
                       </div>
                     )}
-
-                    <select
-                      name="category"
-                      value={formData.category || 'General'}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 dark:text-white font-bold cursor-pointer text-slate-900"
-                    >
-                      {categoryOptions.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
                   </div>
 
                   {/* Proveedor y Fecha de Vencimiento */}
@@ -1478,6 +1726,173 @@ export default function InventoryManager() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Gestión de Categorías y Subcategorías */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsCategoryModalOpen(false)}></div>
+          
+          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center border border-orange-500/20">
+                  <FolderTree size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800 dark:text-white">Categorías y Subcategorías</h3>
+                  <p className="text-xs text-slate-500">Organiza los departamentos y grupos de productos de tu comercio.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-800 rounded-xl shadow-xs border border-slate-200 dark:border-slate-700 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar">
+              {/* Formulario Crear Nueva Categoría Principal */}
+              <form onSubmit={handleCreateCategoryFromModal} className="p-4 bg-orange-50/70 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl space-y-2">
+                <label className="text-xs font-bold text-orange-950 dark:text-orange-200 flex items-center gap-1.5">
+                  <Plus size={14} className="text-orange-600" />
+                  Crear Nueva Categoría Principal
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={modalNewCatName}
+                    onChange={e => setModalNewCatName(e.target.value)}
+                    placeholder="Ej: Víveres, Bebidas, Limpieza, Carnes..."
+                    className="flex-1 px-3.5 py-2 bg-white dark:bg-slate-950 border border-orange-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer whitespace-nowrap active:scale-95 transition-all"
+                  >
+                    + Crear Categoría
+                  </button>
+                </div>
+              </form>
+
+              {/* Lista de Categorías y Subcategorías */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Categorías de tu Tienda ({customCategories.length})
+                  </span>
+                </div>
+
+                {customCategories.length === 0 ? (
+                  <div className="py-12 px-4 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <FolderTree size={32} className="mx-auto text-slate-300 dark:text-slate-700 mb-2" />
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Tu tienda no tiene categorías aún</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      Tu catálogo inicia limpio. Usa el cuadro superior para agregar tu primera categoría principal y luego añade subcategorías.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {customCategories.map((cat) => {
+                      const subs = cat.subcategories || [];
+                      const prodsCount = inventory.filter(i => (i.category || '').toLowerCase() === cat.name.toLowerCase()).length;
+                      return (
+                        <div
+                          key={cat.name}
+                          className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                              <h4 className="font-extrabold text-sm text-slate-800 dark:text-white">{cat.name}</h4>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                {prodsCount} {prodsCount === 1 ? 'producto' : 'productos'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.name)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Eliminar categoría"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+
+                          {/* Subcategorías Chips */}
+                          <div className="pl-4 border-l-2 border-orange-200 dark:border-orange-900/50 space-y-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] font-bold text-slate-500 mr-1">Subcategorías:</span>
+                              {subs.length === 0 ? (
+                                <span className="text-[11px] text-slate-400 italic">Ninguna aún (los productos irán directo a {cat.name})</span>
+                              ) : (
+                                subs.map(sub => (
+                                  <span
+                                    key={sub}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs"
+                                  >
+                                    <span>{sub}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteSubcategory(cat.name, sub)}
+                                      className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer ml-0.5"
+                                      title="Eliminar subcategoría"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </span>
+                                ))
+                              )}
+                            </div>
+
+                            {/* Input rápido para añadir subcategoría */}
+                            <div className="flex gap-2 max-w-sm pt-1">
+                              <input
+                                type="text"
+                                value={modalSubcategoryInputs[cat.name] || ''}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  setModalSubcategoryInputs(prev => ({ ...prev, [cat.name]: val }));
+                                }}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleAddSubcategoryFromModal(cat.name);
+                                  }
+                                }}
+                                placeholder={`+ Añadir subcategoría a ${cat.name}...`}
+                                className="flex-1 px-3 py-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-orange-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddSubcategoryFromModal(cat.name)}
+                                className="px-3 py-1 bg-slate-200 dark:bg-slate-700 hover:bg-orange-500 hover:text-white text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                              >
+                                Añadir
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="px-5 py-2 text-sm font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl transition-colors cursor-pointer"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
