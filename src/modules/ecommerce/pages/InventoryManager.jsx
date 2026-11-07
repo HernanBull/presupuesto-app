@@ -33,7 +33,6 @@ export default function InventoryManager() {
     transfers: true,
     combos: true,
     overstock: true,
-    reorder: true
   });
 
   // Bloqueo de Métricas Financieras con PIN de Administrador Unificado
@@ -144,9 +143,6 @@ export default function InventoryManager() {
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState(null);
-
-  const [isShoppingListOpen, setIsShoppingListOpen] = useState(false);
-  const [shoppingList, setShoppingList] = useState({});
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef(null);
@@ -341,20 +337,6 @@ export default function InventoryManager() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const generateShoppingList = () => {
-    const list = {};
-    inventory.forEach(item => {
-      const min = item.minStock || 5;
-      if (item.stock <= min) {
-        const sup = item.supplier || 'Sin Proveedor';
-        if (!list[sup]) list[sup] = [];
-        list[sup].push({ ...item, qtyToOrder: min * 2 - item.stock });
-      }
-    });
-    setShoppingList(list);
-    setIsShoppingListOpen(true);
   };
 
   const openEditor = (item = null) => {
@@ -692,11 +674,6 @@ export default function InventoryManager() {
               <option value="Publicado">Publicados</option>
               <option value="Borrador">Borradores</option>
             </select>
-            {settings.reorder && (
-              <button onClick={generateShoppingList} className="flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0 whitespace-nowrap">
-                Generar Pedidos
-              </button>
-            )}
           </div>
         </div>
 
@@ -1440,95 +1417,6 @@ export default function InventoryManager() {
           </div>
         </div>
       )}
-      {/* Shopping List Modal */}
-      {isShoppingListOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsShoppingListOpen(false)}></div>
-          
-          <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
-               <div>
-                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Generador de Pedidos</h3>
-                 <p className="text-xs text-slate-500 mt-1">Sugerencia de compras basada en el punto de reorden.</p>
-               </div>
-               <button onClick={() => setIsShoppingListOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-colors">
-                 <X size={20} />
-               </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {Object.keys(shoppingList).length === 0 ? (
-                <div className="text-center text-slate-500 py-8">
-                  <p>¡Todo en orden!</p>
-                  <p className="text-sm">Ningún producto está por debajo de su stock mínimo.</p>
-                </div>
-              ) : (
-                Object.keys(shoppingList).map(supplier => (
-                  <div key={supplier} className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                      <h4 className="font-bold text-slate-700 dark:text-slate-200">{supplier}</h4>
-                      <span className="text-xs font-semibold bg-white dark:bg-slate-900 px-2 py-1 rounded text-slate-500">
-                        {shoppingList[supplier].length} items
-                      </span>
-                    </div>
-                    <div className="p-4">
-                      {/* Vista Móvil: Tarjetas */}
-                      <div className="sm:hidden flex flex-col gap-3">
-                        {shoppingList[supplier].map(item => (
-                          <div key={item.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-3 flex justify-between items-center shadow-sm">
-                            <div>
-                              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{item.name}</p>
-                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{item.id}</p>
-                            </div>
-                            <div className="flex gap-4 text-center">
-                              <div>
-                                <p className="text-[10px] text-slate-500 uppercase font-bold">Stock</p>
-                                <p className="text-sm text-slate-600 dark:text-slate-400">{item.stock}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-emerald-600 uppercase font-bold">Pedir</p>
-                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{item.qtyToOrder}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      
-                      {/* Vista Desktop: Tabla */}
-                      <div className="hidden sm:block overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr>
-                              <th className="pb-2 text-slate-500 font-semibold">Producto</th>
-                              <th className="pb-2 text-slate-500 font-semibold text-center">Stock Actual</th>
-                              <th className="pb-2 text-emerald-600 dark:text-emerald-400 font-semibold text-center">Pedir</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {shoppingList[supplier].map(item => (
-                              <tr key={item.id}>
-                                <td className="py-2 text-slate-800 dark:text-slate-200 font-medium">{item.name} <span className="text-[10px] text-slate-400 ml-2">{item.id}</span></td>
-                                <td className="py-2 text-slate-600 dark:text-slate-400 text-center">{item.stock}</td>
-                                <td className="py-2 text-emerald-600 dark:text-emerald-400 font-bold text-center">{item.qtyToOrder}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
-               <button onClick={() => window.print()} className="px-6 py-2 text-sm font-bold bg-violet-600 text-white rounded-xl hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20">
-                 Imprimir / PDF
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
 
     </div>
   );
