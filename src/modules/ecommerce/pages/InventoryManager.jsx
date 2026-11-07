@@ -295,14 +295,24 @@ export default function InventoryManager() {
   };
 
   const filteredInventory = inventory.filter(item => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.category && item.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    const s = searchTerm.trim().toLowerCase();
+    const matchesSearch = !s ||
+      item.name?.toLowerCase().includes(s) ||
+      item.id?.toLowerCase().includes(s) ||
+      item.supplier?.toLowerCase().includes(s) ||
+      item.category?.toLowerCase().includes(s);
     
     const matchesStatus = statusFilter === 'Todos' || item.publishStatus === statusFilter;
-    const matchesCategory = categoryFilter === 'Todas' || (item.category || 'General') === categoryFilter;
+
+    let matchesCategory = true;
+    if (categoryFilter !== 'Todas') {
+      const itemCat = (item.category || 'General').trim().toLowerCase();
+      const filterCat = categoryFilter.trim().toLowerCase();
+      matchesCategory = 
+        itemCat === filterCat ||
+        itemCat.includes(filterCat) ||
+        filterCat.includes(itemCat);
+    }
 
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -339,7 +349,7 @@ export default function InventoryManager() {
     document.body.removeChild(link);
   };
 
-  const openEditor = (item = null) => {
+  const openEditor = (item = null, defaultCat = null) => {
     if (item) {
       setEditingId(item.id);
       setFormData({ 
@@ -348,10 +358,11 @@ export default function InventoryManager() {
       });
     } else {
       setEditingId(null);
+      const catToUse = defaultCat || (categoryFilter !== 'Todas' ? categoryFilter : 'General');
       setFormData({
         id: `SKU-00${inventory.length + 1}`,
         name: '',
-        category: 'General',
+        category: catToUse,
         stock: '',
         stockVitrina: '0',
         minStock: '',
@@ -685,28 +696,56 @@ export default function InventoryManager() {
                 <FolderTree size={24} />
               </div>
               <p className="font-extrabold text-sm text-slate-800 dark:text-white">
-                {searchTerm || categoryFilter !== 'Todas' ? 'Sin resultados para los filtros' : 'Tu inventario está en blanco'}
+                {categoryFilter !== 'Todas'
+                  ? 'No hay productos en esta categoría'
+                  : searchTerm
+                  ? 'No se encontraron productos'
+                  : 'Tu inventario está en blanco'}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-4">
-                {searchTerm || categoryFilter !== 'Todas' ? 'Prueba cambiando los términos de búsqueda.' : 'Crea tus categorías para clasificar tus productos o registra tu primer artículo.'}
+                {categoryFilter !== 'Todas'
+                  ? `No tienes productos registrados en "${categoryFilter}".`
+                  : searchTerm
+                  ? `No hay coincidencias para "${searchTerm}".`
+                  : 'Registra tu primer artículo para empezar a gestionar tu stock.'}
               </p>
               <div className="flex flex-col w-full gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate('/categories')}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-200"
-                >
-                  <FolderTree size={14} className="text-amber-500" />
-                  <span>Gestionar Categorías</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openEditor()}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20"
-                >
-                  <Plus size={14} />
-                  <span>+ Registrar Entrada</span>
-                </button>
+                {categoryFilter !== 'Todas' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFilter('Todas')}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 font-bold text-xs text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                    >
+                      Ver todas las categorías
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditor(null, categoryFilter)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>+ Registrar en {categoryFilter}</span>
+                    </button>
+                  </>
+                ) : searchTerm ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-200 cursor-pointer"
+                  >
+                    Limpiar búsqueda
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openEditor()}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Plus size={14} />
+                    <span>+ Registrar Entrada</span>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -814,30 +853,56 @@ export default function InventoryManager() {
                         <FolderTree size={28} />
                       </div>
                       <h4 className="font-black text-base text-slate-800 dark:text-white">
-                        {searchTerm || categoryFilter !== 'Todas' ? 'No se encontraron coincidencias' : 'Tu inventario está en blanco'}
+                        {categoryFilter !== 'Todas'
+                          ? 'No hay productos en esta categoría'
+                          : searchTerm
+                          ? 'No se encontraron productos'
+                          : 'Tu inventario está en blanco'}
                       </h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-5">
-                        {searchTerm || categoryFilter !== 'Todas'
-                          ? 'Prueba modificando la búsqueda o el filtro de categoría.'
-                          : 'Crea tus categorías y departamentos para estructurar tu POS Kiosco e Inventario, o registra tu primer producto.'}
+                        {categoryFilter !== 'Todas'
+                          ? `No tienes productos registrados en "${categoryFilter}".`
+                          : searchTerm
+                          ? `No hay coincidencias para "${searchTerm}".`
+                          : 'Comienza registrando tu primer producto para estructurar tu catálogo e inventario.'}
                       </p>
                       <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => navigate('/categories')}
-                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
-                        >
-                          <FolderTree size={15} className="text-amber-500" />
-                          <span>Gestionar Categorías</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openEditor()}
-                          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs shadow-md shadow-amber-500/25 active:scale-95 transition-all cursor-pointer"
-                        >
-                          <Plus size={15} />
-                          <span>+ Registrar Entrada</span>
-                        </button>
+                        {categoryFilter !== 'Todas' ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setCategoryFilter('Todas')}
+                              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                            >
+                              Ver todas las categorías
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditor(null, categoryFilter)}
+                              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <Plus size={15} />
+                              <span>+ Registrar en {categoryFilter}</span>
+                            </button>
+                          </>
+                        ) : searchTerm ? (
+                          <button
+                            type="button"
+                            onClick={() => setSearchTerm('')}
+                            className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors cursor-pointer"
+                          >
+                            Limpiar búsqueda
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openEditor()}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                          >
+                            <Plus size={15} />
+                            <span>+ Registrar Entrada</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </td>
