@@ -296,7 +296,7 @@
 }
 
 /* ====================================================
-   FIX BROWSER AUTOFILL STYLES
+   FIX BROWSER AUTOFILL STYLES & MOBILE DARK-MODE TEXT
    Adaptado a la nueva paleta clara
 ==================================================== */
 input:-webkit-autofill,
@@ -306,4 +306,22 @@ input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
     -webkit-text-fill-color: #1A1A1A !important;
     transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Blindaje anti-letras blancas en móviles (Android/iOS/Chrome Dark Theme) */
+.merchant-wizard-container input,
+.merchant-wizard-container select,
+.merchant-wizard-container textarea,
+.merchant-auth-modal input,
+.merchant-auth-modal select,
+.merchant-auth-modal textarea {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+    background-color: #ffffff !important;
+}
+
+.merchant-wizard-container input::placeholder,
+.merchant-auth-modal input::placeholder {
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
 }

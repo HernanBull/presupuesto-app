@@ -368,12 +368,20 @@ export default function MerchantOnboardingWizard({
 
         const primaryCat = selectedCategories[0] || 'Víveres';
 
+        // Preparamos categorías y subcategorías iniciales para que el POS e Inventario arranquen listos
+        const initialCustomCategories = selectedCategories.map(catName => ({
+          name: catName,
+          color: '#EA580C',
+          subcategories: [{ name: 'General' }]
+        }));
+
         const updatedConfig = {
           ...prevConfig,
           adminEmail: merchantEmail,
           business_type: primaryCat,
           category: primaryCat,
           categories: selectedCategories,
+          customCategories: initialCustomCategories,
           trialActive: true,
           plan: 'Prueba 7 Días Gratis',
           logoUrl: uploadedLogoUrl || prevConfig.logoUrl || null,
@@ -540,7 +548,7 @@ export default function MerchantOnboardingWizard({
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8 overflow-y-auto select-none animate-in fade-in duration-200 relative">
+    <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8 overflow-y-auto select-none animate-in fade-in duration-200 relative merchant-wizard-container">
       
       {/* 1. Fondo Auténtico: Previsualización de AxonMarket */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none select-none filter blur-[0.5px]">
@@ -624,7 +632,9 @@ export default function MerchantOnboardingWizard({
                         <span className="font-bold text-xs text-slate-900 truncate block max-w-[130px]">
                           {businessName || 'Mi Tienda'}
                         </span>
-                        <span className="text-[10px] text-slate-400 block">{catalog.rubroName}</span>
+                        <span className="text-[10px] text-orange-600 font-bold block truncate">
+                          {selectedCategories[0] || rubro}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -634,14 +644,29 @@ export default function MerchantOnboardingWizard({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    {catalog.items.slice(0, 4).map((p, i) => (
-                      <div key={i} className="border border-slate-100 rounded-lg p-1.5 flex flex-col justify-between">
-                        <img src={p.image} alt={p.name} className="w-full h-14 object-cover rounded-md mb-1.5" />
-                        <span className="text-[10px] font-bold text-slate-800 line-clamp-1">{p.name}</span>
-                        <span className="text-[10px] font-extrabold text-orange-600">{p.refPriceLabel}</span>
-                      </div>
-                    ))}
+                  {/* Badges de Departamentos / Categorías seleccionadas */}
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {selectedCategories.slice(0, 3).map(catId => {
+                      const catObj = MARKETPLACE_CATEGORIES.find(c => c.id === catId);
+                      return (
+                        <span key={catId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/80 text-[10px] font-bold text-orange-700">
+                          {catObj?.name || catId}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Estado inicial de Catálogo Limpio y Listo */}
+                  <div className="border border-dashed border-orange-200 rounded-xl p-3.5 bg-orange-50/40 text-center flex flex-col items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-1.5 shadow-2xs">
+                      <Store size={18} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 block">
+                      Catálogo listo para tus productos
+                    </span>
+                    <span className="text-[10px] text-slate-500 max-w-[210px] block mt-0.5 leading-tight">
+                      Tu tienda inicia limpia. Podrás agregar tus propios artículos o importarlos desde Excel en minutos.
+                    </span>
                   </div>
                 </div>
               </div>
@@ -821,7 +846,7 @@ export default function MerchantOnboardingWizard({
                         value={ownerName}
                         onChange={e => setOwnerName(e.target.value)}
                         placeholder="Ej: Carlos Mendoza"
-                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
+                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                         autoFocus
                       />
                     </div>
@@ -835,7 +860,7 @@ export default function MerchantOnboardingWizard({
                         value={businessName}
                         onChange={e => setBusinessName(e.target.value)}
                         placeholder="Ej: Bodegón La Gran Parada"
-                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs"
+                        className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none transition-all shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -894,7 +919,7 @@ export default function MerchantOnboardingWizard({
                         value={whatsapp}
                         onChange={e => setWhatsapp(e.target.value.replace(/[^0-9\s-]/g, ''))}
                         placeholder="414 123 4567"
-                        className="w-full pl-14 pr-4 py-2.5 sm:py-3 text-sm text-slate-900 placeholder:text-slate-400 rounded-2xl outline-none font-medium"
+                        className="w-full pl-14 pr-4 py-2.5 sm:py-3 text-sm text-slate-900 bg-white placeholder:text-slate-400 rounded-2xl outline-none font-medium"
                       />
                     </div>
                   </div>
@@ -912,7 +937,7 @@ export default function MerchantOnboardingWizard({
                       <select 
                         value={rifPrefix} 
                         onChange={e => setRifPrefix(e.target.value)} 
-                        className="w-24 sm:w-28 px-3 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-xs sm:text-sm font-bold bg-white text-slate-800 outline-none shadow-xs cursor-pointer shrink-0"
+                        className="w-24 sm:w-28 px-3 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-xs sm:text-sm font-bold bg-white text-slate-900 outline-none shadow-xs cursor-pointer shrink-0"
                       >
                         <option value="V">V - Natural</option>
                         <option value="J">J - Jurídico</option>
@@ -926,7 +951,7 @@ export default function MerchantOnboardingWizard({
                         value={rifNumber}
                         onChange={e => setRifNumber(e.target.value.replace(/[^0-9-]/g, '').slice(0, 11))}
                         placeholder="Ej: 12345678-9"
-                        className="flex-1 min-w-0 px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                        className="flex-1 min-w-0 px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -1116,7 +1141,7 @@ export default function MerchantOnboardingWizard({
                         value={addressState}
                         onChange={e => setAddressState(e.target.value)}
                         placeholder="Ej. Aragua"
-                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                       />
                     </div>
 
@@ -1127,7 +1152,7 @@ export default function MerchantOnboardingWizard({
                         value={addressCity}
                         onChange={e => setAddressCity(e.target.value)}
                         placeholder="Ej. Cagua"
-                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -1142,7 +1167,7 @@ export default function MerchantOnboardingWizard({
                       value={addressLine}
                       onChange={e => setAddressLine(e.target.value)}
                       placeholder="Calle, Centro Comercial, Local o número..."
-                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs resize-none"
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-medium outline-none shadow-xs resize-none text-slate-900 bg-white placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -1177,7 +1202,7 @@ export default function MerchantOnboardingWizard({
                         type="time"
                         value={scheduleOpen}
                         onChange={e => setScheduleOpen(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs text-slate-900 bg-white"
                       />
                     </div>
                     <div>
@@ -1186,7 +1211,7 @@ export default function MerchantOnboardingWizard({
                         type="time"
                         value={scheduleClose}
                         onChange={e => setScheduleClose(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs"
+                        className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-bold outline-none shadow-xs text-slate-900 bg-white"
                       />
                     </div>
                   </div>
@@ -1255,7 +1280,7 @@ export default function MerchantOnboardingWizard({
                     <select
                       value={pagoMovilBank}
                       onChange={e => setPagoMovilBank(e.target.value)}
-                      className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-semibold outline-none shadow-xs bg-white"
+                      className="w-full px-4 py-2.5 sm:py-3 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-semibold outline-none shadow-xs bg-white text-slate-900"
                     >
                       {VZLA_BANKS.map(b => (
                         <option key={b} value={b}>{b}</option>
@@ -1273,7 +1298,7 @@ export default function MerchantOnboardingWizard({
                       value={pagoMovilPhone}
                       onChange={e => setPagoMovilPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
                       placeholder={whatsapp ? `Ej: ${whatsapp}` : "Ej: 04141234567"}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                     />
                     <p className="text-[10px] text-slate-400 mt-1">Si lo dejas vacío, se usará tu WhatsApp de contacto.</p>
                   </div>
@@ -1288,7 +1313,7 @@ export default function MerchantOnboardingWizard({
                       value={pagoMovilId}
                       onChange={e => setPagoMovilId(e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12))}
                       placeholder={rifNumber ? `Ej: ${rifPrefix}-${rifNumber}` : "Ej: V-12345678 o J-12345678-9"}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs"
+                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
                     />
                   </div>
                 </div>

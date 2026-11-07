@@ -407,7 +407,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       {/* Vista de Pantalla Completa en Escritorio (Edge-to-Edge 100vw x 100vh) */}
-      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen bg-[#F4F6F9] grid grid-cols-1 lg:grid-cols-2 overflow-y-auto lg:overflow-hidden select-none animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen bg-[#F4F6F9] grid grid-cols-1 lg:grid-cols-2 overflow-y-auto lg:overflow-hidden select-none animate-in fade-in duration-200 merchant-auth-modal">
         
         {/* Botón Cerrar Flotante */}
         {onClose && (
@@ -514,7 +514,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="tucorreo@empresa.com"
-                        className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
+                        className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 bg-white placeholder:text-zinc-400 rounded-xl outline-none font-normal"
                         autoFocus
                       />
                     </div>
@@ -547,7 +547,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-10 pr-10 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
+                        className="w-full pl-10 pr-10 py-3 text-sm text-zinc-900 bg-white placeholder:text-zinc-400 rounded-xl outline-none font-normal"
                       />
                       <button 
                         type="button" 
