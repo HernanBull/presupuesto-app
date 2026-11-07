@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Package, Tag, BarChart3,
   Download, Smartphone, Laptop, CheckCircle2, Share,
   MapPin, Clock, CreditCard, Camera, UploadCloud, Trash2, CheckCircle, FileText,
-  Star, Zap, Link as LinkIcon, Compass, ChevronLeft, UserPlus, Play
+  Star, Zap, Link as LinkIcon, Compass, ChevronLeft, UserPlus, Play, AlertCircle
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -50,33 +50,48 @@ const createAxonMarketPinIcon = () => {
   });
 };
 
-function OnboardingMapPicker({ position, onSelectPosition, onAddressFound }) {
+function OnboardingCenterPinMapHandler({ position, onSelectPosition, onAddressFound }) {
+  const reverseGeocodeTimeoutRef = useRef(null);
+  const isInternalMoveRef = useRef(false);
+
   const map = useMapEvents({
+    moveend() {
+      const center = map.getCenter();
+      isInternalMoveRef.current = true;
+      onSelectPosition({ lat: center.lat, lng: center.lng });
+
+      // Debounce geocoding con Nominatim
+      if (reverseGeocodeTimeoutRef.current) clearTimeout(reverseGeocodeTimeoutRef.current);
+      reverseGeocodeTimeoutRef.current = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${center.lat}&lon=${center.lng}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data?.address) {
+              onAddressFound({
+                state: data.address.state || '',
+                city: data.address.city || data.address.town || data.address.village || data.address.municipality || '',
+                road: data.address.road || data.address.suburb || data.address.neighbourhood || ''
+              });
+            }
+          })
+          .catch(() => {});
+      }, 500);
+    },
     click(e) {
-      const latlng = { lat: e.latlng.lat, lng: e.latlng.lng };
-      onSelectPosition(latlng);
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data?.address) {
-            onAddressFound({
-              state: data.address.state || '',
-              city: data.address.city || data.address.town || data.address.village || data.address.municipality || '',
-              road: data.address.road || data.address.suburb || data.address.neighbourhood || ''
-            });
-          }
-        })
-        .catch(() => {});
+      map.flyTo([e.latlng.lat, e.latlng.lng], map.getZoom());
     }
   });
 
   useEffect(() => {
     if (position && map) {
-      map.flyTo([position.lat, position.lng], 16, { animate: true });
+      if (!isInternalMoveRef.current) {
+        map.flyTo([position.lat, position.lng], 16, { animate: true });
+      }
+      isInternalMoveRef.current = false;
     }
   }, [position?.lat, position?.lng, map]);
 
-  return position ? <Marker position={[position.lat, position.lng]} icon={createAxonMarketPinIcon()} /> : null;
+  return null;
 }
 
 const isIOSDevice = () => {
@@ -234,6 +249,7 @@ export default function MerchantOnboardingWizard({
   const [pagoMovilBank, setPagoMovilBank] = useState('0102 - Banco de Venezuela');
   const [pagoMovilPhone, setPagoMovilPhone] = useState('');
   const [pagoMovilId, setPagoMovilId] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   // Paso 8: Identidad Visual (Logotipo y Portada)
   const [logoFile, setLogoFile] = useState(null);
@@ -385,7 +401,6 @@ export default function MerchantOnboardingWizard({
         .update({
           name: businessName.trim(),
           store_slug: cleanSlug,
-          business_type: primaryCat,
           config: updatedConfig
         })
         .eq('id', activeWs);
@@ -399,6 +414,8 @@ export default function MerchantOnboardingWizard({
       }]);
 
       localStorage.setItem('storeSlug', cleanSlug);
+      localStorage.setItem('merchant_store_name', businessName.trim());
+      localStorage.setItem('merchant_owner_name', ownerName.trim());
     } catch (e) {
       console.warn("Notice persistStep1Data:", e);
     }
@@ -440,10 +457,13 @@ export default function MerchantOnboardingWizard({
         toast.error('Por favor selecciona el banco para recibir pagos.');
         return;
       }
-      if (pagoMovilPhone && pagoMovilPhone.replace(/\D/g, '').length < 11) {
-        toast.error('El teléfono de pago móvil debe tener 11 dígitos');
+      const cleanPhone = pagoMovilPhone.replace(/\D/g, '');
+      if (cleanPhone && cleanPhone.length !== 11) {
+        setPhoneError(`El número debe tener exactamente 11 dígitos. Llevas ${cleanPhone.length} de 11.`);
+        toast.error(`El teléfono debe tener 11 dígitos (faltan ${11 - cleanPhone.length})`, { id: 'pm-phone-err' });
         return;
       }
+      setPhoneError('');
     }
 
     setStep(prev => prev + 1);
@@ -596,7 +616,6 @@ export default function MerchantOnboardingWizard({
             latitude: gpsCoords?.lat || null,
             longitude: gpsCoords?.lng || null,
             map_address: resolvedAddress,
-            business_type: primaryCat,
             config: updatedConfig
           })
           .eq('id', activeWs);
@@ -1396,30 +1415,28 @@ export default function MerchantOnboardingWizard({
                       </p>
                     )}
 
-                    {/* Mapa Interactivo con Pin Oficial de AxonMarket */}
+                    {/* Mapa Interactivo con Pin Oficial de AxonMarket (Lógica idéntica a StoreScannerMap) */}
                     <div className="w-full mt-3 pt-3 border-t border-slate-100 space-y-1.5 text-left">
                       <div className="flex items-center justify-between text-[11px] text-slate-600 font-semibold px-0.5">
                         <span className="flex items-center gap-1.5 text-slate-800 font-bold">
                           <Compass size={14} className="text-orange-500" />
-                          <span>Toca en el mapa para ubicar tu local si estás en casa:</span>
+                          <span>Mueve el mapa para colocar el pin en tu local:</span>
                         </span>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                          gpsCoords ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
-                        }`}>
-                          {gpsCoords ? '✓ Pin marcado' : 'Toca el mapa'}
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full border text-emerald-700 bg-emerald-50 border-emerald-200">
+                          {gpsCoords ? `📍 (${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)})` : 'Arrastra el mapa'}
                         </span>
                       </div>
-                      <div className="h-[210px] sm:h-[240px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0 shadow-xs">
+                      <div className="h-[230px] sm:h-[260px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0 shadow-xs">
                         <MapContainer 
                           center={gpsCoords ? [gpsCoords.lat, gpsCoords.lng] : [10.1833, -67.4500]} 
-                          zoom={gpsCoords ? 16 : 13} 
+                          zoom={gpsCoords ? 16 : 14} 
                           style={{ height: '100%', width: '100%' }}
                         >
                           <TileLayer 
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
                           />
-                          <OnboardingMapPicker 
+                          <OnboardingCenterPinMapHandler 
                             position={gpsCoords} 
                             onSelectPosition={(pos) => setGpsCoords(pos)}
                             onAddressFound={({ state, city, road }) => {
@@ -1429,9 +1446,37 @@ export default function MerchantOnboardingWizard({
                             }}
                           />
                         </MapContainer>
+
+                        {/* Fixed Central Pin Overlay (Idéntico a StoreScannerMap) */}
+                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-[500]">
+                          <div className="relative mt-2 pointer-events-none" style={{ filter: 'drop-shadow(0px 8px 14px rgba(0, 0, 0, 0.45))' }}>
+                            <svg width="44" height="58" viewBox="0 0 44 58" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -translate-y-1/2">
+                              <defs>
+                                <linearGradient id="pinGradWizard" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#fbbf24" />
+                                  <stop offset="100%" stopColor="#d97706" />
+                                </linearGradient>
+                              </defs>
+                              <path d="M22 2C10.954 2 2 10.954 2 22C2 37 22 56 22 56C22 56 42 37 42 22C42 10.954 33.046 2 22 2Z" fill="url(#pinGradWizard)" stroke="white" strokeWidth="3"/>
+                              <path d="M22 4C11.5 4 4 11.5 4 22C4 32 18 48 22 52C26 48 40 32 40 22C40 11.5 32.5 4 22 4Z" fill="white" fillOpacity="0.15" />
+                              <g transform="translate(12, 11) scale(0.85)">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M3 6h18" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M16 10a4 4 0 0 1-8 0" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </g>
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Indicador flotante inferior */}
+                        <div className="absolute bottom-2 inset-x-0 flex justify-center z-[500] pointer-events-none">
+                          <span className="px-3 py-1 bg-zinc-900/85 backdrop-blur-md text-white text-[10px] font-bold rounded-full shadow-lg border border-white/20">
+                            Arrastra el mapa para situar tu comercio
+                          </span>
+                        </div>
                       </div>
                       <p className="text-[10px] text-slate-400 italic px-1">
-                        Puedes acercar (+) o alejar (-) el mapa y hacer clic exactamente en el techo o puerta de tu negocio.
+                        El pin central marca exactamente las coordenadas donde se ubicará tu tienda en el directorio de AxonMarket.
                       </p>
                     </div>
                   </div>
@@ -1592,18 +1637,63 @@ export default function MerchantOnboardingWizard({
                     </select>
                   </div>
 
-                  {/* Teléfono Pago Móvil */}
+                  {/* Teléfono Pago Móvil con Advertencia Dinámica de 11 Dígitos */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Teléfono asociado a Pago Móvil (11 dígitos)
-                    </label>
-                    <input 
-                      type="tel"
-                      value={pagoMovilPhone}
-                      onChange={e => setPagoMovilPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 11))}
-                      placeholder={whatsapp ? `Ej: ${whatsapp}` : "Ej: 04141234567"}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 text-sm font-mono tracking-wider outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400"
-                    />
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-slate-800">
+                        Teléfono asociado a Pago Móvil (11 dígitos)
+                      </label>
+                      {pagoMovilPhone.length > 0 && (
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                          pagoMovilPhone.length === 11 
+                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+                            : 'bg-amber-100 text-amber-700 border border-amber-300 animate-pulse'
+                        }`}>
+                          {pagoMovilPhone.length === 11 
+                            ? '✓ 11 dígitos completos' 
+                            : `${pagoMovilPhone.length}/11 dígitos (faltan ${11 - pagoMovilPhone.length})`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="tel"
+                        value={pagoMovilPhone}
+                        onChange={e => {
+                          const val = e.target.value.replace(/[^0-9]/g, '').slice(0, 11);
+                          setPagoMovilPhone(val);
+                          if (val.length === 11 || val.length === 0) setPhoneError('');
+                        }}
+                        placeholder={whatsapp ? `Ej: ${whatsapp.replace(/\D/g, '').slice(0, 11)}` : "Ej: 04141234567"}
+                        className={`w-full px-4 py-2.5 rounded-2xl border text-sm font-mono tracking-wider outline-none shadow-xs text-slate-900 bg-white placeholder:text-slate-400 transition-all ${
+                          phoneError 
+                            ? 'border-red-500 ring-2 ring-red-100 bg-red-50/20' 
+                            : pagoMovilPhone.length === 11 
+                              ? 'border-emerald-500 ring-2 ring-emerald-100' 
+                              : pagoMovilPhone.length > 0 
+                                ? 'border-amber-400 ring-2 ring-amber-100' 
+                                : 'border-slate-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-100'
+                        }`}
+                      />
+                    </div>
+
+                    {/* Alerta interactiva destacada si faltan números */}
+                    {pagoMovilPhone.length > 0 && pagoMovilPhone.length < 11 && (
+                      <div className="mt-1.5 p-2 bg-amber-50 border border-amber-300 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-semibold animate-in fade-in duration-200">
+                        <AlertCircle size={15} className="text-amber-600 shrink-0" />
+                        <span>
+                          Faltan <strong>{11 - pagoMovilPhone.length}</strong> {11 - pagoMovilPhone.length === 1 ? 'número' : 'números'}. Recuerda que los números de Pago Móvil deben tener 11 dígitos (ej: 0414-1234567).
+                        </span>
+                      </div>
+                    )}
+
+                    {phoneError && (
+                      <div className="mt-1.5 p-2 bg-red-50 border border-red-300 rounded-xl flex items-center gap-2 text-xs text-red-700 font-bold animate-in fade-in duration-200">
+                        <AlertCircle size={15} className="text-red-600 shrink-0" />
+                        <span>{phoneError}</span>
+                      </div>
+                    )}
+
                     <p className="text-[10px] text-slate-400 mt-1">Si lo dejas vacío, se usará tu WhatsApp de contacto.</p>
                   </div>
 

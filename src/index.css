@@ -123,6 +123,8 @@
     box-shadow: none !important;
     outline: none !important;
     margin: 0 !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
   }
 
   /* Forzamos textos claros secundarios a gris carbón en paneles claros */

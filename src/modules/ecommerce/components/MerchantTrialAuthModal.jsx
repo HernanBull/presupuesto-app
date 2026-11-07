@@ -404,7 +404,7 @@ export default function MerchantTrialAuthModal({ isOpen = true, onClose, initial
         workspaceId={createdWorkspaceId}
         initialData={{
           ownerName: ownerName || '',
-          businessName: '',
+          businessName: businessName || '',
           whatsapp: contactPhone || ''
         }}
         onClose={onClose}

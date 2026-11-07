@@ -551,10 +551,10 @@ export default function SocialFeedCard({
           transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)'
         }}
       >
-        {/* Background Media - 100% Pantalla Completa TikTok */}
+        {/* Background Media - 100% Pantalla Completa TikTok con Animación Ascendente */}
       {isVideo ? (
         <div 
-          className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer"
+          className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out fill-mode-both"
           onClick={togglePlayPause}
         >
           <video
@@ -580,10 +580,10 @@ export default function SocialFeedCard({
           decoding="async"
           src={resolveImageUrl(storeCover)} 
           alt={storeName} 
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
+          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out fill-mode-both" 
         />
       ) : (
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0 animate-in fade-in slide-in-from-bottom-8 duration-500 ease-out fill-mode-both">
           <Store size={56} className="text-amber-500/80" />
           <span className="font-medium text-sm text-white">Explorar Tienda</span>
         </div>
@@ -645,7 +645,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-3 bottom-24 sm:bottom-20 z-20 flex flex-col items-center gap-3.5 select-none"
+        className="absolute right-3 bottom-24 sm:bottom-20 z-20 flex flex-col items-center gap-3.5 select-none animate-in fade-in slide-in-from-bottom-5 duration-500 fill-mode-both"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Like / Corazón */}
@@ -740,7 +740,7 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
       <div 
-        className="relative z-20 p-4 pb-24 sm:pb-20 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
+        className="relative z-20 p-4 pb-24 sm:pb-20 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto animate-in fade-in slide-in-from-bottom-5 duration-500 fill-mode-both"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Merchant Profile Row */}
