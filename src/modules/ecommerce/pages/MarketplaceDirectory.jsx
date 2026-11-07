@@ -438,11 +438,54 @@ export default function MarketplaceDirectory() {
       }
     };
 
+    // Soporte para gestos táctiles estilo TikTok (Salto de publicación en publicación en móvil)
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length !== 1) return;
+      touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e) => {
+      if (e.changedTouches.length !== 1) return;
+      const c = mainContainerRef.current;
+      if (!c) return;
+
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+
+      // Detectar gesto vertical preponderante (ignorar swipes horizontales)
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 35) {
+        const pageH = c.clientHeight || window.innerHeight;
+        const currentScroll = c.scrollTop;
+        const currentIndex = Math.round(currentScroll / pageH);
+
+        if (dy < -35) {
+          // Deslizó hacia ARRIBA -> avanzar de golpe al siguiente comerciante estilo TikTok
+          setIsBottomNavOpen(false);
+          const maxScroll = Math.max(0, c.scrollHeight - pageH);
+          const nextScroll = Math.min((currentIndex + 1) * pageH, maxScroll);
+          c.scrollTo({ top: nextScroll, behavior: 'smooth' });
+        } else if (dy > 35) {
+          // Deslizó hacia ABAJO -> regresar al comerciante anterior
+          const prevScroll = Math.max(0, (currentIndex - 1) * pageH);
+          c.scrollTo({ top: prevScroll, behavior: 'smooth' });
+          if (prevScroll <= 15) {
+            setIsBottomNavOpen(true);
+          }
+        }
+      }
+    };
+
     window.addEventListener('wheel', handleGlobalWheel, { passive: true });
     window.addEventListener('keydown', handleKeyDown);
     const container = mainContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll, { passive: true });
+      container.addEventListener('touchstart', handleTouchStart, { passive: true });
+      container.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
 
     return () => {
@@ -450,6 +493,8 @@ export default function MarketplaceDirectory() {
       window.removeEventListener('keydown', handleKeyDown);
       if (container) {
         container.removeEventListener('scroll', handleScroll);
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchend', handleTouchEnd);
       }
     };
   }, [
@@ -1825,30 +1870,30 @@ export default function MarketplaceDirectory() {
         <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
       </div>
 
-      {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable */}
+      {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable (Estilo TikTok Transparente de Borde a Borde) */}
       <div 
-        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-300 pointer-events-auto ${
+        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out pointer-events-auto ${
           !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
       >
-        <header className="bg-white/95 backdrop-blur-md border-b border-zinc-100 py-3 px-4 md:px-6 shadow-xs">
+        <header className="bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-3 pb-6 px-4 md:px-6">
           <div className="w-full flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)} 
-                className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 -ml-1 rounded-lg hover:bg-amber-50" 
+                className="text-white/85 hover:text-white transition-colors p-1.5 -ml-1 rounded-lg hover:bg-white/10" 
                 title="Menú de opciones"
               >
                 <MoreVertical size={22} strokeWidth={2.2} />
               </button>
               <div 
                 className="flex items-center gap-2 select-none cursor-pointer" 
-                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); navigate('/explorar'); }}
+                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); window.scrollTo({ top: 0, behavior: 'instant' }); navigate('/explorar'); }}
               >
-                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                   <ShoppingBag size={16} className="stroke-[2.5]"/>
                 </div>
-                <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
+                <span className="font-black text-lg tracking-[0.2em] text-white drop-shadow-md">AXON<span className="text-amber-500 font-bold">MARKET</span></span>
               </div>
             </div>
 
@@ -1856,11 +1901,11 @@ export default function MarketplaceDirectory() {
               {Object.keys(globalCart).length > 0 && (
                 <button
                   onClick={() => setIsCartOpen(true)}
-                  className="relative p-1.5 text-amber-500 hover:text-amber-600 transition-colors rounded-lg hover:bg-amber-50"
+                  className="relative p-1.5 text-white/85 hover:text-white transition-colors rounded-lg hover:bg-white/10"
                   title="Ver mis carritos de compra"
                 >
                   <ShoppingCart size={20} />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-amber-400 text-[9px] font-black flex items-center justify-center border border-amber-500">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-black shadow">
                     {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
                   </span>
                 </button>
@@ -1870,7 +1915,7 @@ export default function MarketplaceDirectory() {
               {hasMerchantAccess && (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-xs shadow-orange-500/20 active:scale-95 transition-all cursor-pointer shrink-0"
+                  className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-md shadow-orange-500/30 active:scale-95 transition-all cursor-pointer shrink-0"
                   title="Volver a mi Panel de Administrador"
                 >
                   <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
@@ -1883,17 +1928,17 @@ export default function MarketplaceDirectory() {
                 currentCustomer ? (
                   <button 
                     onClick={() => navigate('/profile')} 
-                    className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-all focus:outline-none group"
+                    className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all focus:outline-none group"
                     title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
                   >
                     {currentCustomer.profile_pic ? (
                       <img 
                         src={resolveImageUrl(currentCustomer.profile_pic)} 
                         alt="Perfil" 
-                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-xs group-hover:scale-105 transition-transform" 
+                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform" 
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-xs group-hover:scale-105 transition-transform">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-md group-hover:scale-105 transition-transform">
                         {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -1901,7 +1946,7 @@ export default function MarketplaceDirectory() {
                 ) : (
                   <button 
                     onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                    className="text-amber-500 hover:text-amber-600 transition-colors p-1.5 rounded-lg hover:bg-amber-50 flex items-center"
+                    className="text-white/85 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 flex items-center"
                     title="Iniciar Sesión"
                   >
                     <User size={20} strokeWidth={2} />
@@ -1914,16 +1959,16 @@ export default function MarketplaceDirectory() {
 
         {/* Indicador de Categoría Activa */}
         {activeCategory !== 'Todas' && (
-          <div className="px-4 md:px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between animate-in fade-in duration-200">
+          <div className="mx-4 mt-1 px-4 py-2 bg-black/75 backdrop-blur-md border border-amber-500/30 rounded-xl flex items-center justify-between shadow-lg animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-              <span className="text-xs font-bold text-zinc-800">
-                Categoría: <span className="text-amber-700 font-black">{activeCategory}</span>
+              <span className="text-xs font-bold text-white">
+                Categoría: <span className="text-amber-400 font-black">{activeCategory}</span>
               </span>
             </div>
             <button
               onClick={() => setActiveCategory('Todas')}
-              className="text-xs font-bold text-amber-600 hover:text-amber-800 hover:underline"
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 underline"
             >
               Mostrar todas
             </button>
