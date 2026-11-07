@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield, Palette, CheckCircle2, RotateCcw } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import { optimizeStoreImage } from '../utils/imageOptimizer';
 import { offlineDb } from '../services/offlineSyncService';
 import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+import { 
+  STOREFRONT_COLOR_PRESETS, 
+  DEFAULT_STOREFRONT_COLOR, 
+  normalizeHex, 
+  getContrastTextColor, 
+  hexToRgba, 
+  isValidHex 
+} from '../utils/storefrontThemeUtils';
 
 export default function StoreProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
@@ -70,6 +78,8 @@ export default function StoreProfileManager() {
   const [logoUrl, setLogoUrl] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
   const [storeCategories, setStoreCategories] = useState(['Víveres']);
+  const [primaryColor, setPrimaryColor] = useState(DEFAULT_STOREFRONT_COLOR);
+  const [customHexInput, setCustomHexInput] = useState(DEFAULT_STOREFRONT_COLOR);
   
   // Cambio de contraseña
   const [generatedPassword, setGeneratedPassword] = useState('');
@@ -222,6 +232,10 @@ export default function StoreProfileManager() {
             if (ws.config.adminPin) setAdminPin(ws.config.adminPin);
             if (ws.config.logoUrl) setLogoUrl(ws.config.logoUrl);
             if (ws.config.coverUrl) setCoverUrl(ws.config.coverUrl);
+            const loadedColor = ws.config.primaryColor || ws.config.themeColor || ws.config.storefront?.primaryColor || DEFAULT_STOREFRONT_COLOR;
+            const normalizedColor = normalizeHex(loadedColor);
+            setPrimaryColor(normalizedColor);
+            setCustomHexInput(normalizedColor);
             if (Array.isArray(ws.config.categories) && ws.config.categories.length > 0) {
               setStoreCategories(ws.config.categories);
             } else if (ws.config.category) {
@@ -486,11 +500,15 @@ export default function StoreProfileManager() {
         logoUrl,
         coverUrl,
         heroUrl: coverUrl,
+        primaryColor,
+        themeColor: primaryColor,
         storefront: {
           ...(ws?.config?.storefront || {}),
           logoUrl,
           coverUrl,
-          heroUrl: coverUrl
+          heroUrl: coverUrl,
+          primaryColor,
+          themeColor: primaryColor
         },
         bcvRate,
         manualBcv,
@@ -530,6 +548,10 @@ export default function StoreProfileManager() {
       if (logoUrl) {
         localStorage.setItem('merchant_store_logo', logoUrl);
         window.dispatchEvent(new CustomEvent('axon_store_logo_updated', { detail: logoUrl }));
+      }
+      if (primaryColor) {
+        localStorage.setItem('axon_storefront_color_' + workspaceId, primaryColor);
+        window.dispatchEvent(new CustomEvent('axon_storefront_color_updated', { detail: primaryColor }));
       }
 
       setTimeout(() => {
@@ -941,6 +963,169 @@ export default function StoreProfileManager() {
                   <input type="file" className="hidden" accept="image/*" onChange={e => handleImageUpload(e, 'cover')} disabled={isSaving} />
                   Subir Portada
                 </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Color de Marca de la Vitrina */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
+                <Palette size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Color de Marca para tu Vitrina</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Elige el color que combine con tu marca. Se aplica <strong>únicamente en tu vitrina pública</strong> (botones, badges, catálogo y carrito), sin alterar el panel de control ni el POS.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 self-start sm:self-auto bg-slate-50 dark:bg-slate-800 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0">
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Color activo:</span>
+              <span className="w-5 h-5 rounded-full border border-black/15 shadow-xs" style={{ backgroundColor: primaryColor }} />
+              <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-100">{primaryColor.toUpperCase()}</span>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Tabla de Presets Populares */}
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 block">
+                Paleta de Colores Recomendados
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {STOREFRONT_COLOR_PRESETS.map((preset) => {
+                  const isSelected = (primaryColor || '').toLowerCase() === preset.hex.toLowerCase();
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setPrimaryColor(preset.hex);
+                        setCustomHexInput(preset.hex);
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-slate-900 dark:border-white ring-2 ring-slate-900/10 dark:ring-white/20 bg-slate-50 dark:bg-slate-800/80 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-950/40'
+                      }`}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-xs border border-black/10"
+                        style={{ backgroundColor: preset.hex }}
+                      >
+                        {isSelected && (
+                          <CheckCircle2
+                            size={16}
+                            style={{ color: getContrastTextColor(preset.hex) }}
+                            className="drop-shadow-xs"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{preset.name}</p>
+                          {preset.badge && (
+                            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 shrink-0">
+                              {preset.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{preset.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Selector Libre / Color Personalizado */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                  Color a la medida:
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={isValidHex(primaryColor) ? primaryColor : DEFAULT_STOREFRONT_COLOR}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPrimaryColor(val);
+                        setCustomHexInput(val);
+                      }}
+                      className="w-10 h-10 rounded-xl cursor-pointer border-0 bg-transparent p-0 overflow-hidden"
+                      title="Seleccionar en la rueda de colores"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    value={customHexInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCustomHexInput(val);
+                      if (isValidHex(val)) {
+                        setPrimaryColor(val);
+                      }
+                    }}
+                    placeholder="#HEX"
+                    maxLength={7}
+                    className="w-24 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white uppercase focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPrimaryColor(DEFAULT_STOREFRONT_COLOR);
+                    setCustomHexInput(DEFAULT_STOREFRONT_COLOR);
+                  }}
+                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Restablecer al Ámbar Axon original"
+                >
+                  <RotateCcw size={13} />
+                  <span>Ámbar Original</span>
+                </button>
+              </div>
+
+              {/* Vista Previa en Vivo (Miniatura de Vitrina) */}
+              <div className="w-full md:w-auto bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                <div className="text-[11px] font-medium text-slate-500 shrink-0">
+                  Vista Previa Vitrina:
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="px-2.5 py-1 rounded-full text-[10px] font-bold shadow-2xs"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: getContrastTextColor(primaryColor)
+                    }}
+                  >
+                    Categoría Activa
+                  </span>
+                  <span
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold border"
+                    style={{
+                      backgroundColor: hexToRgba(primaryColor, 0.12),
+                      color: primaryColor,
+                      borderColor: hexToRgba(primaryColor, 0.3)
+                    }}
+                  >
+                    Oferta 20%
+                  </span>
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-xs cursor-default"
+                    style={{
+                      backgroundColor: primaryColor,
+                      color: getContrastTextColor(primaryColor)
+                    }}
+                  >
+                    Comprar
+                  </button>
+                </div>
               </div>
             </div>
           </div>

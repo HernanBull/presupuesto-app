@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -9,6 +9,14 @@ import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
 import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
 import { buildWhatsAppUrl, resolveStoreWhatsApp } from '../utils/whatsappHelper';
+import { 
+  STOREFRONT_COLOR_PRESETS, 
+  DEFAULT_STOREFRONT_COLOR, 
+  normalizeHex, 
+  getContrastTextColor, 
+  hexToRgba, 
+  isValidHex 
+} from '../utils/storefrontThemeUtils';
 import Tesseract from 'tesseract.js';
 import { supabase } from '../../../supabaseClient';
 import logoAxon from '../../presupuesto/logo/logo-sin-fondo.png';
@@ -118,6 +126,12 @@ export default function PublicStore() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
+
+  // Personalización del Color de Marca en vivo (exclusivo para el comerciante en su vitrina)
+  const [brandColorCustomizerOpen, setBrandColorCustomizerOpen] = useState(false);
+  const [liveBrandColor, setLiveBrandColor] = useState(null);
+  const [isSavingColor, setIsSavingColor] = useState(false);
+  const [customHexInput, setCustomHexInput] = useState('');
 
   useEffect(() => {
     if (workspaceId) {
@@ -1738,9 +1752,12 @@ export default function PublicStore() {
           business_name: storeData.name
         };
 
+        const resolvedLoadedColor = baseConf.primaryColor || baseConf.themeColor || storefrontConf.primaryColor || storefrontConf.themeColor || DEFAULT_STOREFRONT_COLOR;
+        saved.primaryColor = normalizeHex(resolvedLoadedColor);
+
         if (!saved || Object.keys(saved).length <= 1) {
           saved = {
-            themeMode: 'dark', primaryColor: '#f59e0b', typography: 'font-sans', baseFontSize: 'text-base', headingWeight: 'font-light',
+            themeMode: 'dark', primaryColor: normalizeHex(resolvedLoadedColor), typography: 'font-sans', baseFontSize: 'text-base', headingWeight: 'font-light',
             logoUrl: null, headerStyle: 'transparent', showBanner: false, heroUrl: null, heroLayout: 'centered',
             buttonStyle: 'rounded-full', cardStyle: 'elevated', catalogFilterStyle: 'sidebar', offersCountdown: true, discountBadgeColor: '#ef4444',
             sections: [
@@ -1892,8 +1909,9 @@ export default function PublicStore() {
   const resolvedCoverUrl = heroUrl || config?.coverUrl || config?.storefront?.heroUrl || config?.storefront?.coverUrl || config?.bannerUrl || null;
   const resolvedLogoUrl = logoUrl || config?.storefront?.logoUrl || config?.avatarUrl || config?.logo || null;
 
-  // Cierre visual: Forzamos la estética ultra-premium y el color Ámbar como estándar universal
-  const primaryColor = '#f59e0b';
+  // Color de marca dinámico de la vitrina (exclusivo para este comercio)
+  const primaryColor = liveBrandColor || config?.primaryColor || config?.storefront?.primaryColor || config?.themeColor || DEFAULT_STOREFRONT_COLOR;
+  const primaryTextColor = getContrastTextColor(primaryColor);
   const typography = 'font-sans';
   const baseFontSize = 'text-base';
   const headingWeight = 'font-light';
@@ -1904,6 +1922,63 @@ export default function PublicStore() {
 
   // Modo Administrador
   const isMerchantOwner = localStorage.getItem('activeWorkspace') === workspaceId;
+
+  // Guardar nuevo color de marca en Supabase (solo para el comerciante dueño)
+  const handleSaveBrandColor = async (colorToSave) => {
+    const finalColor = normalizeHex(colorToSave || primaryColor);
+    if (!isMerchantOwner || !workspaceId) return;
+    setIsSavingColor(true);
+    try {
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      if (fetchErr) throw fetchErr;
+
+      const currentConfig = ws?.config || {};
+      const updatedConfig = {
+        ...currentConfig,
+        primaryColor: finalColor,
+        themeColor: finalColor,
+        storefront: {
+          ...(currentConfig.storefront || {}),
+          primaryColor: finalColor,
+          themeColor: finalColor
+        }
+      };
+
+      const { error: updErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      if (updErr) throw updErr;
+
+      setConfig(prev => ({
+        ...prev,
+        primaryColor: finalColor,
+        themeColor: finalColor,
+        storefront: {
+          ...(prev?.storefront || {}),
+          primaryColor: finalColor,
+          themeColor: finalColor
+        }
+      }));
+      setLiveBrandColor(finalColor);
+      localStorage.setItem('axon_storefront_color_' + workspaceId, finalColor);
+
+      const cacheKey = `axon_storefront_cache_${slug}`;
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cachedObj = JSON.parse(cachedRaw);
+          cachedObj.config = { ...cachedObj.config, primaryColor: finalColor, themeColor: finalColor };
+          localStorage.setItem(cacheKey, JSON.stringify(cachedObj));
+        }
+      } catch (e) {}
+
+      alert('¡Color de marca guardado exitosamente para tu vitrina!');
+      setBrandColorCustomizerOpen(false);
+    } catch (err) {
+      console.error('Error al guardar color de marca:', err);
+      alert('Error al guardar el color de marca: ' + (err.message || 'Error de conexión'));
+    } finally {
+      setIsSavingColor(false);
+    }
+  };
 
   // Auth Gate
   const isUserAllowedToSeePrices = currentCustomer || isMerchantOwner;
@@ -1982,7 +2057,16 @@ export default function PublicStore() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className={`min-h-screen w-full flex flex-col items-center bg-slate-100/70 text-slate-900 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}>
+    <div 
+      className={`min-h-screen w-full flex flex-col items-center bg-slate-100/70 text-slate-900 relative overflow-x-hidden ${typoClass} ${baseFontSize}`}
+      style={{
+        '--store-primary': primaryColor,
+        '--store-primary-contrast': primaryTextColor,
+        '--store-primary-subtle': hexToRgba(primaryColor, 0.12),
+        '--store-primary-border': hexToRgba(primaryColor, 0.3),
+        '--store-primary-glow': hexToRgba(primaryColor, 0.25)
+      }}
+    >
       
       {/* Background ambient light for Desktop view */}
       <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
@@ -2030,17 +2114,32 @@ export default function PublicStore() {
       <div className="w-full max-w-md md:max-w-2xl lg:max-w-[720px] min-h-[100dvh] bg-slate-50 md:shadow-2xl md:border-x md:border-zinc-200/80 flex flex-col relative z-10">
       
       {isMerchantOwner && (
-        <div className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 z-[100] relative shadow-md">
+        <div className="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 px-3 sm:px-4 flex flex-col sm:flex-row items-center justify-between gap-2 z-[100] relative shadow-md">
           <div className="flex items-center gap-2">
             <Zap size={14} className="animate-pulse" />
             <span>Modo Administrador Activo - Estás viendo tu tienda</span>
           </div>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="bg-black/80 hover:bg-black text-white px-4 py-1.5 rounded-full transition-colors flex items-center gap-2 shadow-sm font-bold text-[11px]"
-          >
-             <LayoutTemplate size={12} /> Volver al Panel
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={() => {
+                setCustomHexInput(primaryColor);
+                setBrandColorCustomizerOpen(true);
+              }}
+              className="bg-white hover:bg-slate-100 text-slate-950 px-3 py-1 rounded-full transition-all flex items-center gap-1.5 shadow-sm font-black text-[10px] sm:text-[11px] cursor-pointer hover:scale-105"
+              title="Personalizar color de marca de tu vitrina"
+            >
+              <Palette size={13} className="text-amber-600" />
+              <span>Color Vitrina</span>
+              <span className="w-3.5 h-3.5 rounded-full border border-black/25 shrink-0 shadow-2xs" style={{ backgroundColor: primaryColor }} />
+            </button>
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="bg-black/80 hover:bg-black text-white px-3.5 py-1 rounded-full transition-colors flex items-center gap-1.5 shadow-sm font-bold text-[10px] sm:text-[11px] cursor-pointer"
+            >
+              <LayoutTemplate size={12} /> Volver al Panel
+            </button>
+          </div>
         </div>
       )}
 
@@ -3110,13 +3209,14 @@ export default function PublicStore() {
                           <div className="flex items-center gap-1 bg-white border-t border-l border-slate-200 rounded-tl-xl p-1 shadow-sm" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-700 transition-colors"><Minus size={12}/></button>
                             <span className="text-xs font-bold text-slate-900 min-w-[16px] text-center">{cart[p.id]}</span>
-                            <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className={`w-6 h-6 rounded-full flex items-center justify-center text-black transition-colors ${storeClosed ? 'cursor-not-allowed bg-slate-300' : 'bg-amber-500 hover:scale-110'}`}><Plus size={12}/></button>
+                            <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} style={!storeClosed ? { backgroundColor: primaryColor, color: primaryTextColor } : {}} className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${storeClosed ? 'cursor-not-allowed bg-slate-300' : 'hover:scale-110'}`}><Plus size={12}/></button>
                           </div>
                         ) : (
                           isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
                             <button 
                               onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                              className="w-8 h-8 bg-amber-500 text-black rounded-tl-xl border-t border-l border-amber-600/20 flex items-center justify-center transition-all hover:bg-amber-400 active:scale-95 shadow-sm"
+                              style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                              className="w-8 h-8 rounded-tl-xl border-t border-l flex items-center justify-center transition-all active:scale-95 shadow-sm"
                             >
                               <Plus size={16} />
                             </button>
@@ -3169,8 +3269,11 @@ export default function PublicStore() {
                  <button 
                    key={mc}
                    onClick={() => setActiveMainCategory(mc)}
-                   style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
-                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border ${activeMainCategory === mc ? 'bg-amber-500 text-black border-amber-500 shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:border-amber-500 hover:text-amber-500'}`}
+                   style={{ 
+                     fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+                     ...(activeMainCategory === mc ? { backgroundColor: primaryColor, color: primaryTextColor, borderColor: primaryColor } : {})
+                   }}
+                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border ${activeMainCategory === mc ? 'shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:opacity-85'}`}
                  >
                    {mc}
                  </button>
@@ -3192,7 +3295,8 @@ export default function PublicStore() {
                           <button
                             key={sc}
                             onClick={() => setActiveSubCategory(sc)}
-                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${activeSubCategory === sc ? 'bg-amber-500 text-black font-black shadow-xs' : 'text-zinc-600 hover:bg-zinc-50 font-semibold'}`}
+                            style={activeSubCategory === sc ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
+                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${activeSubCategory === sc ? 'font-black shadow-xs' : 'text-zinc-600 hover:bg-zinc-50 font-semibold'}`}
                           >
                             <span className="flex-1 truncate">{sc}</span>
                           </button>
@@ -3370,15 +3474,16 @@ export default function PublicStore() {
                               {/* Add Button */}
                               {isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
                                 cart[p.id] > 0 ? (
-                                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-1" onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-md bg-white text-amber-600 border border-amber-200 flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg></button>
-                                    <span className="text-xs font-bold text-amber-800 min-w-[12px] text-center">{cart[p.id]}</span>
-                                    <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} className="w-6 h-6 rounded-md bg-amber-500 text-white flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg></button>
+                                  <div className="flex items-center gap-2 border rounded-lg p-1" style={{ backgroundColor: hexToRgba(primaryColor, 0.08), borderColor: hexToRgba(primaryColor, 0.25) }} onClick={(e) => e.stopPropagation()}>
+                                    <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center shadow-sm" style={{ color: primaryColor }}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg></button>
+                                    <span className="text-xs font-bold min-w-[12px] text-center" style={{ color: primaryColor }}>{cart[p.id]}</span>
+                                    <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} style={{ backgroundColor: primaryColor, color: primaryTextColor }} className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg></button>
                                   </div>
                                 ) : (
                                   <button 
                                     onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                                    className="bg-white border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 font-bold px-4 py-1.5 rounded-lg text-[11px] tracking-wider shadow-sm transition-colors relative group-hover:bg-red-50"
+                                    className="bg-white border font-bold px-4 py-1.5 rounded-lg text-[11px] tracking-wider shadow-sm transition-colors relative hover:opacity-90"
+                                    style={{ borderColor: hexToRgba(primaryColor, 0.4), color: primaryColor }}
                                   >
                                     ADD <span className="absolute top-0.5 right-1 text-[10px]">+</span>
                                   </button>
@@ -3392,7 +3497,8 @@ export default function PublicStore() {
                             <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-2xl">
                               <button 
                                 onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }}
-                                className="bg-amber-500 text-black font-black uppercase tracking-widest text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
+                                style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                                className="font-black uppercase tracking-widest text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
                               >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg> Editar
                               </button>
@@ -3711,7 +3817,8 @@ export default function PublicStore() {
                     <button 
                       onClick={storeClosed ? undefined : addModalToCart}
                       disabled={storeClosed || (selectedProduct.stock_vitrina || 0) <= 0}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                      style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                      className="flex-1 py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
                       <ShoppingBag size={16} />
                       <span>
@@ -3722,7 +3829,8 @@ export default function PublicStore() {
                 ) : (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                    style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                    className="w-full py-3.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all cursor-pointer"
                   >
                     <Lock size={16} /> Ingresa para Comprar
                   </button>
@@ -4350,10 +4458,10 @@ export default function PublicStore() {
                         type="button"
                         onClick={handleCheckoutSubmit} 
                         disabled={isSubmittingOrder}
-                        className="w-full py-4 text-slate-950 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg shadow-amber-500/25 relative overflow-hidden disabled:opacity-50 disabled:hover:brightness-100"
-                        style={{ backgroundColor: primaryColor }}
+                        className="w-full py-4 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg relative overflow-hidden disabled:opacity-50 disabled:hover:brightness-100"
+                        style={{ backgroundColor: primaryColor, color: primaryTextColor }}
                       >
-                        {isSubmittingOrder ? <Loader2 size={18} className="animate-spin text-slate-950" /> : <CreditCard size={18} />}
+                        {isSubmittingOrder ? <Loader2 size={18} className="animate-spin" style={{ color: primaryTextColor }} /> : <CreditCard size={18} />}
                         <span>{isSubmittingOrder ? 'Procesando Pedido...' : 'Confirmar y Pagar'}</span>
                       </button>
                     ) : (
@@ -4374,10 +4482,11 @@ export default function PublicStore() {
                           }
                         }}
                         disabled={!checkoutAddress}
+                        style={checkoutAddress ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
                         className={`w-full py-4 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-[0.99] ${
                           !checkoutAddress 
                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' 
-                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/25'
+                            : 'hover:brightness-105'
                         }`}
                       >
                         <span>Continuar al Pago</span>
@@ -4399,8 +4508,8 @@ export default function PublicStore() {
                            trackEvent('checkout_start');
                          }
                       }} 
-                      className="w-full py-4 text-slate-950 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg shadow-amber-500/25 relative overflow-hidden group"
-                      style={{ backgroundColor: primaryColor }}
+                      className="w-full py-4 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg relative overflow-hidden group"
+                      style={{ backgroundColor: primaryColor, color: primaryTextColor }}
                     >
                       <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"></div>
                       <span className="relative z-10 flex items-center gap-2">Finalizar Compra <ArrowRight size={18} /></span>
@@ -4858,45 +4967,48 @@ export default function PublicStore() {
             <button
               onClick={() => setCurrentPage('home')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'home' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+              style={currentPage === 'home' ? { color: primaryColor } : { color: '#d4d4d8' }}
             >
-              <Store size={22} className={currentPage === 'home' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
-              <span className={`text-[10px] ${currentPage === 'home' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav1 || 'Inicio'}</span>
+              <Store size={22} className={currentPage === 'home' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'home' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'home' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'home' ? { color: primaryColor } : {}}>{texts?.nav1 || 'Inicio'}</span>
             </button>
             
             <button
               onClick={() => setCurrentPage('products')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'products' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+              style={currentPage === 'products' ? { color: primaryColor } : { color: '#d4d4d8' }}
             >
-              <Package size={22} className={currentPage === 'products' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
-              <span className={`text-[10px] ${currentPage === 'products' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav2 || 'Catálogo'}</span>
+              <Package size={22} className={currentPage === 'products' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'products' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'products' ? { color: primaryColor } : {}}>{texts?.nav2 || 'Catálogo'}</span>
             </button>
 
             {/* Standard Button for Cart */}
             <button
               onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
-              style={isCartOpen ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+              style={isCartOpen ? { color: primaryColor } : { color: '#d4d4d8' }}
             >
               <div className="relative">
-                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
+                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4]" : "text-zinc-300"} style={isCartOpen ? { color: primaryColor } : {}} />
                 {totalCartItems > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-4 h-4 px-1 text-black font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-400">
+                  <span 
+                    className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm"
+                    style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                  >
                     {totalCartItems}
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] ${isCartOpen ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>Carrito</span>
+              <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-semibold text-zinc-300'}`} style={isCartOpen ? { color: primaryColor } : {}}>Carrito</span>
             </button>
 
             <button
               onClick={() => setCurrentPage('offers')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'offers' ? { color: '#f59e0b' } : { color: '#d4d4d8' }}
+              style={currentPage === 'offers' ? { color: primaryColor } : { color: '#d4d4d8' }}
             >
-              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4] text-amber-400" : "text-zinc-300"} />
-              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black text-amber-400' : 'font-semibold text-zinc-300'}`}>{texts?.nav3 || 'Ofertas'}</span>
+              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'offers' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'offers' ? { color: primaryColor } : {}}>{texts?.nav3 || 'Ofertas'}</span>
             </button>
 
             {/* Botón para cerrar la barra al instante y liberar pantalla */}
@@ -4911,6 +5023,171 @@ export default function PublicStore() {
           </div>
         </nav>
       )}
+
+      {/* Botón flotante para el comerciante dueño (Acceso rápido al Color de Vitrina) */}
+      {isMerchantOwner && !brandColorCustomizerOpen && (
+        <button
+          type="button"
+          onClick={() => {
+            setCustomHexInput(primaryColor);
+            setBrandColorCustomizerOpen(true);
+          }}
+          className="fixed bottom-20 right-4 md:right-8 z-40 bg-slate-900/90 hover:bg-black text-white px-3.5 py-2 rounded-full shadow-2xl border border-white/20 flex items-center gap-2 text-xs font-bold backdrop-blur-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
+          title="Personalizar color de marca de tu vitrina"
+        >
+          <Palette size={15} style={{ color: primaryColor }} />
+          <span className="hidden sm:inline">Color de Marca</span>
+          <span className="w-3.5 h-3.5 rounded-full border border-white/30 shadow-xs" style={{ backgroundColor: primaryColor }} />
+        </button>
+      )}
+
+      {/* Modal / Sheet de Personalización de Color de Marca (Exclusivo Dueño en su Vitrina) */}
+      <ResponsiveModal
+        isOpen={brandColorCustomizerOpen}
+        onClose={() => {
+          setLiveBrandColor(null);
+          setBrandColorCustomizerOpen(false);
+        }}
+        className="md:max-w-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
+        contentClassName="p-5 sm:p-6"
+      >
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+              <Palette size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Color de Marca de tu Vitrina</h3>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                Prueba los colores en vivo. Solo afecta a tu vitrina, no a tu panel ni al POS.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setLiveBrandColor(null);
+              setBrandColorCustomizerOpen(false);
+            }}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Swatches Grid */}
+        <div className="py-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Elige una combinación de marca:
+            </span>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200">
+              <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: primaryColor }} />
+              <span>{primaryColor.toUpperCase()}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
+            {STOREFRONT_COLOR_PRESETS.map((preset) => {
+              const isSelected = (primaryColor || '').toLowerCase() === preset.hex.toLowerCase();
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setLiveBrandColor(preset.hex);
+                    setCustomHexInput(preset.hex);
+                  }}
+                  className={`flex items-center gap-2.5 p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-slate-900 dark:border-white ring-2 ring-slate-900/10 dark:ring-white/20 bg-slate-100 dark:bg-zinc-800 shadow-xs'
+                      : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-white dark:bg-zinc-900'
+                  }`}
+                >
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 shadow-xs border border-black/10"
+                    style={{ backgroundColor: preset.hex }}
+                  >
+                    {isSelected && (
+                      <CheckCircle2 size={13} style={{ color: getContrastTextColor(preset.hex) }} />
+                    )}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate">{preset.name}</p>
+                    <p className="text-[9px] text-slate-400 dark:text-zinc-500 truncate">{preset.description}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Selector a la medida */}
+          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-600 dark:text-zinc-400">Personalizado:</span>
+              <input
+                type="color"
+                value={isValidHex(primaryColor) ? primaryColor : DEFAULT_STOREFRONT_COLOR}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLiveBrandColor(val);
+                  setCustomHexInput(val);
+                }}
+                className="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent p-0"
+                title="Rueda de color"
+              />
+              <input
+                type="text"
+                value={customHexInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomHexInput(val);
+                  if (isValidHex(val)) {
+                    setLiveBrandColor(val);
+                  }
+                }}
+                placeholder="#HEX"
+                maxLength={7}
+                className="w-20 px-2 py-1 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-lg text-xs font-mono font-bold text-slate-800 dark:text-white uppercase focus:outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLiveBrandColor(DEFAULT_STOREFRONT_COLOR);
+                setCustomHexInput(DEFAULT_STOREFRONT_COLOR);
+              }}
+              className="text-[11px] text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <RotateCcw size={11} /> Ámbar Original
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setLiveBrandColor(null);
+              setBrandColorCustomizerOpen(false);
+            }}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={isSavingColor}
+            onClick={() => handleSaveBrandColor(primaryColor)}
+            style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+            className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          >
+            {isSavingColor ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            <span>{isSavingColor ? 'Guardando...' : 'Guardar en Vitrina'}</span>
+          </button>
+        </div>
+      </ResponsiveModal>
 
       {/* Spacer for bottom nav */}
       <div className="h-20" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
