@@ -6,7 +6,7 @@ import {
   DollarSign, Receipt, Settings, HelpCircle, LogOut, 
   ExternalLink, Check, Sparkles, X, Globe, Layers,
   ShieldCheck, CreditCard, ShoppingBag, Zap, Package,
-  Database, Wallet, Bell, Clock, MessageSquare
+  Database, Wallet, Bell, Clock, MessageSquare, Flame
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -160,8 +160,19 @@ export default function MerchantMorePage() {
     }
   };
 
-  // Menú completo de funcionalidades (Móvil y Escritorio)
+  // Menú optimizado y resumido de funcionalidades (sin duplicados)
   const menuItems = [
+    {
+      id: 'social-feed',
+      name: 'Publicaciones & Redes Sociales',
+      desc: 'Crea posts, carruseles de fotos y estados estilo TikTok',
+      path: '/social-feed',
+      icon: Flame,
+      color: 'text-rose-500',
+      bg: 'bg-rose-50 dark:bg-rose-500/10',
+      badge: 'FEED & TIKTOK',
+      keywords: ['redes', 'social', 'feed', 'publicaciones', 'tiktok', 'fotos', 'estados', 'carrusel', 'noticias', 'videos', 'historias']
+    },
     {
       id: 'caja-maestra',
       name: 'Caja Maestra & Turnos',
@@ -170,61 +181,58 @@ export default function MerchantMorePage() {
       icon: Wallet,
       color: 'text-orange-500',
       bg: 'bg-orange-50 dark:bg-orange-500/10',
-      badge: 'ACTIVO'
-    },
-    {
-      id: 'sucursales',
-      name: 'Sucursales',
-      desc: 'Visor general de tus sucursales',
-      path: '/location',
-      icon: Building2,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50 dark:bg-blue-500/10'
-    },
-    {
-      id: 'stock',
-      name: 'Stock & Inventario',
-      desc: 'Control de existencias y productos',
-      path: '/inventory',
-      icon: PackageSearch,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50 dark:bg-orange-500/10'
-    },
-    {
-      id: 'precios',
-      name: 'Precios & Tarifas',
-      desc: 'Centro de precios detal/mayor y margen',
-      path: '/prices',
-      icon: Tag,
-      color: 'text-amber-500',
-      bg: 'bg-amber-50 dark:bg-amber-500/10'
+      badge: 'ACTIVO',
+      keywords: ['caja', 'turnos', 'arqueo', 'dinero', 'dolares', 'bolivares', 'gaveta', 'cierres']
     },
     {
       id: 'ofertas',
-      name: 'Ofertas & Flash Sales',
-      desc: 'Descuentos con tiempo límite y precios tachados',
+      name: 'Promociones, Ofertas & Combos',
+      desc: 'Descuentos con tiempo límite, precios tachados y kits promocionales',
       path: '/offers',
       icon: Zap,
-      color: 'text-rose-500',
-      bg: 'bg-rose-50 dark:bg-rose-500/10'
+      color: 'text-amber-500',
+      bg: 'bg-amber-50 dark:bg-amber-500/10',
+      keywords: ['ofertas', 'promociones', 'combos', 'descuentos', 'flash sales', 'paquetes']
     },
     {
-      id: 'combos',
-      name: 'Combos & Paquetes',
-      desc: 'Arma kits y paquetes promocionales con descuento',
-      path: '/combos',
-      icon: Package,
-      color: 'text-amber-500',
-      bg: 'bg-amber-50 dark:bg-amber-500/10'
+      id: 'facturacion',
+      name: 'Facturación & SENIAT',
+      desc: 'Libro de ventas fiscal, notas de entrega e IVA',
+      path: '/invoicing',
+      icon: Receipt,
+      color: 'text-teal-500',
+      bg: 'bg-teal-50 dark:bg-teal-500/10',
+      keywords: ['facturacion', 'seniat', 'libro', 'ventas', 'fiscal', 'iva', 'notas']
     },
     {
       id: 'clientes',
       name: 'Clientes & CRM',
-      desc: 'Base de leads y fidelización',
+      desc: 'Base de leads, directorio de clientes y fidelización',
       path: '/customers',
       icon: Users,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50 dark:bg-orange-500/10'
+      color: 'text-blue-500',
+      bg: 'bg-blue-50 dark:bg-blue-500/10',
+      keywords: ['clientes', 'crm', 'leads', 'directorio', 'contactos']
+    },
+    {
+      id: 'chat',
+      name: 'Chat de Clientes',
+      desc: 'Atención y mensajes en vivo con clientes',
+      path: '/support',
+      icon: MessageSquare,
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+      keywords: ['chat', 'mensajes', 'soporte', 'atencion', 'whatsapp']
+    },
+    {
+      id: 'sucursales',
+      name: 'Sucursales & Geolocalización',
+      desc: 'Visor general de sucursales y ubicación en el mapa',
+      path: '/location',
+      icon: Building2,
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-50 dark:bg-indigo-500/10',
+      keywords: ['sucursales', 'mapa', 'gps', 'ubicacion', 'sedes', 'locacion']
     },
     {
       id: 'notificaciones',
@@ -233,69 +241,50 @@ export default function MerchantMorePage() {
       path: '/notifications',
       icon: Bell,
       color: 'text-amber-500',
-      bg: 'bg-amber-50 dark:bg-amber-500/10'
-    },
-
-    {
-      id: 'facturacion',
-      name: 'Facturación & SENIAT',
-      desc: 'Libro de ventas y notas de entrega',
-      path: '/invoicing',
-      icon: Receipt,
-      color: 'text-teal-500',
-      bg: 'bg-teal-50 dark:bg-teal-500/10'
-    },
-    {
-      id: 'chat',
-      name: 'Chat de Clientes',
-      desc: 'Atención y mensajes en vivo con clientes',
-      path: '/support',
-      icon: MessageSquare,
-      color: 'text-amber-500',
-      bg: 'bg-amber-50 dark:bg-amber-500/10'
+      bg: 'bg-amber-50 dark:bg-amber-500/10',
+      keywords: ['notificaciones', 'alertas', 'avisos', 'pedidos']
     },
     {
       id: 'equipo',
-      name: 'Personal & Usuarios',
-      desc: 'Centro de Control Maestro: 21 permisos y PINes',
+      name: 'Personal & Permisos (Maestro)',
+      desc: 'Centro de control: 21 permisos de seguridad y PINes',
       onClick: () => setIsUserManagementModalOpen(true),
-      icon: Users,
-      color: 'text-indigo-500',
-      bg: 'bg-indigo-50 dark:bg-indigo-500/10'
+      icon: ShieldCheck,
+      color: 'text-violet-500',
+      bg: 'bg-violet-50 dark:bg-violet-500/10',
+      keywords: ['personal', 'usuarios', 'roles', 'permisos', 'pines', 'cajeros', 'seguridad', 'equipo']
     },
     {
       id: 'respaldos',
       name: 'Centro de Respaldos (.axonbak)',
-      desc: 'Motor ACID v4.0, copias locales y nube',
+      desc: 'Motor ACID v4.0, copias locales y en la nube',
       onClick: () => setIsBackupModalOpen(true),
       icon: Database,
       color: 'text-emerald-500',
-      bg: 'bg-emerald-50 dark:bg-emerald-500/10'
+      bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+      keywords: ['respaldos', 'copia', 'backup', 'nube', 'restaurar', 'axonbak']
     },
     {
       id: 'perfil-tienda',
-      name: 'Perfil de Tienda',
-      desc: 'Datos comerciales, logo y contacto',
+      name: 'Perfil de Tienda & Configuración',
+      desc: 'Datos comerciales, logo, catálogo y contacto',
       path: '/store-profile',
       icon: Settings,
       color: 'text-slate-600 dark:text-slate-300',
-      bg: 'bg-slate-100 dark:bg-zinc-800'
-    },
-    {
-      id: 'apps',
-      name: 'Apps & Extensiones',
-      desc: 'Herramientas integradas a tu cuenta',
-      path: '/app',
-      icon: Layers,
-      color: 'text-cyan-500',
-      bg: 'bg-cyan-50 dark:bg-cyan-500/10'
+      bg: 'bg-slate-100 dark:bg-zinc-800',
+      keywords: ['perfil', 'tienda', 'configuracion', 'logo', 'ajustes', 'slug']
     }
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    item.desc.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  const filteredMenuItems = menuItems.filter(item => {
+    const q = searchFilter.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      item.name.toLowerCase().includes(q) ||
+      item.desc.toLowerCase().includes(q) ||
+      (item.keywords && item.keywords.some(k => k.toLowerCase().includes(q)))
+    );
+  });
 
   const initialLetter = ((storeInfo.merchantName || storeInfo.name || 'A')[0] || 'A').toUpperCase();
 
@@ -515,6 +504,42 @@ export default function MerchantMorePage() {
         </div>
 
         {/* ========================================================
+            DESTACADO: FEED SOCIAL & TIKTOK DE TU COMERCIO
+            ======================================================== */}
+        <div 
+          onClick={() => navigate('/social-feed')}
+          className="bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-rose-500/20 relative overflow-hidden cursor-pointer hover:shadow-rose-500/30 transition-all group active:scale-[0.99]"
+        >
+          <div className="absolute top-0 right-0 p-3 opacity-15 pointer-events-none group-hover:scale-110 transition-transform">
+            <Flame size={90} />
+          </div>
+
+          <div className="relative z-10 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform shadow-xs">
+                <Flame size={24} className="fill-white/30 text-white" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm sm:text-base font-black tracking-tight text-white truncate">
+                    Publicaciones & Redes Sociales
+                  </h3>
+                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white text-rose-600 rounded-full shadow-xs">
+                    Estilo TikTok
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-white/90 font-medium truncate mt-0.5">
+                  Sube fotos, carruseles de productos y estados en vivo
+                </p>
+              </div>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 group-hover:translate-x-1 transition-transform">
+              <ChevronRight size={18} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================
             LISTA VERTICAL ESTILO COMMERCY (SIN POS KIOSCO)
             ======================================================== */}
         <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs divide-y divide-slate-100 dark:divide-white/5 overflow-hidden">
@@ -535,9 +560,20 @@ export default function MerchantMorePage() {
                   <item.icon size={19} />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white group-hover:text-orange-600 transition-colors truncate">
-                    {item.name}
-                  </h4>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white group-hover:text-orange-600 transition-colors truncate">
+                      {item.name}
+                    </h4>
+                    {item.badge && (
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-full shadow-2xs ${
+                        item.id === 'social-feed' 
+                          ? 'bg-rose-500 text-white animate-pulse'
+                          : 'bg-orange-500 text-white'
+                      }`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
                     {item.desc}
                   </p>
