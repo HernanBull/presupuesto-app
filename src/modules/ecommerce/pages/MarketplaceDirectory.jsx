@@ -113,40 +113,152 @@ export default function MarketplaceDirectory() {
   const categoriesScrollRef = useRef(null);
   const mainContainerRef = useRef(null);
 
-  // Control de Barra de Navegación y Cabecera Bidireccional (Estilo TikTok)
+  // Control de Barra de Navegación y Cabecera (Ocultamiento automático al pasar del primer comercio)
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
-  const lastScrollTopRef = useRef(0);
+  const isNavOpenRef = useRef(true);
+  const isWheelThrottledRef = useRef(false);
 
   useEffect(() => {
-    const handleScrollThreshold = () => {
-      const scrollPos = mainContainerRef.current?.scrollTop || window.scrollY || 0;
-      const lastPos = lastScrollTopRef.current;
-      const diff = scrollPos - lastPos;
+    isNavOpenRef.current = isBottomNavOpen;
+  }, [isBottomNavOpen]);
 
-      if (scrollPos <= 20) {
-        // En el tope de la pantalla: mostrar ambas barras
-        setIsBottomNavOpen(true);
-      } else if (diff > 12) {
-        // Scrolleando hacia abajo (al siguiente comercio): ocultar barras
-        setIsBottomNavOpen(false);
-      } else if (diff < -15) {
-        // Scrolleando hacia arriba: mostrar barras
-        setIsBottomNavOpen(true);
+  useEffect(() => {
+    const handleGlobalWheel = (e) => {
+      // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
       }
 
-      lastScrollTopRef.current = scrollPos;
+      const c = mainContainerRef.current;
+      if (!c) return;
+
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+      const currentIndex = Math.round(currentScroll / pageH);
+
+      // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
+      if (e.deltaY > 12) {
+        // Ocultar cabecera superior AxonMarket y barra inferior de navegación automáticamente
+        if (isNavOpenRef.current) {
+          setIsBottomNavOpen(false);
+        }
+
+        // Salto directo TikTok al siguiente comerciante sin animaciones web lentas
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+          const nextIdx = Math.min(currentIndex + 1, maxIdx);
+          c.scrollTo({ top: nextIdx * pageH, behavior: 'instant' });
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 280);
+        }
+      } else if (e.deltaY < -12) {
+        // Desplazamiento hacia arriba con rueda de ratón
+        if (!isWheelThrottledRef.current) {
+          isWheelThrottledRef.current = true;
+          const prevIdx = Math.max(currentIndex - 1, 0);
+          c.scrollTo({ top: prevIdx * pageH, behavior: 'instant' });
+          if (prevIdx === 0) {
+            // Regresando al primer comercio: mostrar cabecera y barra de navegación automáticamente
+            setIsBottomNavOpen(true);
+          }
+          setTimeout(() => {
+            isWheelThrottledRef.current = false;
+          }, 280);
+        }
+      }
     };
 
-    window.addEventListener('scroll', handleScrollThreshold, { passive: true });
-    const c = mainContainerRef.current;
-    if (c) c.addEventListener('scroll', handleScrollThreshold, { passive: true });
-    return () => { 
-      window.removeEventListener('scroll', handleScrollThreshold); 
-      if (c) c.removeEventListener('scroll', handleScrollThreshold); 
+    const handleScroll = () => {
+      const c = mainContainerRef.current;
+      if (!c) return;
+      const pageH = c.clientHeight || window.innerHeight;
+      const scrollPos = c.scrollTop;
+
+      // Si está en el primer comercio (< 30% de la altura): mostrar barras
+      // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
+      const shouldBeOpen = scrollPos < (pageH * 0.3);
+      if (shouldBeOpen !== isNavOpenRef.current) {
+        setIsBottomNavOpen(shouldBeOpen);
+      }
     };
-  }, []);
+
+    const handleKeyDown = (e) => {
+      if (
+        activeCommentsPost || 
+        isAuthModalOpen || 
+        isMerchantModalOpen || 
+        isStatusViewerOpen || 
+        isWizardOpen || 
+        isAnalyticsOpen || 
+        isVipModalOpen || 
+        isMobileMenuOpen || 
+        isCartOpen
+      ) {
+        return;
+      }
+
+      const c = mainContainerRef.current;
+      if (!c) return;
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+      const currentIndex = Math.round(currentScroll / pageH);
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        setIsBottomNavOpen(false);
+        const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
+        const nextIdx = Math.min(currentIndex + 1, maxIdx);
+        c.scrollTo({ top: nextIdx * pageH, behavior: 'instant' });
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        const prevIdx = Math.max(currentIndex - 1, 0);
+        c.scrollTo({ top: prevIdx * pageH, behavior: 'instant' });
+        if (prevIdx === 0) {
+          setIsBottomNavOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+    const container = mainContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('wheel', handleGlobalWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [
+    visibleFeedPosts.length, 
+    activeCommentsPost, 
+    isAuthModalOpen, 
+    isMerchantModalOpen, 
+    isStatusViewerOpen, 
+    isWizardOpen, 
+    isAnalyticsOpen, 
+    isVipModalOpen, 
+    isMobileMenuOpen, 
+    isCartOpen
+  ]);
 
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
@@ -1717,7 +1829,7 @@ export default function MarketplaceDirectory() {
 
       {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable */}
       <div 
-        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-300 pointer-events-auto ${
+        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out pointer-events-auto ${
           !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
         }`}
       >
@@ -1887,97 +1999,101 @@ export default function MarketplaceDirectory() {
       </div>
 
       {/* Botón flotante en esquina izquierda (Negro transparente ultra moderno, sin parpadeo) */}
-      {!isBottomNavOpen && (
-        <button
-          onClick={() => setIsBottomNavOpen(true)}
-          className="fixed bottom-6 left-5 z-50 w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] border-2 border-white/50 active:scale-90 hover:scale-105 transition-all animate-in zoom-in-75 duration-200"
-          style={{
-            backgroundColor: 'transparent',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: 'none',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
-          }}
-          title="Abrir menú"
-          aria-label="Abrir menú de navegación"
-        >
-          <ShoppingBag size={24} className="stroke-[2.5]" />
-        </button>
-      )}
+      <button
+        onClick={() => setIsBottomNavOpen(true)}
+        className={`fixed bottom-6 left-5 z-50 w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] border-2 border-white/50 active:scale-90 hover:scale-105 transition-all duration-200 ${
+          !isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+        }`}
+        style={{
+          backgroundColor: 'transparent',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: 'none',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
+        }}
+        title="Abrir menú"
+        aria-label="Abrir menú de navegación"
+      >
+        <ShoppingBag size={24} className="stroke-[2.5]" />
+      </button>
 
       {/* Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
-      {isBottomNavOpen && (
-        <div 
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav"
-          style={{
-            backgroundColor: 'rgba(12, 12, 14, 0.82)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex justify-between items-center h-16 px-2 relative">
-            <button 
-              onClick={() => { mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
-            >
-              <Home size={22} fill="currentColor" />
-              <span className="text-[10px] font-bold text-amber-400">Inicio</span>
-            </button>
-            
-            <button onClick={() => {
-              setIsCategoriesOpen(true);
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-white cursor-pointer group">
-              <Menu size={22} className="text-zinc-300 group-hover:text-white" />
-              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
-            </button>
+      <div 
+        className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-all duration-200 ease-out ${
+          isBottomNavOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
+        }`}
+        style={{
+          backgroundColor: 'rgba(12, 12, 14, 0.82)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255, 255, 255, 0.14)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+        }}
+      >
+        <div className="flex justify-between items-center h-16 px-2 relative">
+          <button 
+            onClick={() => { 
+              mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); 
+              window.scrollTo({ top: 0, behavior: 'instant' }); 
+              setIsBottomNavOpen(true); 
+            }}
+            className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
+          >
+            <Home size={22} fill="currentColor" />
+            <span className="text-[10px] font-bold text-amber-400">Inicio</span>
+          </button>
+          
+          <button onClick={() => {
+            setIsCategoriesOpen(true);
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-white cursor-pointer group">
+            <Menu size={22} className="text-zinc-300 group-hover:text-white" />
+            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
+          </button>
 
-            {/* Botón Central - Club VIP */}
-            <div className="flex-1 flex justify-center relative -top-6">
-              <div 
-                onClick={() => setIsVipModalOpen(true)} 
-                className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.45)] ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
-                title="Club VIP · Zona VIP Próximamente"
-              >
-                <ShoppingBag size={24} className="stroke-[2.5] text-white group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
-                  VIP
-                </span>
-              </div>
+          {/* Botón Central - Club VIP */}
+          <div className="flex-1 flex justify-center relative -top-6">
+            <div 
+              onClick={() => setIsVipModalOpen(true)} 
+              className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.45)] ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
+              title="Club VIP · Zona VIP Próximamente"
+            >
+              <ShoppingBag size={24} className="stroke-[2.5] text-white group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
+                VIP
+              </span>
             </div>
-
-            <button onClick={() => {
-              if (!currentCustomer) { 
-                setAuthMode('login'); 
-                setIsAuthModalOpen(true); 
-              } else {
-                navigate('/profile', { state: { tab: 'favoritas' } });
-              }
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
-              <Heart size={22} className="text-zinc-300 group-hover:text-amber-400" />
-              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Favoritos</span>
-            </button>
-
-            <button onClick={() => {
-              navigate('/mapa');
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
-              <MapPin size={22} className="text-zinc-300 group-hover:text-amber-400" />
-              <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Mapa</span>
-            </button>
-
-            {/* Botón para cerrar la barra al instante y liberar pantalla */}
-            <button
-              onClick={() => setIsBottomNavOpen(false)}
-              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
-              style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
-              title="Ocultar menú"
-            >
-              <X size={14} />
-            </button>
           </div>
+
+          <button onClick={() => {
+            if (!currentCustomer) { 
+              setAuthMode('login'); 
+              setIsAuthModalOpen(true); 
+            } else {
+              navigate('/profile', { state: { tab: 'favoritas' } });
+            }
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
+            <Heart size={22} className="text-zinc-300 group-hover:text-amber-400" />
+            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Favoritos</span>
+          </button>
+
+          <button onClick={() => {
+            navigate('/mapa');
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
+            <MapPin size={22} className="text-zinc-300 group-hover:text-amber-400" />
+            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Mapa</span>
+          </button>
+
+          {/* Botón para cerrar la barra al instante y liberar pantalla */}
+          <button
+            onClick={() => setIsBottomNavOpen(false)}
+            className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
+            style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
+            title="Ocultar menú"
+          >
+            <X size={14} />
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Modal Visor de Estados / Historias de Comerciantes estilo WhatsApp */}
       <MerchantStatusViewerModal
