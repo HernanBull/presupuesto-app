@@ -49,6 +49,7 @@ const formatTimeAgo = (dateStr) => {
 export default function SocialFeedCard({
   post,
   currentCustomer,
+  currentMerchant,
   onOpenComments,
   onRequireAuth,
   onNavigateStore
@@ -64,7 +65,34 @@ export default function SocialFeedCard({
   const isVerified = post.is_verified || post.config?.is_verified;
   const createdAt = post.created_at;
 
-  const customerIdResolved = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.user_id || currentCustomer?.doc_id || currentCustomer?.docId;
+  // Detección universal de usuario autenticado: Cliente O Comerciante
+  const activeWorkspace = typeof window !== 'undefined' 
+    ? (localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id') || localStorage.getItem('currentWorkspaceId')) 
+    : null;
+
+  const resolvedMerchantId = currentMerchant?.id || (
+    activeWorkspace && 
+    activeWorkspace !== 'default_workspace' && 
+    activeWorkspace !== 'null' && 
+    activeWorkspace !== 'undefined' && 
+    activeWorkspace.trim() !== '' 
+      ? activeWorkspace.trim() 
+      : null
+  );
+
+  const isMerchantAuth = Boolean(resolvedMerchantId);
+
+  const isCustomerAuth = Boolean(
+    currentCustomer &&
+    (currentCustomer.id || currentCustomer.uid) &&
+    !String(currentCustomer.id || currentCustomer.uid).startsWith('guest_')
+  );
+
+  const isUserAuthenticated = isCustomerAuth || isMerchantAuth;
+
+  const customerIdResolved = isCustomerAuth
+    ? (currentCustomer.id || currentCustomer.uid || currentCustomer.user_id || currentCustomer.doc_id || currentCustomer.docId)
+    : (isMerchantAuth ? resolvedMerchantId : null);
 
   // Estados síncronos iniciales para render estático inmediato (sin parpadeos ni animaciones de recarga)
   const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, customerIdResolved));
@@ -374,7 +402,7 @@ export default function SocialFeedCard({
     let mounted = true;
 
     const loadInteractions = async () => {
-      const custId = currentCustomer?.id;
+      const custId = customerIdResolved;
       
       // Likes
       const likeRes = await getPostLikeState(postId, custId);
@@ -432,10 +460,10 @@ export default function SocialFeedCard({
     };
   }, [postId, workspaceId, customerIdResolved, hasEnteredViewport]);
 
-  // Manejo de Like
+  // Manejo de Like (Soporta tanto a Clientes como a Comerciantes autenticados)
   const handleLike = async (e) => {
     e?.stopPropagation();
-    if (!currentCustomer) {
+    if (!isUserAuthenticated || !customerIdResolved) {
       if (onRequireAuth) onRequireAuth();
       return;
     }
@@ -445,7 +473,7 @@ export default function SocialFeedCard({
     setLikesCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
 
     try {
-      await toggleLikePost(postId, workspaceId, currentCustomer.id);
+      await toggleLikePost(postId, workspaceId, customerIdResolved);
     } catch (err) {
       setIsLiked(!newLiked);
       setLikesCount(prev => !newLiked ? prev + 1 : Math.max(0, prev - 1));
@@ -465,7 +493,11 @@ export default function SocialFeedCard({
   // Manejo de Follow (Solo modifica la relación de seguimiento a la tienda)
   const handleFollow = async (e) => {
     e?.stopPropagation();
-    const custId = customerIdResolved || 'guest';
+    if (!isUserAuthenticated || !customerIdResolved) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    const custId = customerIdResolved;
     const newFollowing = !isFollowing;
     setIsFollowing(newFollowing);
 
@@ -486,7 +518,11 @@ export default function SocialFeedCard({
   // Manejo de Guardado (Guarda la publicación individual con respuesta y animación inmediata)
   const handleSave = async (e) => {
     e?.stopPropagation();
-    const custId = customerIdResolved || 'guest';
+    if (!isUserAuthenticated || !customerIdResolved) {
+      if (onRequireAuth) onRequireAuth();
+      return;
+    }
+    const custId = customerIdResolved;
     const newSaved = !isSaved;
     setIsSaved(newSaved);
 

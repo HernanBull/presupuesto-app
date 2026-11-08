@@ -132,7 +132,16 @@ export default function MarketplaceDirectory() {
 
   // Auth State
   const [currentCustomer, setCurrentCustomer] = useState(null);
-  const [currentMerchant, setCurrentMerchant] = useState(null);
+  const [currentMerchant, setCurrentMerchant] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const wsId = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
+    const storeSlug = localStorage.getItem('storeSlug');
+    const storeName = localStorage.getItem('merchant_store_name') || localStorage.getItem('storeName');
+    if (wsId && wsId !== 'default_workspace' && wsId !== 'null' && wsId !== 'undefined' && wsId.trim() !== '') {
+      return { id: wsId.trim(), slug: storeSlug || '', name: storeName || 'Tienda Oficial' };
+    }
+    return null;
+  });
   const hasMerchantAccess = useMemo(() => {
     try {
       const ws = localStorage.getItem('activeWorkspace');
@@ -1972,6 +1981,7 @@ export default function MarketplaceDirectory() {
                   key={post.id}
                   post={post}
                   currentCustomer={currentCustomer}
+                  currentMerchant={currentMerchant}
                   onOpenComments={(target) => setActiveCommentsPost(target)}
                   onRequireAuth={() => setIsAuthModalOpen(true)}
                   onNavigateStore={(slug) => navigate(`/${slug}`)}
@@ -2060,8 +2070,12 @@ export default function MarketplaceDirectory() {
 
           <button onClick={() => {
             if (!currentCustomer) { 
-              setAuthMode('login'); 
-              setIsAuthModalOpen(true); 
+              if (hasMerchantAccess) {
+                navigate('/dashboard');
+              } else {
+                setAuthMode('login'); 
+                setIsAuthModalOpen(true); 
+              }
             } else {
               navigate('/profile', { state: { tab: 'favoritas' } });
             }

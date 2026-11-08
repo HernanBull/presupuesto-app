@@ -43,7 +43,9 @@ export default function PostCommentsDrawer({
   const effectiveWorkspaceId = workspaceId || post?.workspaceId || post?.workspace_id;
   const effectivePostTitle = postTitle || post?.title || post?.postTitle || '';
 
-  const activeWorkspace = typeof window !== 'undefined' ? localStorage.getItem('activeWorkspace') : null;
+  const activeWorkspace = typeof window !== 'undefined' 
+    ? (localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id') || localStorage.getItem('currentWorkspaceId')) 
+    : null;
   const isMerchantAuth = Boolean(
     (currentMerchant && currentMerchant.id) ||
     (activeWorkspace && 
