@@ -446,31 +446,42 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
   }
 
   const rawId = String(customerId);
-  const uuidId = toSocialUuid(customerId);
 
-  const baseRecord = {
+  // Columnas estrictas existentes en el esquema de la tabla ecommerce_post_comments de Supabase
+  const dbRecord = {
     post_id: String(postId),
     workspace_id: workspaceId ? String(workspaceId) : null,
     customer_name: customerName || (isMerchant ? 'Tienda Oficial' : 'Cliente Axon'),
     customer_avatar: customerAvatar || '',
-    content: content.trim(),
-    parent_id: parentId ? String(parentId) : null,
-    reply_to_name: replyToName || null,
-    is_merchant: Boolean(isMerchant),
-    reactions: {},
-    created_at: new Date().toISOString()
+    content: content.trim()
   };
 
   try {
-    const data = await insertWithCustomerFallback('ecommerce_post_comments', baseRecord, customerId);
-    notifySocialUpdate('comment_added', { postId, comment: data });
-    return data;
+    const data = await insertWithCustomerFallback('ecommerce_post_comments', dbRecord, customerId);
+    const completeComment = {
+      ...data,
+      is_merchant: Boolean(isMerchant || String(data.customer_id).startsWith('merch_') || (data.customer_name && data.customer_name.includes('Oficial'))),
+      reactions: {},
+      parent_id: parentId || null,
+      reply_to_name: replyToName || null
+    };
+    notifySocialUpdate('comment_added', { postId, comment: completeComment });
+    return completeComment;
   } catch (err) {
     console.warn('Error en addPostComment Supabase, guardando respaldo local:', err);
     const key = `${LOCAL_STORAGE_PREFIX}comments_${postId}`;
     const raw = localStorage.getItem(key);
     const comments = raw ? JSON.parse(raw) : [];
-    const localComment = { ...baseRecord, customer_id: rawId, id: `local_${Date.now()}` };
+    const localComment = { 
+      ...dbRecord, 
+      customer_id: rawId, 
+      id: `local_${Date.now()}`,
+      created_at: new Date().toISOString(),
+      is_merchant: Boolean(isMerchant),
+      reactions: {},
+      parent_id: parentId || null,
+      reply_to_name: replyToName || null
+    };
     comments.push(localComment);
     localStorage.setItem(key, JSON.stringify(comments));
     notifySocialUpdate('comment_added', { postId, comment: localComment });

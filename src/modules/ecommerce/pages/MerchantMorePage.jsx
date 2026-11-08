@@ -165,13 +165,13 @@ export default function MerchantMorePage() {
     {
       id: 'social-feed',
       name: 'Publicaciones & Redes Sociales',
-      desc: 'Crea posts, carruseles de fotos y estados estilo TikTok',
+      desc: 'Crea posts, carruseles de fotos y estados para tu vitrina',
       path: '/social-feed',
       icon: Flame,
       color: 'text-rose-500',
       bg: 'bg-rose-50 dark:bg-rose-500/10',
-      badge: 'FEED & TIKTOK',
-      keywords: ['redes', 'social', 'feed', 'publicaciones', 'tiktok', 'fotos', 'estados', 'carrusel', 'noticias', 'videos', 'historias']
+      badge: 'FEED SOCIAL',
+      keywords: ['redes', 'social', 'feed', 'publicaciones', 'fotos', 'estados', 'carrusel', 'noticias', 'videos', 'historias']
     },
     {
       id: 'caja-maestra',
@@ -504,7 +504,7 @@ export default function MerchantMorePage() {
         </div>
 
         {/* ========================================================
-            DESTACADO: FEED SOCIAL & TIKTOK DE TU COMERCIO
+            DESTACADO: FEED SOCIAL DE TU COMERCIO
             ======================================================== */}
         <div 
           onClick={() => navigate('/social-feed')}
@@ -525,7 +525,7 @@ export default function MerchantMorePage() {
                     Publicaciones & Redes Sociales
                   </h3>
                   <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white text-rose-600 rounded-full shadow-xs">
-                    Estilo TikTok
+                    Feed Dinámico
                   </span>
                 </div>
                 <p className="text-[11px] sm:text-xs text-white/90 font-medium truncate mt-0.5">

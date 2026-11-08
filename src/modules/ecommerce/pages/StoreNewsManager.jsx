@@ -310,7 +310,7 @@ export default function StoreNewsManager() {
                   </div>
                 )}
                 <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
-                  💡 <strong>Formato TikTok (9:16 vertical):</strong> Resolución ideal 1080 × 1920 px. Fotos horizontales o cuadradas saldrán 100% completas con fondo ambiental difuminado automático.
+                  💡 <strong>Formato Vertical (9:16):</strong> Resolución ideal 1080 × 1920 px. Fotos horizontales o cuadradas saldrán 100% completas con fondo ambiental difuminado automático.
                 </p>
               </div>
               <div className="flex items-center gap-2">

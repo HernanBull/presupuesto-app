@@ -2845,7 +2845,7 @@ export default function PublicStore() {
                       <div className="flex justify-between items-center mb-3">
                         <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
                           <Clock size={18} className="text-orange-600 shrink-0" />
-                          <span>Horario</span>
+                          <span>¿A qué horas abrimos?</span>
                         </h2>
                         {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
                           <button 
@@ -2943,7 +2943,7 @@ export default function PublicStore() {
                       <div className="flex justify-between items-center mb-3">
                         <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
                           <MapPin size={18} className="text-orange-600 shrink-0" />
-                          <span>Ubicación</span>
+                          <span>Encuéntranos en</span>
                         </h2>
                         <button 
                           type="button"
@@ -4933,19 +4933,19 @@ export default function PublicStore() {
           onClick={() => setIsBottomNavOpen(true)}
           className="fixed bottom-5 left-4 md:left-[calc(50%-330px)] z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
           style={{
-            backgroundColor: 'rgba(10, 10, 10, 0.85)',
+            backgroundColor: 'rgba(10, 10, 10, 0.90)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.85)'
           }}
           title="Abrir menú"
           aria-label="Abrir menú de navegación"
         >
-          <Store size={22} className="stroke-[2.2] text-amber-400" />
+          <Store size={22} className="stroke-[2.2] text-white" />
           <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
           </span>
         </button>
       )}
@@ -4955,40 +4955,40 @@ export default function PublicStore() {
         <nav 
           className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
           style={{
-            backgroundColor: 'rgba(12, 12, 14, 0.82)',
+            backgroundColor: 'rgba(12, 12, 14, 0.88)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.14)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+            border: '1px solid rgba(255, 255, 255, 0.20)',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.85)'
           }}
         >
           <div className="flex justify-between items-center h-16 px-2 relative">
             <button
               onClick={() => setCurrentPage('home')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'home' ? { color: primaryColor } : { color: '#d4d4d8' }}
+              style={currentPage === 'home' ? { color: primaryColor } : { color: '#ffffff' }}
             >
-              <Store size={22} className={currentPage === 'home' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'home' ? { color: primaryColor } : {}} />
-              <span className={`text-[10px] ${currentPage === 'home' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'home' ? { color: primaryColor } : {}}>{texts?.nav1 || 'Inicio'}</span>
+              <Store size={22} className={currentPage === 'home' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'home' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'home' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'home' ? { color: primaryColor } : {}}>{texts?.nav1 || 'Inicio'}</span>
             </button>
             
             <button
               onClick={() => setCurrentPage('products')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'products' ? { color: primaryColor } : { color: '#d4d4d8' }}
+              style={currentPage === 'products' ? { color: primaryColor } : { color: '#ffffff' }}
             >
-              <Package size={22} className={currentPage === 'products' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'products' ? { color: primaryColor } : {}} />
-              <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'products' ? { color: primaryColor } : {}}>{texts?.nav2 || 'Catálogo'}</span>
+              <Package size={22} className={currentPage === 'products' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'products' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'products' ? { color: primaryColor } : {}}>{texts?.nav2 || 'Catálogo'}</span>
             </button>
 
             {/* Standard Button for Cart */}
             <button
               onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
-              style={isCartOpen ? { color: primaryColor } : { color: '#d4d4d8' }}
+              style={isCartOpen ? { color: primaryColor } : { color: '#ffffff' }}
             >
               <div className="relative">
-                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4]" : "text-zinc-300"} style={isCartOpen ? { color: primaryColor } : {}} />
+                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4]" : "text-white opacity-95"} style={isCartOpen ? { color: primaryColor } : {}} />
                 {totalCartItems > 0 && (
                   <span 
                     className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm"
@@ -4998,22 +4998,22 @@ export default function PublicStore() {
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-semibold text-zinc-300'}`} style={isCartOpen ? { color: primaryColor } : {}}>Carrito</span>
+              <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-bold text-white'}`} style={isCartOpen ? { color: primaryColor } : {}}>Carrito</span>
             </button>
 
             <button
               onClick={() => setCurrentPage('offers')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'offers' ? { color: primaryColor } : { color: '#d4d4d8' }}
+              style={currentPage === 'offers' ? { color: primaryColor } : { color: '#ffffff' }}
             >
-              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4]" : "text-zinc-300"} style={currentPage === 'offers' ? { color: primaryColor } : {}} />
-              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-semibold text-zinc-300'}`} style={currentPage === 'offers' ? { color: primaryColor } : {}}>{texts?.nav3 || 'Ofertas'}</span>
+              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'offers' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'offers' ? { color: primaryColor } : {}}>{texts?.nav3 || 'Ofertas'}</span>
             </button>
 
             {/* Botón para cerrar la barra al instante y liberar pantalla */}
             <button
               onClick={() => setIsBottomNavOpen(false)}
-              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
+              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-white hover:text-rose-400 transition-colors"
               style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
               title="Ocultar menú"
             >

@@ -1091,7 +1091,7 @@ export default function MerchantSocialFeedPage() {
                   <p className="text-xs text-gray-500 dark:text-zinc-400">
                     {formData.post_type === 'status'
                       ? 'Se mostrará en la sección "Estados y Promociones" de tu tienda online'
-                      : 'Tu post aparecerá en el feed interactivo estilo TikTok de clientes de Axon Market'}
+                      : 'Tu post aparecerá en el feed interactivo de clientes de Axon Market'}
                   </p>
                 </div>
               </div>
@@ -1452,13 +1452,13 @@ export default function MerchantSocialFeedPage() {
                 </div>
               </form>
 
-              {/* Live Preview Estilo TikTok a la derecha */}
+              {/* Live Preview Estilo Feed Dinámico a la derecha */}
               <div className="lg:col-span-5 bg-zinc-950 p-6 flex flex-col items-center justify-center border-l border-zinc-800">
                 <div className="w-full max-w-[280px]">
                   <div className="flex items-center justify-between mb-2.5">
                     <span className="text-[11px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                       <Eye size={13} className="text-amber-400" />
-                      Vista Previa {formData.post_type === 'status' ? 'Estado' : 'TikTok'} (9:16)
+                      Vista Previa {formData.post_type === 'status' ? 'Estado' : 'Publicación'} (9:16)
                     </span>
                     <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                       formData.post_type === 'status'
@@ -1469,7 +1469,7 @@ export default function MerchantSocialFeedPage() {
                     </span>
                   </div>
 
-                  {/* Teléfono Mockup TikTok Vertical (100% Pantalla Completa) */}
+                  {/* Teléfono Mockup Feed Vertical (100% Pantalla Completa) */}
                   <div className="relative w-full aspect-[9/16] bg-black border-4 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl select-none">
                     
                     {/* Isla Dinámica / Parlante Superior */}
@@ -1617,7 +1617,7 @@ export default function MerchantSocialFeedPage() {
                   </div>
 
                   <p className="text-[10px] text-zinc-500 text-center mt-2.5">
-                    ✨ Vista previa idéntica a la pantalla del cliente en el feed TikTok.
+                    ✨ Vista previa idéntica a la pantalla del cliente en el feed interactivo.
                   </p>
                 </div>
               </div>

@@ -229,7 +229,12 @@ export default function PostCommentsDrawer({
         isMerchant: isMerchantPosting
       });
 
-      setComments(prev => [...prev, saved]);
+      // Deduplicar estrictamente por id para prevenir comentarios duplicados
+      setComments(prev => {
+        if (!saved || !saved.id) return prev;
+        if (prev.some(c => String(c.id) === String(saved.id))) return prev;
+        return [...prev, saved];
+      });
       setNewComment('');
       setReplyingTo(null);
       setTimeout(() => {

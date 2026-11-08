@@ -119,6 +119,7 @@ export default function MarketplaceDirectory() {
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
   const isNavOpenRef = useRef(true);
   isNavOpenRef.current = isBottomNavOpen;
+  const lastScrollTopRef = useRef(0);
   const isWheelThrottledRef = useRef(false);
 
   const scrollCategories = (direction) => {
@@ -1437,7 +1438,12 @@ export default function MarketplaceDirectory() {
     if (cfg.category) storeCats.push(cfg.category);
     if (cfg.rubro) storeCats.push(cfg.rubro);
     if (cfg.business_type) storeCats.push(cfg.business_type);
+    if (cfg.businessType) storeCats.push(cfg.businessType);
+    if (cfg.storefront?.category) storeCats.push(cfg.storefront.category);
+    if (cfg.expediente?.category) storeCats.push(cfg.expediente.category);
     if (store.business_type) storeCats.push(store.business_type);
+    if (store.category) storeCats.push(store.category);
+    if (store.rubro) storeCats.push(store.rubro);
 
     let matchesCategory = (activeCategory === 'Todas');
     if (!matchesCategory) {
@@ -1557,25 +1563,32 @@ export default function MarketplaceDirectory() {
       type: 'store'
     }));
 
-    // 2. Noticias y publicaciones de los comercios
-    const newsCards = storeNews.map(news => {
-      const parentStore = stores.find(s => s.id === news.workspace_id) || {};
-      return {
-        id: news.id,
-        workspace_id: news.workspace_id,
-        store_slug: parentStore.store_slug || news.workspace_id,
-        store_name: parentStore.name || 'Comercio Axon',
-        store_logo: parentStore.config?.logoUrl || parentStore.config?.storefront?.logoUrl,
-        image_url: news.image_url || parentStore.config?.coverUrl || parentStore.config?.storefront?.heroUrl,
-        image_urls: news.image_urls || news.images || null,
-        media_type: news.media_type || 'image',
-        content: `${news.title ? `📢 ${news.title}: ` : ''}${news.content}`,
-        map_address: parentStore.map_address || parentStore.config?.address || 'Venezuela',
-        is_verified: parentStore.config?.is_verified,
-        created_at: news.created_at,
-        type: 'news'
-      };
-    });
+    const matchingStoreIds = new Set(filteredStores.map(s => String(s.id)));
+
+    // 2. Noticias y publicaciones de los comercios (filtradas por la categoría activa)
+    const newsCards = storeNews
+      .filter(news => {
+        if (activeCategory === 'Todas') return true;
+        return matchingStoreIds.has(String(news.workspace_id));
+      })
+      .map(news => {
+        const parentStore = stores.find(s => String(s.id) === String(news.workspace_id)) || {};
+        return {
+          id: news.id,
+          workspace_id: news.workspace_id,
+          store_slug: parentStore.store_slug || news.workspace_id,
+          store_name: parentStore.name || 'Comercio Axon',
+          store_logo: parentStore.config?.logoUrl || parentStore.config?.storefront?.logoUrl,
+          image_url: news.image_url || parentStore.config?.coverUrl || parentStore.config?.storefront?.heroUrl,
+          image_urls: news.image_urls || news.images || null,
+          media_type: news.media_type || 'image',
+          content: `${news.title ? `📢 ${news.title}: ` : ''}${news.content}`,
+          map_address: parentStore.map_address || parentStore.config?.address || 'Venezuela',
+          is_verified: parentStore.config?.is_verified,
+          created_at: news.created_at,
+          type: 'news'
+        };
+      });
 
     let combined = [...newsCards, ...storeCards];
 
@@ -1661,14 +1674,22 @@ export default function MarketplaceDirectory() {
     if (!c) return;
     const pageH = c.clientHeight || window.innerHeight;
     const scrollPos = c.scrollTop;
+    const delta = scrollPos - lastScrollTopRef.current;
 
-    // Si está en el primer comercio (< 30% de la altura): mostrar barras
-    // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
-    const shouldBeOpen = scrollPos < (pageH * 0.3);
-    if (shouldBeOpen !== isNavOpenRef.current) {
-      isNavOpenRef.current = shouldBeOpen;
-      setIsBottomNavOpen(shouldBeOpen);
+    // Al deslizar hacia abajo (scroll down): ocultar barra inmediatamente para despejar la pantalla
+    if (delta > 6 && scrollPos > 30) {
+      if (isNavOpenRef.current) {
+        isNavOpenRef.current = false;
+        setIsBottomNavOpen(false);
+      }
+    } else if (delta < -6 || scrollPos <= 15) {
+      // Al deslizar hacia arriba (scroll up) o llegar arriba del todo: mostrar barra
+      if (!isNavOpenRef.current) {
+        isNavOpenRef.current = true;
+        setIsBottomNavOpen(true);
+      }
     }
+    lastScrollTopRef.current = scrollPos;
 
     // Detección de scroll para cargar progresivamente más contenido al aproximarse al final
     if (c.scrollHeight - (scrollPos + pageH) < 800) {
@@ -2038,7 +2059,17 @@ export default function MarketplaceDirectory() {
         <div className="flex justify-between items-center h-16 px-2 relative">
           <button 
             onClick={() => { 
-              mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+              const c = mainContainerRef.current;
+              if (c) {
+                c.scrollTop = 0;
+                try {
+                  c.scrollTo({ top: 0, behavior: 'instant' });
+                } catch (e) {}
+                const firstCard = c.querySelector('.tiktok-feed-item');
+                if (firstCard) {
+                  firstCard.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+              }
               setIsBottomNavOpen(true); 
             }}
             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
@@ -2049,9 +2080,9 @@ export default function MarketplaceDirectory() {
           
           <button onClick={() => {
             setIsCategoriesOpen(true);
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-white cursor-pointer group">
-            <Menu size={22} className="text-zinc-300 group-hover:text-white" />
-            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-white">Categorías</span>
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+            <Menu size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Categorías</span>
           </button>
 
           {/* Botón Central - Club VIP */}
@@ -2079,22 +2110,22 @@ export default function MarketplaceDirectory() {
             } else {
               navigate('/profile', { state: { tab: 'favoritas' } });
             }
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
-            <Heart size={22} className="text-zinc-300 group-hover:text-amber-400" />
-            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Favoritos</span>
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+            <Heart size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Favoritos</span>
           </button>
 
           <button onClick={() => {
             navigate('/mapa');
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-zinc-300 hover:text-amber-400 cursor-pointer group">
-            <MapPin size={22} className="text-zinc-300 group-hover:text-amber-400" />
-            <span className="text-[10px] font-medium text-zinc-300 group-hover:text-amber-400">Mapa</span>
+          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+            <MapPin size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Mapa</span>
           </button>
 
           {/* Botón para cerrar la barra al instante y liberar pantalla */}
           <button
             onClick={() => setIsBottomNavOpen(false)}
-            className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-zinc-300 hover:text-white transition-colors"
+            className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-white hover:text-amber-400 transition-colors"
             style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
             title="Ocultar menú"
           >

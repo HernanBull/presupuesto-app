@@ -305,7 +305,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       name: 'Publicaciones & Redes',
       path: '/social-feed',
       icon: Flame,
-      badge: 'TikTok'
+      badge: 'FEED'
     },
     {
       id: 'ventas',

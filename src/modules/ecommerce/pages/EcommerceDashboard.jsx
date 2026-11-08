@@ -806,7 +806,7 @@ export default function EcommerceDashboard() {
           ))}
         </div>
 
-        {/* Accesos Destacados: Análisis del Período & Feed Social TikTok (Desktop) */}
+        {/* Accesos Destacados: Análisis del Período & Feed Social (Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div 
             onClick={() => navigate('/analytics')}
@@ -838,7 +838,7 @@ export default function EcommerceDashboard() {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="font-black text-sm sm:text-base tracking-tight text-white">Publicaciones & Redes Sociales</h4>
-                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white text-rose-600 rounded-full shadow-xs">TikTok</span>
+                  <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider bg-white text-rose-600 rounded-full shadow-xs">FEED</span>
                 </div>
                 <p className="text-xs text-white/90 mt-0.5">Crea posts, sube carruseles de fotos y estados interactivos para tu vitrina</p>
               </div>
