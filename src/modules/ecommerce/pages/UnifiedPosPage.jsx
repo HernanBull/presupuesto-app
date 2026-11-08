@@ -4149,7 +4149,7 @@ export default function UnifiedPosPage() {
         }}
         initialTab={cashShiftModalTab}
         bcvRate={bcvRate}
-        storeName={storeInfo?.name || "AxonMarket Store"}
+        storeName={localStorage.getItem('activeWorkspaceName') || localStorage.getItem('storeName') || "AxonMarket Store"}
       />
 
       <UserManagementModal
