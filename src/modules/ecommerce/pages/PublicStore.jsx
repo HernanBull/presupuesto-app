@@ -267,6 +267,8 @@ export default function PublicStore() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentBank, setPaymentBank] = useState('');
   const [selectedPaymentProfileIdx, setSelectedPaymentProfileIdx] = useState('');
+  const [duplicateRefError, setDuplicateRefError] = useState(null);
+  const [isCheckingRef, setIsCheckingRef] = useState(false);
 
   const customerPaymentProfiles = useMemo(() => {
     if (!currentCustomer?.payment_profile) return [];
@@ -1031,6 +1033,67 @@ export default function PublicStore() {
     );
   };
 
+  const checkDuplicateReference = async (refValue) => {
+    if (!refValue) {
+      setDuplicateRefError(null);
+      return false;
+    }
+    const cleanRef = String(refValue).trim().replace(/\D/g, '');
+    if (cleanRef.length < 4) {
+      setDuplicateRefError(null);
+      return false;
+    }
+
+    setIsCheckingRef(true);
+    try {
+      // 1. Consultar historial de órdenes de este comercio en Supabase
+      const { data: existingOrders, error: ordErr } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('id, date, status, paymentdetails')
+        .eq('workspace_id', workspaceId)
+        .limit(200);
+
+      let foundDuplicate = null;
+      if (!ordErr && existingOrders && existingOrders.length > 0) {
+        foundDuplicate = existingOrders.find(ord => {
+          const ordRef = ord?.paymentdetails?.ref ? String(ord.paymentdetails.ref).trim().replace(/\D/g, '') : '';
+          if (!ordRef || ordRef.length < 4) return false;
+          // Coincidencia exacta o coincidencia en los últimos 4-6 dígitos
+          if (ordRef === cleanRef) return true;
+          if (ordRef.length >= 6 && cleanRef.length >= 6 && (ordRef.endsWith(cleanRef) || cleanRef.endsWith(ordRef))) {
+            return true;
+          }
+          return false;
+        });
+      }
+
+      // 2. Consultar base de datos de referencias del comercio en su configuración
+      if (!foundDuplicate && Array.isArray(config?.used_references)) {
+        const matchConfig = config.used_references.some(r => {
+          const cleanR = String(r).trim().replace(/\D/g, '');
+          return cleanR && (cleanR === cleanRef || (cleanR.length >= 6 && cleanRef.length >= 6 && (cleanR.endsWith(cleanRef) || cleanRef.endsWith(cleanR))));
+        });
+        if (matchConfig) {
+          foundDuplicate = { id: 'REGISTRO-COMERCIO' };
+        }
+      }
+
+      if (foundDuplicate) {
+        setDuplicateRefError('⚠️ Referencia duplicada: este número de pago ya fue utilizado en un pedido anterior.');
+        setIsCheckingRef(false);
+        return true;
+      } else {
+        setDuplicateRefError(null);
+        setIsCheckingRef(false);
+        return false;
+      }
+    } catch (err) {
+      console.warn('Error al verificar referencia duplicada:', err);
+      setIsCheckingRef(false);
+      return false;
+    }
+  };
+
   const handleCheckoutSubmit = async () => {
     if (!currentCustomer) {
       alert("Por favor inicia sesión o regístrate para comprar");
@@ -1057,6 +1120,40 @@ export default function PublicStore() {
       alert(`Por favor sube la captura del comprobante de tu ${selectedPaymentMethod === 'zelle' ? 'Zelle' : 'Pago Móvil'}`);
       return;
     }
+
+    // Verificación Estricta Anti-Fraude: Detector de Referencia Duplicada
+    if (paymentReference && (selectedPaymentMethod === 'pago_movil' || selectedPaymentMethod === 'zelle')) {
+      const isDupe = await checkDuplicateReference(paymentReference);
+      if (isDupe) {
+        setIsSubmittingOrder(false);
+        alert("⛔ REFERENCIA DUPLICADA\n\nEl número de referencia que ingresaste ya fue registrado en una compra anterior de esta tienda.\n\nEl pedido no procede para evitar pagos duplicados. Por favor ingresa el comprobante o referencia correcta.");
+        
+        // Alerta en tiempo real al panel/POS del comerciante
+        try {
+          const alertCh = supabase.channel('store-' + workspaceId + '-orders');
+          alertCh.subscribe(async (st) => {
+            if (st === 'SUBSCRIBED') {
+              await alertCh.send({
+                type: 'broadcast',
+                event: 'SECURITY_ALERT',
+                payload: {
+                  type: 'DUPLICATE_REFERENCE_ATTEMPT',
+                  reference: paymentReference,
+                  customerName: currentCustomer?.name || 'Cliente',
+                  customerPhone: currentCustomer?.phone || '',
+                  timestamp: new Date().toISOString()
+                }
+              });
+              alertCh.unsubscribe();
+            }
+          });
+        } catch (alertErr) {
+          console.warn('Error emitiendo alerta de seguridad al comerciante:', alertErr);
+        }
+        return;
+      }
+    }
+
     setIsSubmittingOrder(true);
     trackEvent('checkout_start');
     
@@ -1264,6 +1361,7 @@ export default function PublicStore() {
           setPaymentReference(foundRef);
           setOcrStatus('success');
           setOcrMessage(`✅ Referencia detectada: ${foundRef}`);
+          checkDuplicateReference(foundRef);
         } else {
           setOcrStatus('error');
           setOcrMessage('ℹ️ Puedes escribir la referencia de pago manualmente abajo.');
@@ -4708,15 +4806,36 @@ export default function PublicStore() {
                                     type="text" 
                                     inputMode="numeric" 
                                     value={paymentReference} 
-                                    onChange={e => setPaymentReference(e.target.value)} 
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setPaymentReference(val);
+                                      if (val.trim().length >= 4) {
+                                        checkDuplicateReference(val);
+                                      } else {
+                                        setDuplicateRefError(null);
+                                      }
+                                    }} 
                                     placeholder="Ej: 123456 (últimos 4 a 6 dígitos o completa)" 
-                                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900 font-mono font-bold placeholder-slate-400 shadow-xs" 
+                                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none font-mono font-bold placeholder-slate-400 shadow-xs transition-colors ${
+                                      duplicateRefError 
+                                        ? 'border-red-500 bg-red-50/60 text-red-900 focus:border-red-600' 
+                                        : 'border-slate-300 text-slate-900 focus:border-amber-500'
+                                    }`} 
                                   />
-                                  {ocrMessage && ocrStatus !== 'analyzing' && (
+                                  {duplicateRefError ? (
+                                    <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold animate-in fade-in">
+                                      <AlertTriangle size={14} className="shrink-0 text-red-600" />
+                                      <span>{duplicateRefError}</span>
+                                    </div>
+                                  ) : isCheckingRef ? (
+                                    <p className="text-[11px] mt-1 text-slate-400 flex items-center gap-1 font-medium">
+                                      <Loader2 size={11} className="animate-spin" /> Verificando referencia...
+                                    </p>
+                                  ) : ocrMessage && ocrStatus !== 'analyzing' ? (
                                     <p className={`text-[11px] mt-1 ${ocrStatus === 'success' ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
                                       {ocrMessage}
                                     </p>
-                                  )}
+                                  ) : null}
                                 </div>
                                 
                                 <div>
@@ -4787,15 +4906,36 @@ export default function PublicStore() {
                                   <input 
                                     type="text" 
                                     value={paymentReference} 
-                                    onChange={e => setPaymentReference(e.target.value)} 
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setPaymentReference(val);
+                                      if (val.trim().length >= 4) {
+                                        checkDuplicateReference(val);
+                                      } else {
+                                        setDuplicateRefError(null);
+                                      }
+                                    }} 
                                     placeholder="Código de confirmación o referencia" 
-                                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-[#741eed] text-slate-900 font-mono font-bold placeholder-slate-400 shadow-xs" 
+                                    className={`w-full px-3.5 py-2.5 border rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none font-mono font-bold placeholder-slate-400 shadow-xs transition-colors ${
+                                      duplicateRefError 
+                                        ? 'border-red-500 bg-red-50/60 text-red-900 focus:border-red-600' 
+                                        : 'border-slate-300 text-slate-900 focus:border-[#741eed]'
+                                    }`} 
                                   />
-                                  {ocrMessage && ocrStatus !== 'analyzing' && (
+                                  {duplicateRefError ? (
+                                    <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold animate-in fade-in">
+                                      <AlertTriangle size={14} className="shrink-0 text-red-600" />
+                                      <span>{duplicateRefError}</span>
+                                    </div>
+                                  ) : isCheckingRef ? (
+                                    <p className="text-[11px] mt-1 text-slate-400 flex items-center gap-1 font-medium">
+                                      <Loader2 size={11} className="animate-spin" /> Verificando referencia...
+                                    </p>
+                                  ) : ocrMessage && ocrStatus !== 'analyzing' ? (
                                     <p className={`text-[11px] mt-1 ${ocrStatus === 'success' ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
                                       {ocrMessage}
                                     </p>
-                                  )}
+                                  ) : null}
                                 </div>
                                 
                                 <div>
@@ -4949,12 +5089,12 @@ export default function PublicStore() {
                       <button 
                         type="button"
                         onClick={handleCheckoutSubmit} 
-                        disabled={isSubmittingOrder}
+                        disabled={isSubmittingOrder || Boolean(duplicateRefError)}
                         className="w-full py-4 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg relative overflow-hidden disabled:opacity-50 disabled:hover:brightness-100"
-                        style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                        style={{ backgroundColor: duplicateRefError ? '#dc2626' : primaryColor, color: primaryTextColor }}
                       >
-                        {isSubmittingOrder ? <Loader2 size={18} className="animate-spin" style={{ color: primaryTextColor }} /> : <CreditCard size={18} />}
-                        <span>{isSubmittingOrder ? 'Procesando Pedido...' : 'Confirmar y Pagar'}</span>
+                        {isSubmittingOrder ? <Loader2 size={18} className="animate-spin" style={{ color: primaryTextColor }} /> : duplicateRefError ? <AlertTriangle size={18} /> : <CreditCard size={18} />}
+                        <span>{isSubmittingOrder ? 'Procesando Pedido...' : duplicateRefError ? 'Referencia Duplicada' : 'Confirmar y Pagar'}</span>
                       </button>
                     ) : (
                       <button 
