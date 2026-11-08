@@ -219,7 +219,7 @@ export default function SocialFeedCard({
           setSwipeX(-window.innerWidth);
           setIsSwiping(false);
           setTimeout(() => {
-            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId, postId, feedIndex);
             setSwipeX(0);
           }, 160);
           return;
@@ -230,7 +230,7 @@ export default function SocialFeedCard({
           setSwipeX(-window.innerWidth);
           setIsSwiping(false);
           setTimeout(() => {
-            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId);
+            if (onNavigateStore) onNavigateStore(storeSlug || workspaceId, postId, feedIndex);
             setSwipeX(0);
           }, 160);
           return;
@@ -803,7 +803,7 @@ export default function SocialFeedCard({
               onClick={(e) => e.stopPropagation()}
             >
               <button 
-                onClick={() => { setShowMenu(false); onNavigateStore(storeSlug || workspaceId); }}
+                onClick={() => { setShowMenu(false); onNavigateStore(storeSlug || workspaceId, postId, feedIndex); }}
                 className="w-full text-left px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2"
               >
                 <Store size={14} className="text-amber-400" />
@@ -925,7 +925,7 @@ export default function SocialFeedCard({
         <div className="flex items-center gap-2">
           <div 
             className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center overflow-hidden border border-white/80 p-0.5 shrink-0 shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-            onClick={() => onNavigateStore(storeSlug || workspaceId)}
+            onClick={() => onNavigateStore(storeSlug || workspaceId, postId, feedIndex)}
           >
             {storeLogo ? (
               <img src={resolveImageUrl(storeLogo)} alt={storeName} className="w-full h-full rounded-full object-cover bg-white" />
@@ -936,7 +936,7 @@ export default function SocialFeedCard({
 
           <div 
             className="flex flex-col min-w-0 cursor-pointer" 
-            onClick={() => onNavigateStore(storeSlug || workspaceId)}
+            onClick={() => onNavigateStore(storeSlug || workspaceId, postId, feedIndex)}
           >
             <div className="flex items-center gap-1">
               <span className="text-white font-black text-sm tracking-wide drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:underline truncate">

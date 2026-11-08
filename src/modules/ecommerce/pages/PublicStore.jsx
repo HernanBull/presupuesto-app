@@ -1970,9 +1970,17 @@ export default function PublicStore() {
   const isTransparentHeader = headerStyle === 'transparent' && currentPage === 'home' && safeSections[0]?.type === 'hero';
 
   // Modo Administrador y Comerciante Visitante (Exploración B2B)
-  const activeMerchantWs = localStorage.getItem('activeWorkspace');
-  const isMerchantOwner = Boolean(activeMerchantWs && activeMerchantWs === workspaceId);
-  const isVisitingMerchant = Boolean(activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== workspaceId);
+  const activeMerchantWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
+  const activeMerchantSlug = localStorage.getItem('storeSlug');
+  const isAnyMerchantLoggedIn = Boolean(
+    (activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== 'null' && activeMerchantWs !== 'undefined' && activeMerchantWs.trim() !== '') ||
+    (activeMerchantSlug && activeMerchantSlug !== 'null' && activeMerchantSlug !== 'undefined' && activeMerchantSlug.trim() !== '')
+  );
+  const isMerchantOwner = Boolean(
+    (activeMerchantWs && workspaceId && activeMerchantWs === workspaceId) ||
+    (activeMerchantSlug && slug && activeMerchantSlug.toLowerCase() === slug.toLowerCase())
+  );
+  const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner);
 
   // Guardar nuevo color de marca en Supabase (solo para el comerciante dueño)
   const handleSaveBrandColor = async (colorToSave) => {
@@ -2331,7 +2339,7 @@ export default function PublicStore() {
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
-             {!currentCustomer && !isMerchantOwner ? (
+             {!currentCustomer && !isMerchantOwner && !isVisitingMerchant ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
                  className="flex items-center gap-1.5 text-xs font-bold uppercase px-4 py-2 rounded-full transition-all active:scale-95 cursor-pointer border"
@@ -2416,11 +2424,11 @@ export default function PublicStore() {
                       </div>
                     )}
                   </button>
-                ) : !isMerchantOwner && (
+                ) : !isMerchantOwner && !isVisitingMerchant ? (
                   <button onClick={() => setShowAuthModal(true)} className="p-2 text-slate-600 hover:text-orange-600 transition-colors" title="Ingresar">
                     <User size={20} />
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -2605,16 +2613,17 @@ export default function PublicStore() {
                 <div className="flex gap-2.5 mt-3.5 w-full">
                   <button 
                     onClick={async () => {
-                      if (!currentCustomer && !isMerchantOwner) {
+                      const followerId = currentCustomer?.id || (isVisitingMerchant ? (activeMerchantWs || activeMerchantSlug) : null);
+                      if (!followerId && !isMerchantOwner) {
                         setShowAuthModal(true);
                         return;
                       }
-                      if (!currentCustomer || !workspaceId) return;
+                      if (!followerId || !workspaceId) return;
                       const newFollowing = !isFollowing;
                       setIsFollowing(newFollowing);
                       setFollowersCount(prev => newFollowing ? prev + 1 : Math.max(0, prev - 1));
                       try {
-                        const res = await toggleFollowStore(workspaceId, currentCustomer.id);
+                        const res = await toggleFollowStore(workspaceId, followerId);
                         setIsFollowing(res.isFollowing);
                         setFollowersCount(res.count);
                         if (showFollowersModal) {
@@ -4614,6 +4623,10 @@ export default function PublicStore() {
                         <ArrowRight size={18} />
                       </button>
                     )
+                  ) : isVisitingMerchant ? (
+                    <div className="w-full py-3.5 px-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-center text-xs font-bold leading-relaxed">
+                      <span>Modo Comerciante: Puedes explorar los productos y cantidades. Para procesar pedidos y comprar, ingresa con una cuenta de cliente.</span>
+                    </div>
                   ) : (
                     <button 
                       type="button"
@@ -5106,7 +5119,7 @@ export default function PublicStore() {
 
             {/* Standard Button for Cart */}
             <button
-              onClick={() => (currentCustomer || isMerchantOwner) ? setIsCartOpen(true) : setShowAuthModal(true)}
+              onClick={() => (currentCustomer || isMerchantOwner || isVisitingMerchant) ? setIsCartOpen(true) : setShowAuthModal(true)}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
               style={isCartOpen ? { color: primaryColor } : { color: '#ffffff' }}
             >

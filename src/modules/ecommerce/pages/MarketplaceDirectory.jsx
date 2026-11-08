@@ -1620,13 +1620,29 @@ export default function MarketplaceDirectory() {
     return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredStores, storeNews, stores, discoveryFilter]);
 
-  // Carga progresiva uno a uno estilo Instagram / Feed Dinámico
-  const [visibleFeedCount, setVisibleFeedCount] = useState(2);
+  // Carga progresiva uno a uno estilo Instagram / Feed Dinámico con retención de posición de retorno
+  const [visibleFeedCount, setVisibleFeedCount] = useState(() => {
+    const savedCount = sessionStorage.getItem('axon_directory_visible_count');
+    const savedIdx = sessionStorage.getItem('axon_feed_target_index');
+    const parsedCount = parseInt(savedCount, 10);
+    const parsedIdx = parseInt(savedIdx, 10);
+    return Math.max(
+      2,
+      !isNaN(parsedCount) ? parsedCount : 0,
+      !isNaN(parsedIdx) ? parsedIdx + 3 : 0
+    );
+  });
   const feedSentinelRef = useRef(null);
 
   // Reiniciar visibleFeedCount cuando cambie categoría, filtro o búsqueda
   useEffect(() => {
-    setVisibleFeedCount(2);
+    const hasPendingReturn = Boolean(
+      sessionStorage.getItem('axon_feed_target_post_id') || 
+      sessionStorage.getItem('axon_directory_scroll_top')
+    );
+    if (!hasPendingReturn) {
+      setVisibleFeedCount(2);
+    }
   }, [activeCategory, discoveryFilter, searchTerm]);
 
   // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo (de 1 en 1 para evitar saturación)
@@ -1668,46 +1684,71 @@ export default function MarketplaceDirectory() {
     }
   }, [feedPosts.length, visibleFeedCount]);
 
-  // Navegación a tienda reteniendo la posición exacta de scroll en el feed
-  const handleNavigateToStore = (targetSlug) => {
+  // Navegación a tienda reteniendo la posición exacta de scroll y tarjeta en el feed
+  const handleNavigateToStore = (targetSlug, targetPostId, targetIndex) => {
     if (!targetSlug) return;
     const c = mainContainerRef.current;
     const currentTop = c ? c.scrollTop : (window.scrollY || 0);
     sessionStorage.setItem('axon_directory_scroll_top', String(currentTop));
-    sessionStorage.setItem('axon_directory_visible_count', String(visibleFeedCount));
+    sessionStorage.setItem('axon_directory_visible_count', String(Math.max(visibleFeedCount, (targetIndex || 0) + 3)));
+    if (targetPostId) {
+      sessionStorage.setItem('axon_feed_target_post_id', String(targetPostId));
+    }
+    if (typeof targetIndex === 'number') {
+      sessionStorage.setItem('axon_feed_target_index', String(targetIndex));
+    }
     navigate(`/${targetSlug}`);
   };
 
-  // Restaurar posición de scroll exacta al volver de una vitrina de comerciante
+  // Restaurar posición de scroll y tarjeta exacta al volver de una vitrina de comerciante
   useEffect(() => {
+    const savedTargetPostId = sessionStorage.getItem('axon_feed_target_post_id');
+    const savedTargetIndex = sessionStorage.getItem('axon_feed_target_index');
     const savedScroll = sessionStorage.getItem('axon_directory_scroll_top');
-    const savedCount = sessionStorage.getItem('axon_directory_visible_count');
 
-    if (savedCount) {
-      const count = parseInt(savedCount, 10);
-      if (!isNaN(count) && count > visibleFeedCount) {
-        setVisibleFeedCount(count);
+    if (!savedTargetPostId && !savedScroll) return;
+    if (feedPosts.length === 0) return;
+
+    if (savedTargetIndex) {
+      const idx = parseInt(savedTargetIndex, 10);
+      if (!isNaN(idx) && visibleFeedCount < idx + 3) {
+        setVisibleFeedCount(idx + 3);
+        return;
       }
     }
 
-    if (savedScroll) {
-      const top = parseInt(savedScroll, 10);
-      if (!isNaN(top) && top > 0) {
-        let attempts = 0;
-        const interval = setInterval(() => {
-          attempts++;
-          const c = mainContainerRef.current;
-          if (c && c.scrollHeight > top) {
-            c.scrollTop = top;
-            clearInterval(interval);
-          } else if (attempts >= 12) {
-            clearInterval(interval);
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const targetCard = savedTargetPostId ? document.getElementById(`post-${savedTargetPostId}`) : null;
+      const c = mainContainerRef.current;
+
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'instant', block: 'start' });
+        clearInterval(interval);
+        if (savedTargetIndex && parseInt(savedTargetIndex, 10) > 0) {
+          isNavOpenRef.current = false;
+          setIsBottomNavOpen(false);
+        }
+      } else if (c && savedScroll) {
+        const top = parseInt(savedScroll, 10);
+        if (!isNaN(top) && c.scrollHeight > top) {
+          c.scrollTop = top;
+          clearInterval(interval);
+          if (top > 30) {
+            isNavOpenRef.current = false;
+            setIsBottomNavOpen(false);
           }
-        }, 80);
-        return () => clearInterval(interval);
+        }
       }
-    }
-  }, [feedPosts.length]);
+
+      if (attempts >= 15) {
+        clearInterval(interval);
+      }
+    }, 50);
+
+    return () => clearInterval(interval);
+  }, [feedPosts.length, visibleFeedCount]);
 
   // Manejo de scroll para ocultamiento de barras y carga progresiva
   const handleScroll = () => {
@@ -1975,6 +2016,8 @@ export default function MarketplaceDirectory() {
                 onClick={() => { 
                   sessionStorage.removeItem('axon_directory_scroll_top');
                   sessionStorage.removeItem('axon_directory_visible_count');
+                  sessionStorage.removeItem('axon_feed_target_post_id');
+                  sessionStorage.removeItem('axon_feed_target_index');
                   setActiveCategory('Todas'); 
                   setSearchTerm(''); 
                   setDiscoveryFilter('all'); 
@@ -2133,7 +2176,7 @@ export default function MarketplaceDirectory() {
                   currentMerchant={currentMerchant}
                   onOpenComments={(target) => setActiveCommentsPost(target)}
                   onRequireAuth={() => setIsAuthModalOpen(true)}
-                  onNavigateStore={(slug) => handleNavigateToStore(slug)}
+                  onNavigateStore={(slug, pId, fIdx) => handleNavigateToStore(slug, pId || post.id, fIdx ?? postIndex)}
                   onCardVisible={handleCardVisible}
                 />
               ))
@@ -2197,6 +2240,8 @@ export default function MarketplaceDirectory() {
             onClick={() => { 
               sessionStorage.removeItem('axon_directory_scroll_top');
               sessionStorage.removeItem('axon_directory_visible_count');
+              sessionStorage.removeItem('axon_feed_target_post_id');
+              sessionStorage.removeItem('axon_feed_target_index');
               const c = mainContainerRef.current;
               if (c) {
                 c.scrollTop = 0;
