@@ -1,5 +1,5 @@
 // ==============================================================================
-// AXONMARKET & AXONPOS — Modal de Control de Caja, Turnos, Arqueo Ciego & SENIAT
+// AXONMARKET & AXONPOS — Modal de Control de Caja, Turnos, Arqueo & SENIAT
 // Diseño Ergonómico "Luminous White & Radiant Orange" — Retail & Gastro POS
 // ==============================================================================
 
@@ -22,7 +22,13 @@ import {
   PlusCircle,
   Receipt,
   RotateCcw,
-  Tag
+  Tag,
+  Coins,
+  CreditCard,
+  Smartphone,
+  Landmark,
+  TrendingUp,
+  LogOut
 } from 'lucide-react';
 import { supabase } from '../../../../supabaseClient';
 import { offlineDb } from '../../services/offlineSyncService';
@@ -32,7 +38,7 @@ import toast from 'react-hot-toast';
 export default function CashShiftModal({
   isOpen,
   onClose,
-  activeShift,
+  activeShift: propActiveShift,
   onShiftChange,
   bcvRate = 888.89,
   storeName = 'AxonMarket Store',
@@ -44,20 +50,46 @@ export default function CashShiftModal({
   const [registers, setAvailableRegisters] = useState([]);
   const [availableStaff, setAvailableStaff] = useState([]);
 
+  // Estado del turno activo (prioriza prop, o carga de localStorage)
+  const [currentShift, setCurrentShift] = useState(() => {
+    if (propActiveShift) return propActiveShift;
+    try {
+      const s = localStorage.getItem('axon_active_shift');
+      if (s) return JSON.parse(s);
+    } catch (e) {}
+    return null;
+  });
+
+  // Detectar si la sesión actual es modo cajero / trabajador
+  const isCashier = Boolean(
+    localStorage.getItem('axon_cashier_mode') === 'true' || 
+    localStorage.getItem('axonpos_active_user_role') === 'CASHIER' ||
+    currentUser?.role === 'CASHIER'
+  );
+
+  // Nombre de la caja activa y cajero
+  const activeRegisterName = currentShift?.registerName || 
+                             localStorage.getItem('axon_active_register_name') || 
+                             'Caja 1 - Principal';
+  const activeCashierName = currentShift?.cashierName || 
+                            currentShift?.cashier || 
+                            localStorage.getItem('axonpos_active_user_name') || 
+                            currentUser?.fullName || 
+                            'Cajero';
+
   // Estados para Apertura de Turno (si no hay turno activo)
-  const [openRegisterName, setOpenRegisterName] = useState('Caja 1 - Principal');
-  const [openCashierName, setOpenCashierName] = useState('yende');
+  const [openRegisterName, setOpenRegisterName] = useState(activeRegisterName);
+  const [openCashierName, setOpenCashierName] = useState(activeCashierName);
   const [openInitialUsd, setOpenInitialUsd] = useState('50.00');
   const [openInitialVes, setOpenInitialVes] = useState('1000.00');
 
-  // Fusión: Registro inmediato de nueva caja desde apertura de turno
+  // Fusión: Registro inmediato de nueva caja desde apertura de turno (solo SuperAdmin)
   const [isCreatingNewRegInline, setIsCreatingNewRegInline] = useState(false);
   const [inlineRegName, setInlineRegName] = useState('');
 
   // Arqueo Ciego
   const [actualUsd, setActualUsd] = useState('');
   const [actualVes, setActualVes] = useState('');
-  const [showBlindDiscrepancies, setShowBlindDiscrepancies] = useState(false);
 
   // Caja Chica
   const [movementType, setMovementType] = useState('OUT');
@@ -68,11 +100,25 @@ export default function CashShiftModal({
   // Cargar usuario actual, cajas y movimientos
   useEffect(() => {
     if (isOpen) {
-      if (initialTab) setActiveTab(initialTab);
+      if (initialTab) {
+        // Si es cajero y pidieron 'registers', forzar a 'status'
+        setActiveTab(isCashier && initialTab === 'registers' ? 'status' : initialTab);
+      }
 
       const u = authService.getCurrentUser();
       if (u) {
         setCurrentUser(u);
+      }
+
+      // Sincronizar turno efectivo
+      if (propActiveShift) {
+        setCurrentShift(propActiveShift);
+      } else {
+        try {
+          const s = localStorage.getItem('axon_active_shift');
+          if (s) setCurrentShift(JSON.parse(s));
+          else setCurrentShift(null);
+        } catch (e) {}
       }
 
       // Cargar lista de cajeros y personal real
@@ -99,14 +145,16 @@ export default function CashShiftModal({
       authService.getCashRegisters().then(regs => {
         setAvailableRegisters(regs.filter(r => r.isActive));
       });
+
       loadMovements();
     }
-  }, [isOpen, activeShift, initialTab]);
+  }, [isOpen, propActiveShift, initialTab]);
 
   const loadMovements = async () => {
     try {
-      if (activeShift?.id) {
-        const movs = await offlineDb.cash_movements.where('shiftId').equals(activeShift.id).toArray();
+      const shiftId = currentShift?.id || propActiveShift?.id;
+      if (shiftId) {
+        const movs = await offlineDb.cash_movements.where('shiftId').equals(shiftId).toArray();
         setMovements(movs);
       } else {
         const movs = await offlineDb.cash_movements.orderBy('timestamp').reverse().limit(20).toArray();
@@ -119,43 +167,45 @@ export default function CashShiftModal({
 
   if (!isOpen) return null;
 
-  // Cálculos de ventas simuladas/reales del turno
-  const shiftTotals = activeShift?.totals || {
-    salesCount: activeShift?.salesCount || 0,
-    cashUsd: activeShift?.cashUsd || 0,
-    cashVes: activeShift?.cashVes || 0,
-    pagoMovil: activeShift?.pagoMovil || 0,
-    puntoVenta: activeShift?.puntoVenta || 0,
-    zelle: activeShift?.zelle || 0,
-    credito: activeShift?.credito || 0,
-    totalSalesUsd: activeShift?.totalSalesUsd || 0,
-    totalSalesVes: activeShift?.totalSalesVes || 0
+  const isOpenShift = Boolean(currentShift && (currentShift.status === 'OPEN' || currentShift.status === 'ABIERTO'));
+
+  // Totales de ventas acumuladas en este turno
+  const shiftTotals = {
+    salesCount: currentShift?.salesCount || 0,
+    cashUsd: Number(currentShift?.cashUsd ?? currentShift?.cashSalesUsd ?? 0),
+    cashVes: Number(currentShift?.cashVes ?? currentShift?.cashSalesVes ?? 0),
+    pagoMovil: Number(currentShift?.pagoMovil || 0),
+    puntoVenta: Number(currentShift?.puntoVenta || 0),
+    zelle: Number(currentShift?.zelle || 0),
+    credito: Number(currentShift?.credito || 0),
+    totalSalesUsd: Number(currentShift?.totalSalesUsd || 0),
+    totalSalesVes: Number(currentShift?.totalSalesVes || (Number(currentShift?.totalSalesUsd || 0) * (Number(bcvRate) || 888.89)))
   };
 
-  const initialUsd = Number(activeShift?.initialUsd || 50.0);
-  const initialVes = Number(activeShift?.initialVes || 1000.0);
+  const initialUsd = Number(currentShift?.initialUsd ?? currentShift?.initialCashUsd ?? 50.0);
+  const initialVes = Number(currentShift?.initialVes ?? currentShift?.initialCashVes ?? 1000.0);
 
-  // Movimientos netos
+  // Movimientos netos de caja chica
   const totalInUsd = movements.filter(m => m.type === 'IN').reduce((acc, m) => acc + (Number(m.amountUsd) || 0), 0);
   const totalOutUsd = movements.filter(m => m.type === 'OUT').reduce((acc, m) => acc + (Number(m.amountUsd) || 0), 0);
   const totalInVes = movements.filter(m => m.type === 'IN').reduce((acc, m) => acc + (Number(m.amountVes) || 0), 0);
   const totalOutVes = movements.filter(m => m.type === 'OUT').reduce((acc, m) => acc + (Number(m.amountVes) || 0), 0);
 
+  // Efectivo físico esperado en gaveta
   const expectedUsd = initialUsd + shiftTotals.cashUsd + totalInUsd - totalOutUsd;
   const expectedVes = initialVes + shiftTotals.cashVes + totalInVes - totalOutVes;
 
-  // Apertura de nuevo turno (Fusionada con creación de caja si aplica)
+  // Apertura de nuevo turno
   const handleOpenShift = async () => {
-    let finalRegisterName = openRegisterName;
+    let finalRegisterName = isCashier ? activeRegisterName : openRegisterName;
 
-    if (isCreatingNewRegInline) {
+    if (!isCashier && isCreatingNewRegInline) {
       if (!inlineRegName.trim()) {
         toast.error('Ingrese el nombre de la nueva caja.');
         return;
       }
       finalRegisterName = inlineRegName.trim();
 
-      // Guardar automáticamente la nueva caja en el sistema
       try {
         await authService.saveCashRegister({
           name: finalRegisterName,
@@ -173,16 +223,22 @@ export default function CashShiftModal({
 
     const newShift = {
       id: `shift-${Date.now()}`,
+      registerId: localStorage.getItem('axon_active_register_id') || `caja-${Date.now()}`,
       registerName: finalRegisterName,
-      cashierName: openCashierName,
+      cashierId: localStorage.getItem('axonpos_active_user_id') || 'cashier',
+      cashierName: isCashier ? activeCashierName : openCashierName,
       initialUsd: parseFloat(openInitialUsd) || 0,
+      initialCashUsd: parseFloat(openInitialUsd) || 0,
       initialVes: parseFloat(openInitialVes) || 0,
+      initialCashVes: parseFloat(openInitialVes) || 0,
       openedAt: new Date().toISOString(),
       status: 'OPEN',
       bcvRate: Number(bcvRate) || 888.89,
       salesCount: 0,
       cashUsd: 0,
+      cashSalesUsd: 0,
       cashVes: 0,
+      cashSalesVes: 0,
       pagoMovil: 0,
       puntoVenta: 0,
       zelle: 0,
@@ -193,16 +249,18 @@ export default function CashShiftModal({
 
     await offlineDb.cash_shifts.put(newShift);
     localStorage.setItem('axon_active_shift', JSON.stringify(newShift));
+    localStorage.setItem('axon_active_register_name', finalRegisterName);
+    setCurrentShift(newShift);
     if (onShiftChange) onShiftChange(newShift);
 
-    // Sincronizar en Supabase cash_shifts para la Caja Maestra
+    // Sincronizar en Supabase cash_shifts
     try {
       const activeWs = localStorage.getItem('activeWorkspace');
       if (activeWs) {
         await supabase.from('cash_shifts').insert([{
           branch_id: activeWs,
           register_name: finalRegisterName,
-          cashier_name: openCashierName,
+          cashier_name: newShift.cashierName,
           opened_at: newShift.openedAt,
           initial_usd: newShift.initialUsd,
           initial_ves: newShift.initialVes,
@@ -220,7 +278,7 @@ export default function CashShiftModal({
       console.warn('Advertencia sincronizando turno a Supabase:', errDb);
     }
 
-    toast.success(`Turno abierto con éxito en ${openRegisterName}`);
+    toast.success(`Turno abierto con éxito en ${finalRegisterName}`);
     setActiveTab('status');
   };
 
@@ -239,17 +297,18 @@ export default function CashShiftModal({
 
     const mov = {
       id: `mov-${Date.now()}`,
-      shiftId: activeShift?.id || 'default_shift',
+      shiftId: currentShift?.id || 'default_shift',
+      registerName: activeRegisterName,
       type: movementType,
       amountUsd: usd,
       amountVes: ves,
       reason: movementReason.trim(),
-      cashier: currentUser?.fullName || 'Axon (Propietario)',
+      cashier: activeCashierName,
       timestamp: new Date().toISOString()
     };
 
     await offlineDb.cash_movements.put(mov);
-    toast.success(`${movementType === 'IN' ? 'Entrada' : 'Egreso'} de caja chica asentado.`);
+    toast.success(`${movementType === 'IN' ? 'Entrada' : 'Egreso'} asentado en ${activeRegisterName}.`);
     setMovementAmountUsd('');
     setMovementAmountVes('');
     setMovementReason('');
@@ -257,7 +316,7 @@ export default function CashShiftModal({
     setActiveTab('status');
   };
 
-  // Cierre de Turno con Arqueo Ciego
+  // Cierre definitivo de Turno con Arqueo
   const handleCloseShift = async () => {
     const actUsd = parseFloat(actualUsd) || 0;
     const actVes = parseFloat(actualVes) || 0;
@@ -266,7 +325,9 @@ export default function CashShiftModal({
     const diffVes = actVes - expectedVes;
 
     const closedShift = {
-      ...activeShift,
+      ...(currentShift || {}),
+      registerName: activeRegisterName,
+      cashierName: activeCashierName,
       status: 'CLOSED',
       closedAt: new Date().toISOString(),
       actualUsd: actUsd,
@@ -275,11 +336,12 @@ export default function CashShiftModal({
       expectedVes,
       differenceUsd: diffUsd,
       differenceVes: diffVes,
-      closedBy: currentUser?.fullName || 'Axon (Propietario)'
+      closedBy: activeCashierName
     };
 
     await offlineDb.cash_shifts.put(closedShift);
     localStorage.removeItem('axon_active_shift');
+    setCurrentShift(null);
     if (onShiftChange) onShiftChange(null);
 
     // Actualizar en Supabase cash_shifts
@@ -300,6 +362,7 @@ export default function CashShiftModal({
           })
           .match({
             branch_id: activeWs,
+            register_name: activeRegisterName,
             status: 'OPEN'
           });
       }
@@ -307,27 +370,33 @@ export default function CashShiftModal({
       console.warn('Advertencia cerrando turno en Supabase:', errDb);
     }
 
-    toast.success('Turno cerrado y archivado con éxito.');
+    // Impresión automática de comprobante de cierre
+    handlePrintCuadre();
+
+    toast.success(`Turno de ${activeRegisterName} cerrado y archivado con éxito.`);
     onClose();
 
-    // Si es cajero/trabajador, finalizar jornada y redirigir a la pantalla de estación
-    if (localStorage.getItem('axon_cashier_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'CASHIER') {
+    // Si es cajero/trabajador, finalizar jornada y redirigir a la pantalla de estación / login
+    if (isCashier) {
       localStorage.removeItem('axon_cashier_mode');
       localStorage.removeItem('axonpos_active_user_role');
       localStorage.removeItem('axonpos_active_user_name');
+      localStorage.removeItem('axon_active_shift');
+      localStorage.removeItem('axon_active_register_id');
+      localStorage.removeItem('axon_active_register_name');
       const slug = localStorage.getItem('storeSlug');
       window.location.href = slug ? `/${slug}/caja` : '/merchant/login';
     }
   };
 
-  // Impresión de comprobante térmico
+  // Impresión de comprobante térmico / Resumen Administrativo
   const handlePrintCuadre = () => {
-    const win = window.open('', '_blank', 'width=350,height=550');
+    const win = window.open('', '_blank', 'width=350,height=580');
     if (!win) return;
     win.document.write(`
       <html>
         <head>
-          <title>Cuadre de Turno - ${activeShift?.registerName || 'Caja 1'}</title>
+          <title>Cuadre de Turno - ${activeRegisterName}</title>
           <style>
             body { font-family: monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
             .center { text-align: center; }
@@ -338,29 +407,34 @@ export default function CashShiftModal({
         </head>
         <body>
           <div class="center bold" style="font-size: 14px;">${storeName}</div>
-          <div class="center">CUADRE DE CAJA (ARQUEO)</div>
-          <div class="center">${activeShift?.registerName || 'Caja 1 - Principal'}</div>
+          <div class="center bold">RESUMEN ADMINISTRATIVO DE CAJA</div>
+          <div class="center">${activeRegisterName}</div>
           <div class="divider"></div>
-          <div class="row"><span>Cajero:</span><span class="bold">${activeShift?.cashierName || 'Cajero'}</span></div>
-          <div class="row"><span>Apertura:</span><span>${new Date(activeShift?.openedAt || Date.now()).toLocaleTimeString()}</span></div>
+          <div class="row"><span>Cajero:</span><span class="bold">${activeCashierName}</span></div>
+          <div class="row"><span>Apertura:</span><span>${currentShift?.openedAt ? new Date(currentShift.openedAt).toLocaleTimeString('es-VE') : 'N/A'}</span></div>
           <div class="row"><span>Tasa BCV:</span><span>Bs. ${Number(bcvRate).toFixed(2)}</span></div>
           <div class="divider"></div>
           <div class="row"><span>Fondo Inicial ($):</span><span>$${initialUsd.toFixed(2)}</span></div>
-          <div class="row"><span>Fondo Inicial (Bs):</span><span>Bs. ${initialVes.toFixed(2)}</span></div>
+          <div class="row"><span>Fondo Inicial (Bs):</span><span>Bs. ${initialVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
           <div class="divider"></div>
           <div class="row"><span>Efectivo USD:</span><span>$${shiftTotals.cashUsd.toFixed(2)}</span></div>
-          <div class="row"><span>Efectivo Bs.:</span><span>Bs. ${shiftTotals.cashVes.toFixed(2)}</span></div>
-          <div class="row"><span>Pago Móvil:</span><span>Bs. ${shiftTotals.pagoMovil.toFixed(2)}</span></div>
-          <div class="row"><span>Punto de Venta:</span><span>Bs. ${shiftTotals.puntoVenta.toFixed(2)}</span></div>
+          <div class="row"><span>Efectivo Bs.:</span><span>Bs. ${shiftTotals.cashVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
+          <div class="row"><span>Pago Móvil:</span><span>Bs. ${shiftTotals.pagoMovil.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
+          <div class="row"><span>Punto de Venta:</span><span>Bs. ${shiftTotals.puntoVenta.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
           <div class="row"><span>Zelle:</span><span>$${shiftTotals.zelle.toFixed(2)}</span></div>
           <div class="row"><span>Créditos / Fiado:</span><span>$${shiftTotals.credito.toFixed(2)}</span></div>
           <div class="divider"></div>
-          <div class="row bold"><span>TOTAL VENTAS:</span><span>$${shiftTotals.totalSalesUsd.toFixed(2)}</span></div>
-          <div class="row bold"><span>TOTAL BS:</span><span>Bs. ${shiftTotals.totalSalesVes.toFixed(2)}</span></div>
+          <div class="row bold"><span>TOTAL VENTAS ($):</span><span>$${shiftTotals.totalSalesUsd.toFixed(2)}</span></div>
+          <div class="row bold"><span>TOTAL VENTAS (Bs):</span><span>Bs. ${shiftTotals.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
+          <div class="row"><span>Tickets / Facturas:</span><span>${shiftTotals.salesCount}</span></div>
+          <div class="divider"></div>
+          <div class="row"><span>Entradas Caja Chica:</span><span>+$${totalInUsd.toFixed(2)} / +Bs.${totalInVes.toFixed(2)}</span></div>
+          <div class="row"><span>Egresos Caja Chica:</span><span>-$${totalOutUsd.toFixed(2)} / -Bs.${totalOutVes.toFixed(2)}</span></div>
           <div class="divider"></div>
           <div class="row bold"><span>EFECTIVO ESPERADO ($):</span><span>$${expectedUsd.toFixed(2)}</span></div>
-          <div class="row bold"><span>EFECTIVO ESPERADO (Bs):</span><span>Bs. ${expectedVes.toFixed(2)}</span></div>
-          <div class="center" style="margin-top: 15px;">Firma del Cajero: __________________</div>
+          <div class="row bold"><span>EFECTIVO ESPERADO (Bs):</span><span>Bs. ${expectedVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span></div>
+          <div class="divider"></div>
+          <div class="center" style="margin-top: 15px;">Firma Cajero: __________________</div>
         </body>
       </html>
     `);
@@ -378,12 +452,23 @@ export default function CashShiftModal({
     }
   };
 
+  // Pestañas disponibles: Para el cajero NO se muestra Monitor Multi-Cajas ni gestión de otras terminales
+  const tabsList = [
+    { id: 'status', label: 'Resumen de Caja' },
+    { id: 'movement', label: 'Caja Chica (Gastos/Ingresos)' },
+    { id: 'close', label: 'Arqueo y Cierre de Turno' }
+  ];
+
+  if (!isCashier) {
+    tabsList.push({ id: 'registers', label: `Monitor Multi-Cajas (${registers.length || 1})` });
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* ========================================================
-            CABECERA PRINCIPAL (IDÉNTICA A IMAGEN 3)
+            CABECERA PRINCIPAL DINÁMICA DE LA CAJA ACTIVA
             ======================================================== */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white dark:bg-zinc-900">
           <div className="flex items-center gap-3">
@@ -393,19 +478,23 @@ export default function CashShiftModal({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                  Control de {activeShift?.registerName || 'Caja 1 - Principal'}
+                  Control de {activeRegisterName}
                 </h2>
-                <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 text-[10px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider">
-                  {activeShift?.status === 'OPEN' ? 'Activa' : 'Inactiva'}
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md tracking-wider ${
+                  isOpenShift
+                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' 
+                    : 'bg-slate-100 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'
+                }`}>
+                  {isOpenShift ? 'Activa' : 'Inactiva'}
                 </span>
                 <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded-md">
                   F9
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2">
-                <span>Cajero: <strong className="text-slate-700 dark:text-zinc-200">{activeShift?.cashierName || currentUser?.fullName || 'Axon (Propietario)'}</strong></span>
+                <span>Cajero: <strong className="text-slate-700 dark:text-zinc-200">{activeCashierName}</strong></span>
                 <span>•</span>
-                <span>Abierto: {activeShift ? new Date(activeShift.openedAt).toLocaleTimeString('es-VE') : 'Caja cerrada'}</span>
+                <span>{isOpenShift && currentShift?.openedAt ? `Abierto: ${new Date(currentShift.openedAt).toLocaleTimeString('es-VE')}` : 'Caja cerrada'}</span>
               </p>
             </div>
           </div>
@@ -418,15 +507,10 @@ export default function CashShiftModal({
         </div>
 
         {/* ========================================================
-            BARRA DE PESTAÑAS
+            BARRA DE PESTAÑAS (ERGONOMÍA LIMPIA)
             ======================================================== */}
         <div className="px-4 sm:px-6 pt-3 pb-2 flex items-center gap-2 overflow-x-auto custom-scrollbar border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-950/40">
-          {[
-            { id: 'status', label: 'Estado de Caja' },
-            { id: 'movement', label: 'Caja Chica (Gastos/Ingresos)' },
-            { id: 'close', label: 'Arqueo y Cierre de Turno' },
-            { id: 'registers', label: `Monitor Multi-Cajas (${registers.length || 1})` }
-          ].map(tab => (
+          {tabsList.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -446,15 +530,16 @@ export default function CashShiftModal({
             ======================================================== */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 custom-scrollbar">
 
-          {/* TAB 1: ESTADO DE CAJA */}
+          {/* TAB 1: RESUMEN DE CAJA / ESTADO */}
           {activeTab === 'status' && (
             <>
-              {activeShift?.status !== 'OPEN' && (
+              {/* Si la caja está cerrada, mostrar tarjeta de Apertura */}
+              {!isOpenShift && (
                 <div className="p-5 rounded-2xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/80 dark:border-orange-500/30 space-y-3.5 mb-2">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-black uppercase tracking-wider text-orange-900 dark:text-orange-300 flex items-center gap-2">
                       <Lock size={15} className="text-orange-600" />
-                      <span>Caja Cerrada — Apertura de Nuevo Turno</span>
+                      <span>Caja Cerrada — Apertura de Turno</span>
                     </h4>
                     <span className="text-[10px] font-bold text-orange-600 bg-orange-100 dark:bg-orange-500/20 px-2 py-0.5 rounded-full">
                       Habilitar Cobros
@@ -464,24 +549,33 @@ export default function CashShiftModal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Cajero Responsable</label>
-                      <select
-                        value={openCashierName}
-                        onChange={e => setOpenCashierName(e.target.value)}
-                        className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
-                      >
-                        {availableStaff.length > 0 ? (
-                          availableStaff.map((st, i) => (
-                            <option key={st.id || i} value={st.full_name || st.fullName}>
-                              {st.full_name || st.fullName} ({st.role || 'Cajero'})
-                            </option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="yende">yende (Cajero)</option>
-                            <option value="Axon (Propietario)">Axon (Propietario)</option>
-                          </>
-                        )}
-                      </select>
+                      {isCashier ? (
+                        <input
+                          type="text"
+                          disabled
+                          value={activeCashierName}
+                          className="w-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white cursor-not-allowed"
+                        />
+                      ) : (
+                        <select
+                          value={openCashierName}
+                          onChange={e => setOpenCashierName(e.target.value)}
+                          className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white"
+                        >
+                          {availableStaff.length > 0 ? (
+                            availableStaff.map((st, i) => (
+                              <option key={st.id || i} value={st.full_name || st.fullName}>
+                                {st.full_name || st.fullName} ({st.role || 'Cajero'})
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value={activeCashierName}>{activeCashierName} (Cajero)</option>
+                              <option value="Axon (Propietario)">Axon (Propietario)</option>
+                            </>
+                          )}
+                        </select>
+                      )}
                     </div>
 
                     <div>
@@ -489,21 +583,30 @@ export default function CashShiftModal({
                         <label className="text-[10px] font-bold text-slate-500 uppercase block">
                           Caja Registradora
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCreatingNewRegInline(prev => !prev);
-                            if (!isCreatingNewRegInline && !inlineRegName) {
-                              setInlineRegName(`Caja ${registers.length + 1}`);
-                            }
-                          }}
-                          className="text-[10px] font-black text-orange-600 hover:text-orange-700 underline cursor-pointer"
-                        >
-                          {isCreatingNewRegInline ? '← Seleccionar existente' : '+ Registrar Nueva Caja'}
-                        </button>
+                        {!isCashier && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCreatingNewRegInline(prev => !prev);
+                              if (!isCreatingNewRegInline && !inlineRegName) {
+                                setInlineRegName(`Caja ${registers.length + 1}`);
+                              }
+                            }}
+                            className="text-[10px] font-black text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                          >
+                            {isCreatingNewRegInline ? '← Seleccionar existente' : '+ Registrar Nueva Caja'}
+                          </button>
+                        )}
                       </div>
 
-                      {isCreatingNewRegInline ? (
+                      {isCashier ? (
+                        <input
+                          type="text"
+                          disabled
+                          value={activeRegisterName}
+                          className="w-full bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white cursor-not-allowed"
+                        />
+                      ) : isCreatingNewRegInline ? (
                         <div className="space-y-1">
                           <input
                             type="text"
@@ -512,9 +615,6 @@ export default function CashShiftModal({
                             placeholder="Nombre de la nueva caja (Ej. Caja 2 - Terraza)"
                             className="w-full bg-orange-50/50 dark:bg-zinc-800 border border-orange-500/70 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
                           />
-                          <p className="text-[9px] text-orange-600 font-medium">
-                            Se registrará la caja y se abrirá el turno en un solo paso.
-                          </p>
                         </div>
                       ) : (
                         <select
@@ -527,7 +627,7 @@ export default function CashShiftModal({
                               <option key={r.id} value={r.name}>{r.name}</option>
                             ))
                           ) : (
-                            <option value="Caja 1 - Principal">Caja 1 - Principal</option>
+                            <option value={activeRegisterName}>{activeRegisterName}</option>
                           )}
                         </select>
                       )}
@@ -572,90 +672,146 @@ export default function CashShiftModal({
                     className="w-full py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <CheckCircle2 size={16} />
-                    <span>{isCreatingNewRegInline ? 'Crear Caja e Iniciar Turno Ahora' : 'Iniciar Turno de Caja Ahora'}</span>
+                    <span>Iniciar Turno de Caja Ahora</span>
                   </button>
                 </div>
               )}
-              {/* Tarjetas de Fondos Iniciales */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="p-4 rounded-2xl bg-white dark:bg-zinc-800/40 border border-slate-200/80 dark:border-white/5 shadow-xs">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-400 mb-1">
-                    Fondo Inicial en Divisas:
-                  </p>
-                  <p className="text-2xl font-black text-emerald-500">
-                    ${initialUsd.toFixed(2)}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-400 mt-1">
-                    Tasa Oficial: Bs. {Number(bcvRate).toFixed(2)}
-                  </p>
+
+              {/* RESUMEN ADMINISTRATIVO PRINCIPAL DE LA CAJA */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-200/80 dark:border-white/10 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-white/5 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp size={16} className="text-orange-500" />
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Resumen de Facturación en {activeRegisterName}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-500">
+                      {shiftTotals.salesCount} {shiftTotals.salesCount === 1 ? 'venta' : 'ventas'}
+                    </span>
+                    <button 
+                      onClick={handlePrintCuadre}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-orange-500 shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <Printer size={13} />
+                      <span>Imprimir Cuadre</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white dark:bg-zinc-800/40 border border-slate-200/80 dark:border-white/5 shadow-xs">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-400 mb-1">
-                    Fondo Inicial en Bolívares:
-                  </p>
-                  <p className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
-                    Bs. {initialVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-400 mt-1">
-                    Caja asignada: {activeShift?.registerName || 'Caja 1 - Principal'}
-                  </p>
+                {/* Tarjetas Principales de Totalización en Divisas y Bolívares */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 shadow-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                      Total Facturado en Divisas ($):
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-emerald-500">
+                      ${shiftTotals.totalSalesUsd.toFixed(2)}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">
+                      Ventas cobradas en este turno
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 shadow-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                      Total Facturado en Bolívares (Bs.):
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400">
+                      Bs. {shiftTotals.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-1">
+                      Tasa Oficial BCV: Bs. {Number(bcvRate).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Desglose por Método de Pago */}
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-400 mb-2.5">
+                    Desglose por Medios de Pago:
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Efectivo USD ($)</span>
+                      <span className="text-sm font-black text-emerald-500">${shiftTotals.cashUsd.toFixed(2)}</span>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Efectivo Bs.</span>
+                      <span className="text-sm font-black text-cyan-600 dark:text-cyan-400">Bs. {shiftTotals.cashVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Pago Móvil</span>
+                      <span className="text-sm font-black text-orange-500">Bs. {shiftTotals.pagoMovil.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Punto de Venta / Débito</span>
+                      <span className="text-sm font-black text-teal-500">Bs. {shiftTotals.puntoVenta.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Zelle ($)</span>
+                      <span className="text-sm font-black text-violet-500">${shiftTotals.zelle.toFixed(2)}</span>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200/70 dark:border-white/5">
+                      <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Créditos / Cuentas</span>
+                      <span className="text-sm font-black text-pink-500">${shiftTotals.credito.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Control Administrativo de Gaveta (Efectivo Físico Esperado) */}
+                <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                      <Coins size={15} /> Efectivo Teórico que debe existir en Gaveta:
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                      Fondo + Ventas Efectivo ± Caja Chica
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 bg-white/90 dark:bg-zinc-900 rounded-xl border border-amber-500/20">
+                      <span className="text-[10px] font-bold text-slate-500 block mb-0.5">Efectivo en Divisas Esperado ($)</span>
+                      <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">${expectedUsd.toFixed(2)}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">
+                        Fondo inicial: ${initialUsd.toFixed(2)} · Ventas: ${shiftTotals.cashUsd.toFixed(2)} · Mov: ${Number(totalInUsd - totalOutUsd).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-white/90 dark:bg-zinc-900 rounded-xl border border-amber-500/20">
+                      <span className="text-[10px] font-bold text-slate-500 block mb-0.5">Efectivo en Bolívares Esperado (Bs.)</span>
+                      <p className="text-xl font-black text-cyan-600 dark:text-cyan-400">Bs. {expectedVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5">
+                        Fondo inicial: Bs. {initialVes.toFixed(2)} · Ventas: Bs. {shiftTotals.cashVes.toFixed(2)} · Mov: Bs. {Number(totalInVes - totalOutVes).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de Navegación Rápida */}
+                {isOpenShift && (
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      onClick={() => setActiveTab('movement')}
+                      className="flex-1 py-2.5 px-3 bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    >
+                      <Coins size={14} className="text-amber-500" />
+                      <span>Registrar Gasto / Ingreso</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('close')}
+                      className="flex-1 py-2.5 px-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-rose-500/20"
+                    >
+                      <LogOut size={14} />
+                      <span>Arqueo y Cerrar Turno →</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Ventas Acumuladas */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50/70 dark:bg-zinc-950/50 border border-slate-200/60 dark:border-white/5">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-white/5 mb-3 flex-wrap gap-2">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                    Ventas Acumuladas en {activeShift?.registerName || 'Caja 1 - Principal'} ({shiftTotals.salesCount} ventas):
-                  </h3>
-                  <button 
-                    onClick={handlePrintCuadre}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-orange-500 shadow-2xs transition-colors cursor-pointer"
-                  >
-                    <Printer size={14} />
-                    <span>Imprimir Cuadre Térmico</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Efectivo USD ($):</span>
-                    <span className="text-sm font-black text-emerald-500">${shiftTotals.cashUsd.toFixed(2)}</span>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Efectivo Bolívares:</span>
-                    <span className="text-sm font-black text-cyan-600 dark:text-cyan-400">Bs. {shiftTotals.cashVes.toFixed(2)}</span>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Pago Móvil:</span>
-                    <span className="text-sm font-black text-orange-500">Bs. {shiftTotals.pagoMovil.toFixed(2)}</span>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Punto de Venta:</span>
-                    <span className="text-sm font-black text-teal-500">Bs. {shiftTotals.puntoVenta.toFixed(2)}</span>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Zelle:</span>
-                    <span className="text-sm font-black text-violet-500">${shiftTotals.zelle.toFixed(2)}</span>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-zinc-800/60 rounded-xl border border-slate-100 dark:border-white/5">
-                    <span className="text-[10px] font-bold text-slate-400 block mb-0.5">Créditos Cuenta:</span>
-                    <span className="text-sm font-black text-pink-500">${shiftTotals.credito.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between">
-                  <span className="text-xs font-black text-slate-700 dark:text-zinc-200 uppercase">
-                    Total Facturado en este Turno:
-                  </span>
-                  <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400">
-                    ${shiftTotals.totalSalesUsd.toFixed(2)} (Bs. {shiftTotals.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })})
-                  </span>
-                </div>
-              </div>
-
-              {/* REPORTES SENIAT */}
+              {/* REPORTES SENIAT FISCAL */}
               <div>
                 <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-400 mb-2">
                   Reportes de Impresora Fiscal SENIAT (X y Z):
@@ -674,32 +830,33 @@ export default function CashShiftModal({
                     className="flex items-center justify-center gap-2 p-3 bg-rose-50/50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl text-xs font-extrabold text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-500/20 shadow-2xs transition-all cursor-pointer"
                   >
                     <Printer size={16} className="text-rose-500" />
-                    <span>Emitir Reporte Z (Cierre Diario)</span>
+                    <span>Emitir Reporte Z (Cierre Fiscal SENIAT)</span>
                   </button>
                 </div>
               </div>
             </>
           )}
 
-          {/* TAB 2: CAJA CHICA */}
+          {/* TAB 2: CAJA CHICA (GASTOS E INGRESOS) */}
           {activeTab === 'movement' && (
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-white/5 space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-white">
-                  Registrar Movimiento en Caja Chica
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-white flex items-center gap-2">
+                  <Coins size={15} className="text-orange-500" />
+                  <span>Registrar Movimiento en Caja Chica — {activeRegisterName}</span>
                 </h4>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setMovementType('OUT')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       movementType === 'OUT' ? 'bg-rose-500 text-white shadow-xs' : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300'
                     }`}
                   >
-                    Egreso / Retiro
+                    Egreso / Retiro de Dinero
                   </button>
                   <button
                     onClick={() => setMovementType('IN')}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       movementType === 'IN' ? 'bg-emerald-500 text-white shadow-xs' : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300'
                     }`}
                   >
@@ -738,7 +895,7 @@ export default function CashShiftModal({
                     type="text"
                     value={movementReason}
                     onChange={e => setMovementReason(e.target.value)}
-                    placeholder="Ej. Pago a proveedor de pan, compra de bolsas..."
+                    placeholder="Ej. Compra de bolsas, pago de hielo, anticipo..."
                     className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   />
                 </div>
@@ -751,9 +908,9 @@ export default function CashShiftModal({
                 </button>
               </div>
 
-              {/* Historial de Movimientos */}
+              {/* Historial de Movimientos de esta Caja */}
               <div>
-                <h5 className="text-[10px] font-black uppercase text-slate-400 mb-2">Movimientos del Turno:</h5>
+                <h5 className="text-[10px] font-black uppercase text-slate-400 mb-2">Movimientos del Turno en {activeRegisterName}:</h5>
                 {movements.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 dark:bg-zinc-950 rounded-2xl">
                     No se han registrado movimientos de caja chica en este turno.
@@ -783,22 +940,65 @@ export default function CashShiftModal({
             </div>
           )}
 
-          {/* TAB 3: ARQUEO Y CIERRE DE TURNO */}
+          {/* TAB 3: ARQUEO Y CIERRE DEFINITIVO DE TURNO */}
           {activeTab === 'close' && (
             <div className="space-y-4">
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+              
+              {/* Resumen Administrativo Previo al Arqueo */}
+              <div className="p-4 bg-slate-50 dark:bg-zinc-950 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/5">
+                  <span className="text-xs font-black uppercase text-slate-800 dark:text-white">
+                    Resumen de Cierre: {activeRegisterName}
+                  </span>
+                  <span className="text-[11px] font-bold text-orange-600">
+                    Cajero: {activeCashierName}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Ventas Totales ($):</span>
+                    <span className="font-black text-slate-800 dark:text-white">${shiftTotals.totalSalesUsd.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Ventas Totales (Bs.):</span>
+                    <span className="font-black text-slate-800 dark:text-white">Bs. {shiftTotals.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Ventas Efectivo $:</span>
+                    <span className="font-bold text-emerald-600">${shiftTotals.cashUsd.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 text-[10px] block">Ventas Efectivo Bs.:</span>
+                    <span className="font-bold text-cyan-600">Bs. {shiftTotals.cashVes.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                  <span className="text-slate-500 font-bold">Efectivo Teórico en Gaveta:</span>
+                  <div className="flex items-center gap-3 font-mono font-black">
+                    <span className="text-emerald-600">${expectedUsd.toFixed(2)}</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-cyan-600">Bs. {expectedVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alerta de Arqueo Ciego */}
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
                 <h4 className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <AlertTriangle size={16} /> Arqueo Ciego de Seguridad
+                  <AlertTriangle size={15} /> Arqueo Físico de Billetes en Gaveta
                 </h4>
-                <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
-                  Cuente físicamente el efectivo presente en la gaveta y digítelo a continuación. El sistema comparará con el saldo teórico y registrará cualquier diferencia.
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                  Cuente físicamente el efectivo presente en la caja y digite los montos contados. El sistema calculará el cuadre de forma automática.
                 </p>
               </div>
 
+              {/* Conteo Físico */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div className="p-4 rounded-2xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 space-y-2">
                   <label className="text-xs font-black text-slate-700 dark:text-white uppercase block">
-                    Efectivo Físico en Divisas ($)
+                    Efectivo Físico Contado ($)
                   </label>
                   <input
                     type="number"
@@ -808,12 +1008,12 @@ export default function CashShiftModal({
                     onChange={e => setActualUsd(e.target.value)}
                     className="w-full text-xl font-black bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   />
-                  <p className="text-[10px] text-slate-400">Total billetes contados en USD</p>
+                  <p className="text-[10px] text-slate-400">Total billetes contados en divisas</p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 space-y-2">
                   <label className="text-xs font-black text-slate-700 dark:text-white uppercase block">
-                    Efectivo Físico en Bolívares (Bs.)
+                    Efectivo Físico Contado (Bs.)
                   </label>
                   <input
                     type="number"
@@ -823,42 +1023,46 @@ export default function CashShiftModal({
                     onChange={e => setActualVes(e.target.value)}
                     className="w-full text-xl font-black bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                   />
-                  <p className="text-[10px] text-slate-400">Total billetes contados en Bs.</p>
+                  <p className="text-[10px] text-slate-400">Total billetes contados en bolívares</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-zinc-950 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Saldo Teórico Esperado USD:</span>
-                  <span className="font-bold text-slate-800 dark:text-white">${expectedUsd.toFixed(2)}</span>
+              {/* Diferencias en vivo */}
+              {(actualUsd !== '' || actualVes !== '') && (
+                <div className="p-4 bg-slate-50 dark:bg-zinc-950 rounded-2xl border border-slate-200/60 dark:border-white/5 space-y-2 text-xs">
+                  {actualUsd !== '' && (
+                    <div className="flex items-center justify-between font-black">
+                      <span>Diferencia USD ($):</span>
+                      <span className={Number(actualUsd) - expectedUsd >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
+                        {Number(actualUsd) - expectedUsd >= 0 ? '+' : ''}${(Number(actualUsd) - expectedUsd).toFixed(2)}
+                        {Number(actualUsd) - expectedUsd === 0 ? ' (Cuadre Exacto)' : (Number(actualUsd) - expectedUsd > 0 ? ' (Sobrante)' : ' (Faltante)')}
+                      </span>
+                    </div>
+                  )}
+                  {actualVes !== '' && (
+                    <div className="flex items-center justify-between font-black">
+                      <span>Diferencia Bolívares (Bs.):</span>
+                      <span className={Number(actualVes) - expectedVes >= 0 ? 'text-cyan-600' : 'text-rose-500'}>
+                        {Number(actualVes) - expectedVes >= 0 ? '+' : ''}Bs. {(Number(actualVes) - expectedVes).toFixed(2)}
+                        {Number(actualVes) - expectedVes === 0 ? ' (Cuadre Exacto)' : (Number(actualVes) - expectedVes > 0 ? ' (Sobrante)' : ' (Faltante)')}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Saldo Teórico Esperado Bs.:</span>
-                  <span className="font-bold text-slate-800 dark:text-white">Bs. {expectedVes.toFixed(2)}</span>
-                </div>
-
-                {actualUsd && (
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs font-black">
-                    <span>Diferencia USD:</span>
-                    <span className={Number(actualUsd) - expectedUsd >= 0 ? 'text-emerald-500' : 'text-rose-500'}>
-                      {Number(actualUsd) - expectedUsd >= 0 ? '+' : ''}${(Number(actualUsd) - expectedUsd).toFixed(2)}
-                      {Number(actualUsd) - expectedUsd === 0 ? ' (Cuadre Exacto)' : (Number(actualUsd) - expectedUsd > 0 ? ' (Sobrante)' : ' (Faltante)')}
-                    </span>
-                  </div>
-                )}
-              </div>
+              )}
 
               <button
                 onClick={handleCloseShift}
-                className="w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-sm rounded-2xl shadow-lg shadow-rose-500/25 transition-all cursor-pointer"
+                className="w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-sm rounded-2xl shadow-lg shadow-rose-500/25 transition-all cursor-pointer flex items-center justify-center gap-2"
               >
-                Confirmar Arqueo y Cerrar Turno Definitivo
+                <LogOut size={16} />
+                <span>Confirmar Arqueo y Cerrar Turno Definitivo</span>
               </button>
             </div>
           )}
 
-          {/* TAB 4: MONITOR MULTI-CAJAS */}
-          {activeTab === 'registers' && (
+          {/* TAB 4: MONITOR MULTI-CAJAS (SOLO VISIBLE A SUPERADMIN / MASTER) */}
+          {!isCashier && activeTab === 'registers' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">
@@ -879,7 +1083,7 @@ export default function CashShiftModal({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {registers.map(reg => {
-                  const isCurrentActive = reg.id === activeShift?.registerId || reg.name === activeShift?.registerName;
+                  const isCurrentActive = reg.id === currentShift?.registerId || reg.name === activeRegisterName;
 
                   return (
                     <div key={reg.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200/80 dark:border-white/5 shadow-2xs flex flex-col justify-between">

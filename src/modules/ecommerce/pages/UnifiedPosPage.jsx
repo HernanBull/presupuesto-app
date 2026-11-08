@@ -351,19 +351,53 @@ export default function UnifiedPosPage() {
                              localStorage.getItem('axon_active_cashier_name') || 
                              'yende';
 
-  const [activeShift, setActiveShift] = useState({
-    id: 'SHIFT-20261101-01',
-    cashier: currentCashierName,
-    openedAt: '08:30 AM · Hoy',
-    initialCashUsd: 50.00,
-    initialCashVes: 1500.00,
-    salesCount: 14,
-    totalSalesUsd: 384.50,
-    totalSalesVes: 25184.75,
-    cashSalesUsd: 140.00,
-    cashSalesVes: 4500.00,
-    electronicSalesUsd: 244.50,
-    status: 'ABIERTO'
+  const [activeShift, setActiveShift] = useState(() => {
+    try {
+      const saved = localStorage.getItem('axon_active_shift');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          cashier: parsed.cashierName || parsed.cashier || currentCashierName,
+          initialCashUsd: parsed.initialUsd ?? parsed.initialCashUsd ?? 50.0,
+          initialCashVes: parsed.initialVes ?? parsed.initialCashVes ?? 1000.0,
+          cashSalesUsd: parsed.cashUsd ?? parsed.cashSalesUsd ?? 0,
+          cashSalesVes: parsed.cashVes ?? parsed.cashSalesVes ?? 0,
+          electronicSalesUsd: ((parsed.totalSalesUsd || 0) - (parsed.cashUsd || 0))
+        };
+      }
+    } catch (e) {}
+
+    const regName = localStorage.getItem('axon_active_register_name') || 'Caja 1 - Principal';
+    const initialObj = {
+      id: `SHIFT-${Date.now().toString().slice(-6)}`,
+      registerId: localStorage.getItem('axon_active_register_id') || 'caja-1',
+      registerName: regName,
+      cashier: currentCashierName,
+      cashierName: currentCashierName,
+      openedAt: new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }) + ' · Hoy',
+      initialUsd: 50.00,
+      initialCashUsd: 50.00,
+      initialVes: 1000.00,
+      initialCashVes: 1000.00,
+      salesCount: 0,
+      totalSalesUsd: 0,
+      totalSalesVes: 0,
+      cashUsd: 0,
+      cashSalesUsd: 0,
+      cashVes: 0,
+      cashSalesVes: 0,
+      pagoMovil: 0,
+      puntoVenta: 0,
+      zelle: 0,
+      credito: 0,
+      electronicSalesUsd: 0,
+      status: 'OPEN'
+    };
+    try {
+      localStorage.setItem('axon_active_shift', JSON.stringify(initialObj));
+    } catch (e) {}
+    return initialObj;
   });
 
   const [shiftMovements, setShiftMovements] = useState([
@@ -1063,19 +1097,36 @@ export default function UnifiedPosPage() {
 
     // 6. Registrar en métricas del turno de caja
     setActiveShift(prev => {
-      const cashUsdFromSale = payments.filter(p => p.method === 'CASH_USD').reduce((a, p) => a + p.amountPaid, 0);
-      const cashVesFromSale = payments.filter(p => p.method === 'CASH_VES').reduce((a, p) => a + p.amountPaid, 0);
-      const elecUsd = payments.filter(p => !['CASH_USD', 'CASH_VES'].includes(p.method)).reduce((a, p) => a + p.amountUsdEquivalent, 0);
+      const cashUsdFromSale = payments.filter(p => p.method === 'CASH_USD').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const cashVesFromSale = payments.filter(p => p.method === 'CASH_VES').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const pagoMovilSale = payments.filter(p => p.method === 'PAGO_MOVIL').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const puntoVentaSale = payments.filter(p => p.method === 'PUNTO_VENTA').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const zelleSale = payments.filter(p => p.method === 'ZELLE').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const creditoSale = payments.filter(p => p.method === 'CREDITO').reduce((a, p) => a + (p.amountPaid || 0), 0);
+      const elecUsd = payments.filter(p => !['CASH_USD', 'CASH_VES'].includes(p.method)).reduce((a, p) => a + (p.amountUsdEquivalent || 0), 0);
 
-      return {
+      const updated = {
         ...prev,
         salesCount: (prev?.salesCount || 0) + 1,
-        totalSalesUsd: (prev?.totalSalesUsd || 0) + totalRequiredUsd,
-        totalSalesVes: (prev?.totalSalesVes || 0) + totalRequiredVes,
-        cashSalesUsd: (prev?.cashSalesUsd || 0) + cashUsdFromSale,
-        cashSalesVes: (prev?.cashSalesVes || 0) + cashVesFromSale,
-        electronicSalesUsd: (prev?.electronicSalesUsd || 0) + elecUsd
+        totalSalesUsd: Number(((prev?.totalSalesUsd || 0) + totalRequiredUsd).toFixed(2)),
+        totalSalesVes: Number(((prev?.totalSalesVes || 0) + totalRequiredVes).toFixed(2)),
+        cashUsd: Number(((prev?.cashUsd ?? prev?.cashSalesUsd ?? 0) + cashUsdFromSale).toFixed(2)),
+        cashSalesUsd: Number(((prev?.cashSalesUsd ?? prev?.cashUsd ?? 0) + cashUsdFromSale).toFixed(2)),
+        cashVes: Number(((prev?.cashVes ?? prev?.cashSalesVes ?? 0) + cashVesFromSale).toFixed(2)),
+        cashSalesVes: Number(((prev?.cashSalesVes ?? prev?.cashVes ?? 0) + cashVesFromSale).toFixed(2)),
+        pagoMovil: Number(((prev?.pagoMovil || 0) + pagoMovilSale).toFixed(2)),
+        puntoVenta: Number(((prev?.puntoVenta || 0) + puntoVentaSale).toFixed(2)),
+        zelle: Number(((prev?.zelle || 0) + zelleSale).toFixed(2)),
+        credito: Number(((prev?.credito || 0) + creditoSale).toFixed(2)),
+        electronicSalesUsd: Number(((prev?.electronicSalesUsd || 0) + elecUsd).toFixed(2))
       };
+
+      try {
+        localStorage.setItem('axon_active_shift', JSON.stringify(updated));
+        offlineDb.cash_shifts.put(updated).catch(e => console.warn('Dexie shift update:', e));
+      } catch (e) {}
+
+      return updated;
     });
 
     // 7. Actualizar vista de Facturas SENIAT de inmediato
@@ -1525,6 +1576,20 @@ export default function UnifiedPosPage() {
               )}
             </button>
 
+            {/* Botón Resumen de Caja / Arqueo / Movimientos */}
+            <button
+              onClick={() => {
+                setCashShiftModalTab('status');
+                setIsCashShiftModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-amber-900/40 px-2.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+              title="Consultar Resumen de Caja y Movimientos (F9)"
+            >
+              <Wallet size={13} className="shrink-0 text-orange-500" />
+              <span className="hidden sm:inline">{activeShift?.registerName || localStorage.getItem('axon_active_register_name') || 'Caja'}</span>
+              <span className="sm:hidden">Caja</span>
+            </button>
+
             {/* Botón Cerrar Turno / Caja / Finalizar Jornada */}
             <button
               onClick={() => {
@@ -1841,14 +1906,16 @@ export default function UnifiedPosPage() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-                  <button 
-                    onClick={() => navigate('/cash-master')}
-                    className="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-800 dark:text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200/80 dark:border-white/10"
-                    title="Ir al monitor consolidado de todas las cajas registradoras"
-                  >
-                    <Wallet size={15} className="text-orange-500" />
-                    <span>Caja Maestra Consolidada</span>
-                  </button>
+                  {!isCashier && (
+                    <button 
+                      onClick={() => navigate('/cash-master')}
+                      className="bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-800 dark:text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200/80 dark:border-white/10"
+                      title="Ir al monitor consolidado de todas las cajas registradoras"
+                    >
+                      <Wallet size={15} className="text-orange-500" />
+                      <span>Caja Maestra Consolidada</span>
+                    </button>
+                  )}
 
                   {activeShift.status === 'ABIERTO' ? (
                     <button 
@@ -4071,9 +4138,18 @@ export default function UnifiedPosPage() {
             navigate('/pos');
           }
         }}
+        activeShift={activeShift}
+        onShiftChange={(newShift) => {
+          setActiveShift(newShift);
+          if (newShift) {
+            localStorage.setItem('axon_active_shift', JSON.stringify(newShift));
+          } else {
+            localStorage.removeItem('axon_active_shift');
+          }
+        }}
         initialTab={cashShiftModalTab}
         bcvRate={bcvRate}
-        storeName="AxonMarket Store"
+        storeName={storeInfo?.name || "AxonMarket Store"}
       />
 
       <UserManagementModal
