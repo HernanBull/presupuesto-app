@@ -2515,50 +2515,35 @@ export default function PublicStore() {
         {currentPage === 'home' && (
           <div className="flex-1 flex flex-col w-full pb-28 text-slate-900 bg-slate-50/50 relative">
             
-            {/* Cabecera Superior Luminous White */}
-            <div className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-              <button onClick={handleGoBack} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer text-slate-700 hover:text-slate-900 active:scale-90" title="Volver al mercado">
-                <ChevronLeft size={20} className="stroke-[2.5]" />
+            {/* Hero Cover Header - Portada Full Bleed extendida hasta el tope */}
+            <div className="relative z-0 w-full h-52 sm:h-64 md:h-72 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
+              
+              {/* Botón flotante para salir directamente al mercado general de comercios */}
+              <button 
+                onClick={() => navigate('/', { replace: true })}
+                className="absolute top-4 left-4 z-40 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white border border-white/20 shadow-lg flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                title="Salir al Mercado"
+              >
+                <ChevronLeft size={22} className="stroke-[2.5] -ml-0.5" />
               </button>
-              <div className="flex flex-col items-center">
-                <span className="font-bold text-base text-slate-900 leading-tight">{config?.business_name || 'Mi Tienda'}</span>
-                {userDistance ? (
-                  <span className="text-xs font-bold text-orange-600 flex items-center gap-1 mt-0.5">{userDistance}</span>
-                ) : isLocatingUser ? (
-                  <span className="text-xs text-slate-400 mt-0.5">Calculando distancia real...</span>
-                ) : (() => {
-                  const resolvedCategory = resolveStoreCategory(config);
-                  if (resolvedCategory) {
-                    return (
-                      <span className="text-xs font-bold mt-0.5 flex items-center gap-1" style={{ color: primaryColor }}>
-                        <Tag size={11} className="shrink-0" /> <span className="capitalize">{resolvedCategory}</span>
-                      </span>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-              <div className="w-10 flex items-center justify-end">
-                {currentCustomer ? (
-                  <button onClick={() => navigate('/profile')} className="transition-transform hover:scale-105" title="Mi Perfil">
-                    {currentCustomer.profile_pic ? (
-                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-8 h-8 rounded-full object-cover border-2 border-orange-400 shadow-sm" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-sm">
-                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </button>
-                ) : !isMerchantOwner && !isVisitingMerchant ? (
-                  <button onClick={() => setShowAuthModal(true)} className="p-2 text-slate-600 hover:text-orange-600 transition-colors" title="Ingresar">
-                    <User size={20} />
-                  </button>
-                ) : null}
-              </div>
-            </div>
 
-            {/* Hero Cover Header - Portada Centrada y Balanceada */}
-            <div className="relative z-0 w-full h-44 sm:h-56 md:h-64 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
+              {/* Botón flotante de Perfil si el usuario está autenticado */}
+              {currentCustomer && (
+                <button 
+                  onClick={() => navigate('/profile')} 
+                  className="absolute top-4 right-4 z-40 transition-transform hover:scale-105" 
+                  title="Mi Perfil"
+                >
+                  {currentCustomer.profile_pic ? (
+                    <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-md" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
+                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+              )}
+
               {resolvedCoverUrl ? (
                 <>
                   {/* Fondo ambiental desenfocado para fotos que no sean panorámicas */}
@@ -2926,20 +2911,17 @@ export default function PublicStore() {
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: primaryColor }}></span>
                       <h3 className="text-xs font-black tracking-wider uppercase text-slate-900 flex items-center gap-1.5" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-                        <span>Estados y Promociones</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border" style={{ color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}12` }}>
-                          Destacados
-                        </span>
+                        <span>Historias</span>
                       </h3>
                     </div>
                     {isMerchantOwner && (
                       <button
-                        onClick={() => navigate('/social-feed?type=status&permanent=true&create=true')}
+                        onClick={() => navigate('/social-feed?type=status&create=true')}
                         className="text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer hover:opacity-85"
                         style={{ color: primaryColor, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
                       >
                         <Plus size={13} className="stroke-[2.5]" />
-                        <span>Nuevo estado</span>
+                        <span>Nueva historia</span>
                       </button>
                     )}
                   </div>

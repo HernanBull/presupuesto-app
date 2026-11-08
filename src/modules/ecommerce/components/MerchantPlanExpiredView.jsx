@@ -8,8 +8,10 @@ import {
 import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import { 
-  downloadNumericBackupJSON, 
-  downloadNumericBackupCSV, 
+  downloadProfessionalExcelTemplate,
+  downloadProfessionalWordTemplate,
+  downloadNumericBackupCSV,
+  downloadNumericBackupJSON,
   copyNumericSummaryToClipboard 
 } from '../services/numericBackupService';
 
@@ -20,7 +22,8 @@ export default function MerchantPlanExpiredView({
 }) {
   const [bcvRate, setBcvRate] = useState(888.89);
   const [selectedPlan, setSelectedPlan] = useState('mensual'); // 'mensual' ($30) o 'trimestral' ($60)
-  const [downloadingJson, setDownloadingJson] = useState(false);
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const [downloadingWord, setDownloadingWord] = useState(false);
   const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [copyingSummary, setCopyingSummary] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
@@ -50,7 +53,7 @@ export default function MerchantPlanExpiredView({
   const PLANS = {
     mensual: {
       id: 'mensual',
-      name: 'Plan Mensual VIP',
+      name: 'Plan Mensual',
       priceUsd: 30,
       durationMonths: 1,
       badge: 'Estándar',
@@ -58,7 +61,7 @@ export default function MerchantPlanExpiredView({
     },
     trimestral: {
       id: 'trimestral',
-      name: 'Plan Trimestral Promo (3 Meses)',
+      name: 'Plan Trimestral',
       priceUsd: 60,
       durationMonths: 3,
       badge: '🔥 Ahorra $30 (Paga 2 y Lleva 3)',
@@ -88,6 +91,32 @@ export default function MerchantPlanExpiredView({
     setCopiedField(fieldName);
     toast.success(`¡${fieldName} copiado!`, { duration: 2000 });
     setTimeout(() => setCopiedField(null), 2500);
+  };
+
+  const handleDownloadExcel = async () => {
+    if (!workspaceId) return;
+    setDownloadingExcel(true);
+    try {
+      await downloadProfessionalExcelTemplate(workspaceId, storeName);
+      toast.success('¡Plantilla contable de Excel (.xls) descargada con éxito!');
+    } catch (err) {
+      toast.error('Error al generar plantilla Excel: ' + err.message);
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    if (!workspaceId) return;
+    setDownloadingWord(true);
+    try {
+      await downloadProfessionalWordTemplate(workspaceId, storeName);
+      toast.success('¡Informe formal para Word (.doc) descargado con éxito!');
+    } catch (err) {
+      toast.error('Error al generar informe Word: ' + err.message);
+    } finally {
+      setDownloadingWord(false);
+    }
   };
 
   const handleDownloadJSON = async () => {
@@ -281,35 +310,45 @@ export default function MerchantPlanExpiredView({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               <button
                 type="button"
-                onClick={handleDownloadJSON}
-                disabled={downloadingJson}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-amber-300 dark:border-amber-600/40 hover:bg-amber-100/50 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
+                onClick={handleDownloadExcel}
+                disabled={downloadingExcel}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                <FileJson size={15} className="text-orange-500" />
-                <span>{downloadingJson ? 'Descargando...' : 'Descargar JSON'}</span>
+                <FileSpreadsheet size={17} />
+                <span>{downloadingExcel ? 'Generando Excel...' : '📊 Plantilla Excel (.xls)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadWord}
+                disabled={downloadingWord}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <FileText size={17} />
+                <span>{downloadingWord ? 'Generando Word...' : '📄 Informe Word (.doc)'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleDownloadCSV}
                 disabled={downloadingCsv}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-amber-300 dark:border-amber-600/40 hover:bg-amber-100/50 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 hover:bg-slate-50 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                <FileSpreadsheet size={15} className="text-emerald-600" />
-                <span>{downloadingCsv ? 'Descargando...' : 'Descargar Excel'}</span>
+                <Download size={14} className="text-orange-500" />
+                <span>{downloadingCsv ? 'Descargando...' : '📑 Archivo CSV'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleCopySummary}
                 disabled={copyingSummary}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-amber-300 dark:border-amber-600/40 hover:bg-amber-100/50 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-slate-300 dark:border-zinc-700 hover:bg-slate-50 text-slate-800 dark:text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer disabled:opacity-50"
               >
-                <Copy size={15} className="text-amber-600" />
-                <span>{copyingSummary ? 'Copiando...' : 'Copiar Resumen'}</span>
+                <Copy size={14} className="text-amber-600" />
+                <span>{copyingSummary ? 'Copiando...' : '📋 Copiar Resumen'}</span>
               </button>
             </div>
           </div>
@@ -558,3 +597,4 @@ export default function MerchantPlanExpiredView({
     </div>
   );
 }
+

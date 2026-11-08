@@ -122,3 +122,4 @@ export const checkMerchantPlanStatus = (workspace) => {
     reason: 'default_active'
   };
 };
+
