@@ -1620,26 +1620,26 @@ export default function MarketplaceDirectory() {
     return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredStores, storeNews, stores, discoveryFilter]);
 
-  // Carga progresiva uno a uno estilo TikTok / Redes Sociales
-  const [visibleFeedCount, setVisibleFeedCount] = useState(4);
+  // Carga progresiva uno a uno estilo Instagram / Feed Dinámico
+  const [visibleFeedCount, setVisibleFeedCount] = useState(2);
   const feedSentinelRef = useRef(null);
 
   // Reiniciar visibleFeedCount cuando cambie categoría, filtro o búsqueda
   useEffect(() => {
-    setVisibleFeedCount(4);
+    setVisibleFeedCount(2);
   }, [activeCategory, discoveryFilter, searchTerm]);
 
-  // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo
+  // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo (de 1 en 1 para evitar saturación)
   useEffect(() => {
     const el = feedSentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
+          setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
         }
       },
-      { root: mainContainerRef.current || null, rootMargin: '500px 0px' }
+      { root: mainContainerRef.current || null, rootMargin: '300px 0px' }
     );
 
     observer.observe(el);
@@ -1691,9 +1691,9 @@ export default function MarketplaceDirectory() {
     }
     lastScrollTopRef.current = scrollPos;
 
-    // Detección de scroll para cargar progresivamente más contenido al aproximarse al final
-    if (c.scrollHeight - (scrollPos + pageH) < 800) {
-      setVisibleFeedCount(prev => (prev < feedPosts.length ? Math.min(prev + 4, feedPosts.length) : prev));
+    // Detección de scroll para cargar progresivamente de uno a uno al aproximarse al final
+    if (c.scrollHeight - (scrollPos + pageH) < 600) {
+      setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
     }
   };
 
@@ -1979,27 +1979,58 @@ export default function MarketplaceDirectory() {
         className="marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none"
         style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none', overscrollBehaviorY: 'none' }}
       >
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
+        {/* Feed Principal de Publicaciones (Carga Progresiva Uno a Uno sin Saturación) */}
         <ActiveFeedMediaProvider>
           <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
             {visibleFeedPosts.length === 0 ? (
-              <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
-                <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
-                <p className="text-sm font-bold text-zinc-300">No hay publicaciones disponibles</p>
-                <p className="text-xs text-zinc-500 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
-                {activeCategory !== 'Todas' && (
-                  <button 
-                    onClick={() => setActiveCategory('Todas')} 
-                    className="mt-4 px-4 py-1.5 bg-amber-500 text-zinc-950 font-bold text-xs rounded-xl shadow-xs cursor-pointer"
+              <div className="w-full min-h-[calc(100dvh-140px)] flex flex-col items-center justify-center px-6 py-12 text-center select-none animate-fadeIn">
+                {/* Glow & Circular Badge */}
+                <div className="relative mb-5">
+                  <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full" />
+                  <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-b from-zinc-800 to-zinc-900 border border-white/10 shadow-2xl flex items-center justify-center text-amber-400">
+                    <ShoppingBag size={36} className="stroke-[1.8] text-amber-400" />
+                  </div>
+                </div>
+
+                {/* Titular */}
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight mb-2">
+                  {activeCategory !== 'Todas' 
+                    ? `Sin publicaciones en "${activeCategory}"` 
+                    : 'No hay publicaciones disponibles'}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-6">
+                  {activeCategory !== 'Todas'
+                    ? 'Los comercios de esta categoría aún no han publicado en el feed. Puedes ver todos los comercios o cambiar de categoría.'
+                    : 'Pronto verás novedades, estados y promociones de tus tiendas favoritas aquí.'}
+                </p>
+
+                {/* Botones de Acción */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
+                  {activeCategory !== 'Todas' && (
+                    <button 
+                      type="button"
+                      onClick={() => setActiveCategory('Todas')} 
+                      className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Store size={16} />
+                      <span>Ver todas las publicaciones</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoriesOpen(true)}
+                    className="w-full py-2.5 px-4 bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Ver todos los comercios
+                    <Menu size={15} />
+                    <span>Explorar otras categorías</span>
                   </button>
-                )}
+                </div>
               </div>
             ) : (
-              visibleFeedPosts.map((post) => (
+              visibleFeedPosts.map((post, postIndex) => (
                 <SocialFeedCard
                   key={post.id}
+                  feedIndex={postIndex}
                   post={post}
                   currentCustomer={currentCustomer}
                   currentMerchant={currentMerchant}

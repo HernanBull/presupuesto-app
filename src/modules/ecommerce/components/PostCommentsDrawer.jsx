@@ -462,10 +462,18 @@ export default function PostCommentsDrawer({
                   if (onRequireAuth) onRequireAuth();
                   return;
                 }
-                setReplyingTo(c);
-                inputRef.current?.focus();
+                // Si el comentario ya es una respuesta, enlazamos al comentario raíz para mantener el hilo ordenado
+                const targetParentId = c.parent_id || c.id;
+                setReplyingTo({
+                  id: targetParentId,
+                  customer_name: c.customer_name
+                });
+                setTimeout(() => {
+                  inputRef.current?.focus();
+                  inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 60);
               }}
-              className="hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
+              className="hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer font-medium"
             >
               Responder
             </button>
@@ -555,18 +563,18 @@ export default function PostCommentsDrawer({
         <div className="p-3 bg-white dark:bg-zinc-950 border-t border-slate-100 dark:border-white/10 shrink-0">
           {/* Banner si está respondiendo a alguien */}
           {replyingTo && (
-            <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl mb-2 text-xs">
-              <span className="text-amber-800 dark:text-amber-300 font-semibold flex items-center gap-1.5 truncate">
-                <CornerDownRight size={12} />
-                <span>Respondiendo a: <strong>@{replyingTo.customer_name}</strong></span>
+            <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border border-amber-500/40 rounded-xl mb-2 text-xs shadow-xs animate-in fade-in duration-150">
+              <span className="text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1.5 truncate">
+                <CornerDownRight size={14} className="text-amber-500 shrink-0" />
+                <span>Respondiendo a: <strong className="text-amber-600 dark:text-amber-400">@{replyingTo.customer_name}</strong></span>
               </span>
               <button
                 type="button"
                 onClick={() => setReplyingTo(null)}
-                className="text-amber-700 dark:text-amber-400 hover:text-red-500 p-0.5 font-bold cursor-pointer"
+                className="text-amber-700 dark:text-amber-400 hover:text-rose-500 p-1 font-bold cursor-pointer rounded-lg hover:bg-amber-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
                 title="Cancelar respuesta"
               >
-                <X size={13} />
+                <X size={14} />
               </button>
             </div>
           )}
@@ -614,7 +622,11 @@ export default function PostCommentsDrawer({
                 }
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-full px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-amber-500"
+                className={`flex-1 bg-slate-100 dark:bg-zinc-900 border rounded-full px-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none transition-all ${
+                  replyingTo 
+                    ? 'border-amber-500 ring-2 ring-amber-500/25 bg-amber-50/30 dark:bg-amber-950/20' 
+                    : 'border-slate-200 dark:border-white/10 focus:border-amber-500'
+                }`}
               />
               <button
                 type="submit"

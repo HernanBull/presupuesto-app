@@ -48,6 +48,7 @@ const formatTimeAgo = (dateStr) => {
 
 export default function SocialFeedCard({
   post,
+  feedIndex = 0,
   currentCustomer,
   currentMerchant,
   onOpenComments,
@@ -694,7 +695,7 @@ export default function SocialFeedCard({
                 style={{ width: `${100 / postImages.length}%` }}
               >
                 <img 
-                  loading={i === 0 ? "eager" : "lazy"} 
+                  loading={feedIndex === 0 && i === 0 ? "eager" : "lazy"} 
                   decoding="async"
                   src={resolveImageUrl(imgUrl)} 
                   alt={`${storeName} ${i + 1}`} 
@@ -747,7 +748,7 @@ export default function SocialFeedCard({
         </div>
       ) : storeCover ? (
         <img 
-          loading="eager" 
+          loading={feedIndex === 0 ? "eager" : "lazy"} 
           decoding="async"
           src={resolveImageUrl(storeCover)} 
           alt={storeName} 

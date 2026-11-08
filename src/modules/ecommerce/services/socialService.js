@@ -168,7 +168,8 @@ if (typeof window !== 'undefined' && supabase?.channel) {
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ecommerce_post_comments' }, (payload) => {
         if (payload.new) {
-          notifySocialUpdate('comment_added', { postId: payload.new.post_id, comment: payload.new });
+          const parsed = unpackCommentData(payload.new);
+          notifySocialUpdate('comment_added', { postId: parsed.post_id, comment: parsed });
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'ecommerce_store_followers' }, (payload) => {
@@ -409,6 +410,10 @@ export const getPostComments = async (postId, workspaceId) => {
     return reactions;
   };
 
+  const parseCommentItem = (item) => {
+    return unpackCommentData(item, parseReactions);
+  };
+
   try {
     let query = supabase
       .from('ecommerce_post_comments')
@@ -424,20 +429,39 @@ export const getPostComments = async (postId, workspaceId) => {
     const { data, error } = await query;
     if (error) throw error;
     
-    return (data || []).map(item => ({
-      ...item,
-      reactions: parseReactions(item.reactions, item.id)
-    }));
+    return (data || []).map(parseCommentItem);
   } catch (err) {
     console.warn('Error al obtener comentarios de Supabase, usando respaldo local:', err);
     const key = `${LOCAL_STORAGE_PREFIX}comments_${postId || workspaceId}`;
     const raw = localStorage.getItem(key);
     const localComments = raw ? JSON.parse(raw) : [];
-    return localComments.map(item => ({
-      ...item,
-      reactions: parseReactions(item.reactions, item.id)
-    }));
+    return localComments.map(parseCommentItem);
   }
+};
+
+export const unpackCommentData = (item, customParseReactions = null) => {
+  if (!item) return item;
+  let finalContent = item.content || '';
+  let parentId = item.parent_id || null;
+  let replyToName = item.reply_to_name || null;
+
+  // Si tiene metadatos de respuesta empaquetados en content: [[reply:parentId|replyToName]]texto
+  const replyMatch = finalContent.match(/^\[\[reply:([^|\]]+)\|?([^\]]*)\]\]([\s\S]*)$/);
+  if (replyMatch) {
+    parentId = replyMatch[1];
+    replyToName = replyMatch[2] || null;
+    finalContent = replyMatch[3];
+  }
+
+  const parseFn = customParseReactions || parseReactions;
+  return {
+    ...item,
+    content: finalContent,
+    parent_id: parentId,
+    reply_to_name: replyToName,
+    is_merchant: Boolean(item.is_merchant || String(item.customer_id).startsWith('merch_') || (item.customer_name && item.customer_name.includes('Oficial'))),
+    reactions: parseFn ? parseFn(item.reactions, item.id) : (item.reactions || {})
+  };
 };
 
 export const addPostComment = async ({ postId, workspaceId, customerId, customerName, customerAvatar, content, parentId = null, replyToName = null, isMerchant = false }) => {
@@ -446,6 +470,12 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
   }
 
   const rawId = String(customerId);
+  const cleanContent = content.trim();
+
+  // Empaquetar metadatos de respuesta si es reply para que persista en Supabase
+  const dbContent = parentId 
+    ? `[[reply:${parentId}|${replyToName || ''}]]${cleanContent}`
+    : cleanContent;
 
   // Columnas estrictas existentes en el esquema de la tabla ecommerce_post_comments de Supabase
   const dbRecord = {
@@ -453,13 +483,14 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
     workspace_id: workspaceId ? String(workspaceId) : null,
     customer_name: customerName || (isMerchant ? 'Tienda Oficial' : 'Cliente Axon'),
     customer_avatar: customerAvatar || '',
-    content: content.trim()
+    content: dbContent
   };
 
   try {
     const data = await insertWithCustomerFallback('ecommerce_post_comments', dbRecord, customerId);
     const completeComment = {
       ...data,
+      content: cleanContent,
       is_merchant: Boolean(isMerchant || String(data.customer_id).startsWith('merch_') || (data.customer_name && data.customer_name.includes('Oficial'))),
       reactions: {},
       parent_id: parentId || null,
@@ -474,6 +505,7 @@ export const addPostComment = async ({ postId, workspaceId, customerId, customer
     const comments = raw ? JSON.parse(raw) : [];
     const localComment = { 
       ...dbRecord, 
+      content: cleanContent,
       customer_id: rawId, 
       id: `local_${Date.now()}`,
       created_at: new Date().toISOString(),
