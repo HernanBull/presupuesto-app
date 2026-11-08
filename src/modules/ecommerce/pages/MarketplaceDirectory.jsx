@@ -1676,14 +1676,16 @@ export default function MarketplaceDirectory() {
     const scrollPos = c.scrollTop;
     const delta = scrollPos - lastScrollTopRef.current;
 
-    // Al deslizar hacia abajo (scroll down): ocultar barra inmediatamente para despejar la pantalla
-    if (delta > 6 && scrollPos > 30) {
-      if (isNavOpenRef.current) {
-        isNavOpenRef.current = false;
-        setIsBottomNavOpen(false);
+    // Al deslizar hacia abajo o estar en la 2da publicación en adelante: ocultar barras para pantalla completa
+    if (scrollPos > 30) {
+      if (delta > 2 || scrollPos >= pageH * 0.4) {
+        if (isNavOpenRef.current) {
+          isNavOpenRef.current = false;
+          setIsBottomNavOpen(false);
+        }
       }
-    } else if (delta < -6 || scrollPos <= 15) {
-      // Al deslizar hacia arriba (scroll up) o llegar arriba del todo: mostrar barra
+    } else if (scrollPos <= 20) {
+      // Arriba del todo (primera publicación): mostrar barras
       if (!isNavOpenRef.current) {
         isNavOpenRef.current = true;
         setIsBottomNavOpen(true);
@@ -1740,6 +1742,9 @@ export default function MarketplaceDirectory() {
           const maxScroll = Math.max(0, c.scrollHeight - pageH);
           const nextScroll = Math.min(currentScroll + pageH, maxScroll);
           c.scrollTo({ top: nextScroll, behavior: 'smooth' });
+          if (nextScroll > 30) {
+            setIsBottomNavOpen(false);
+          }
           setTimeout(() => {
             isWheelThrottledRef.current = false;
           }, 300);
@@ -1750,7 +1755,7 @@ export default function MarketplaceDirectory() {
           isWheelThrottledRef.current = true;
           const prevScroll = Math.max(0, currentScroll - pageH);
           c.scrollTo({ top: prevScroll, behavior: 'smooth' });
-          if (prevScroll <= 15) {
+          if (prevScroll <= 20) {
             setIsBottomNavOpen(true);
           }
           setTimeout(() => {
@@ -1785,11 +1790,14 @@ export default function MarketplaceDirectory() {
         const maxScroll = Math.max(0, c.scrollHeight - pageH);
         const nextScroll = Math.min(currentScroll + pageH, maxScroll);
         c.scrollTo({ top: nextScroll, behavior: 'smooth' });
+        if (nextScroll > 30) {
+          setIsBottomNavOpen(false);
+        }
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
         const prevScroll = Math.max(0, currentScroll - pageH);
         c.scrollTo({ top: prevScroll, behavior: 'smooth' });
-        if (prevScroll <= 15) {
+        if (prevScroll <= 20) {
           setIsBottomNavOpen(true);
         }
       }

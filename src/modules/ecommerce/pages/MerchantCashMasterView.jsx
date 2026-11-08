@@ -4,7 +4,7 @@ import {
   RefreshCw, CheckCircle2, Clock, Users, QrCode, Copy, ExternalLink,
   ChevronRight, AlertCircle, ShoppingBag, Landmark, Smartphone,
   ShieldCheck, PlusCircle, Calculator, Layers, Receipt, CreditCard,
-  Banknote, ArrowRightLeft, Zap, Printer, Lock, FileSpreadsheet
+  Banknote, ArrowRightLeft, Zap, Printer, Lock, FileSpreadsheet, Calendar
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -25,6 +25,8 @@ export default function MerchantCashMasterView() {
   const [isCashShiftModalOpen, setIsCashShiftModalOpen] = useState(false);
   const [cashShiftModalTab, setCashShiftModalTab] = useState('status');
   const [selectedShiftForModal, setSelectedShiftForModal] = useState(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState('ALL'); // 'ALL', 'TODAY', 'YESTERDAY', '7DAYS', 'CUSTOM'
+  const [customDate, setCustomDate] = useState('');
 
   const workspaceId = localStorage.getItem('activeWorkspace');
 
@@ -785,7 +787,7 @@ export default function MerchantCashMasterView() {
         )}
       </div>
 
-      {/* Detalle y Arqueo de Operaciones Recientes */}
+      {/* Detalle y Arqueo de Operaciones Recientes Agrupado por Días */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -794,125 +796,299 @@ export default function MerchantCashMasterView() {
               <span>Arqueo de Operaciones & Cobros Desglosados</span>
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Desglose detallado de cada ticket con los métodos de pago combinados (Efectivo $, Efectivo Bs, Pago Móvil, etc.)
+              Desglose detallado de cada ticket separado por días con métodos de pago combinados y cortes de jornada.
             </p>
           </div>
 
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 w-fit">
-            {orders.length} ventas registradas
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20 w-fit">
+              {(() => {
+                const now = new Date();
+                const todayKey = now.toISOString().split('T')[0];
+                const yDate = new Date(now); yDate.setDate(yDate.getDate() - 1);
+                const yesterdayKey = yDate.toISOString().split('T')[0];
+
+                const filtered = orders.filter(order => {
+                  if (selectedDateFilter === 'ALL') return true;
+                  if (!order.date) return false;
+                  const od = new Date(order.date);
+                  if (isNaN(od.getTime())) return false;
+                  const odStr = od.toISOString().split('T')[0];
+                  if (selectedDateFilter === 'TODAY') return odStr === todayKey;
+                  if (selectedDateFilter === 'YESTERDAY') return odStr === yesterdayKey;
+                  if (selectedDateFilter === '7DAYS') {
+                    const d7 = new Date(now); d7.setDate(d7.getDate() - 7);
+                    return od >= d7;
+                  }
+                  if (selectedDateFilter === 'CUSTOM' && customDate) return odStr === customDate;
+                  return true;
+                });
+                return `${filtered.length} ventas mostradas`;
+              })()}
+            </span>
+          </div>
         </div>
 
-        {orders.length === 0 ? (
-          <div className="py-10 text-center text-slate-500 text-xs">No hay ventas registradas aún.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-3">Ticket / Ref</th>
-                  <th className="py-3 px-3">Fecha y Hora</th>
-                  <th className="py-3 px-3">Cajero / Canal</th>
-                  <th className="py-3 px-3">Desglose de Pago Registrado</th>
-                  <th className="py-3 px-3 text-right font-mono">Total Cobrado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
-                {orders.map(order => {
-                  const pd = typeof order.paymentdetails === 'string'
-                    ? (() => { try { return JSON.parse(order.paymentdetails); } catch(e) { return {}; } })()
-                    : (order.paymentdetails || {});
-                  
-                  const hasSplit = Array.isArray(pd.payments) && pd.payments.length > 0;
-                  const rate = Number(pd.bcvRate) || bcvRate || 1;
-                  const orderVes = Number(pd.totalVes) || (Number(order.total || 0) * rate);
-
-                  return (
-                    <tr key={order.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="py-3.5 px-3 font-mono font-bold text-slate-900 dark:text-white">
-                        {pd.invoiceNumber || order.id}
-                      </td>
-
-                      <td className="py-3.5 px-3 text-slate-500 dark:text-slate-400">
-                        {order.date ? new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }) : '-'}
-                      </td>
-
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-[10px] font-black shrink-0">
-                            {((pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))).charAt(0)).toUpperCase()}
-                          </div>
-                          <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">
-                            {pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-3">
-                        <div className="flex flex-wrap gap-1.5 items-center">
-                          {hasSplit ? (
-                            pd.payments.map((p, idx) => {
-                              const m = String(p.method || '').toUpperCase();
-                              const isCashUsd = m.includes('CASH_USD') || (m.includes('CASH') && p.currency === 'USD') || m.includes('EFECTIVO_USD');
-                              const isCashVes = m.includes('CASH_VES') || (m.includes('CASH') && p.currency === 'VES') || m.includes('EFECTIVO_BS') || m.includes('EFECTIVO_VES');
-                              const isPagoMovil = m.includes('MOVIL');
-                              const isPos = m.includes('POS') || m.includes('PUNTO');
-
-                              let badgeClass = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs';
-                              let dot = 'bg-slate-400';
-                              let label = p.method;
-
-                              if (isCashUsd) {
-                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-emerald-500/30 dark:border-emerald-500/40 shadow-2xs';
-                                dot = 'bg-emerald-500';
-                                label = `$${Number(p.amountPaid || 0).toFixed(2)} USD (Efectivo)`;
-                              } else if (isCashVes) {
-                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-500/30 dark:border-blue-500/40 shadow-2xs';
-                                dot = 'bg-blue-500';
-                                label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Efectivo)`;
-                              } else if (isPagoMovil) {
-                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-cyan-500/30 dark:border-cyan-500/40 shadow-2xs';
-                                dot = 'bg-cyan-500';
-                                label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Pago Móvil${p.bankName ? ' ' + p.bankName : ''}${p.referenceNumber ? ' #' + p.referenceNumber : ''})`;
-                              } else if (isPos) {
-                                badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-purple-500/30 dark:border-purple-500/40 shadow-2xs';
-                                dot = 'bg-purple-500';
-                                label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Punto POS)`;
-                              } else {
-                                label = `${p.method}: ${p.amountPaid} ${p.currency || ''}`;
-                              }
-
-                              return (
-                                <span key={idx} className={`px-2 py-0.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1.5 ${badgeClass}`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                                  <span>{label}</span>
-                                </span>
-                              );
-                            })
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs inline-flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                              <span>{order.paymentmethod || 'Pago estándar'}</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="font-mono font-black text-slate-900 dark:text-white">
-                          ${Number(order.total || 0).toFixed(2)}
-                        </div>
-                        <div className="text-[10px] font-mono text-slate-500">
-                          Bs. {orderVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {/* Barra de Filtro de Fechas y Calendario */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+            {[
+              { id: 'ALL', label: 'Todas las fechas' },
+              { id: 'TODAY', label: 'Hoy' },
+              { id: 'YESTERDAY', label: 'Ayer' },
+              { id: '7DAYS', label: 'Últimos 7 días' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setSelectedDateFilter(tab.id);
+                  if (tab.id !== 'CUSTOM') setCustomDate('');
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  selectedDateFilter === tab.id
+                    ? 'bg-orange-500 text-white shadow-xs'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
+
+          {/* Selector de Calendario */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-800/70 border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-xs">
+            <Calendar size={14} className="text-orange-500 shrink-0" />
+            <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Filtrar Fecha:</span>
+            <input 
+              type="date"
+              value={customDate}
+              onChange={(e) => {
+                setCustomDate(e.target.value);
+                if (e.target.value) setSelectedDateFilter('CUSTOM');
+                else setSelectedDateFilter('ALL');
+              }}
+              className="bg-transparent text-xs font-bold text-slate-800 dark:text-white focus:outline-none cursor-pointer"
+            />
+            {customDate && (
+              <button 
+                onClick={() => {
+                  setCustomDate('');
+                  setSelectedDateFilter('ALL');
+                }}
+                className="text-[10px] text-slate-400 hover:text-rose-500 font-bold ml-1 cursor-pointer"
+                title="Limpiar fecha"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {(() => {
+          const now = new Date();
+          const todayKey = now.toISOString().split('T')[0];
+          const yDate = new Date(now); yDate.setDate(yDate.getDate() - 1);
+          const yesterdayKey = yDate.toISOString().split('T')[0];
+
+          const filtered = orders.filter(order => {
+            if (selectedDateFilter === 'ALL') return true;
+            if (!order.date) return false;
+            const od = new Date(order.date);
+            if (isNaN(od.getTime())) return false;
+            const odStr = od.toISOString().split('T')[0];
+            if (selectedDateFilter === 'TODAY') return odStr === todayKey;
+            if (selectedDateFilter === 'YESTERDAY') return odStr === yesterdayKey;
+            if (selectedDateFilter === '7DAYS') {
+              const d7 = new Date(now); d7.setDate(d7.getDate() - 7);
+              return od >= d7;
+            }
+            if (selectedDateFilter === 'CUSTOM' && customDate) return odStr === customDate;
+            return true;
+          });
+
+          if (filtered.length === 0) {
+            return (
+              <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+                <Calendar size={28} className="text-slate-300 dark:text-zinc-700" />
+                <p className="font-bold">No hay operaciones registradas para el período seleccionado.</p>
+                <button
+                  onClick={() => { setSelectedDateFilter('ALL'); setCustomDate(''); }}
+                  className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
+                >
+                  Ver todas las fechas
+                </button>
+              </div>
+            );
+          }
+
+          // Agrupar por fecha en orden cronológico descendente
+          const groups = filtered.reduce((acc, order) => {
+            const d = order.date ? new Date(order.date) : new Date();
+            const dateKey = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : 'Otras fechas';
+            if (!acc[dateKey]) acc[dateKey] = [];
+            acc[dateKey].push(order);
+            return acc;
+          }, {});
+
+          const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+
+          return (
+            <div className="space-y-6">
+              {sortedKeys.map(dateKey => {
+                const dayOrders = groups[dateKey];
+                const dayTotalUsd = dayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+                const dayTotalVes = dayTotalUsd * (Number(bcvRate) || 888.89);
+
+                // Título de fecha legible
+                let title = dateKey;
+                try {
+                  const [y, m, d] = dateKey.split('-').map(Number);
+                  const dt = new Date(y, m - 1, d);
+                  const formatted = dt.toLocaleDateString('es-VE', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+                  if (dateKey === todayKey) title = `Hoy — ${formatted}`;
+                  else if (dateKey === yesterdayKey) title = `Ayer — ${formatted}`;
+                  else title = formatted;
+                } catch (e) {}
+
+                return (
+                  <div key={dateKey} className="rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-2xs">
+                    {/* Cabecera del Día con Totales */}
+                    <div className="bg-slate-50 dark:bg-zinc-950/70 p-3.5 px-4 border-b border-slate-200/80 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={15} className="text-orange-500 shrink-0" />
+                        <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white capitalize">
+                          {title}
+                        </h4>
+                        <span className="text-[10px] bg-white dark:bg-zinc-800 px-2 py-0.5 rounded-full font-bold text-slate-500 border border-slate-200 dark:border-white/5">
+                          {dayOrders.length} {dayOrders.length === 1 ? 'venta' : 'ventas'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 font-mono text-xs">
+                        <span className="text-[11px] text-slate-500 font-sans font-bold">Total del Día:</span>
+                        <span className="font-black text-emerald-600 dark:text-emerald-400">
+                          ${dayTotalUsd.toFixed(2)}
+                        </span>
+                        <span className="text-slate-300 dark:text-zinc-700">|</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                          Bs. {dayTotalVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tabla de Operaciones de este Día */}
+                    <div className="overflow-x-auto bg-white dark:bg-slate-900">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 uppercase tracking-wider text-[9px] bg-slate-50/50 dark:bg-zinc-900/50">
+                            <th className="py-2.5 px-3">Ticket / Ref</th>
+                            <th className="py-2.5 px-3">Hora</th>
+                            <th className="py-2.5 px-3">Cajero / Canal</th>
+                            <th className="py-2.5 px-3">Desglose de Pago Registrado</th>
+                            <th className="py-2.5 px-3 text-right font-mono">Total Cobrado</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium text-slate-700 dark:text-slate-300">
+                          {dayOrders.map(order => {
+                            const pd = typeof order.paymentdetails === 'string'
+                              ? (() => { try { return JSON.parse(order.paymentdetails); } catch(e) { return {}; } })()
+                              : (order.paymentdetails || {});
+                            
+                            const hasSplit = Array.isArray(pd.payments) && pd.payments.length > 0;
+                            const rate = Number(pd.bcvRate) || bcvRate || 1;
+                            const orderVes = Number(pd.totalVes) || (Number(order.total || 0) * rate);
+
+                            return (
+                              <tr key={order.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
+                                <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
+                                  {pd.invoiceNumber || order.id}
+                                </td>
+
+                                <td className="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                                  {order.date ? new Date(order.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-5 h-5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center text-[10px] font-black shrink-0">
+                                      {((pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))).charAt(0)).toUpperCase()}
+                                    </div>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">
+                                      {pd.cashier || (order.order_type === 'pos' ? 'yende' : (order.customer || 'yende'))}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3">
+                                  <div className="flex flex-wrap gap-1.5 items-center">
+                                    {hasSplit ? (
+                                      pd.payments.map((p, idx) => {
+                                        const m = String(p.method || '').toUpperCase();
+                                        const isCashUsd = m.includes('CASH_USD') || (m.includes('CASH') && p.currency === 'USD') || m.includes('EFECTIVO_USD');
+                                        const isCashVes = m.includes('CASH_VES') || (m.includes('CASH') && p.currency === 'VES') || m.includes('EFECTIVO_BS') || m.includes('EFECTIVO_VES');
+                                        const isPagoMovil = m.includes('MOVIL');
+                                        const isPos = m.includes('POS') || m.includes('PUNTO');
+
+                                        let badgeClass = 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs';
+                                        let dot = 'bg-slate-400';
+                                        let label = p.method;
+
+                                        if (isCashUsd) {
+                                          badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-emerald-500/30 dark:border-emerald-500/40 shadow-2xs';
+                                          dot = 'bg-emerald-500';
+                                          label = `$${Number(p.amountPaid || 0).toFixed(2)} USD (Efectivo)`;
+                                        } else if (isCashVes) {
+                                          badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-500/30 dark:border-blue-500/40 shadow-2xs';
+                                          dot = 'bg-blue-500';
+                                          label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Efectivo)`;
+                                        } else if (isPagoMovil) {
+                                          badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-cyan-500/30 dark:border-cyan-500/40 shadow-2xs';
+                                          dot = 'bg-cyan-500';
+                                          label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Pago Móvil${p.bankName ? ' ' + p.bankName : ''}${p.referenceNumber ? ' #' + p.referenceNumber : ''})`;
+                                        } else if (isPos) {
+                                          badgeClass = 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-purple-500/30 dark:border-purple-500/40 shadow-2xs';
+                                          dot = 'bg-purple-500';
+                                          label = `Bs. ${Number(p.amountPaid || 0).toLocaleString('es-VE')} (Punto POS)`;
+                                        } else {
+                                          label = `${p.method}: ${p.amountPaid} ${p.currency || ''}`;
+                                        }
+
+                                        return (
+                                          <span key={idx} className={`px-2 py-0.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1.5 ${badgeClass}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                                            <span>{label}</span>
+                                          </span>
+                                        );
+                                      })
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-2xs inline-flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                        <span>{order.paymentmethod || 'Pago estándar'}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="py-3 px-3 text-right">
+                                  <div className="font-mono font-black text-slate-900 dark:text-white">
+                                    ${Number(order.total || 0).toFixed(2)}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-slate-500">
+                                    Bs. {orderVes.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal Visual de Código QR de la Caja */}

@@ -164,6 +164,36 @@ export default function PublicStore() {
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
+  const lastStoreScrollRef = useRef(0);
+  const isStoreNavOpenRef = useRef(true);
+
+  useEffect(() => {
+    isStoreNavOpenRef.current = isBottomNavOpen;
+  }, [isBottomNavOpen]);
+
+  useEffect(() => {
+    const handleStoreScroll = () => {
+      const currentScroll = window.scrollY || document.documentElement.scrollTop || 0;
+      const delta = currentScroll - lastStoreScrollRef.current;
+      // Scroll hacia abajo: ocultar barra inferior para despejar la vista
+      if (delta > 8 && currentScroll > 60) {
+        if (isStoreNavOpenRef.current) {
+          isStoreNavOpenRef.current = false;
+          setIsBottomNavOpen(false);
+        }
+      } else if (delta < -12 || currentScroll <= 30) {
+        // Scroll hacia arriba o volver arriba: reaparecer barra
+        if (!isStoreNavOpenRef.current) {
+          isStoreNavOpenRef.current = true;
+          setIsBottomNavOpen(true);
+        }
+      }
+      lastStoreScrollRef.current = currentScroll;
+    };
+    window.addEventListener('scroll', handleStoreScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleStoreScroll);
+  }, []);
+
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -4913,17 +4943,17 @@ export default function PublicStore() {
           </button>
         </div>
       </ResponsiveModal>
-      {/* Botón flotante en esquina izquierda cuando la barra está oculta */}
+      {/* Botón flotante en esquina izquierda cuando la barra está oculta con el color de tema del comerciante */}
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
           className="fixed bottom-5 left-4 md:left-[calc(50%-330px)] z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
           style={{
-            backgroundColor: 'rgba(10, 10, 10, 0.90)',
+            backgroundColor: primaryColor || '#ea580c',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.85)'
+            border: '2px solid rgba(255, 255, 255, 0.45)',
+            boxShadow: `0 8px 30px ${primaryColor ? primaryColor + '66' : 'rgba(234, 88, 12, 0.45)'}`
           }}
           title="Abrir menú"
           aria-label="Abrir menú de navegación"

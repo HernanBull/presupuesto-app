@@ -28,7 +28,8 @@ import {
   RotateCcw,
   QrCode,
   Copy,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { authService, ROLE_PERMISSIONS, PERMISSION_DEFINITIONS } from '../../services/authService';
 import { supabase } from '../../../../supabaseClient';
@@ -73,6 +74,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
   // Sub-modal para Crear / Editar Caja (Fusionada con Apertura de Turno)
   const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [bcvRate, setBcvRate] = useState(894.89);
   const [activeShifts, setActiveShifts] = useState([]);
   const [regFormData, setRegFormData] = useState({
@@ -644,27 +646,42 @@ export default function UserManagementModal({ isOpen, onClose }) {
                     Gestiona tus puntos de cobro, cajeros y abre turnos con fondo bimonetario al instante.
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    const defaultCashier = users.find(u => u.role === 'CASHIER')?.fullName || 'yende';
-                    const autoVes = Math.round(50 * bcvRate);
-                    setRegFormData({
-                      id: null,
-                      code: `CAJA-0${registers.length + 1}`,
-                      name: '',
-                      branchId: 'SUC-01',
-                      defaultCashier: defaultCashier,
-                      defaultFloatUsd: 50.0,
-                      defaultFloatVes: autoVes,
-                      openShiftNow: true
-                    });
-                    setIsRegisterFormOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95 w-fit"
-                >
-                  <Plus size={15} />
-                  <span>+ Registrar Nueva Caja</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setIsRefreshing(true);
+                      await loadData();
+                      setTimeout(() => setIsRefreshing(false), 500);
+                      toast.success('Estado de cajas actualizado.');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs rounded-xl transition-all cursor-pointer active:scale-95 border border-slate-200/60 dark:border-white/5"
+                    title="Actualizar estado de cajas en vivo"
+                  >
+                    <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-orange-500' : 'text-slate-500'} />
+                    <span className="hidden sm:inline">Refrescar</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const defaultCashier = users.find(u => u.role === 'CASHIER')?.fullName || 'yende';
+                      const autoVes = Math.round(50 * bcvRate);
+                      setRegFormData({
+                        id: null,
+                        code: `CAJA-0${registers.length + 1}`,
+                        name: '',
+                        branchId: 'SUC-01',
+                        defaultCashier: defaultCashier,
+                        defaultFloatUsd: 50.0,
+                        defaultFloatVes: autoVes,
+                        openShiftNow: true
+                      });
+                      setIsRegisterFormOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95 w-fit"
+                  >
+                    <Plus size={15} />
+                    <span>+ Registrar Nueva Caja</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
