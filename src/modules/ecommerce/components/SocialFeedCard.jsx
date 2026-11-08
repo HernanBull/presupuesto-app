@@ -468,35 +468,30 @@ export default function SocialFeedCard({
 
     const loadInteractions = async () => {
       const custId = customerIdResolved;
-      
-      // Likes
-      const likeRes = await getPostLikeState(postId, custId);
-      if (mounted) {
-        setIsLiked(likeRes.isLiked);
-        setLikesCount(likeRes.count || likeRes.likesCount || 0);
-      }
-
-      // Seguidores
-      if (workspaceId) {
-        const followRes = await getStoreFollowState(workspaceId, custId);
-        if (mounted) {
-          setIsFollowing(followRes.isFollowing);
-        }
-      }
-
-      // Guardados (estrictamente por ID de la publicación)
       const custIdForSave = custId || 'guest';
       const inCustomerFavs = Array.isArray(currentCustomer?.favorites) && 
         currentCustomer.favorites.some(f => (f.id && String(f.id) === String(postId)) || (f.postId && String(f.postId) === String(postId)));
-      const saveRes = custId ? await getPostSaveState(postId, custId) : { isSaved: false };
-      if (mounted) {
-        setIsSaved(saveRes.isSaved || inCustomerFavs || isPostSavedLocally(postId, custIdForSave));
-      }
 
-      // Comentarios count
-      const comments = await getPostComments(postId);
-      if (mounted) {
-        setCommentsCount(comments.length);
+      try {
+        // Carga en paralelo ultra-rápida (una sola ronda de red en vez de 4 secuenciales)
+        const [likeRes, followRes, saveRes, comments] = await Promise.all([
+          getPostLikeState(postId, custId),
+          workspaceId ? getStoreFollowState(workspaceId, custId) : Promise.resolve({ isFollowing: false }),
+          custId ? getPostSaveState(postId, custId) : Promise.resolve({ isSaved: false }),
+          getPostComments(postId)
+        ]);
+
+        if (mounted) {
+          setIsLiked(Boolean(likeRes?.isLiked));
+          setLikesCount(likeRes?.count || likeRes?.likesCount || 0);
+          if (workspaceId) {
+            setIsFollowing(Boolean(followRes?.isFollowing));
+          }
+          setIsSaved(Boolean(saveRes?.isSaved || inCustomerFavs || isPostSavedLocally(postId, custIdForSave)));
+          setCommentsCount(Array.isArray(comments) ? comments.length : 0);
+        }
+      } catch (err) {
+        console.warn('Notice loading post interactions:', err);
       }
     };
 

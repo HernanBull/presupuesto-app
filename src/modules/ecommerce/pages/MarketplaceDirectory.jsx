@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play, LayoutDashboard, LogOut } from 'lucide-react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, CheckCircle2, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play, LayoutDashboard, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1793,6 +1793,10 @@ export default function MarketplaceDirectory() {
           setIsBottomNavOpen(false);
         }
         setIsRestoringScroll(false);
+        // Limpiar inmediatamente el almacenamiento para NUNCA volver a disparar el scroll hacia arriba
+        sessionStorage.removeItem('axon_feed_target_post_id');
+        sessionStorage.removeItem('axon_feed_target_index');
+        sessionStorage.removeItem('axon_directory_scroll_top');
         return true;
       } else if (c && savedScroll) {
         const top = parseInt(savedScroll, 10);
@@ -1803,6 +1807,10 @@ export default function MarketplaceDirectory() {
             setIsBottomNavOpen(false);
           }
           setIsRestoringScroll(false);
+          // Limpiar inmediatamente el almacenamiento
+          sessionStorage.removeItem('axon_feed_target_post_id');
+          sessionStorage.removeItem('axon_feed_target_index');
+          sessionStorage.removeItem('axon_directory_scroll_top');
           return true;
         }
       }
@@ -1819,6 +1827,9 @@ export default function MarketplaceDirectory() {
       attempts++;
       if (performScroll() || attempts >= 10) {
         setIsRestoringScroll(false);
+        sessionStorage.removeItem('axon_feed_target_post_id');
+        sessionStorage.removeItem('axon_feed_target_index');
+        sessionStorage.removeItem('axon_directory_scroll_top');
       } else {
         rafId = requestAnimationFrame(attemptScroll);
       }
@@ -1828,13 +1839,16 @@ export default function MarketplaceDirectory() {
     // Timeout de seguridad máximo para asegurar visibilidad bajo cualquier circunstancia
     const safetyTimer = setTimeout(() => {
       setIsRestoringScroll(false);
+      sessionStorage.removeItem('axon_feed_target_post_id');
+      sessionStorage.removeItem('axon_feed_target_index');
+      sessionStorage.removeItem('axon_directory_scroll_top');
     }, 350);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
       clearTimeout(safetyTimer);
     };
-  }, [feedPosts.length, visibleFeedCount, isRestoringScroll]);
+  }, [feedPosts.length, isRestoringScroll]);
 
   // Manejo de scroll para ocultamiento de barras y carga progresiva
   const handleScroll = () => {
@@ -2235,14 +2249,58 @@ export default function MarketplaceDirectory() {
               ))
             )}
 
-            {/* Centinela de carga progresiva infinita - Invisible para el motor CSS snap (Cero rebotes) */}
+            {/* Indicador de carga hacia abajo sin saltar para arriba */}
             {visibleFeedCount < feedPosts.length && (
               <div 
                 ref={feedSentinelRef} 
-                className="w-full h-12 flex items-center justify-center text-zinc-500 text-xs py-2 pointer-events-none" 
-                aria-hidden="true"
+                className="w-full py-10 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs select-none" 
               >
-                <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                <span className="font-semibold text-[11px] tracking-wide text-zinc-400">Cargando más publicaciones...</span>
+              </div>
+            )}
+
+            {/* Tarjeta de Fin de Feed: '¡Estás al día!' (Evita rebotes y da cierre profesional al feed) */}
+            {visibleFeedPosts.length > 0 && visibleFeedCount >= feedPosts.length && (
+              <div 
+                className="tiktok-feed-item relative w-full h-[100dvh] snap-start shrink-0 bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col items-center justify-center p-6 text-center select-none"
+                style={{ contain: 'content' }}
+              >
+                <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-5 shadow-lg shadow-amber-500/10">
+                  <CheckCircle2 size={40} className="stroke-[2]" />
+                </div>
+
+                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mb-2">
+                  ¡Estás al día!
+                </h3>
+                
+                <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-8">
+                  Has visto todas las novedades y vitrinas disponibles en este momento. Vuelve pronto para descubrir nuevos estados y promociones.
+                </p>
+
+                <div className="flex flex-col gap-3 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const c = mainContainerRef.current;
+                      if (c) {
+                        c.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="w-full py-3.5 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>Volver al inicio</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoriesOpen(true)}
+                    className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Menu size={15} />
+                    <span>Explorar otras categorías</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
