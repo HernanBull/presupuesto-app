@@ -50,6 +50,11 @@
     --text-muted: #666666;
   }
 
+  html, body {
+    overscroll-behavior-y: none !important;
+    overscroll-behavior: none !important;
+  }
+
   body {
     /* Diseño Claro Premium (Fondo crema, texto gris carbón) */
     background-color: var(--bg-secondary) !important;
@@ -57,7 +62,6 @@
     color: var(--text-main);
     min-height: 100vh;
     touch-action: manipulation;
-    overscroll-behavior-y: none;
     font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
   }
   

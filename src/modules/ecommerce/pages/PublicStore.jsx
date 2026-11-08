@@ -2500,23 +2500,9 @@ export default function PublicStore() {
                     @{slug}
                   </p>
 
-                  {/* Rating y Badge EM */}
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <button 
-                      onClick={() => {
-                        if (!currentCustomer) {
-                          setShowAuthModal(true);
-                          return;
-                        }
-                        setShowReviewModal(true);
-                      }} 
-                      className="inline-flex items-center gap-1.5 bg-white border border-slate-200/90 hover:border-slate-300 text-slate-800 shadow-2xs px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer"
-                    >
-                      <Star size={13} className="fill-amber-400 text-amber-500" />
-                      <span>Calificar {storeRatingAvg > 0 ? `(${storeRatingAvg})` : ''}</span>
-                    </button>
-
-                    {config?.has_enminutos_alliance && (
+                  {/* Rating y Badge EM (Botón Calificar ocultado temporalmente por solicitud) */}
+                  {config?.has_enminutos_alliance && (
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <div className="inline-flex items-center gap-1.5 bg-slate-950 text-white px-3 py-1 rounded-full shadow-2xs">
                         <div className="flex items-center font-black tracking-tighter text-xs">
                           <span className="text-red-500">E</span>
@@ -2525,8 +2511,8 @@ export default function PublicStore() {
                         </div>
                         <span className="text-[10px] font-black tracking-wide">en minutos</span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
 
                   {/* Descripción / Bio */}
                   {(config?.description || config?.expediente?.description) && (
@@ -2837,50 +2823,6 @@ export default function PublicStore() {
               >
                 {profileSubTab === 'info' ? (
                   <div className="space-y-4 pt-3 pb-8">
-                    {/* Acerca de */}
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                      <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
-                        <Building2 size={18} className="text-orange-600" />
-                        <span>Acerca de</span>
-                      </h2>
-                      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                        {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
-                        {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
-                            <MapPin size={14} className="text-red-500 shrink-0" />
-                            <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Calificaciones de Clientes */}
-                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                      <h2 className="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
-                        <Star size={18} className="fill-amber-400 text-amber-500" /> 
-                        <span>Calificaciones de los Clientes</span>
-                      </h2>
-                      {storeReviewsList.length > 0 ? (
-                        <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                          {storeReviewsList.map(review => (
-                            <div key={review.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 shadow-xs">
-                              <div className="flex justify-between items-start mb-1.5">
-                                <span className="font-bold text-sm text-slate-900">{review.customer_name}</span>
-                                <div className="flex gap-0.5">
-                                  {[1, 2, 3, 4, 5].map(s => (
-                                    <Star key={s} size={12} className={s <= review.rating ? 'fill-amber-400 text-amber-500' : 'fill-slate-200 text-slate-300'} />
-                                  ))}
-                                </div>
-                              </div>
-                              <p className="text-sm text-slate-600 whitespace-pre-line">{review.comment}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-400 italic">No hay calificaciones disponibles aún.</p>
-                      )}
-                    </div>
-
                     {/* Horario */}
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                       <div className="flex justify-between items-center mb-3">

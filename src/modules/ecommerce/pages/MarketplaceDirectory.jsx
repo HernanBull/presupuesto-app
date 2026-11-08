@@ -118,19 +118,8 @@ export default function MarketplaceDirectory() {
   const [isStatusViewerOpen, setIsStatusViewerOpen] = useState(false);
   const [activeStatusIndex, setActiveStatusIndex] = useState(0);
   const isNavOpenRef = useRef(true);
+  isNavOpenRef.current = isBottomNavOpen;
   const isWheelThrottledRef = useRef(false);
-
-  // Motor de Física Vertical y Transición Drag-and-Snap estilo TikTok
-  const [currentFeedIndex, setCurrentFeedIndex] = useState(0);
-  const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const currentFeedIndexRef = useRef(0);
-  currentFeedIndexRef.current = currentFeedIndex;
-  const touchStartYRef = useRef(0);
-  const touchStartXRef = useRef(0);
-  const touchStartTimeRef = useRef(0);
-  const touchLockRef = useRef(null);
-  const isMouseDownRef = useRef(false);
 
   const scrollCategories = (direction) => {
     if (categoriesScrollRef.current) {
@@ -1628,7 +1617,7 @@ export default function MarketplaceDirectory() {
           setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
         }
       },
-      { rootMargin: '350px 0px' }
+      { root: mainContainerRef.current || null, rootMargin: '500px 0px' }
     );
 
     observer.observe(el);
@@ -1657,7 +1646,40 @@ export default function MarketplaceDirectory() {
     }
   }, [feedPosts.length, visibleFeedCount]);
 
-  // Control Global de Rueda de Ratón, Scroll y Teclado estilo TikTok (Ocultamiento automático de barras)
+  // Manejo de scroll para ocultamiento de barras y carga progresiva
+  const handleScroll = () => {
+    const c = mainContainerRef.current;
+    if (!c) return;
+    const pageH = c.clientHeight || window.innerHeight;
+    const scrollPos = c.scrollTop;
+
+    // Si está en el primer comercio (< 30% de la altura): mostrar barras
+    // Al pasar al segundo comerciante (>= 30% de la altura): ocultar ambas barras
+    const shouldBeOpen = scrollPos < (pageH * 0.3);
+    if (shouldBeOpen !== isNavOpenRef.current) {
+      isNavOpenRef.current = shouldBeOpen;
+      setIsBottomNavOpen(shouldBeOpen);
+    }
+
+    // Detección de scroll para cargar progresivamente más contenido al aproximarse al final
+    if (c.scrollHeight - (scrollPos + pageH) < 800) {
+      setVisibleFeedCount(prev => (prev < feedPosts.length ? Math.min(prev + 4, feedPosts.length) : prev));
+    }
+  };
+
+  // Desactivar pull-to-refresh nativo del navegador en la vitrina
+  useEffect(() => {
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehaviorY;
+    const prevBodyOverscroll = document.body.style.overscrollBehaviorY;
+    document.documentElement.style.overscrollBehaviorY = 'none';
+    document.body.style.overscrollBehaviorY = 'none';
+    return () => {
+      document.documentElement.style.overscrollBehaviorY = prevHtmlOverscroll;
+      document.body.style.overscrollBehaviorY = prevBodyOverscroll;
+    };
+  }, []);
+
+  // Control Global de Rueda de Ratón y Teclado para cambio de video suave
   useEffect(() => {
     const handleGlobalWheel = (e) => {
       // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
@@ -1675,32 +1697,35 @@ export default function MarketplaceDirectory() {
         return;
       }
 
+      const c = mainContainerRef.current;
+      if (!c) return;
+
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+
       // Desplazamiento hacia abajo con rueda de ratón (hacia el segundo comerciante en adelante)
-      if (e.deltaY > 12) {
+      if (e.deltaY > 15) {
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          setCurrentFeedIndex(prev => {
-            const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
-            const next = Math.min(prev + 1, maxIdx);
-            if (next > 0) setIsBottomNavOpen(false);
-            return next;
-          });
+          const maxScroll = Math.max(0, c.scrollHeight - pageH);
+          const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+          c.scrollTo({ top: nextScroll, behavior: 'smooth' });
           setTimeout(() => {
             isWheelThrottledRef.current = false;
-          }, 320);
+          }, 300);
         }
-      } else if (e.deltaY < -12) {
+      } else if (e.deltaY < -15) {
         // Desplazamiento hacia arriba con rueda de ratón
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
-          setCurrentFeedIndex(prev => {
-            const next = Math.max(prev - 1, 0);
-            if (next === 0) setIsBottomNavOpen(true);
-            return next;
-          });
+          const prevScroll = Math.max(0, currentScroll - pageH);
+          c.scrollTo({ top: prevScroll, behavior: 'smooth' });
+          if (prevScroll <= 15) {
+            setIsBottomNavOpen(true);
+          }
           setTimeout(() => {
             isWheelThrottledRef.current = false;
-          }, 320);
+          }, 300);
         }
       }
     };
@@ -1720,21 +1745,23 @@ export default function MarketplaceDirectory() {
         return;
       }
 
+      const c = mainContainerRef.current;
+      if (!c) return;
+      const pageH = c.clientHeight || window.innerHeight;
+      const currentScroll = c.scrollTop;
+
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        setCurrentFeedIndex(prev => {
-          const maxIdx = Math.max(0, (feedPosts?.length || 1) - 1);
-          const next = Math.min(prev + 1, maxIdx);
-          if (next > 0) setIsBottomNavOpen(false);
-          return next;
-        });
+        const maxScroll = Math.max(0, c.scrollHeight - pageH);
+        const nextScroll = Math.min(currentScroll + pageH, maxScroll);
+        c.scrollTo({ top: nextScroll, behavior: 'smooth' });
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        setCurrentFeedIndex(prev => {
-          const next = Math.max(prev - 1, 0);
-          if (next === 0) setIsBottomNavOpen(true);
-          return next;
-        });
+        const prevScroll = Math.max(0, currentScroll - pageH);
+        c.scrollTo({ top: prevScroll, behavior: 'smooth' });
+        if (prevScroll <= 15) {
+          setIsBottomNavOpen(true);
+        }
       }
     };
 
@@ -1757,132 +1784,6 @@ export default function MarketplaceDirectory() {
     isCartOpen,
     feedPosts.length
   ]);
-
-  // Gestos Táctiles con Físicas de Resorte y Arrastre en Tiempo Real (Drag-and-Snap TikTok)
-  const handleTouchStart = (e) => {
-    if (e.touches.length !== 1) return;
-    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
-    touchStartYRef.current = e.touches[0].clientY;
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartTimeRef.current = Date.now();
-    touchLockRef.current = null;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e) => {
-    if (e.touches.length !== 1) return;
-    if (!isDragging && touchLockRef.current !== 'vertical') return;
-    const clientY = e.touches[0].clientY;
-    const clientX = e.touches[0].clientX;
-    const dy = clientY - touchStartYRef.current;
-    const dx = clientX - touchStartXRef.current;
-
-    if (touchLockRef.current === null) {
-      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
-        touchLockRef.current = 'horizontal';
-        setIsDragging(false);
-        setDragY(0);
-        return;
-      }
-      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
-        touchLockRef.current = 'vertical';
-      }
-    }
-
-    if (touchLockRef.current === 'vertical') {
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-
-      // Resistencia elástica tipo resorte en bordes (Spring Physics)
-      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
-        setDragY(dy * 0.28);
-      } else {
-        setDragY(dy); // Arrastre 1:1 en tiempo real
-      }
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (touchLockRef.current === 'vertical') {
-      const elapsed = Date.now() - touchStartTimeRef.current;
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-      const threshold = window.innerHeight * 0.18; // Umbral del 18% para snap
-      const isFastFlick = elapsed < 280 && Math.abs(dragY) > 40;
-
-      if ((dragY < -threshold || (dragY < -40 && isFastFlick)) && idx < maxIdx) {
-        // Salto a siguiente publicación estilo TikTok
-        setCurrentFeedIndex(prev => {
-          const next = prev + 1;
-          setIsBottomNavOpen(false);
-          return next;
-        });
-      } else if ((dragY > threshold || (dragY > 40 && isFastFlick)) && idx > 0) {
-        // Salto a publicación anterior
-        setCurrentFeedIndex(prev => {
-          const next = prev - 1;
-          if (next === 0) setIsBottomNavOpen(true);
-          return next;
-        });
-      }
-    }
-    // Rebote elástico suave de retorno al card centrado
-    setDragY(0);
-    setIsDragging(false);
-    touchLockRef.current = null;
-  };
-
-  const handleMouseDown = (e) => {
-    if (e.button !== 0) return;
-    if (activeCommentsPost || isAuthModalOpen || isMerchantModalOpen || isStatusViewerOpen || isWizardOpen || isMobileMenuOpen || isCartOpen) return;
-    isMouseDownRef.current = true;
-    touchStartYRef.current = e.clientY;
-    touchStartXRef.current = e.clientX;
-    touchStartTimeRef.current = Date.now();
-    touchLockRef.current = null;
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e) => {
-    if (!isMouseDownRef.current) return;
-    const dy = e.clientY - touchStartYRef.current;
-    const dx = e.clientX - touchStartXRef.current;
-
-    if (touchLockRef.current === null) {
-      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
-        touchLockRef.current = 'horizontal';
-        setIsDragging(false);
-        setDragY(0);
-        return;
-      }
-      if (Math.abs(dy) > 8) {
-        touchLockRef.current = 'vertical';
-      }
-    }
-
-    if (touchLockRef.current === 'vertical') {
-      const idx = currentFeedIndexRef.current;
-      const maxIdx = Math.max(0, visibleFeedPosts.length - 1);
-      if ((idx === 0 && dy > 0) || (idx === maxIdx && dy < 0)) {
-        setDragY(dy * 0.28);
-      } else {
-        setDragY(dy);
-      }
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!isMouseDownRef.current) return;
-    isMouseDownRef.current = false;
-    handleTouchEnd();
-  };
-
-  // Carga continua anticipada (Precarga simultánea de posts)
-  useEffect(() => {
-    if (currentFeedIndex >= visibleFeedCount - 2 && visibleFeedCount < feedPosts.length) {
-      setVisibleFeedCount(prev => Math.min(prev + 4, feedPosts.length));
-    }
-  }, [currentFeedIndex, visibleFeedCount, feedPosts.length]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
@@ -2041,30 +1942,16 @@ export default function MarketplaceDirectory() {
         )}
       </div>
 
-      {/* Centered Mobile-First App Shell (Wider for Desktop - Motor Drag-and-Snap TikTok) */}
+      {/* Centered Mobile-First App Shell (Wider for Desktop - Snap Nativo Ultra Fluido) */}
       <div 
         ref={mainContainerRef} 
-        className="marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-hidden select-none border-none shadow-none"
-        style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none' }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onScroll={handleScroll}
+        className="marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none"
+        style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none', overscrollBehaviorY: 'none' }}
       >
-        {/* Feed Principal de Publicaciones (Estilo TikTok / Motor Físico Drag-and-Snap) */}
+        {/* Feed Principal de Publicaciones (Estilo TikTok / Carga Progresiva Uno a Uno) */}
         <ActiveFeedMediaProvider>
-          <div 
-            className="w-full h-full relative"
-            style={{
-              transform: `translate3d(0, calc(${-currentFeedIndex * 100}% + ${dragY}px), 0)`,
-              transition: isDragging ? 'none' : 'transform 0.38s cubic-bezier(0.22, 1, 0.36, 1)',
-              willChange: 'transform'
-            }}
-          >
+          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
             {visibleFeedPosts.length === 0 ? (
               <div className="mx-4 my-8 text-center py-16 px-4 bg-zinc-900/60 rounded-2xl border border-dashed border-zinc-800">
                 <ShoppingBag size={36} className="text-zinc-500 mx-auto mb-2" />
@@ -2080,24 +1967,27 @@ export default function MarketplaceDirectory() {
                 )}
               </div>
             ) : (
-              visibleFeedPosts.map((post, idx) => (
-                <div 
+              visibleFeedPosts.map((post) => (
+                <SocialFeedCard
                   key={post.id}
-                  className="w-full h-[100dvh] absolute top-0 left-0 overflow-hidden"
-                  style={{
-                    transform: `translate3d(0, ${idx * 100}%, 0)`
-                  }}
-                >
-                  <SocialFeedCard
-                    post={post}
-                    isActive={idx === currentFeedIndex}
-                    currentCustomer={currentCustomer}
-                    onOpenComments={(target) => setActiveCommentsPost(target)}
-                    onRequireAuth={() => setIsAuthModalOpen(true)}
-                    onNavigateStore={(slug) => navigate(`/${slug}`)}
-                  />
-                </div>
+                  post={post}
+                  currentCustomer={currentCustomer}
+                  onOpenComments={(target) => setActiveCommentsPost(target)}
+                  onRequireAuth={() => setIsAuthModalOpen(true)}
+                  onNavigateStore={(slug) => navigate(`/${slug}`)}
+                />
               ))
+            )}
+
+            {/* Centinela de carga progresiva infinita - Cero separación */}
+            {visibleFeedCount < feedPosts.length && (
+              <div 
+                ref={feedSentinelRef} 
+                className="w-full h-12 flex items-center justify-center text-zinc-500 text-xs py-4 snap-start shrink-0" 
+                aria-hidden="true"
+              >
+                <div className="w-5 h-5 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+              </div>
             )}
           </div>
         </ActiveFeedMediaProvider>
@@ -2138,7 +2028,7 @@ export default function MarketplaceDirectory() {
         <div className="flex justify-between items-center h-16 px-2 relative">
           <button 
             onClick={() => { 
-              setCurrentFeedIndex(0);
+              mainContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
               setIsBottomNavOpen(true); 
             }}
             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
