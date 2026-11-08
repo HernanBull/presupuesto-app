@@ -614,7 +614,6 @@ export default function StoreProfileManager() {
         name: storeName.trim(),
         store_slug: ws.store_slug || cleanSlug,
         map_address: address.trim(),
-        business_type: primaryCat,
         config: newConfig 
       }).eq('id', workspaceId);
       if (updateErr) throw updateErr;
