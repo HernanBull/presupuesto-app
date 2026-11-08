@@ -53,7 +53,8 @@ export default function SocialFeedCard({
   currentMerchant,
   onOpenComments,
   onRequireAuth,
-  onNavigateStore
+  onNavigateStore,
+  onCardVisible
 }) {
   const postId = post.id || post.store_slug || post.slug;
   const workspaceId = post.workspace_id || post.id;
@@ -370,8 +371,11 @@ export default function SocialFeedCard({
             setHasEnteredViewport(true);
           }
 
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
             setIsInView(true);
+            if (onCardVisible) {
+              onCardVisible(feedIndex, postId);
+            }
             if (isVideo && videoRef.current && !userPausedRef.current) {
               setActiveMedia(postId, videoRef.current);
             }

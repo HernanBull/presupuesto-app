@@ -1671,20 +1671,15 @@ export default function MarketplaceDirectory() {
   // Manejo de scroll para ocultamiento de barras y carga progresiva
   const handleScroll = () => {
     const c = mainContainerRef.current;
-    if (!c) return;
-    const pageH = c.clientHeight || window.innerHeight;
-    const scrollPos = c.scrollTop;
-    const delta = scrollPos - lastScrollTopRef.current;
+    const scrollPos = c ? c.scrollTop : (window.scrollY || 0);
 
-    // Al deslizar hacia abajo o estar en la 2da publicación en adelante: ocultar barras para pantalla completa
+    // Al deslizar hacia abajo o salir del inicio de la primera publicación: ocultar barras de inmediato
     if (scrollPos > 30) {
-      if (delta > 2 || scrollPos >= pageH * 0.4) {
-        if (isNavOpenRef.current) {
-          isNavOpenRef.current = false;
-          setIsBottomNavOpen(false);
-        }
+      if (isNavOpenRef.current) {
+        isNavOpenRef.current = false;
+        setIsBottomNavOpen(false);
       }
-    } else if (scrollPos <= 20) {
+    } else if (scrollPos <= 10) {
       // Arriba del todo (primera publicación): mostrar barras
       if (!isNavOpenRef.current) {
         isNavOpenRef.current = true;
@@ -1694,10 +1689,78 @@ export default function MarketplaceDirectory() {
     lastScrollTopRef.current = scrollPos;
 
     // Detección de scroll para cargar progresivamente de uno a uno al aproximarse al final
-    if (c.scrollHeight - (scrollPos + pageH) < 600) {
-      setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
+    if (c) {
+      const pageH = c.clientHeight || window.innerHeight;
+      if (c.scrollHeight - (scrollPos + pageH) < 600) {
+        setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
+      }
     }
   };
+
+  // Detección de publicación visible (IntersectionObserver de cada tarjeta)
+  const handleCardVisible = useCallback((cardIndex) => {
+    if (cardIndex > 0) {
+      // Viendo la publicación de otro comerciante (2da en adelante) -> ocultar barras de inmediato
+      if (isNavOpenRef.current) {
+        isNavOpenRef.current = false;
+        setIsBottomNavOpen(false);
+      }
+    } else if (cardIndex === 0) {
+      // Viendo la primera publicación -> si estamos en la cabecera superior, reaparecer barras
+      const c = mainContainerRef.current;
+      const scrollPos = c ? c.scrollTop : (window.scrollY || 0);
+      if (scrollPos <= 50 && !isNavOpenRef.current) {
+        isNavOpenRef.current = true;
+        setIsBottomNavOpen(true);
+      }
+    }
+  }, []);
+
+  // Escuchadores nativos de scroll y touch para dispositivos móviles
+  useEffect(() => {
+    const c = mainContainerRef.current;
+    const onScrollEvent = () => handleScroll();
+
+    if (c) {
+      c.addEventListener('scroll', onScrollEvent, { passive: true });
+    }
+    window.addEventListener('scroll', onScrollEvent, { passive: true });
+
+    let touchStartY = 0;
+    const onTouchStart = (e) => {
+      touchStartY = e.touches[0]?.clientY || 0;
+    };
+    const onTouchMove = (e) => {
+      const currentY = e.touches[0]?.clientY || 0;
+      const diffY = touchStartY - currentY; // Positivo = dedo sube, viendo siguiente publicación abajo
+      const cPos = c ? c.scrollTop : (window.scrollY || 0);
+      if (diffY > 25 || cPos > 30) {
+        if (isNavOpenRef.current) {
+          isNavOpenRef.current = false;
+          setIsBottomNavOpen(false);
+        }
+      } else if (diffY < -30 && cPos <= 20) {
+        if (!isNavOpenRef.current) {
+          isNavOpenRef.current = true;
+          setIsBottomNavOpen(true);
+        }
+      }
+    };
+
+    if (c) {
+      c.addEventListener('touchstart', onTouchStart, { passive: true });
+      c.addEventListener('touchmove', onTouchMove, { passive: true });
+    }
+
+    return () => {
+      if (c) {
+        c.removeEventListener('scroll', onScrollEvent);
+        c.removeEventListener('touchstart', onTouchStart);
+        c.removeEventListener('touchmove', onTouchMove);
+      }
+      window.removeEventListener('scroll', onScrollEvent);
+    };
+  }, []);
 
   // Desactivar pull-to-refresh nativo del navegador en la vitrina
   useEffect(() => {
@@ -1876,8 +1939,8 @@ export default function MarketplaceDirectory() {
 
       {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable (Estilo TikTok Transparente de Borde a Borde) */}
       <div 
-        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out pointer-events-auto ${
-          !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out ${
+          !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
         }`}
       >
         <header className="bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-3 pb-6 px-4 md:px-6">
@@ -2045,6 +2108,7 @@ export default function MarketplaceDirectory() {
                   onOpenComments={(target) => setActiveCommentsPost(target)}
                   onRequireAuth={() => setIsAuthModalOpen(true)}
                   onNavigateStore={(slug) => navigate(`/${slug}`)}
+                  onCardVisible={handleCardVisible}
                 />
               ))
             )}
@@ -2065,21 +2129,28 @@ export default function MarketplaceDirectory() {
 
       {/* Botón flotante en esquina izquierda (Negro transparente ultra moderno, sin parpadeo) */}
       <button
-        onClick={() => setIsBottomNavOpen(true)}
-        className={`fixed bottom-6 left-5 z-50 w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-slate-950 flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] border-2 border-white/50 active:scale-90 hover:scale-105 transition-all duration-200 ${
+        onClick={() => {
+          isNavOpenRef.current = true;
+          setIsBottomNavOpen(true);
+        }}
+        className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] active:scale-90 hover:scale-105 transition-all duration-200 ${
           !isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
         }`}
         style={{
-          backgroundColor: 'transparent',
+          background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: 'none',
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.75)'
+          border: '2px solid rgba(255, 255, 255, 0.7)',
+          boxShadow: '0 8px 30px rgba(234, 88, 12, 0.6)'
         }}
         title="Abrir menú"
         aria-label="Abrir menú de navegación"
       >
-        <ShoppingBag size={24} className="stroke-[2.5]" />
+        <ShoppingBag size={22} className="stroke-[2.5] text-white" />
+        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
+        </span>
       </button>
 
       {/* Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
@@ -2102,13 +2173,15 @@ export default function MarketplaceDirectory() {
               if (c) {
                 c.scrollTop = 0;
                 try {
-                  c.scrollTo({ top: 0, behavior: 'instant' });
+                  c.scrollTo({ top: 0, behavior: 'smooth' });
                 } catch (e) {}
                 const firstCard = c.querySelector('.tiktok-feed-item');
                 if (firstCard) {
-                  firstCard.scrollIntoView({ behavior: 'instant', block: 'start' });
+                  firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
               }
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              isNavOpenRef.current = true;
               setIsBottomNavOpen(true); 
             }}
             className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
