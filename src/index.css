@@ -125,11 +125,9 @@
   }
 
   .dark-glass-fab {
-    background-color: rgba(10, 10, 10, 0.88) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(245, 158, 11, 0.35) !important;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
   }
 
   /* TikTok Feed Item - Cero bordes, 100% Pantalla Completa sin margen */

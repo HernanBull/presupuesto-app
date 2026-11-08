@@ -1673,17 +1673,11 @@ export default function MarketplaceDirectory() {
     const c = mainContainerRef.current;
     const scrollPos = c ? c.scrollTop : (window.scrollY || 0);
 
-    // Al deslizar hacia abajo o salir del inicio de la primera publicación: ocultar barras de inmediato
+    // Al deslizar hacia abajo: ocultar barras de inmediato y mantenerlas ocultas permanentemente
     if (scrollPos > 30) {
       if (isNavOpenRef.current) {
         isNavOpenRef.current = false;
         setIsBottomNavOpen(false);
-      }
-    } else if (scrollPos <= 10) {
-      // Arriba del todo (primera publicación): mostrar barras
-      if (!isNavOpenRef.current) {
-        isNavOpenRef.current = true;
-        setIsBottomNavOpen(true);
       }
     }
     lastScrollTopRef.current = scrollPos;
@@ -1704,14 +1698,6 @@ export default function MarketplaceDirectory() {
       if (isNavOpenRef.current) {
         isNavOpenRef.current = false;
         setIsBottomNavOpen(false);
-      }
-    } else if (cardIndex === 0) {
-      // Viendo la primera publicación -> si estamos en la cabecera superior, reaparecer barras
-      const c = mainContainerRef.current;
-      const scrollPos = c ? c.scrollTop : (window.scrollY || 0);
-      if (scrollPos <= 50 && !isNavOpenRef.current) {
-        isNavOpenRef.current = true;
-        setIsBottomNavOpen(true);
       }
     }
   }, []);
@@ -1734,15 +1720,10 @@ export default function MarketplaceDirectory() {
       const currentY = e.touches[0]?.clientY || 0;
       const diffY = touchStartY - currentY; // Positivo = dedo sube, viendo siguiente publicación abajo
       const cPos = c ? c.scrollTop : (window.scrollY || 0);
-      if (diffY > 25 || cPos > 30) {
+      if (diffY > 20 || cPos > 30) {
         if (isNavOpenRef.current) {
           isNavOpenRef.current = false;
           setIsBottomNavOpen(false);
-        }
-      } else if (diffY < -30 && cPos <= 20) {
-        if (!isNavOpenRef.current) {
-          isNavOpenRef.current = true;
-          setIsBottomNavOpen(true);
         }
       }
     };
@@ -1813,14 +1794,11 @@ export default function MarketplaceDirectory() {
           }, 300);
         }
       } else if (e.deltaY < -15) {
-        // Desplazamiento hacia arriba con rueda de ratón
+        // Desplazamiento hacia arriba con rueda de ratón (mantiene el estado actual de las barras)
         if (!isWheelThrottledRef.current) {
           isWheelThrottledRef.current = true;
           const prevScroll = Math.max(0, currentScroll - pageH);
           c.scrollTo({ top: prevScroll, behavior: 'smooth' });
-          if (prevScroll <= 20) {
-            setIsBottomNavOpen(true);
-          }
           setTimeout(() => {
             isWheelThrottledRef.current = false;
           }, 300);
@@ -1855,14 +1833,12 @@ export default function MarketplaceDirectory() {
         c.scrollTo({ top: nextScroll, behavior: 'smooth' });
         if (nextScroll > 30) {
           setIsBottomNavOpen(false);
+          isNavOpenRef.current = false;
         }
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
         const prevScroll = Math.max(0, currentScroll - pageH);
         c.scrollTo({ top: prevScroll, behavior: 'smooth' });
-        if (prevScroll <= 20) {
-          setIsBottomNavOpen(true);
-        }
       }
     };
 

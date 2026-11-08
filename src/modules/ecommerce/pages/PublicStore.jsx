@@ -4998,12 +4998,13 @@ export default function PublicStore() {
       {!isBottomNavOpen && (
         <button
           onClick={() => setIsBottomNavOpen(true)}
-          className="fixed bottom-5 left-4 md:left-[calc(50%-330px)] z-50 w-12 h-12 rounded-full dark-glass-fab flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
+          className="fixed bottom-5 left-4 md:left-[calc(50%-330px)] z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer active:scale-90 transition-transform"
           style={{
             backgroundColor: primaryColor || '#ea580c',
+            background: primaryColor || '#ea580c',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
-            border: '2px solid rgba(255, 255, 255, 0.45)',
+            border: '2px solid rgba(255, 255, 255, 0.7)',
             boxShadow: `0 8px 30px ${primaryColor ? primaryColor + '66' : 'rgba(234, 88, 12, 0.45)'}`
           }}
           title="Abrir menú"
