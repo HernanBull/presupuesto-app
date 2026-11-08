@@ -3079,45 +3079,45 @@ export default function PublicStore() {
                 </div>
               )}
 
-              {/* SUB-PESTAÑAS INTELIGENTES: 3 ÍCONOS (Información vs Videos vs Estados 24h) */}
+              {/* SUB-PESTAÑAS INTELIGENTES: 3 ÍCONOS (Información vs Publicaciones vs Estados 24h) */}
               <div className="mt-5 border-b border-slate-200 bg-white rounded-t-2xl shadow-xs overflow-hidden">
                 <div className="grid grid-cols-3 max-w-[480px] mx-auto">
                   {/* Ícono 1: Información del Comerciante */}
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('info')}
-                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
+                    className={`py-3.5 px-1 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 relative transition-all cursor-pointer select-none ${
                       profileSubTab === 'info' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                     title="Información del Comerciante"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Info size={16} className="stroke-[2.4]" />
-                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Información</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <Info size={15} className="stroke-[2.2] shrink-0" />
+                      <span className="text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-extrabold truncate">Información</span>
                     </div>
                     {profileSubTab === 'info' && (
                       <motion.div 
                         layoutId="profileSubTabIndicator"
-                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        className="absolute bottom-0 left-2 right-2 sm:left-3 sm:right-3 h-[2.5px] rounded-full" 
                         style={{ backgroundColor: primaryColor }}
                       />
                     )}
                   </button>
 
-                  {/* Ícono 2: Publicaciones (Fotos y Videos) */}
+                  {/* Ícono 2: Publicaciones (Fotos y Videos con ícono Film profesional) */}
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('media')}
-                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
+                    className={`py-3.5 px-1 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 relative transition-all cursor-pointer select-none ${
                       profileSubTab === 'media' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                     title="Publicaciones (Fotos y Videos)"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Grid size={16} className="stroke-[2.4]" />
-                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Publicaciones</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <Film size={15} className="stroke-[2.2] shrink-0" />
+                      <span className="text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-extrabold truncate">Publicaciones</span>
                       {merchantPublications.length > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                        <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 shrink-0">
                           {merchantPublications.length}
                         </span>
                       )}
@@ -3125,7 +3125,7 @@ export default function PublicStore() {
                     {profileSubTab === 'media' && (
                       <motion.div 
                         layoutId="profileSubTabIndicator"
-                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        className="absolute bottom-0 left-2 right-2 sm:left-3 sm:right-3 h-[2.5px] rounded-full" 
                         style={{ backgroundColor: primaryColor }}
                       />
                     )}
@@ -3135,22 +3135,22 @@ export default function PublicStore() {
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('statuses')}
-                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
+                    className={`py-3.5 px-1 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 relative transition-all cursor-pointer select-none ${
                       profileSubTab === 'statuses' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                     title="Estados de 24 Horas"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={16} className="stroke-[2.4]" />
-                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Estados</span>
+                    <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                      <Clock size={15} className="stroke-[2.2] shrink-0" />
+                      <span className="text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-extrabold truncate">Estados</span>
                       {ephemeralStatuses.length > 0 && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                       )}
                     </div>
                     {profileSubTab === 'statuses' && (
                       <motion.div 
                         layoutId="profileSubTabIndicator"
-                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        className="absolute bottom-0 left-2 right-2 sm:left-3 sm:right-3 h-[2.5px] rounded-full" 
                         style={{ backgroundColor: primaryColor }}
                       />
                     )}
@@ -3441,7 +3441,7 @@ export default function PublicStore() {
                           className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
                           style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
                         >
-                          <Grid size={24} style={{ color: primaryColor }} />
+                          <Film size={24} style={{ color: primaryColor }} />
                         </div>
                         <h4 className="text-base font-bold text-slate-800">No hay publicaciones aún</h4>
                         <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
