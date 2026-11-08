@@ -177,7 +177,7 @@ export default function PublicStore() {
     (activeMerchantWs && workspaceId && activeMerchantWs === workspaceId) ||
     (activeMerchantSlug && slug && activeMerchantSlug.toLowerCase() === slug.toLowerCase())
   );
-  const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner);
+  const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner && !currentCustomer);
 
   // Personalización del Color de Marca en vivo (exclusivo para el comerciante en su vitrina)
   const [brandColorCustomizerOpen, setBrandColorCustomizerOpen] = useState(false);
@@ -918,6 +918,8 @@ export default function PublicStore() {
       const newUser = { ...payload, docId: '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(newUser));
       localStorage.removeItem('activeWorkspace');
+      localStorage.removeItem('workspace_id');
+      localStorage.removeItem('storeSlug');
       setCurrentCustomer(newUser);
       
       if (!newUser.phone || !newUser.docId || !newUser.address || !newUser.name || newUser.name === newUser.email.split('@')[0] || newUser.name === newUser.email) {
@@ -1492,6 +1494,8 @@ export default function PublicStore() {
       const mappedUser = { ...user, auth_provider: 'google', is_verified: true, status: 'Activo', docId: user.doc_id || user.docId || '', orders: [] };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
+      localStorage.removeItem('workspace_id');
+      localStorage.removeItem('storeSlug');
       setCurrentCustomer(mappedUser);
       
       const cleanPhone = (mappedUser.phone || '').replace(/\D/g, '');
@@ -1627,8 +1631,8 @@ export default function PublicStore() {
   };
 
   const addToCart = async (productId, stepSize) => {
-    if (isVisitingMerchant) {
-      alert("Estás explorando en modo comerciante. Puedes visualizar todo el catálogo, precios y promociones libremente. Para realizar pedidos y compras, debes ingresar con una cuenta de cliente.");
+    if (!currentCustomer) {
+      setShowAuthModal(true);
       return;
     }
 
@@ -1794,6 +1798,10 @@ export default function PublicStore() {
   };
 
   const addModalToCart = async () => {
+    if (!currentCustomer) {
+      setShowAuthModal(true);
+      return;
+    }
     if (!isProfileComplete(currentCustomer)) {
       setIsWizardOpen(true);
       return;
@@ -2234,7 +2242,7 @@ export default function PublicStore() {
   };
 
   // Auth Gate: Clientes autenticados, dueño de vitrina y comerciantes visitantes pueden ver catálogo completo y precios
-  const isUserAllowedToSeePrices = currentCustomer || isMerchantOwner || isVisitingMerchant;
+  const isUserAllowedToSeePrices = currentCustomer || isMerchantOwner || isAnyMerchantLoggedIn;
 
   const handleGoBack = () => {
     if (window.history.length > 1) {
@@ -2528,7 +2536,7 @@ export default function PublicStore() {
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
-             {!currentCustomer && !isMerchantOwner && !isVisitingMerchant ? (
+             {!currentCustomer && !isMerchantOwner ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
                  className="flex items-center gap-1.5 text-xs font-bold uppercase px-4 py-2 rounded-full transition-all active:scale-95 cursor-pointer border"
@@ -4950,10 +4958,19 @@ export default function PublicStore() {
                         <ArrowRight size={18} />
                       </button>
                     )
-                  ) : isVisitingMerchant ? (
-                    <div className="w-full py-3.5 px-4 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 text-center text-xs font-bold leading-relaxed">
-                      <span>Modo Comerciante: Puedes explorar los productos y cantidades. Para procesar pedidos y comprar, ingresa con una cuenta de cliente.</span>
-                    </div>
+                  ) : !currentCustomer ? (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setAuthGateMode('login');
+                        setShowAuthModal(true);
+                      }} 
+                      className="w-full py-4 rounded-xl text-xs sm:text-sm font-black tracking-widest uppercase flex items-center justify-center gap-2.5 transition-all hover:brightness-105 active:scale-[0.99] shadow-lg cursor-pointer"
+                      style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                    >
+                      <User size={18} />
+                      <span>Ingresar como Cliente para Comprar</span>
+                    </button>
                   ) : (
                     <button 
                       type="button"
@@ -5446,7 +5463,7 @@ export default function PublicStore() {
 
             {/* Standard Button for Cart */}
             <button
-              onClick={() => (currentCustomer || isMerchantOwner || isVisitingMerchant) ? setIsCartOpen(true) : setShowAuthModal(true)}
+              onClick={() => setIsCartOpen(true)}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
               style={isCartOpen ? { color: primaryColor } : { color: '#ffffff' }}
             >
