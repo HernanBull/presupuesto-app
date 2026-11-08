@@ -28,6 +28,8 @@ export default function MerchantStatusViewerModal({
   const timerRef = useRef(null);
   const videoRef = useRef(null);
 
+  const currentStatus = statuses[currentIndex] || {};
+
   useEffect(() => {
     if (isOpen && currentStatus) {
       const targetId = currentStatus.id || currentStatus.news_id || currentStatus.status_id;
@@ -61,8 +63,6 @@ export default function MerchantStatusViewerModal({
       };
     }
   }, [isOpen, initialIndex, statuses.length]);
-
-  const currentStatus = statuses[currentIndex] || {};
 
   const storeName = currentStatus.store_name || currentStatus.name || currentStatus.storeName || 'Comercio';
   const storeLogo = currentStatus.store_logo || currentStatus.avatar || currentStatus.storeLogo || '';
