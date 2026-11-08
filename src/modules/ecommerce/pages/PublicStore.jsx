@@ -2515,8 +2515,8 @@ export default function PublicStore() {
         {currentPage === 'home' && (
           <div className="flex-1 flex flex-col w-full pb-28 text-slate-900 bg-slate-50/50 relative">
             
-            {/* Hero Cover Header - Portada Full Bleed extendida hasta el tope */}
-            <div className="relative z-0 w-full h-52 sm:h-64 md:h-72 overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
+            {/* Hero Cover Header - Portada Full Bleed extendida hacia abajo para máxima vista panorámica */}
+            <div className="relative z-0 w-full h-76 sm:h-96 md:h-[440px] overflow-hidden bg-slate-900 border-b border-slate-200/80 shadow-xs flex items-center justify-center">
               
               {/* Botón flotante para salir directamente al mercado general de comercios */}
               <button 
@@ -2553,12 +2553,14 @@ export default function PublicStore() {
                     aria-hidden="true"
                     className="absolute inset-0 w-full h-full object-cover object-center blur-md opacity-35 scale-110 pointer-events-none select-none" 
                   />
-                  {/* Portada principal centrada */}
+                  {/* Portada principal centrada con mayor campo visual */}
                   <img 
                     src={resolveImageUrl(resolvedCoverUrl)} 
                     alt="Cover" 
-                    className="w-full h-full object-cover object-center block" 
+                    className="w-full h-full object-cover object-center block relative z-0" 
                   />
+                  {/* Gradiente sutil inferior para contraste y profundidad cinematográfica */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent pointer-events-none z-10" />
                 </>
               ) : (
                 <div 
@@ -2578,7 +2580,7 @@ export default function PublicStore() {
                 {/* Fila Superior: Avatar a la izquierda, Estadísticas a la derecha */}
                 <div className="flex items-center gap-4 sm:gap-6">
                   {/* Avatar con aro interactivo tipo WhatsApp / Stories */}
-                  <div className="relative z-30 shrink-0 -mt-10 sm:-mt-12">
+                  <div className="relative z-30 shrink-0 -mt-11 sm:-mt-13">
                     {hasActiveStatuses ? (
                       <div 
                         onClick={() => markStatusAsViewed(0)}
