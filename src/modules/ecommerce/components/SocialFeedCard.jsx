@@ -678,7 +678,8 @@ export default function SocialFeedCard({
         border: 'none',
         borderColor: '#000000',
         outline: 'none',
-        boxShadow: 'none'
+        boxShadow: 'none',
+        contain: 'content'
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -739,7 +740,7 @@ export default function SocialFeedCard({
           />
           {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shadow-2xl transition-transform active:scale-95">
+              <div className="w-16 h-16 rounded-full bg-black/75 flex items-center justify-center text-white border border-white/20 shadow-xl transition-transform active:scale-95">
                 <Play size={32} fill="currentColor" className="translate-x-0.5 text-amber-400" />
               </div>
             </div>
@@ -1059,19 +1060,19 @@ export default function SocialFeedCard({
         </div>
       </div>
 
-      {/* Animated Heart Burst on double tap */}
+      {/* Heart Burst on double tap (Optimizado GPU: Cero repintados continuos) */}
       {showHeartBurst && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping z-30">
-          <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-2xl" />
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 transition-transform duration-200">
+          <Heart size={90} className="fill-red-500 text-red-500 drop-shadow-xl scale-125" />
         </div>
       )}
 
-      {/* Animated Bookmark Burst on save */}
+      {/* Bookmark Burst on save (Optimizado GPU: Cero rebotes pesados ni blur) */}
       {showSaveBurst && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-in fade-in zoom-in-75 duration-300">
-          <div className="p-5 rounded-3xl bg-black/80 backdrop-blur-md border border-orange-500/50 shadow-[0_0_50px_rgba(249,115,22,0.85)] flex flex-col items-center gap-2.5 animate-bounce">
-            <Bookmark size={56} className="fill-orange-500 text-orange-500 drop-shadow-[0_0_25px_rgba(249,115,22,1)]" />
-            <span className="text-white font-black text-xs sm:text-sm tracking-wide">¡Guardado en Favoritos!</span>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30 animate-in fade-in duration-150">
+          <div className="p-4 rounded-2xl bg-zinc-950/90 border border-orange-500/50 shadow-xl flex flex-col items-center gap-2">
+            <Bookmark size={48} className="fill-orange-500 text-orange-500" />
+            <span className="text-white font-extrabold text-xs sm:text-sm tracking-wide">¡Guardado en Favoritos!</span>
           </div>
         </div>
       )}

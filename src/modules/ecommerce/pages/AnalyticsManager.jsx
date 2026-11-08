@@ -73,13 +73,22 @@ export default function AnalyticsManager() {
       const startIso = startDate.toISOString();
       const endIso = endDate.toISOString();
 
-      // 1. Obtener órdenes EXCLUSIVAS del comercio en el rango
-      const { data: orders, error: ordersErr } = await supabase
+      // 1. Obtener órdenes EXCLUSIVAS del comercio con fallback inteligente
+      let orders = [];
+      const { data: ord2 } = await supabase
         .from('ecommerce_orders_v2')
         .select('*')
-        .eq('workspace_id', workspaceId)
-        .gte('date', startIso)
-        .lte('date', endIso);
+        .eq('workspace_id', workspaceId);
+
+      if (Array.isArray(ord2) && ord2.length > 0) {
+        orders = ord2;
+      } else {
+        const { data: ord1 } = await supabase
+          .from('ecommerce_orders')
+          .select('*')
+          .eq('workspace_id', workspaceId);
+        if (Array.isArray(ord1)) orders = ord1;
+      }
 
       // 2. Obtener productos del catálogo del comercio
       const { data: allProducts, error: prodErr } = await supabase
@@ -107,9 +116,13 @@ export default function AnalyticsManager() {
       let totalUnits = 0;
       const productStats = {};
 
-      const validOrders = (orders || []).filter(o => 
-        o.status !== 'Rechazado' && o.status !== 'Cancelado'
-      );
+      const validOrders = (orders || []).filter(o => {
+        if (o.status === 'Rechazado' || o.status === 'Cancelado') return false;
+        const rawDate = o.date || o.created_at;
+        if (!rawDate) return true;
+        const d = new Date(rawDate);
+        return d >= startDate && d <= endDate;
+      });
 
       validOrders.forEach(order => {
         const dateStr = (order.date || '').split('T')[0];

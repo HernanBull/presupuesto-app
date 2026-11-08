@@ -2148,9 +2148,9 @@ export default function MarketplaceDirectory() {
 
         {/* Indicador de Categoría Activa */}
         {activeCategory !== 'Todas' && (
-          <div className="mx-4 mt-1 px-4 py-2 bg-black/75 backdrop-blur-md border border-amber-500/30 rounded-xl flex items-center justify-between shadow-lg animate-in fade-in duration-200">
+          <div className="mx-4 mt-1 px-4 py-2 bg-zinc-950/95 border border-amber-500/30 rounded-xl flex items-center justify-between shadow-md">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
               <span className="text-xs font-bold text-white">
                 Categoría: <span className="text-amber-400 font-black">{activeCategory}</span>
               </span>
@@ -2249,43 +2249,38 @@ export default function MarketplaceDirectory() {
         </ActiveFeedMediaProvider>
       </div>
 
-      {/* Botón flotante en esquina izquierda (Negro transparente ultra moderno, sin parpadeo) */}
+      {/* Botón flotante en esquina izquierda (Ultra ligero a 60-120 FPS, sin lag en capturas) */}
       <button
         onClick={() => {
           isNavOpenRef.current = true;
           setIsBottomNavOpen(true);
         }}
-        className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-[0_10px_30px_rgba(245,158,11,0.65)] active:scale-90 hover:scale-105 transition-all duration-200 ${
+        className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-lg active:scale-90 hover:scale-105 transition-transform duration-150 ${
           !isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
         }`}
         style={{
           background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          border: '2px solid rgba(255, 255, 255, 0.7)',
-          boxShadow: '0 8px 30px rgba(234, 88, 12, 0.6)'
+          border: '2px solid rgba(255, 255, 255, 0.85)',
+          boxShadow: '0 6px 20px rgba(234, 88, 12, 0.45)'
         }}
         title="Abrir menú"
         aria-label="Abrir menú de navegación"
       >
         <ShoppingBag size={22} className="stroke-[2.5] text-white" />
         <span className="absolute -top-1 -right-1 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
         </span>
       </button>
 
-      {/* Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
+      {/* Bottom Navigation Bar - Sólido optimizado (Cero lag de GPU en screenshots, 60-120 FPS fluidos) */}
       <div 
-        className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-all duration-200 ease-out ${
+        className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-transform duration-150 ease-out ${
           isBottomNavOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
         }`}
         style={{
-          backgroundColor: 'rgba(12, 12, 14, 0.82)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.14)',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)'
+          backgroundColor: 'rgba(12, 12, 14, 0.96)',
+          border: '1px solid rgba(255, 255, 255, 0.16)',
+          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.7)'
         }}
       >
         <div className="flex justify-between items-center h-16 px-2 relative">

@@ -4,14 +4,23 @@
 // 100% numérico y analítico: Ventas, Tickets POS, Cajas, Inventario y Clientes (Cero fotos/videos).
 
 import { supabase } from '../../../supabaseClient';
+import { offlineDb } from './offlineSyncService';
 
 /**
- * Consulta y estructura todos los datos contables y cuantitativos del comercio.
+ * Consulta y estructura todos los datos contables y cuantitativos del comercio desde Supabase.
+ * Diseñado con tolerancia total a esquemas para evitar campos vacíos o errores 42703.
  * @param {string} workspaceId 
  * @returns {Promise<Object>} Respaldo consolidado
  */
 export const fetchNumericBackupData = async (workspaceId) => {
   if (!workspaceId) throw new Error('ID de comercio no proporcionado.');
+
+  // 0. Obtener tasa BCV oficial de referencia
+  let bcvRate = 890;
+  try {
+    const { data: bcvData } = await supabase.from('app_settings').select('bcv_rate').limit(1).maybeSingle();
+    if (bcvData?.bcv_rate) bcvRate = parseFloat(bcvData.bcv_rate) || 890;
+  } catch (_) {}
 
   // 1. Obtener datos del workspace
   const { data: ws } = await supabase
@@ -24,27 +33,27 @@ export const fetchNumericBackupData = async (workspaceId) => {
     ? ws.config 
     : (typeof ws?.config === 'string' ? JSON.parse(ws?.config || '{}') : {});
 
-  // 2. Obtener productos (solo números y texto sin imágenes)
+  // 2. Obtener productos (solo números y texto cuantitativo, cero fotos/videos)
   let productsList = [];
   try {
     const { data: prodData } = await supabase
       .from('ecommerce_products')
-      .select('id, name, barcode, category, subcategory, price, price_ves, cost_price, stock, stock_vitrina, created_at')
+      .select('*')
       .eq('workspace_id', workspaceId);
     
-    if (Array.isArray(prodData)) {
+    if (Array.isArray(prodData) && prodData.length > 0) {
       productsList = prodData.map((p, idx) => {
         const stockDep = Number(p.stock || 0);
         const stockVit = Number(p.stock_vitrina || 0);
         const stockTot = stockDep + stockVit;
         const pUsd = Number(p.price || 0);
-        const pBs = Number(p.price_ves || 0);
-        const cUsd = Number(p.cost_price || 0);
+        const pBs = Number(p.price_ves || (pUsd * bcvRate).toFixed(2));
+        const cUsd = Number(p.cogs || p.cost_price || p.metadata?.cost || 0);
 
         return {
           numero: idx + 1,
           id: p.id,
-          codigo: p.barcode || 'S/C',
+          codigo: p.barcode || p.metadata?.barcode || p.sku || p.id,
           nombre: p.name || 'Producto sin nombre',
           categoria: p.category || 'General',
           subcategoria: p.subcategory || 'General',
@@ -64,50 +73,68 @@ export const fetchNumericBackupData = async (workspaceId) => {
     console.warn('Notice loading products for backup:', err);
   }
 
-  // 3. Obtener ventas históricas y tickets del POS
+  // 3. Obtener ventas históricas y tickets del POS (ecommerce_orders_v2 + ecommerce_orders)
   let ordersList = [];
   try {
     let rawOrders = [];
     const { data: ord2 } = await supabase
       .from('ecommerce_orders_v2')
-      .select('id, created_at, total, total_ves, payment_method, status, customer_name, customer_phone, items')
+      .select('*')
       .eq('workspace_id', workspaceId)
-      .order('created_at', { ascending: false });
+      .order('date', { ascending: false });
 
     if (Array.isArray(ord2) && ord2.length > 0) {
       rawOrders = ord2;
     } else {
       const { data: ord1 } = await supabase
         .from('ecommerce_orders')
-        .select('id, created_at, total, total_ves, payment_method, status, customer_name, customer_phone, items')
-        .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false });
-      if (Array.isArray(ord1)) rawOrders = ord1;
+        .select('*')
+        .eq('workspace_id', workspaceId);
+      if (Array.isArray(ord1) && ord1.length > 0) rawOrders = ord1;
+    }
+
+    // Si Supabase remoto no tiene ventas aún, consultar la cola local offline Dexie
+    if (rawOrders.length === 0) {
+      try {
+        const localSales = await offlineDb.offline_sales_queue.toArray();
+        if (Array.isArray(localSales) && localSales.length > 0) {
+          rawOrders = localSales;
+        }
+      } catch (_) {}
     }
 
     ordersList = rawOrders.map((o, idx) => {
       let cleanItems = [];
-      if (Array.isArray(o.items)) {
-        cleanItems = o.items.map(it => ({
+      let parsedItems = o.items;
+      if (typeof parsedItems === 'string') {
+        try { parsedItems = JSON.parse(parsedItems); } catch (_) {}
+      }
+
+      if (Array.isArray(parsedItems)) {
+        cleanItems = parsedItems.map(it => ({
           producto: it.name || it.title || 'Ítem',
           cantidad: Number(it.quantity || it.qty || 1),
           precio_usd: Number(it.price || 0),
-          subtotal_usd: Number(it.subtotal || ((it.price || 0) * (it.quantity || it.qty || 1)))
+          subtotal_usd: Number(it.subtotal || ((Number(it.price || 0)) * Number(it.quantity || it.qty || 1)))
         }));
       }
 
+      const totalUsd = Number(o.total || o.paymentdetails?.totalUsd || 0);
+      const totalBs = Number(o.paymentdetails?.totalVes || o.total_ves || (totalUsd * bcvRate).toFixed(2));
+      const rawDate = o.date || o.created_at || o.timestamp;
+
       return {
         numero: idx + 1,
-        id_ticket: o.id,
-        fecha: o.created_at ? new Date(o.created_at).toLocaleString('es-VE') : 'N/A',
-        cliente: o.customer_name || 'Consumidor Final',
-        telefono: o.customer_phone || 'N/A',
-        metodo_pago: o.payment_method || 'Efectivo',
-        total_usd: Number(o.total || 0),
-        total_bs: Number(o.total_ves || 0),
+        id_ticket: o.paymentdetails?.invoiceNumber || o.id || `TKT-${idx + 1}`,
+        fecha: rawDate ? new Date(rawDate).toLocaleString('es-VE') : 'N/A',
+        cliente: o.customer || o.customer_name || 'Consumidor Final',
+        telefono: o.customer_phone || o.delivery_driver_phone || 'N/A',
+        metodo_pago: o.paymentmethod || o.payment_method || (o.paymentdetails?.payments?.[0]?.method) || 'Efectivo',
+        total_usd: totalUsd,
+        total_bs: totalBs,
         estado: o.status || 'Completado',
         items_count: cleanItems.length,
-        renglones_resumen: cleanItems.map(it => `${it.cantidad}x ${it.producto} ($${it.precio_usd})`).join('; '),
+        renglones_resumen: cleanItems.map(it => `${it.cantidad}x ${it.producto} ($${it.precio_usd})`).join('; ') || 'Venta global',
         detalle_items: cleanItems
       };
     });
@@ -115,26 +142,60 @@ export const fetchNumericBackupData = async (workspaceId) => {
     console.warn('Notice loading orders for backup:', err);
   }
 
-  // 4. Obtener cierres de caja y turnos (desde config o historial local)
+  // 4. Obtener cierres de caja y turnos (cash_shifts de Supabase + fallback config/IndexedDB)
   let shiftsList = [];
   try {
-    const rawShifts = cfg.cash_shifts || cfg.shifts || [];
-    if (Array.isArray(rawShifts)) {
-      shiftsList = rawShifts.map((s, idx) => ({
-        numero: idx + 1,
-        caja: s.registerName || s.register_name || 'Caja Principal',
-        cajero: s.cashierName || s.cashier_name || 'Cajero',
-        apertura: s.openedAt ? new Date(s.openedAt).toLocaleString('es-VE') : 'N/A',
-        monto_inicial_usd: Number(s.initialCashUsd || s.initial_usd || 0),
-        monto_inicial_bs: Number(s.initialCashBs || s.initial_bs || 0),
-        cierre: s.closedAt ? new Date(s.closedAt).toLocaleString('es-VE') : 'Abierto',
-        ventas_efectivo_usd: Number(s.salesCashUsd || 0),
-        ventas_pago_movil_bs: Number(s.salesPagoMovilBs || 0),
-        total_arqueado_usd: Number(s.countedCashUsd || s.totalCountedUsd || 0),
-        diferencia_usd: Number(s.differenceUsd || 0),
-        estado: s.status || (s.closedAt ? 'Cerrado' : 'Abierto')
-      }));
+    let csData = null;
+    const { data: bData, error: bErr } = await supabase
+      .from('cash_shifts')
+      .select('*')
+      .eq('branch_id', workspaceId)
+      .order('opened_at', { ascending: false });
+
+    if (!bErr && Array.isArray(bData)) {
+      csData = bData;
+    } else {
+      const { data: wData } = await supabase
+        .from('cash_shifts')
+        .select('*')
+        .order('opened_at', { ascending: false });
+      if (Array.isArray(wData)) {
+        csData = wData.filter(s => s.branch_id === workspaceId || s.workspace_id === workspaceId);
+      }
     }
+
+    let rawShifts = Array.isArray(csData) && csData.length > 0 ? csData : [];
+
+    if (rawShifts.length === 0) {
+      const cfgShifts = cfg.cash_shifts || cfg.shifts || [];
+      if (Array.isArray(cfgShifts) && cfgShifts.length > 0) {
+        rawShifts = cfgShifts;
+      }
+    }
+
+    if (rawShifts.length === 0) {
+      try {
+        const localShifts = await offlineDb.cash_shifts.toArray();
+        if (Array.isArray(localShifts) && localShifts.length > 0) {
+          rawShifts = localShifts;
+        }
+      } catch (_) {}
+    }
+
+    shiftsList = rawShifts.map((s, idx) => ({
+      numero: idx + 1,
+      caja: s.register_name || s.registerName || 'Caja Principal',
+      cajero: s.cashier_name || s.cashierName || 'Cajero',
+      apertura: (s.opened_at || s.openedAt) ? new Date(s.opened_at || s.openedAt).toLocaleString('es-VE') : 'N/A',
+      monto_inicial_usd: Number(s.initial_usd || s.initialCashUsd || 0),
+      monto_inicial_bs: Number(s.initial_ves || s.initialCashBs || 0),
+      cierre: (s.closed_at || s.closedAt) ? new Date(s.closed_at || s.closedAt).toLocaleString('es-VE') : (s.status === 'OPEN' ? 'Turno Abierto' : 'Cerrado'),
+      ventas_efectivo_usd: Number(s.actual_usd || s.expected_usd || s.salesCashUsd || 0),
+      ventas_pago_movil_bs: Number(s.actual_ves || s.expected_ves || s.salesPagoMovilBs || 0),
+      total_arqueado_usd: Number(s.actual_usd || s.countedCashUsd || s.totalCountedUsd || s.expected_usd || 0),
+      diferencia_usd: Number(s.difference_usd || s.differenceUsd || 0),
+      estado: s.status || ((s.closed_at || s.closedAt) ? 'Cerrado' : 'Abierto')
+    }));
   } catch (err) {
     console.warn('Notice loading shifts for backup:', err);
   }
