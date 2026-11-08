@@ -309,6 +309,15 @@ export default function CashShiftModal({
 
     toast.success('Turno cerrado y archivado con éxito.');
     onClose();
+
+    // Si es cajero/trabajador, finalizar jornada y redirigir a la pantalla de estación
+    if (localStorage.getItem('axon_cashier_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'CASHIER') {
+      localStorage.removeItem('axon_cashier_mode');
+      localStorage.removeItem('axonpos_active_user_role');
+      localStorage.removeItem('axonpos_active_user_name');
+      const slug = localStorage.getItem('storeSlug');
+      window.location.href = slug ? `/${slug}/caja` : '/merchant/login';
+    }
   };
 
   // Impresión de comprobante térmico

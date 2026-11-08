@@ -628,21 +628,22 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             <button
               onClick={() => {
                 if (isCashier) {
-                  if (window.confirm('¿Deseas bloquear la estación de caja y volver a la pantalla de PIN?')) {
+                  if (window.confirm('¿Deseas cerrar sesión de la caja y finalizar tu turno de trabajo?')) {
                     localStorage.removeItem('axon_cashier_mode');
                     localStorage.removeItem('axonpos_active_user_role');
+                    localStorage.removeItem('axon_active_shift');
                     const slug = localStorage.getItem('storeSlug');
-                    navigate(slug ? `/${slug}/caja` : '/pos');
+                    navigate(slug ? `/${slug}/caja` : '/merchant/login');
                   }
                 } else {
                   navigate('/dashboard');
                 }
               }}
-              title={isCashier ? "Bloquear Estación de Caja" : "Salir al Panel de AxonMarket"}
+              title={isCashier ? "Cerrar Sesión de Caja" : "Salir al Panel de AxonMarket"}
               className="w-full py-2.5 rounded-xl flex flex-col items-center justify-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all cursor-pointer font-bold group"
             >
               <LogOut size={20} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span className="text-[11px] font-extrabold text-red-600">{isCashier ? 'Bloquear' : 'Salir'}</span>
+              <span className="text-[11px] font-extrabold text-red-600">{isCashier ? 'Cerrar Sesión' : 'Salir'}</span>
             </button>
           </div>
 
@@ -1007,21 +1008,22 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
             <button 
               onClick={() => {
                 if (isCashier) {
-                  if (window.confirm('¿Deseas bloquear la estación de caja y volver a la pantalla de PIN?')) {
+                  if (window.confirm('¿Deseas cerrar sesión de la caja y finalizar tu turno de trabajo?')) {
                     localStorage.removeItem('axon_cashier_mode');
                     localStorage.removeItem('axonpos_active_user_role');
+                    localStorage.removeItem('axon_active_shift');
                     const slug = localStorage.getItem('storeSlug');
-                    navigate(slug ? `/${slug}/caja` : '/pos');
+                    navigate(slug ? `/${slug}/caja` : '/merchant/login');
                   }
                 } else {
                   handleLogout();
                 }
               }} 
-              title={isCashier ? "Bloquear Estación de Caja" : "Cerrar sesión"}
+              title={isCashier ? "Cerrar Sesión de Caja" : "Cerrar sesión"}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 border border-red-200/80 dark:border-red-900/40 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <LogOut size={14} />
-              <span>{isCashier ? 'Bloquear' : 'Salir'}</span>
+              <span>{isCashier ? 'Cerrar Sesión' : 'Salir'}</span>
             </button>
 
             {/* Dropdown de Notificaciones Mobile */}
@@ -1203,16 +1205,14 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         >
           <div className="flex items-center justify-around px-1 pt-2">
             {isCashier ? (
-              // Barra Exclusiva de Terminal de Caja (Sin Inicio, Sin Inventario, Sin Más)
+              // Barra Exclusiva de Terminal de Caja (Solo Caja POS y Pedidos)
               [
                 { name: 'Caja POS', path: '/pos?view=pos', icon: ShoppingCart },
                 { name: 'Pedidos', path: '/pos?view=orders', icon: ClipboardList, badge: pendingOrdersCount },
-                { name: 'Caja Maestra', path: '/cash-master', icon: Wallet },
               ].map((item) => {
                 const searchParams = new URLSearchParams(location.search);
                 const currentView = searchParams.get('view') || 'pos';
                 const isActive = (item.path.includes('view=orders') && (currentView === 'orders' || location.pathname === '/orders')) ||
-                                 (item.path.includes('cash-master') && location.pathname === '/cash-master') ||
                                  (item.path.includes('view=shifts') && (currentView === 'shifts' || location.pathname === '/shifts')) ||
                                  (item.path.includes('view=pos') && location.pathname === '/pos' && currentView === 'pos');
                 return (
