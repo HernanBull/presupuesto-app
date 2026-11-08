@@ -517,7 +517,11 @@ export default function CustomerAuthModal({
         {/* Fondo translúcido suave */}
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-sm" 
-          onClick={() => !loading && onClose && onClose()} 
+          onClick={() => {
+            if (loading) return;
+            if (authMode === 'reset' || authMode === 'recover') return; // Evitar cierre accidental mientras se copia el código o se cambia la contraseña
+            if (onClose) onClose();
+          }} 
         />
 
         {/* Tarjeta Blanca Centrada (Mismo formato y estética que MerchantTrialAuthModal) */}

@@ -1020,14 +1020,14 @@ export default function SocialFeedCard({
               {validCats.slice(0, 3).map((catName, idx) => (
                 <span 
                   key={idx}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-200 bg-black/60 border border-amber-400/40 px-2 py-0.5 rounded-full backdrop-blur-xs shadow-xs"
+                  className="inline-flex items-center gap-1.5 text-[10.5px] font-extrabold text-white bg-white/20 hover:bg-white/30 border border-white/35 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] transition-colors"
                 >
-                  <Tag size={9} className="shrink-0 text-amber-400" />
-                  <span>{catName}</span>
+                  <Tag size={9.5} className="shrink-0 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" />
+                  <span className="tracking-tight">{catName}</span>
                 </span>
               ))}
               {validCats.length > 3 && (
-                <span className="text-[9px] font-bold text-white/90 bg-black/50 border border-white/20 px-1.5 py-0.5 rounded-full">
+                <span className="text-[9.5px] font-extrabold text-white bg-white/20 border border-white/35 px-2 py-0.5 rounded-full backdrop-blur-md drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] shadow-sm">
                   +{validCats.length - 3}
                 </span>
               )}

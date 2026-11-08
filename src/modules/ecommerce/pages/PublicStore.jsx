@@ -2073,7 +2073,7 @@ export default function PublicStore() {
         <Store size={48} className="text-zinc-700 mb-2" />
         <h2 className="text-3xl text-zinc-300">Tienda no encontrada</h2>
         <p className="text-zinc-500">La URL ingresada no corresponde a ningún comercio.</p>
-        <button onClick={() => navigate('/')} className="mt-4 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 transition-colors">Volver al Directorio</button>
+        <button onClick={() => navigate('/explorar')} className="mt-4 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 transition-colors">Volver al Mercado</button>
       </div>
     );
   }
@@ -2520,7 +2520,7 @@ export default function PublicStore() {
               
               {/* Botón flotante para salir directamente al mercado general de comercios */}
               <button 
-                onClick={() => navigate('/', { replace: true })}
+                onClick={() => navigate('/explorar', { replace: true })}
                 className="absolute top-4 left-4 z-40 w-9 h-9 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white border border-white/20 shadow-lg flex items-center justify-center transition-all cursor-pointer active:scale-90"
                 title="Salir al Mercado"
               >
