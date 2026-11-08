@@ -16,7 +16,8 @@ import {
   isPostLikedLocally,
   isStoreFollowedLocally,
   isPostSavedLocally,
-  resolvePostImages
+  resolvePostImages,
+  recordPostView
 } from '../services/socialService';
 import ResponsiveModal from './ResponsiveModal';
 import { useActiveFeedMedia } from '../context/ActiveFeedMediaContext';
@@ -373,6 +374,7 @@ export default function SocialFeedCard({
 
           if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
             setIsInView(true);
+            recordPostView(postId, workspaceId, customerIdResolved || 'guest');
             if (onCardVisible) {
               onCardVisible(feedIndex, postId);
             }

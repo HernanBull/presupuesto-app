@@ -7,7 +7,7 @@ import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAuthModal from '../components/CustomerAuthModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
-import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList } from '../services/socialService';
+import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList, recordPostView, getPostRealViews, formatRealViews } from '../services/socialService';
 import { buildWhatsAppUrl, resolveStoreWhatsApp } from '../utils/whatsappHelper';
 import { 
   STOREFRONT_COLOR_PRESETS, 
@@ -476,6 +476,11 @@ export default function PublicStore() {
     setIsStatusViewerOpen(true);
     setHasViewedStatus(true);
     try {
+      const targetStatus = merchantStatuses?.[idx];
+      const targetId = targetStatus?.id || latestStatusId;
+      if (targetId) {
+        recordPostView(targetId, config?.id || config?.workspace_id, currentCustomer?.id || 'guest');
+      }
       const viewed = localStorage.getItem('axon_viewed_statuses');
       const viewedArr = viewed ? JSON.parse(viewed) : [];
       if (!viewedArr.includes(latestStatusId)) {
@@ -522,14 +527,13 @@ export default function PublicStore() {
       const url = st.mediaUrl || st.video_url;
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url);
-        const seed = Math.abs((st.id || `st-${idx}`).toString().split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
-        const pseudoViews = Math.floor((seed * 137) % 850 + 15) * 100;
+        const realViews = Number(st.views || st.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${st.id || `st-${idx}`}`) : 0) || 0);
         list.push({
           id: st.id || `st-${idx}`,
           mediaUrl: url,
           isVideo: isVid,
           caption: st.caption || st.name,
-          views: st.views || pseudoViews,
+          views: realViews,
           statusIndex: idx
         });
       }
@@ -540,14 +544,13 @@ export default function PublicStore() {
       const url = n.image_url || n.video_url;
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url);
-        const seed = Math.abs((n.id || `news-${idx}`).toString().split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
-        const pseudoViews = Math.floor((seed * 243) % 920 + 22) * 100;
+        const realViews = Number(n.views || n.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${n.id || `news-${idx}`}`) : 0) || 0);
         list.push({
           id: n.id || `news-${idx}`,
           mediaUrl: url,
           isVideo: isVid,
           caption: n.title ? `${n.title}: ${n.content}` : n.content,
-          views: n.views || pseudoViews,
+          views: realViews,
           statusIndex: 0
         });
       }
@@ -2619,12 +2622,36 @@ export default function PublicStore() {
                         alert('El comercio no tiene un número telefónico o de WhatsApp registrado.');
                       }
                     }}
-                    className="flex-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-800 hover:text-orange-600 py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 bg-white py-2.5 rounded-xl font-extrabold transition-all text-sm shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                    style={{
+                      border: `1.5px solid ${primaryColor ? primaryColor + '50' : '#e2e8f0'}`,
+                      color: primaryColor || '#1e293b'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = primaryColor ? primaryColor + '12' : '#f8fafc';
+                      e.currentTarget.style.borderColor = primaryColor || '#ea580c';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = primaryColor ? primaryColor + '50' : '#e2e8f0';
+                    }}
                   >
                     Contactar
                   </button>
                   <button 
-                    className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer" 
+                    className="p-2.5 bg-white rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer active:scale-95"
+                    style={{
+                      border: `1.5px solid ${primaryColor ? primaryColor + '50' : '#e2e8f0'}`,
+                      color: primaryColor || '#334155'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = primaryColor ? primaryColor + '12' : '#f8fafc';
+                      e.currentTarget.style.borderColor = primaryColor || '#ea580c';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.borderColor = primaryColor ? primaryColor + '50' : '#e2e8f0';
+                    }}
                     onClick={() => { navigator.clipboard.writeText(window.location.href); alert('¡Enlace copiado!'); }}
                     title="Copiar enlace"
                   >
@@ -2633,7 +2660,19 @@ export default function PublicStore() {
                   <div className="relative">
                     <button 
                       onClick={() => setShowSocialMenu(!showSocialMenu)} 
-                      className="p-2.5 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-200 text-slate-700 hover:text-orange-600 rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer"
+                      className="p-2.5 bg-white rounded-xl transition-all flex items-center justify-center shadow-xs cursor-pointer active:scale-95"
+                      style={{
+                        border: `1.5px solid ${primaryColor ? primaryColor + '50' : '#e2e8f0'}`,
+                        color: primaryColor || '#334155'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = primaryColor ? primaryColor + '12' : '#f8fafc';
+                        e.currentTarget.style.borderColor = primaryColor || '#ea580c';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.borderColor = primaryColor ? primaryColor + '50' : '#e2e8f0';
+                      }}
                       title="Redes sociales"
                     >
                       <Camera size={18} />
@@ -3562,12 +3601,15 @@ export default function PublicStore() {
         </div>
       </footer>
 
-      {/* Modal Visor de Estados / Historias de la Tienda estilo WhatsApp */}
+      {/* Modal Visor de Estados / Historias de la Tienda estilo WhatsApp con color dinámico y vistas reales */}
       <MerchantStatusViewerModal
         isOpen={isStatusViewerOpen}
         onClose={() => setIsStatusViewerOpen(false)}
         statuses={merchantStatuses}
         initialIndex={activeStatusIndex}
+        primaryColor={primaryColor}
+        workspaceId={config?.id || config?.workspace_id}
+        isMerchantOwner={isMerchantOwner}
         onNavigateStore={(storeSlug) => {
           if (storeSlug && storeSlug !== slug) {
             navigate(`/${storeSlug}`);
@@ -4388,7 +4430,16 @@ export default function PublicStore() {
                     </div>
                     <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
                     <p className="text-zinc-500 text-sm mb-10 max-w-[250px] leading-relaxed">Tu bolsa de compras necesita un poco de acción. Explora nuestro catálogo.</p>
-                    <button onClick={() => { setIsCartOpen(false); setCurrentPage('products'); }} className="px-10 py-4 text-white bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-105">Descubrir Productos</button>
+                    <button 
+                      onClick={() => { setIsCartOpen(false); setCurrentPage('products'); }} 
+                      className="px-10 py-4 text-white rounded-full text-xs font-bold tracking-widest uppercase transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
+                      style={{
+                        backgroundColor: primaryColor || '#ea580c',
+                        boxShadow: `0 10px 25px ${primaryColor ? primaryColor + '4d' : 'rgba(234, 88, 12, 0.3)'}`
+                      }}
+                    >
+                      Descubrir Productos
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -4966,16 +5017,16 @@ export default function PublicStore() {
         </button>
       )}
 
-      {/* Mobile Bottom Navigation Bar - Negro transparente ultra moderno (Glassmorphism de lujo, Cero Lag) */}
+      {/* Mobile Bottom Navigation Bar - Con acento y resplandor dinámico del color de la tienda */}
       {isBottomNavOpen && (
         <nav 
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav"
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[420px] z-50 rounded-2xl dark-glass-nav transition-all duration-200"
           style={{
-            backgroundColor: 'rgba(12, 12, 14, 0.88)',
+            backgroundColor: 'rgba(12, 12, 14, 0.90)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255, 255, 255, 0.20)',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.85)'
+            border: `1.5px solid ${primaryColor ? primaryColor + '45' : 'rgba(255, 255, 255, 0.20)'}`,
+            boxShadow: `0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px ${primaryColor ? primaryColor + '25' : 'transparent'}`
           }}
         >
           <div className="flex justify-between items-center h-16 px-2 relative">

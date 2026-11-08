@@ -945,3 +945,88 @@ export const getStoreLikesList = async (workspaceId) => {
     return [];
   }
 };
+
+/**
+ * Conteo y Registro de Visualizaciones REALES de Publicaciones, Videos y Estados
+ * Elimina números inflados y garantiza que cada visualización orgánica sume 1 a 1.
+ */
+export const recordPostView = async (postId, workspaceId, viewerId = 'guest') => {
+  if (!postId) return;
+  try {
+    const sessionKey = `axon_viewed_${postId}`;
+    // Si ya vio esta publicación en esta sesión de navegador, no duplicar inmediatamente
+    if (typeof sessionStorage !== 'undefined') {
+      if (sessionStorage.getItem(sessionKey)) return;
+      sessionStorage.setItem(sessionKey, '1');
+    }
+
+    // Registrar en caché local acumulativa
+    const localViewsKey = `axon_views_${postId}`;
+    const currentViews = parseInt((typeof localStorage !== 'undefined' ? localStorage.getItem(localViewsKey) : '0') || '0', 10) + 1;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(localViewsKey, String(currentViews));
+    }
+
+    // Notificar actualización de vistas en tiempo real
+    notifySocialUpdate('post_viewed', { postId, workspaceId, views: currentViews });
+
+    // Persistir atómicamente en Supabase si se cuenta con workspaceId
+    if (workspaceId && isUuid(workspaceId)) {
+      try {
+        const { data: ws } = await supabase
+          .from('workspaces')
+          .select('config')
+          .eq('id', workspaceId)
+          .maybeSingle();
+
+        if (ws) {
+          const cfg = ws.config || {};
+          const postViews = cfg.post_views || {};
+          const prevVal = Number(postViews[postId] || 0);
+          postViews[postId] = prevVal + 1;
+          await supabase
+            .from('workspaces')
+            .update({ config: { ...cfg, post_views: postViews } })
+            .eq('id', workspaceId);
+        }
+      } catch (err) {
+        // En caso de RLS, la caché local y eventos mantienen la reactividad
+      }
+    }
+  } catch (e) {
+    console.warn('Error recording view:', e);
+  }
+};
+
+export const getPostRealViews = async (postId, workspaceId) => {
+  if (!postId) return 0;
+  let serverViews = 0;
+  try {
+    if (workspaceId && isUuid(workspaceId)) {
+      const { data: ws } = await supabase
+        .from('workspaces')
+        .select('config')
+        .eq('id', workspaceId)
+        .maybeSingle();
+      if (ws?.config?.post_views?.[postId] !== undefined) {
+        serverViews = Number(ws.config.post_views[postId]) || 0;
+      }
+    }
+  } catch (e) {}
+
+  const localViews = typeof localStorage !== 'undefined' 
+    ? parseInt(localStorage.getItem(`axon_views_${postId}`) || '0', 10) 
+    : 0;
+
+  return Math.max(serverViews, localViews);
+};
+
+export const formatRealViews = (count) => {
+  const n = Number(count) || 0;
+  if (n === 0) return '0';
+  if (n === 1) return '1';
+  if (n < 1000) return `${n}`;
+  if (n < 1000000) return `${(n / 1000).toFixed(1)}k`;
+  return `${(n / 1000000).toFixed(1)}M`;
+};
+

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Store, CheckCircle, ExternalLink, Volume2, VolumeX, Clock } from 'lucide-react';
+import { X, Store, CheckCircle, ExternalLink, Volume2, VolumeX, Clock, Eye } from 'lucide-react';
+import { recordPostView, getPostRealViews, formatRealViews } from '../services/socialService';
 
 const resolveImageUrl = (url) => {
   if (!url) return '';
@@ -14,14 +15,28 @@ export default function MerchantStatusViewerModal({
   onClose,
   statuses = [],
   initialIndex = 0,
-  onNavigateStore
+  onNavigateStore,
+  primaryColor,
+  workspaceId,
+  isMerchantOwner = false
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [statusViews, setStatusViews] = useState(0);
   const timerRef = useRef(null);
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && currentStatus) {
+      const targetId = currentStatus.id || currentStatus.news_id || currentStatus.status_id;
+      if (targetId) {
+        recordPostView(targetId, workspaceId);
+        getPostRealViews(targetId, workspaceId).then(v => setStatusViews(v));
+      }
+    }
+  }, [isOpen, currentIndex, currentStatus?.id, workspaceId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -272,7 +287,10 @@ export default function MerchantStatusViewerModal({
                 <Clock size={11} className="text-emerald-400" />
                 <span>{currentStatus.time || 'Hace unos momentos'}</span>
                 <span className="text-zinc-400">·</span>
-                <span className="text-emerald-400 font-bold">Estado activo</span>
+                <div className="flex items-center gap-1 text-zinc-100 font-bold bg-black/40 px-2 py-0.5 rounded-full border border-white/15">
+                  <Eye size={11} className="text-white" />
+                  <span>{statusViews} {statusViews === 1 ? 'vista' : 'vistas'}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -324,7 +342,7 @@ export default function MerchantStatusViewerModal({
             </div>
           )}
 
-          {/* Botón de Acción Principal (Ir a la Tienda) */}
+          {/* Botón de Acción Principal (Ir a la Tienda) con color de tema dinámico */}
           <button
             type="button"
             onClick={(e) => {
@@ -332,7 +350,12 @@ export default function MerchantStatusViewerModal({
               onClose();
               if (onNavigateStore) onNavigateStore(storeSlug);
             }}
-            className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:brightness-105 text-zinc-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-2xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer border border-amber-300/40"
+            className="w-full py-3.5 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-2xl flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+            style={{
+              backgroundColor: primaryColor || '#ea580c',
+              boxShadow: `0 10px 30px ${primaryColor ? primaryColor + '66' : 'rgba(234, 88, 12, 0.45)'}`,
+              border: '1.5px solid rgba(255, 255, 255, 0.35)'
+            }}
           >
             <Store size={16} strokeWidth={2.5} />
             <span>Ver Vitrina de {storeName}</span>
