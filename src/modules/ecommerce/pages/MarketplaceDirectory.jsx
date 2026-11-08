@@ -1450,18 +1450,20 @@ export default function MarketplaceDirectory() {
     let matchesCategory = (activeCategory === 'Todas');
     if (!matchesCategory) {
       const activeCatObj = categories.find(c => c.id === activeCategory);
+      const normalize = (str) => String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+      
       const searchTerms = [
-        activeCategory.toLowerCase(),
-        (activeCatObj?.name || '').toLowerCase(),
-        (activeCatObj?.id || '').toLowerCase()
+        normalize(activeCategory),
+        normalize(activeCatObj?.name),
+        normalize(activeCatObj?.id)
       ].filter(Boolean);
 
       matchesCategory = storeCats.some(cat => {
-        const cLower = String(cat).toLowerCase().trim();
+        const cNorm = normalize(cat);
         return searchTerms.some(term => 
-          cLower === term || 
-          cLower.includes(term) || 
-          term.includes(cLower)
+          cNorm === term || 
+          cNorm.includes(term) || 
+          term.includes(cNorm)
         );
       });
     }
@@ -1551,19 +1553,32 @@ export default function MarketplaceDirectory() {
 
   const feedPosts = useMemo(() => {
     // 1. Vitrinas de tiendas
-    const storeCards = filteredStores.map(store => ({
-      id: `store_${store.id || store.store_slug}`,
-      workspace_id: store.id,
-      store_slug: store.store_slug,
-      store_name: store.name,
-      store_logo: store.config?.logoUrl || store.config?.storefront?.logoUrl,
-      image_url: store.config?.coverUrl || store.config?.storefront?.heroUrl,
-      content: store.config?.description || '¡Visita nuestra tienda para ver el catálogo completo!',
-      map_address: store.map_address || store.config?.address || store.config?.location?.address || store.config?.expediente?.city || 'Venezuela',
-      is_verified: store.config?.is_verified,
-      created_at: store.created_at || new Date().toISOString(),
-      type: 'store'
-    }));
+    const storeCards = filteredStores.map(store => {
+      let cfg = store.config;
+      if (typeof cfg === 'string') {
+        try { cfg = JSON.parse(cfg); } catch (_) { cfg = {}; }
+      } else if (!cfg) {
+        cfg = {};
+      }
+      const storeCats = Array.isArray(cfg.categories) && cfg.categories.length > 0
+        ? cfg.categories
+        : (cfg.category ? [cfg.category] : (store.business_type ? [store.business_type] : []));
+
+      return {
+        id: `store_${store.id || store.store_slug}`,
+        workspace_id: store.id,
+        store_slug: store.store_slug,
+        store_name: store.name,
+        store_logo: cfg.logoUrl || cfg.storefront?.logoUrl,
+        image_url: cfg.coverUrl || cfg.storefront?.heroUrl,
+        content: cfg.description || '¡Visita nuestra tienda para ver el catálogo completo!',
+        map_address: store.map_address || cfg.address || cfg.location?.address || cfg.expediente?.city || 'Venezuela',
+        is_verified: cfg.is_verified,
+        categories: storeCats,
+        created_at: store.created_at || new Date().toISOString(),
+        type: 'store'
+      };
+    });
 
     const matchingStoreIds = new Set(filteredStores.map(s => String(s.id)));
 
@@ -1575,18 +1590,29 @@ export default function MarketplaceDirectory() {
       })
       .map(news => {
         const parentStore = stores.find(s => String(s.id) === String(news.workspace_id)) || {};
+        let parentCfg = parentStore.config;
+        if (typeof parentCfg === 'string') {
+          try { parentCfg = JSON.parse(parentCfg); } catch (_) { parentCfg = {}; }
+        } else if (!parentCfg) {
+          parentCfg = {};
+        }
+        const parentCats = Array.isArray(parentCfg.categories) && parentCfg.categories.length > 0
+          ? parentCfg.categories
+          : (parentCfg.category ? [parentCfg.category] : (parentStore.business_type ? [parentStore.business_type] : []));
+
         return {
           id: news.id,
           workspace_id: news.workspace_id,
           store_slug: parentStore.store_slug || news.workspace_id,
           store_name: parentStore.name || 'Comercio Axon',
-          store_logo: parentStore.config?.logoUrl || parentStore.config?.storefront?.logoUrl,
-          image_url: news.image_url || parentStore.config?.coverUrl || parentStore.config?.storefront?.heroUrl,
+          store_logo: parentCfg.logoUrl || parentCfg.storefront?.logoUrl,
+          image_url: news.image_url || parentCfg.coverUrl || parentCfg.storefront?.heroUrl,
           image_urls: news.image_urls || news.images || null,
           media_type: news.media_type || 'image',
           content: `${news.title ? `📢 ${news.title}: ` : ''}${news.content}`,
-          map_address: parentStore.map_address || parentStore.config?.address || 'Venezuela',
-          is_verified: parentStore.config?.is_verified,
+          map_address: parentStore.map_address || parentCfg.address || 'Venezuela',
+          is_verified: parentCfg.is_verified,
+          categories: parentCats,
           created_at: news.created_at,
           type: 'news'
         };
@@ -1620,7 +1646,7 @@ export default function MarketplaceDirectory() {
     }
 
     return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-  }, [filteredStores, storeNews, stores, discoveryFilter]);
+  }, [filteredStores, storeNews, stores, discoveryFilter, activeCategory]);
 
   // Carga progresiva anticipada (Buffer de 4 a 6 publicaciones para evitar rebote de scroll)
   const [visibleFeedCount, setVisibleFeedCount] = useState(() => {

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
-  Play, Volume2, VolumeX, ChevronRight, ChevronLeft 
+  Play, Volume2, VolumeX, ChevronRight, ChevronLeft, Tag 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -1006,6 +1006,34 @@ export default function SocialFeedCard({
             )}
           </button>
         </div>
+
+        {/* Merchant Categories Badges */}
+        {(() => {
+          const rawCats = Array.isArray(post.categories) && post.categories.length > 0
+            ? post.categories
+            : (post.category ? [post.category] : []);
+          const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
+          const validCats = rawCats.filter(c => !isInvalid(c));
+
+          return validCats.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+              {validCats.slice(0, 3).map((catName, idx) => (
+                <span 
+                  key={idx}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-200 bg-black/60 border border-amber-400/40 px-2 py-0.5 rounded-full backdrop-blur-xs shadow-xs"
+                >
+                  <Tag size={9} className="shrink-0 text-amber-400" />
+                  <span>{catName}</span>
+                </span>
+              ))}
+              {validCats.length > 3 && (
+                <span className="text-[9px] font-bold text-white/90 bg-black/50 border border-white/20 px-1.5 py-0.5 rounded-full">
+                  +{validCats.length - 3}
+                </span>
+              )}
+            </div>
+          ) : null;
+        })()}
 
         {/* Caption / Description */}
         <div className="text-white text-xs font-normal leading-relaxed drop-shadow-sm pr-1">

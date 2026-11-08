@@ -2712,23 +2712,30 @@ export default function PublicStore() {
                     </p>
                   )}
 
-                  {/* Categoría / Rubro oficial del comercio (descarta 'almacén' y no duplica la dirección del mapa) */}
+                  {/* Categorías / Rubros oficiales del comercio (descarta 'almacén' y no duplica la dirección del mapa) */}
                   {(() => {
-                    const resolvedCategory = resolveStoreCategory(config);
+                    const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
+                    const rawCats = Array.isArray(config?.categories) && config.categories.length > 0
+                      ? config.categories
+                      : (resolveStoreCategory(config) ? [resolveStoreCategory(config)] : []);
+                    const resolvedCategories = rawCats.filter(c => !isInvalid(c));
 
-                    return resolvedCategory ? (
-                      <div className="flex flex-col gap-1.5 mt-2">
-                        <div 
-                          className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit transition-all shadow-2xs"
-                          style={{ 
-                            backgroundColor: themeStyles.subtleBg, 
-                            color: primaryColor,
-                            border: `1px solid ${primaryColor}30`
-                          }}
-                        >
-                          <Tag size={13} className="shrink-0" />
-                          <span className="capitalize">{resolvedCategory}</span>
-                        </div>
+                    return resolvedCategories.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        {resolvedCategories.map((cat, idx) => (
+                          <div 
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit transition-all shadow-2xs"
+                            style={{ 
+                              backgroundColor: themeStyles.subtleBg, 
+                              color: primaryColor,
+                              border: `1px solid ${primaryColor}30`
+                            }}
+                          >
+                            <Tag size={13} className="shrink-0" />
+                            <span className="capitalize">{cat}</span>
+                          </div>
+                        ))}
                       </div>
                     ) : null;
                   })()}

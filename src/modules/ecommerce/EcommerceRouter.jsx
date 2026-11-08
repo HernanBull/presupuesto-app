@@ -403,8 +403,11 @@ export default function EcommerceRouter({ theme, toggleTheme }) {
           <Route path="credits" element={<UnifiedPosPage />} />
           <Route path="setup" element={<OnboardingChecklistPage />} />
           <Route path="puesta-en-marcha" element={<OnboardingChecklistPage />} />
-          <Route path="analytics" element={<AnalyticsManager />} />
-          <Route path="store-profile" element={<StoreProfileManager />} />
+          {/* Rutas Protegidas por PIN Administrativo (Seguridad y Acceso) */}
+          <Route element={<AdminGuard />}>
+            <Route path="store-profile" element={<StoreProfileManager />} />
+            <Route path="analytics" element={<AnalyticsManager />} />
+          </Route>
           <Route path="inventory" element={<InventoryManager />} />
           <Route path="stock" element={<InventoryManager />} />
           <Route path="prices" element={<InventoryManager />} />

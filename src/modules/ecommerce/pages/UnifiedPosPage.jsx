@@ -1590,20 +1590,6 @@ export default function UnifiedPosPage() {
               <span className="sm:hidden">Caja</span>
             </button>
 
-            {/* Botón Cerrar Turno / Caja / Finalizar Jornada */}
-            <button
-              onClick={() => {
-                setCashShiftModalTab('close');
-                setIsCashShiftModalOpen(true);
-              }}
-              className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/40 px-2.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
-              title="Cerrar Turno, Arqueo de Caja y Finalizar Jornada"
-            >
-              <LogOut size={13} className="shrink-0" />
-              <span className="hidden sm:inline">Cerrar Caja</span>
-              <span className="sm:hidden">Cerrar</span>
-            </button>
-
             {/* Configuración de Hardware (Solo visible en Desktop) */}
             <button 
               onClick={() => setIsHardwareModalOpen(true)}
