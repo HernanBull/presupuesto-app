@@ -109,7 +109,6 @@ export default function SocialFeedCard({
   const [saveBounced, setSaveBounced] = useState(false);
   const [commentsCount, setCommentsCount] = useState(0);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const { activeMediaId, setActiveMedia, clearActiveMedia, isMutedGlobal, toggleMutedGlobal } = useActiveFeedMedia();
@@ -121,6 +120,63 @@ export default function SocialFeedCard({
   const containerRef = useRef(null);
   const userPausedRef = useRef(false);
   const isVideo = Boolean(post.video_url || post.media_type === 'video' || (storeCover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(storeCover)));
+
+  // Barra de progreso interactiva (Scrubber) para videos
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const progressBarRef = useRef(null);
+  const isDraggingScrubberRef = useRef(false);
+
+  const handleTimeUpdate = () => {
+    if (!videoRef.current || isDraggingScrubberRef.current) return;
+    const curr = videoRef.current.currentTime || 0;
+    const dur = videoRef.current.duration || 0;
+    setVideoCurrentTime(curr);
+    if (dur > 0) {
+      setVideoProgress((curr / dur) * 100);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setVideoDuration(videoRef.current.duration || 0);
+    }
+  };
+
+  const handleSeek = (clientX) => {
+    if (!videoRef.current || !progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const clickX = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const percentage = clickX / rect.width;
+    const dur = videoRef.current.duration || videoDuration || 0;
+    if (dur > 0) {
+      const targetTime = percentage * dur;
+      videoRef.current.currentTime = targetTime;
+      setVideoCurrentTime(targetTime);
+      setVideoProgress(percentage * 100);
+    }
+  };
+
+  const handleScrubberTouchStart = (e) => {
+    e.stopPropagation();
+    isDraggingScrubberRef.current = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    handleSeek(clientX);
+  };
+
+  const handleScrubberTouchMove = (e) => {
+    if (!isDraggingScrubberRef.current) return;
+    e.stopPropagation();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    handleSeek(clientX);
+  };
+
+  const handleScrubberTouchEnd = (e) => {
+    e.stopPropagation();
+    isDraggingScrubberRef.current = false;
+  };
 
   // Soporte de Múltiples Fotos / Carrusel horizontal dentro del feed TikTok
   const postImages = useMemo(() => {
@@ -677,6 +733,8 @@ export default function SocialFeedCard({
             loop
             preload="none"
             muted={isMutedGlobal}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
             className="w-full h-full object-cover pointer-events-none"
           />
           {!isPlaying && (
@@ -773,55 +831,24 @@ export default function SocialFeedCard({
       {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}
       <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10" />
 
-      {/* Top Overlay: Pager & Options Menu */}
+      {/* Top Overlay: Pager & Audio Toggle */}
       <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 select-none">
         {isVideo && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); toggleMutedGlobal(); }}
-            className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
             title={isMutedGlobal ? "Activar sonido" : "Silenciar"}
           >
-            {isMutedGlobal ? <VolumeX size={14} className="text-amber-400" /> : <Volume2 size={14} className="text-emerald-400" />}
+            {isMutedGlobal ? <VolumeX size={15} className="text-amber-400" /> : <Volume2 size={15} className="text-emerald-400" />}
           </button>
         )}
 
-        <div className="bg-black/65 px-2.5 py-1 rounded-full text-[10px] text-white/95 border border-white/20 font-semibold tracking-wider pointer-events-none shadow-sm">
-          {isVideo ? 'VIDEO' : isCarousel ? `${currentSlideIndex + 1}/${postImages.length}` : '1/1'}
-        </div>
-
-        <div className="relative">
-          <button 
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
-            title="Más opciones"
-          >
-            <MoreHorizontal size={16} />
-          </button>
-
-          {showMenu && (
-            <div 
-              className="absolute right-0 top-9 bg-zinc-900 rounded-xl shadow-2xl border border-white/20 py-1 min-w-[160px] z-30 animate-in fade-in duration-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button 
-                onClick={() => { setShowMenu(false); onNavigateStore(storeSlug || workspaceId, postId, feedIndex); }}
-                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Store size={14} className="text-amber-400" />
-                <span>Visitar vitrina</span>
-              </button>
-              <button 
-                onClick={(e) => { setShowMenu(false); handleOpenShare(e); }}
-                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Share2 size={14} className="text-amber-400" />
-                <span>Compartir publicación</span>
-              </button>
-            </div>
-          )}
-        </div>
+        {isCarousel && (
+          <div className="bg-black/65 px-2.5 py-1 rounded-full text-[10px] text-white/95 border border-white/20 font-semibold tracking-wider pointer-events-none shadow-sm">
+            {`${currentSlideIndex + 1}/${postImages.length}`}
+          </div>
+        )}
       </div>
 
       {/* TikTok-Style Right Action Bar */}
@@ -1017,6 +1044,31 @@ export default function SocialFeedCard({
           <div className="p-5 rounded-3xl bg-black/80 backdrop-blur-md border border-orange-500/50 shadow-[0_0_50px_rgba(249,115,22,0.85)] flex flex-col items-center gap-2.5 animate-bounce">
             <Bookmark size={56} className="fill-orange-500 text-orange-500 drop-shadow-[0_0_25px_rgba(249,115,22,1)]" />
             <span className="text-white font-black text-xs sm:text-sm tracking-wide">¡Guardado en Favoritos!</span>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo TikTok / Reels) */}
+      {isVideo && (
+        <div
+          ref={progressBarRef}
+          className="absolute inset-x-0 bottom-0 z-30 h-7 flex items-end cursor-pointer group select-none px-0 pb-0"
+          onClick={(e) => { e.stopPropagation(); handleSeek(e.clientX); }}
+          onTouchStart={handleScrubberTouchStart}
+          onTouchMove={handleScrubberTouchMove}
+          onTouchEnd={handleScrubberTouchEnd}
+          title="Toca o desliza para avanzar o retroceder el video"
+        >
+          {/* Pista del reproductor */}
+          <div className="w-full h-1 group-hover:h-2 group-active:h-2 bg-white/20 transition-all relative overflow-visible">
+            {/* Relleno de reproducción actual */}
+            <div
+              className="h-full bg-gradient-to-r from-orange-500 to-amber-400 relative transition-[width] duration-75"
+              style={{ width: `${Math.min(100, Math.max(0, videoProgress))}%` }}
+            >
+              {/* Cabezal de arrastre (Thumb) */}
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50 scale-0 group-hover:scale-100 group-active:scale-100 transition-transform border-2 border-white" />
+            </div>
           </div>
         </div>
       )}

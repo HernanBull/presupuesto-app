@@ -134,12 +134,33 @@ const PasswordStrengthBar = ({ password = '' }) => {
 export default function PublicStore() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [workspaceId, setWorkspaceId] = useState(null);
+  const [workspaceId, setWorkspaceId] = useState(() => {
+    try {
+      const activeWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
+      const cached = localStorage.getItem(`axon_store_${slug}`) || (activeWs ? localStorage.getItem(`axon_store_${activeWs}`) : null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return parsed.workspaceId || activeWs || null;
+      }
+      return activeWs || null;
+    } catch {}
+    return null;
+  });
   const [currentCustomer, setCurrentCustomer] = useState(null);
   const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [showSocialMenu, setShowSocialMenu] = useState(false);
   const [storeNotFound, setStoreNotFound] = useState(false);
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState(() => {
+    try {
+      const activeWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
+      const cached = localStorage.getItem(`axon_store_${slug}`) || (activeWs ? localStorage.getItem(`axon_store_${activeWs}`) : null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return parsed.config || null;
+      }
+    } catch {}
+    return null;
+  });
   const [authGateMode, setAuthGateMode] = useState('login');
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);

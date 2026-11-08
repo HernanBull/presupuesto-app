@@ -405,7 +405,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
 
   const handleOpenVitrina = () => {
     const slug = localStorage.getItem('storeSlug');
-    if (slug) window.open(`/${slug}`, '_blank');
+    if (slug) navigate(`/${slug}`);
     else alert('No se encontró el enlace de tu tienda.');
   };
 

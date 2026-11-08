@@ -394,10 +394,9 @@ export default function EcommerceDashboard() {
           {/* Fila Superior: Badge Tienda, Atajo a Mercado General y Ocultar/Mostrar Divisas */}
           <div className="flex items-center justify-between mb-4 relative z-10 flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <a 
-                href={storeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => navigate(storeUrl)}
                 className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs text-white"
                 title={`Ir a la tienda virtual: ${storeInfo.name}`}
               >
@@ -406,7 +405,7 @@ export default function EcommerceDashboard() {
                 </div>
                 <span className="text-xs font-black tracking-wide truncate max-w-[130px] sm:max-w-[170px]">{storeInfo.name}</span>
                 <ExternalLink size={11} className="text-white/80 shrink-0" />
-              </a>
+              </button>
 
               {/* Botón Atajo al Mercado General */}
               <button
