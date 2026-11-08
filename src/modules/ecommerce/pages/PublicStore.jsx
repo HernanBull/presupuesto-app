@@ -2823,6 +2823,23 @@ export default function PublicStore() {
               >
                 {profileSubTab === 'info' ? (
                   <div className="space-y-4 pt-3 pb-8">
+                    {/* Información */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
+                        <Building2 size={18} className="text-orange-600" />
+                        <span>Información</span>
+                      </h2>
+                      <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                        {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
+                        {(config?.address || config?.location?.address || config?.expediente?.address) && (
+                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
+                            <MapPin size={14} className="text-red-500 shrink-0" />
+                            <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Horario */}
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                       <div className="flex justify-between items-center mb-3">
