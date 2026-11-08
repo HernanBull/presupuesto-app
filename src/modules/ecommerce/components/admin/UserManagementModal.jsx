@@ -95,6 +95,22 @@ export default function UserManagementModal({ isOpen, onClose }) {
   useEffect(() => {
     if (isOpen) {
       loadData();
+
+      // Suscripción en tiempo real a turnos de caja para actualizar estado al instante
+      const channel = supabase
+        .channel(`realtime_cash_shifts_${Date.now()}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'cash_shifts'
+        }, () => {
+          loadData();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [isOpen]);
 
@@ -115,8 +131,23 @@ export default function UserManagementModal({ isOpen, onClose }) {
       .catch(() => {});
 
     // Consultar turnos de caja actualmente abiertos
-    const activeWs = localStorage.getItem('activeWorkspace');
-    if (activeWs) {
+    let activeWs = localStorage.getItem('activeWorkspace');
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeWs);
+    if (!isUuid) {
+      const slug = localStorage.getItem('storeSlug');
+      if (slug) {
+        try {
+          const { data: wsData } = await supabase.from('workspaces').select('id').eq('store_slug', slug).maybeSingle();
+          if (wsData?.id) {
+            activeWs = wsData.id;
+            localStorage.setItem('activeWorkspace', wsData.id);
+          }
+        } catch (e) {}
+      }
+    }
+
+    let remoteShifts = [];
+    if (activeWs && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeWs)) {
       try {
         const { data: sData, error: sErr } = await supabase
           .from('cash_shifts')
@@ -124,12 +155,39 @@ export default function UserManagementModal({ isOpen, onClose }) {
           .eq('branch_id', activeWs)
           .eq('status', 'OPEN');
 
-        if (sErr) console.warn('Aviso cargando turnos:', sErr);
-        setActiveShifts(sData || []);
+        if (!sErr && sData) {
+          remoteShifts = sData;
+        }
       } catch (errShifts) {
         console.warn('Advertencia cargando turnos en modal de usuarios:', errShifts);
       }
     }
+
+    // Merge con turno activo local en este dispositivo si existe
+    try {
+      const localShiftStr = localStorage.getItem('axon_active_shift');
+      if (localShiftStr) {
+        const localShift = JSON.parse(localShiftStr);
+        if (localShift && (localShift.status === 'OPEN' || localShift.status === 'ABIERTO')) {
+          const regName = localShift.registerName || localShift.name;
+          const alreadyInRemote = remoteShifts.some(s => s.register_name?.toLowerCase() === regName?.toLowerCase());
+          if (!alreadyInRemote && regName) {
+            remoteShifts.push({
+              id: localShift.id || 'local-active',
+              register_name: regName,
+              cashier_name: localShift.cashierName || localShift.cashier || 'Cajero activo',
+              opened_at: localShift.openedAt || new Date().toISOString(),
+              initial_usd: localShift.initialUsd || 0,
+              initial_ves: localShift.initialVes || 0,
+              status: 'OPEN',
+              isCurrentDevice: true
+            });
+          }
+        }
+      }
+    } catch (e) {}
+
+    setActiveShifts(remoteShifts);
   };
 
   if (!isOpen) return null;
@@ -611,10 +669,26 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {registers.map(r => {
-                  const liveShift = activeShifts.find(s => 
-                    s.register_name?.toLowerCase() === r.name?.toLowerCase() ||
-                    s.register_name === r.name
-                  );
+                  const liveShift = activeShifts.find(s => {
+                    if (!s || s.status !== 'OPEN') return false;
+                    const sRegName = (s.register_name || '').toLowerCase().trim();
+                    const rName = (r.name || '').toLowerCase().trim();
+                    const rCode = (r.code || '').toLowerCase().trim();
+                    
+                    if (sRegName === rName) return true;
+                    if (rCode && (sRegName === rCode || sRegName.includes(rCode))) return true;
+                    if (rName && (sRegName.includes(rName) || rName.includes(sRegName))) return true;
+                    if (s.register_id && s.register_id === r.id) return true;
+                    
+                    if (s.notes) {
+                      try {
+                        const parsedNotes = typeof s.notes === 'string' ? JSON.parse(s.notes) : s.notes;
+                        if (parsedNotes.registerCode && parsedNotes.registerCode.toLowerCase() === rCode) return true;
+                        if (parsedNotes.registerId && parsedNotes.registerId === r.id) return true;
+                      } catch (e) {}
+                    }
+                    return false;
+                  });
                   const isOpenShift = !!liveShift;
 
                   return (
@@ -643,16 +717,72 @@ export default function UserManagementModal({ isOpen, onClose }) {
                             <p className="text-xs text-slate-400 font-mono mt-0.5">
                               Código: {r.code} • Base: ${r.defaultFloatUsd || 0} / Bs. {(Number(r.defaultFloatVes) || (Number(r.defaultFloatUsd || 0) * bcvRate)).toLocaleString('es-VE')}
                             </p>
-                            {isOpenShift && (
-                              <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                                <span>👤 Cajero activo:</span>
-                                <b>{liveShift.cashier_name}</b>
+                            {isOpenShift ? (
+                              <div className="mt-1 space-y-0.5">
+                                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                  <span>👤 Cajero activo:</span>
+                                  <b>{liveShift.cashier_name}</b>
+                                </p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                  <span>⏰ Abierta: {liveShift.opened_at ? new Date(liveShift.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Hoy'}</span>
+                                  {liveShift.isCurrentDevice && (
+                                    <span className="text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded">Esta estación</span>
+                                  )}
+                                </p>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-400 mt-1 italic">
+                                🔒 Caja sin turno activo actualmente
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
+                          {isOpenShift ? (
+                            <button
+                              onClick={async () => {
+                                if (window.confirm(`¿Desea cerrar el turno de ${r.name} (Cajero: ${liveShift.cashier_name})?`)) {
+                                  try {
+                                    if (liveShift.id && !liveShift.isCurrentDevice) {
+                                      await supabase.from('cash_shifts').update({
+                                        status: 'CLOSED',
+                                        closed_at: new Date().toISOString()
+                                      }).eq('id', liveShift.id);
+                                    }
+                                    if (liveShift.isCurrentDevice) {
+                                      localStorage.removeItem('axon_active_shift');
+                                    }
+                                    toast.success(`Turno de ${r.name} cerrado.`);
+                                    loadData();
+                                  } catch (e) {
+                                    toast.error('Error cerrando turno.');
+                                  }
+                                }
+                              }}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                              title="Cerrar turno activo de esta caja"
+                            >
+                              Cerrar Turno
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setRegFormData({
+                                  ...r,
+                                  defaultCashier: r.defaultCashier || 'yende',
+                                  defaultFloatUsd: r.defaultFloatUsd || 50,
+                                  defaultFloatVes: r.defaultFloatVes || 1000,
+                                  openShiftNow: true
+                                });
+                                setIsRegisterFormOpen(true);
+                              }}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                              title="Iniciar turno en esta caja ahora"
+                            >
+                              + Abrir Turno
+                            </button>
+                          )}
                           <button
                             onClick={() => setSelectedRegisterForQr(r)}
                             className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"

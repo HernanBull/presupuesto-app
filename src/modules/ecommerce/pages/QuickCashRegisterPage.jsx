@@ -210,25 +210,54 @@ export default function QuickCashRegisterPage() {
       localStorage.setItem('axon_active_register_id', currentRegister?.id || 'caja-1');
       localStorage.setItem('axon_active_register_name', currentRegister?.name || 'Caja Mostrador');
 
-      // Sincronizar en Supabase cash_shifts para la Caja Maestra del SuperAdmin
+      // Sincronizar en Supabase cash_shifts para la Caja Maestra y Monitor de Cajas
       try {
-        const activeWs = localStorage.getItem('activeWorkspace') || 'default_workspace';
-        await supabase.from('cash_shifts').insert([{
-          branch_id: storeSlug || activeWs,
-          register_name: currentRegister?.name || 'Caja 1',
-          cashier_name: selectedStaff?.fullName || 'Cajero',
-          opened_at: newShift.openedAt,
-          initial_usd: parsedUsd,
-          initial_ves: parsedVes,
-          expected_usd: parsedUsd,
-          expected_ves: parsedVes,
-          status: 'OPEN',
-          notes: JSON.stringify({
-            registerCode: currentRegister?.code || 'CAJA-01',
-            bcvRate: Number(bcvRate) || 888.89,
-            storeName
-          })
-        }]);
+        let wsId = localStorage.getItem('activeWorkspace');
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wsId);
+        if (!isUuid && storeSlug) {
+          const { data: wsData } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('store_slug', storeSlug)
+            .maybeSingle();
+          if (wsData?.id) {
+            wsId = wsData.id;
+            localStorage.setItem('activeWorkspace', wsId);
+          }
+        }
+
+        if (wsId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(wsId)) {
+          // Si había un turno previo abierto en esta misma caja, cerrarlo previamente
+          await supabase
+            .from('cash_shifts')
+            .update({ status: 'CLOSED', closed_at: new Date().toISOString() })
+            .eq('branch_id', wsId)
+            .eq('register_name', currentRegister?.name)
+            .eq('status', 'OPEN');
+
+          const { error: insErr } = await supabase.from('cash_shifts').insert([{
+            branch_id: wsId,
+            register_name: currentRegister?.name || 'Caja 1',
+            cashier_name: selectedStaff?.fullName || 'Cajero',
+            opened_at: newShift.openedAt,
+            initial_usd: parsedUsd,
+            initial_ves: parsedVes,
+            expected_usd: parsedUsd,
+            expected_ves: parsedVes,
+            status: 'OPEN',
+            notes: JSON.stringify({
+              registerCode: currentRegister?.code || 'CAJA-01',
+              registerId: currentRegister?.id,
+              bcvRate: Number(bcvRate) || 888.89,
+              storeName,
+              storeSlug
+            })
+          }]);
+
+          if (insErr) {
+            console.error('Error insertando cash_shifts en Supabase:', insErr);
+          }
+        }
       } catch (errDb) {
         console.warn('Advertencia sincronizando turno a Supabase:', errDb);
       }
