@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -2773,15 +2773,7 @@ export default function PublicStore() {
                     title="Información del Comerciante"
                   >
                     <div className="flex items-center gap-1.5">
-                      {/* Ícono de 6 barras verticales */}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="4" y="3" width="2.5" height="7" rx="1" />
-                        <rect x="10.75" y="3" width="2.5" height="7" rx="1" />
-                        <rect x="17.5" y="3" width="2.5" height="7" rx="1" />
-                        <rect x="4" y="14" width="2.5" height="7" rx="1" />
-                        <rect x="10.75" y="14" width="2.5" height="7" rx="1" />
-                        <rect x="17.5" y="14" width="2.5" height="7" rx="1" />
-                      </svg>
+                      <Info size={18} className="stroke-[2.4]" />
                       <span className="text-xs uppercase tracking-wider font-extrabold">Información</span>
                     </div>
                     {profileSubTab === 'info' && (
@@ -2802,7 +2794,7 @@ export default function PublicStore() {
                     title="Multimedia y Videos"
                   >
                     <div className="flex items-center gap-1.5">
-                      <Repeat size={18} className="stroke-[2.5]" />
+                      <Film size={18} className="stroke-[2.4]" />
                       <span className="text-xs uppercase tracking-wider font-extrabold">Videos</span>
                     </div>
                     {profileSubTab === 'media' && (
@@ -2831,12 +2823,6 @@ export default function PublicStore() {
                       </h2>
                       <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                         {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
-                        {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600 font-medium">
-                            <MapPin size={14} className="text-red-500 shrink-0" />
-                            <span>{config?.address || config?.location?.address || config?.expediente?.address}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
