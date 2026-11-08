@@ -3892,48 +3892,75 @@ export default function PublicStore() {
                               )}
                             </div>
                             
-                            <div className="mt-auto flex items-end justify-between gap-1">
-                              <div>
+                            <div className="mt-auto pt-2 flex items-center justify-between gap-1 w-full min-w-0">
+                              <div className="min-w-0 flex-1 pr-1">
                                 {isUserAllowedToSeePrices ? (
                                   p.is_offer ? (
-                                    <div className="flex flex-col">
-                                      <div className="flex items-baseline gap-1">
-                                        <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.discount_price || p.price).toFixed(2)}</p>
-                                        <span className="text-[10px] text-zinc-500 font-semibold">/ {p.unit_type || p.unit || 'und'}</span>
+                                    <div className="flex flex-col min-w-0">
+                                      <div className="flex items-baseline gap-0.5 truncate">
+                                        <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                        <span className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold truncate">/ {p.unit_type || p.unit || 'und'}</span>
                                       </div>
-                                      <p className="text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
+                                      <p className="text-[9px] sm:text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
                                       {p.metadata?.offer_limit_qty && (
-                                        <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded mt-0.5 inline-block">
+                                        <span className="text-[8px] sm:text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded mt-0.5 inline-block truncate">
                                           Máx. {p.metadata.offer_limit_qty} por pedido
                                         </span>
                                       )}
                                     </div>
                                   ) : (
-                                    <div className="flex items-baseline gap-1">
-                                      <p className="font-bold text-base text-zinc-900 leading-none">${Number(p.price).toFixed(2)}</p>
-                                      <span className="text-[10px] text-zinc-500 font-semibold">/ {p.unit_type || p.unit || 'und'}</span>
+                                    <div className="flex flex-col min-w-0">
+                                      <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.price).toFixed(2)}</p>
+                                      <span className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold truncate mt-0.5">/ {p.unit_type || p.unit || 'und'}</span>
                                     </div>
                                   )
                                 ) : (
-                                  <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">Ver Precio</button>
+                                  <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded truncate">Ver Precio</button>
                                 )}
                               </div>
                               
-                              {/* Add Button */}
+                              {/* Add Button & Quantity Selector Widget (Anti-overflow shrink-0) */}
                               {isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
                                 cart[p.id] > 0 ? (
-                                  <div className="flex items-center gap-2 border rounded-lg p-1" style={{ backgroundColor: hexToRgba(primaryColor, 0.08), borderColor: hexToRgba(primaryColor, 0.25) }} onClick={(e) => e.stopPropagation()}>
-                                    <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-md bg-white border border-slate-200 flex items-center justify-center shadow-sm" style={{ color: primaryColor }}><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"/></svg></button>
-                                    <span className="text-xs font-bold min-w-[12px] text-center" style={{ color: primaryColor }}>{cart[p.id]}</span>
-                                    <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} style={{ backgroundColor: primaryColor, color: primaryTextColor }} className="w-6 h-6 rounded-md flex items-center justify-center shadow-sm"><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg></button>
+                                  <div 
+                                    className="flex items-center gap-1 sm:gap-1.5 border rounded-lg p-0.5 sm:p-1 bg-white shadow-2xs shrink-0 select-none" 
+                                    style={{ backgroundColor: hexToRgba(primaryColor, 0.08), borderColor: hexToRgba(primaryColor, 0.35) }} 
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button 
+                                      type="button"
+                                      onClick={() => removeFromCart(p.id, p.step_size)} 
+                                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-white border border-slate-200/90 flex items-center justify-center shadow-xs text-slate-700 active:scale-90 transition-transform cursor-pointer" 
+                                      style={{ color: primaryColor }}
+                                      title="Disminuir"
+                                    >
+                                      <Minus size={11} className="stroke-[2.5]" />
+                                    </button>
+                                    
+                                    <span className="text-[11px] sm:text-xs font-black min-w-[14px] text-center px-0.5" style={{ color: primaryColor }}>
+                                      {cart[p.id]}
+                                    </span>
+                                    
+                                    <button 
+                                      type="button"
+                                      onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size); }} 
+                                      style={{ backgroundColor: primaryColor, color: primaryTextColor }} 
+                                      className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer ${storeClosed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                      title="Aumentar"
+                                    >
+                                      <Plus size={11} className="stroke-[2.5]" />
+                                    </button>
                                   </div>
                                 ) : (
                                   <button 
+                                    type="button"
                                     onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                                    className="bg-white border font-bold px-4 py-1.5 rounded-lg text-[11px] tracking-wider shadow-sm transition-colors relative hover:opacity-90"
+                                    className="bg-white border font-black px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] tracking-wider shadow-2xs transition-all hover:opacity-90 active:scale-95 cursor-pointer shrink-0 inline-flex items-center gap-1"
                                     style={{ borderColor: hexToRgba(primaryColor, 0.4), color: primaryColor }}
+                                    title="Añadir al carrito"
                                   >
-                                    ADD <span className="absolute top-0.5 right-1 text-[10px]">+</span>
+                                    <span>ADD</span>
+                                    <Plus size={10} className="stroke-[3]" />
                                   </button>
                                 )
                               )}
