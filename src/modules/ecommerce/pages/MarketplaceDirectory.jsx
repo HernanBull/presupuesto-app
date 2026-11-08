@@ -3392,14 +3392,6 @@ export default function MarketplaceDirectory() {
                       </div>
                       <ChevronRight size={16} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleMerchantLogout}
-                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-                    >
-                      <LogOut size={14} />
-                      <span>Cerrar Sesión de Tienda</span>
-                    </button>
                   </div>
                 )}
 
@@ -3450,32 +3442,22 @@ export default function MarketplaceDirectory() {
                 )}
 
                 {currentCustomer && (
-                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex flex-col gap-2">
-                    <div 
-                      onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
-                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      {currentCustomer.profile_pic ? (
-                        <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-10 h-10 rounded-full object-cover border-2 border-amber-500" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-amber-300">
-                          {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{currentCustomer.name || 'Mi Perfil'}</p>
-                        <p className="text-xs text-amber-700 truncate">@{currentCustomer.email?.split('@')[0] || 'cliente'}</p>
+                  <div 
+                    onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
+                    className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-amber-100/50 transition-colors"
+                  >
+                    {currentCustomer.profile_pic ? (
+                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-10 h-10 rounded-full object-cover border-2 border-amber-500" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-amber-300">
+                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
                       </div>
-                      <ChevronRight size={16} className="text-amber-600 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 truncate">{currentCustomer.name || 'Mi Perfil'}</p>
+                      <p className="text-xs text-amber-700 truncate">@{currentCustomer.email?.split('@')[0] || 'cliente'}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleCustomerLogout}
-                      className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-600 font-bold text-[11px] active:scale-95 transition-all cursor-pointer"
-                    >
-                      <LogOut size={13} />
-                      <span>Cerrar Sesión de Cliente</span>
-                    </button>
+                    <ChevronRight size={16} className="text-amber-600 shrink-0" />
                   </div>
                 )}
                 
