@@ -2521,12 +2521,7 @@ export default function PublicStore() {
             </span>
           </div>
           
-          <div className="hidden md:flex items-center gap-6 text-xs font-semibold tracking-wider uppercase" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-            <span onClick={() => setCurrentPage('home')} className="cursor-pointer transition-colors" style={{ color: currentPage === 'home' ? primaryColor : '#52525b' }}>{texts.nav1}</span>
-            <span onClick={() => setCurrentPage('products')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'products' ? primaryColor : '#52525b' }}>{texts.nav2 || 'Productos'}</span>
-            <span onClick={() => setCurrentPage('offers')} className="cursor-pointer transition-colors hover:text-zinc-950" style={{ color: currentPage === 'offers' ? primaryColor : '#52525b' }}>{texts.nav3}</span>
-          </div>
-          
+
           <div className="flex items-center gap-2.5">
              <button onClick={handleGoBack} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                <ArrowLeft size={15} /> Salir
@@ -3572,7 +3567,7 @@ export default function PublicStore() {
             </div>
             
             <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 md:py-12 relative z-10">
-              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-3 gap-3.5">
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
                   <div 
                     key={p.id}
@@ -3817,7 +3812,7 @@ export default function PublicStore() {
                    </div>
 
                    {catalogProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3.5 md:gap-5">
                       {catalogProducts.map((p, i) => (
                         <div 
                           key={p.id}
