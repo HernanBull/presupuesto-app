@@ -19,6 +19,7 @@ import { supabase } from '../../../supabaseClient';
 import { registerUser, loginUser } from '../../../supabaseAuth';
 import MerchantTrialAuthModal from '../components/MerchantTrialAuthModal';
 import VipZoneModal from '../components/VipZoneModal';
+import { preloadAdjacentPostsMedia } from '../services/mediaCacheService';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -1620,16 +1621,16 @@ export default function MarketplaceDirectory() {
     return combined.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [filteredStores, storeNews, stores, discoveryFilter]);
 
-  // Carga progresiva uno a uno estilo Instagram / Feed Dinámico con retención de posición de retorno
+  // Carga progresiva anticipada (Buffer de 4 a 6 publicaciones para evitar rebote de scroll)
   const [visibleFeedCount, setVisibleFeedCount] = useState(() => {
     const savedCount = sessionStorage.getItem('axon_directory_visible_count');
     const savedIdx = sessionStorage.getItem('axon_feed_target_index');
     const parsedCount = parseInt(savedCount, 10);
     const parsedIdx = parseInt(savedIdx, 10);
     return Math.max(
-      2,
+      5,
       !isNaN(parsedCount) ? parsedCount : 0,
-      !isNaN(parsedIdx) ? parsedIdx + 3 : 0
+      !isNaN(parsedIdx) ? parsedIdx + 4 : 0
     );
   });
   const feedSentinelRef = useRef(null);
@@ -1641,21 +1642,21 @@ export default function MarketplaceDirectory() {
       sessionStorage.getItem('axon_directory_scroll_top')
     );
     if (!hasPendingReturn) {
-      setVisibleFeedCount(2);
+      setVisibleFeedCount(5);
     }
   }, [activeCategory, discoveryFilter, searchTerm]);
 
-  // Cargar más publicaciones progresivamente conforme el usuario scrollea hacia abajo (de 1 en 1 para evitar saturación)
+  // Cargar más publicaciones progresivamente con margen amplio (precarga anticipada)
   useEffect(() => {
     const el = feedSentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
+          setVisibleFeedCount(prev => (prev < feedPosts.length ? Math.min(feedPosts.length, prev + 3) : prev));
         }
       },
-      { root: mainContainerRef.current || null, rootMargin: '300px 0px' }
+      { root: mainContainerRef.current || null, rootMargin: '600px 0px' }
     );
 
     observer.observe(el);
@@ -1764,11 +1765,11 @@ export default function MarketplaceDirectory() {
     }
     lastScrollTopRef.current = scrollPos;
 
-    // Detección de scroll para cargar progresivamente de uno a uno al aproximarse al final
+    // Carga progresiva anticipada (800px antes de llegar al límite)
     if (c) {
       const pageH = c.clientHeight || window.innerHeight;
-      if (c.scrollHeight - (scrollPos + pageH) < 600) {
-        setVisibleFeedCount(prev => (prev < feedPosts.length ? prev + 1 : prev));
+      if (c.scrollHeight - (scrollPos + pageH) < 800) {
+        setVisibleFeedCount(prev => (prev < feedPosts.length ? Math.min(feedPosts.length, prev + 2) : prev));
       }
     }
   };
@@ -1782,9 +1783,11 @@ export default function MarketplaceDirectory() {
         setIsBottomNavOpen(false);
       }
     }
-  }, []);
+    // Precarga automática en memoria y CacheStorage estilo TikTok para los siguientes medios
+    preloadAdjacentPostsMedia(feedPosts, cardIndex, 3);
+  }, [feedPosts]);
 
-  // Escuchadores nativos de scroll y touch para dispositivos móviles
+  // Escuchador nativo pasivo de scroll para dispositivos móviles (sin interferencia con touchmove)
   useEffect(() => {
     const c = mainContainerRef.current;
     const onScrollEvent = () => handleScroll();
@@ -1794,32 +1797,9 @@ export default function MarketplaceDirectory() {
     }
     window.addEventListener('scroll', onScrollEvent, { passive: true });
 
-    let touchStartY = 0;
-    const onTouchStart = (e) => {
-      touchStartY = e.touches[0]?.clientY || 0;
-    };
-    const onTouchMove = (e) => {
-      const currentY = e.touches[0]?.clientY || 0;
-      const diffY = touchStartY - currentY; // Positivo = dedo sube, viendo siguiente publicación abajo
-      const cPos = c ? c.scrollTop : (window.scrollY || 0);
-      if (diffY > 20 || cPos > 30) {
-        if (isNavOpenRef.current) {
-          isNavOpenRef.current = false;
-          setIsBottomNavOpen(false);
-        }
-      }
-    };
-
-    if (c) {
-      c.addEventListener('touchstart', onTouchStart, { passive: true });
-      c.addEventListener('touchmove', onTouchMove, { passive: true });
-    }
-
     return () => {
       if (c) {
         c.removeEventListener('scroll', onScrollEvent);
-        c.removeEventListener('touchstart', onTouchStart);
-        c.removeEventListener('touchmove', onTouchMove);
       }
       window.removeEventListener('scroll', onScrollEvent);
     };
@@ -2182,14 +2162,14 @@ export default function MarketplaceDirectory() {
               ))
             )}
 
-            {/* Centinela de carga progresiva infinita - Cero separación */}
+            {/* Centinela de carga progresiva infinita - Invisible para el motor CSS snap (Cero rebotes) */}
             {visibleFeedCount < feedPosts.length && (
               <div 
                 ref={feedSentinelRef} 
-                className="w-full h-12 flex items-center justify-center text-zinc-500 text-xs py-4 snap-start shrink-0" 
+                className="w-full h-12 flex items-center justify-center text-zinc-500 text-xs py-2 pointer-events-none" 
                 aria-hidden="true"
               >
-                <div className="w-5 h-5 border-2 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
               </div>
             )}
           </div>

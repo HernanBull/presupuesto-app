@@ -21,12 +21,9 @@ import {
 } from '../services/socialService';
 import ResponsiveModal from './ResponsiveModal';
 import { useActiveFeedMedia } from '../context/ActiveFeedMediaContext';
+import { resolveMediaUrl, cacheMediaUrl } from '../services/mediaCacheService';
 
-const resolveImageUrl = (url) => {
-  if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url;
-  return `https://axonmarket-api.onrender.com${url}`;
-};
+const resolveImageUrl = resolveMediaUrl;
 
 const formatTimeAgo = (dateStr) => {
   if (!dateStr) return 'Reciente';
@@ -370,6 +367,11 @@ export default function SocialFeedCard({
           // Activar carga de interacciones de DB tan pronto como entra al área visible
           if (entry.isIntersecting) {
             setHasEnteredViewport(true);
+            if (storeCover) cacheMediaUrl(storeCover);
+            if (storeLogo) cacheMediaUrl(storeLogo);
+            if (Array.isArray(postImages)) {
+              postImages.forEach(img => cacheMediaUrl(img));
+            }
           }
 
           if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
@@ -614,7 +616,7 @@ export default function SocialFeedCard({
     <div 
       id={`post-${postId}`}
       ref={containerRef}
-      className="tiktok-feed-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end will-change-transform m-0 p-0 touch-pan-y"
+      className="tiktok-feed-item relative w-full h-[100dvh] snap-start shrink-0 bg-black cursor-pointer overflow-hidden select-none flex flex-col justify-end m-0 p-0 touch-pan-y"
       style={{
         height: '100dvh',
         border: 'none',
@@ -655,10 +657,11 @@ export default function SocialFeedCard({
 
       {/* Capa Principal Desplazable con Retorno Elástico Automático */}
       <div 
-        className="relative w-full h-full flex flex-col justify-end z-10 will-change-transform"
+        className="relative w-full h-full flex flex-col justify-end z-10"
         style={{
           transform: `translateX(${swipeX}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)'
+          transition: isSwiping ? 'none' : 'transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          willChange: isSwiping ? 'transform' : 'auto'
         }}
       >
         {/* Background Media - 100% Pantalla Completa TikTok Instantánea o Carrusel Multi-Foto */}
@@ -716,7 +719,7 @@ export default function SocialFeedCard({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.max(0, prev - 1)); }}
-              className="flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              className="flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/75 hover:bg-black/90 text-white items-center justify-center border border-white/20 active:scale-95 transition-all shadow-md cursor-pointer"
               title="Foto anterior"
             >
               <ChevronLeft size={20} />
@@ -728,7 +731,7 @@ export default function SocialFeedCard({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.min(postImages.length - 1, prev + 1)); }}
-              className="flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/55 hover:bg-black/80 text-white items-center justify-center backdrop-blur-md border border-white/15 active:scale-95 transition-all shadow-lg cursor-pointer"
+              className="flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/75 hover:bg-black/90 text-white items-center justify-center border border-white/20 active:scale-95 transition-all shadow-md cursor-pointer"
               title="Siguiente foto"
             >
               <ChevronRight size={20} />
@@ -776,14 +779,14 @@ export default function SocialFeedCard({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); toggleMutedGlobal(); }}
-            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
             title={isMutedGlobal ? "Activar sonido" : "Silenciar"}
           >
             {isMutedGlobal ? <VolumeX size={14} className="text-amber-400" /> : <Volume2 size={14} className="text-emerald-400" />}
           </button>
         )}
 
-        <div className="bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] text-white/90 border border-white/15 font-semibold tracking-wider pointer-events-none shadow-sm">
+        <div className="bg-black/65 px-2.5 py-1 rounded-full text-[10px] text-white/95 border border-white/20 font-semibold tracking-wider pointer-events-none shadow-sm">
           {isVideo ? 'VIDEO' : isCarousel ? `${currentSlideIndex + 1}/${postImages.length}` : '1/1'}
         </div>
 
@@ -791,7 +794,7 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-            className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center border border-white/15 hover:bg-black/70 active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
             title="Más opciones"
           >
             <MoreHorizontal size={16} />
@@ -799,7 +802,7 @@ export default function SocialFeedCard({
 
           {showMenu && (
             <div 
-              className="absolute right-0 top-9 bg-zinc-900/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/15 py-1 min-w-[160px] z-30 animate-in fade-in zoom-in-95 duration-150"
+              className="absolute right-0 top-9 bg-zinc-900 rounded-xl shadow-2xl border border-white/20 py-1 min-w-[160px] z-30 animate-in fade-in duration-100"
               onClick={(e) => e.stopPropagation()}
             >
               <button 
@@ -833,7 +836,7 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Me gusta"
         >
-          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
             <Heart 
               size={22} 
               strokeWidth={isLiked ? 0 : 2} 
@@ -841,7 +844,7 @@ export default function SocialFeedCard({
               className={isLiked ? 'text-red-500 scale-110 transition-transform' : 'text-white'} 
             />
           </div>
-          <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+          <span className="text-[11px] font-bold text-white drop-shadow-sm tracking-tight">
             {likesCount}
           </span>
         </button>
@@ -856,10 +859,10 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Comentar"
         >
-          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
             <MessageCircle size={21} strokeWidth={2} className="text-white" />
           </div>
-          <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+          <span className="text-[11px] font-bold text-white drop-shadow-sm tracking-tight">
             {commentsCount}
           </span>
         </button>
@@ -874,10 +877,10 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Compartir publicación"
         >
-          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white border border-white/25 shadow-xs group-hover:bg-black/35 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
             <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
           </div>
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight">
+          <span className="text-[10px] font-bold text-white drop-shadow-sm tracking-tight">
             Compartir
           </span>
         </button>
@@ -892,12 +895,12 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Guardar en favoritos"
         >
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border backdrop-blur-xs shadow-xs transition-all duration-300 ${
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
             saveBounced 
               ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
               : isSaved 
                 ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] scale-105' 
-                : 'bg-black/25 border-white/25 group-hover:bg-black/40 hover:border-orange-400/50'
+                : 'bg-black/60 border-white/20 group-hover:bg-black/75 hover:border-orange-400/50'
           }`}>
             <Bookmark 
               size={20} 
@@ -908,7 +911,7 @@ export default function SocialFeedCard({
               } text-white ${isSaved ? 'drop-shadow-sm' : ''}`} 
             />
           </div>
-          <span className={`text-[10px] font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-tight transition-colors duration-200 ${
+          <span className={`text-[10px] font-bold drop-shadow-sm tracking-tight transition-colors duration-200 ${
             isSaved ? 'text-orange-400 font-black' : 'text-white'
           }`}>
             {isSaved ? 'Guardado' : 'Guardar'}
@@ -944,9 +947,9 @@ export default function SocialFeedCard({
               </span>
               {isVerified && <CheckCircle size={13} className="text-blue-400 fill-blue-400/20 shrink-0" />}
             </div>
-            <span className="text-white text-[11px] font-semibold flex items-center gap-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] truncate">
+            <span className="text-white text-[11px] font-semibold flex items-center gap-1 drop-shadow-sm truncate">
               <MapPin size={11} className="text-amber-400 shrink-0 stroke-[2.5]" />
-              <span className="text-white drop-shadow-md">{address}</span>
+              <span className="text-white drop-shadow-sm">{address}</span>
             </span>
           </div>
 
@@ -954,10 +957,10 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={handleFollow}
-            className={`ml-1.5 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-all shrink-0 backdrop-blur-md ${
+            className={`ml-1.5 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-sm transition-all shrink-0 ${
               isFollowing 
-                ? 'bg-emerald-500/25 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-400/60 px-2.5 py-1' 
-                : 'bg-black/40 hover:bg-black/60 text-white border border-white/50 hover:border-white/80 px-3 py-1 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]'
+                ? 'bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-400/60 px-2.5 py-1' 
+                : 'bg-black/65 hover:bg-black/80 text-white border border-white/50 hover:border-white/80 px-3 py-1 drop-shadow-sm'
             }`}
             title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
           >
@@ -969,14 +972,14 @@ export default function SocialFeedCard({
             ) : (
               <>
                 <UserPlus size={12} strokeWidth={2.5} className="text-white drop-shadow" />
-                <span className="text-[11px] font-bold text-white tracking-wide drop-shadow">Seguir</span>
+                <span className="text-[11px] font-bold text-white tracking-wide drop-shadow-sm">Seguir</span>
               </>
             )}
           </button>
         </div>
 
         {/* Caption / Description */}
-        <div className="text-white text-xs font-normal leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] pr-1">
+        <div className="text-white text-xs font-normal leading-relaxed drop-shadow-sm pr-1">
           <span className="text-zinc-100 line-clamp-2">
             {caption}
           </span>
@@ -987,14 +990,14 @@ export default function SocialFeedCard({
           <button 
             type="button"
             onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-            className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+            className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors drop-shadow-sm"
           >
             <MessageCircle size={12} />
             <span>{commentsCount > 0 ? `Ver ${commentsCount} comentarios` : 'Comentar...'}</span>
           </button>
-          <span className="text-white text-[11px] font-semibold flex items-center gap-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)]">
+          <span className="text-white text-[11px] font-semibold flex items-center gap-1.5 drop-shadow-sm">
             <span className="text-amber-400 font-bold">•</span>
-            <span className="text-white drop-shadow-md">{formatTimeAgo(createdAt)}</span>
+            <span className="text-white drop-shadow-sm">{formatTimeAgo(createdAt)}</span>
           </span>
         </div>
       </div>
