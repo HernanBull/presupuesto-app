@@ -13,6 +13,8 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-
 
 export default function MerchantLoginPage() {
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const redirectTarget = searchParams.get('redirect') || '/dashboard';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -121,7 +123,7 @@ export default function MerchantLoginPage() {
       if (owner && owner.toLowerCase() !== (ws.name || '').toLowerCase()) {
         localStorage.setItem('merchant_owner_name', owner);
       }
-      navigate('/dashboard', { replace: true });
+      navigate(redirectTarget, { replace: true });
     } catch (err) {
       console.error('Error al iniciar sesión:', err);
       let msg = 'Error al iniciar sesión. Verifica tus credenciales.';
@@ -178,7 +180,7 @@ export default function MerchantLoginPage() {
         }
 
         toast.success(`¡Bienvenido de nuevo, ${wsData.name}!`, { icon: '👋' });
-        navigate('/dashboard', { replace: true });
+        navigate(redirectTarget, { replace: true });
         return;
       }
 

@@ -3403,28 +3403,50 @@ export default function MarketplaceDirectory() {
                   </div>
                 )}
 
-                {/* Acceso para Iniciar Sesión como Cliente (cuando no hay cliente iniciado) */}
-                {!currentCustomer && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setAuthMode('login');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="w-full flex items-center justify-between p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">
-                        <User size={15} />
+                {/* Opciones de Acceso Neutral (Únicamente cuando NO hay sesión activa de ningún rol) */}
+                {!hasMerchantAccess && !currentCustomer && (
+                  <div className="flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setAuthMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">
+                          <User size={15} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-xs text-slate-900">Soy Cliente</span>
+                          <span className="text-[10px] text-amber-700">Para compras, favoritos y pedidos</span>
+                        </div>
                       </div>
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-xs text-slate-900">Iniciar sesión como Cliente</span>
-                        <span className="text-[10px] text-amber-700">Para compras, favoritos y pedidos</span>
+                      <ChevronRight size={16} className="text-amber-600" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/merchant/login?redirect=/explorar');
+                      }}
+                      className="w-full flex items-center justify-between p-3 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700/60 rounded-2xl cursor-pointer active:scale-95 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black flex items-center justify-center">
+                          <Store size={15} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-xs text-white">Soy Comerciante</span>
+                          <span className="text-[10px] text-zinc-400">Iniciar sesión con mi tienda</span>
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight size={16} className="text-amber-600" />
-                  </button>
+                      <ChevronRight size={16} className="text-zinc-400" />
+                    </button>
+                  </div>
                 )}
 
                 {currentCustomer && (
@@ -3541,32 +3563,30 @@ export default function MarketplaceDirectory() {
                 </div>
               </div>
               {/* Botón de cierre de sesión al final del menú sin complicaciones */}
-              <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex flex-col gap-2">
-                {hasMerchantAccess && (
-                  <button
-                    type="button"
-                    onClick={handleMerchantLogout}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
-                  >
-                    <LogOut size={15} />
-                    <span>Cerrar Sesión</span>
-                  </button>
-                )}
-                {!currentCustomer && !hasMerchantAccess && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      setAuthMode('login');
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
-                  >
-                    <User size={15} />
-                    <span>Iniciar Sesión como Cliente</span>
-                  </button>
-                )}
-              </div>
+              {(hasMerchantAccess || currentCustomer) && (
+                <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex flex-col gap-2">
+                  {hasMerchantAccess && (
+                    <button
+                      type="button"
+                      onClick={handleMerchantLogout}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+                    >
+                      <LogOut size={15} />
+                      <span>Cerrar Sesión de Tienda</span>
+                    </button>
+                  )}
+                  {currentCustomer && (
+                    <button
+                      type="button"
+                      onClick={handleCustomerLogout}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+                    >
+                      <LogOut size={14} />
+                      <span>Cerrar Sesión de Cliente</span>
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="p-4 border-t border-zinc-200 bg-white">
                 <p className="text-[10px] text-zinc-400 text-center font-medium">
                   © 2026 AxonMarket. Todos los derechos reservados.

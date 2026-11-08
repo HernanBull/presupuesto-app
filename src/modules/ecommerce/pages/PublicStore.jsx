@@ -528,6 +528,11 @@ export default function PublicStore() {
     return permanentStatuses.length > 0 ? permanentStatuses : ephemeralStatuses;
   }, [activeStatusModalList, permanentStatuses, ephemeralStatuses]);
 
+  // Colección unificada de estados del comercio (permanentes y efímeros)
+  const merchantStatuses = useMemo(() => {
+    return [...permanentStatuses, ...ephemeralStatuses];
+  }, [permanentStatuses, ephemeralStatuses]);
+
   // Limpieza automática en segundo plano de estados efímeros de más de 24 horas
   useEffect(() => {
     if (!storeNews || storeNews.length === 0) return;
@@ -630,7 +635,7 @@ export default function PublicStore() {
   const merchantVideos = useMemo(() => {
     const list = [];
     const seenUrls = new Set();
-    const allStatuses = [...permanentStatuses, ...ephemeralStatuses];
+    const allStatuses = merchantStatuses;
 
     allStatuses.forEach((st, idx) => {
       const isVid = st.media_type === 'video' || (typeof st.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(st.mediaUrl));
