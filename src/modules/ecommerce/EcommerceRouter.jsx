@@ -45,17 +45,66 @@ import MerchantLoginPage from './pages/MerchantLoginPage';
 import MerchantSubscriptionPage from './pages/MerchantSubscriptionPage';
 import MerchantCashMasterView from './pages/MerchantCashMasterView';
 import FiscalSalesBookPage from './pages/FiscalSalesBookPage';
+import { checkMerchantPlanStatus } from './services/planSecurityService';
+import MerchantPlanExpiredView from './components/MerchantPlanExpiredView';
 
 const MerchantGuard = () => {
   const isMerchantLogged = localStorage.getItem('activeWorkspace');
+  const [checkingPlan, setCheckingPlan] = React.useState(true);
+  const [expiredWs, setExpiredWs] = React.useState(null);
 
   // Regla: Exclusión Mutua Automática
   // Si entra al panel de comerciante, cerramos automáticamente cualquier sesión de cliente
   localStorage.removeItem('ecommerce_current_customer');
   localStorage.removeItem('ecommerce_user');
 
+  React.useEffect(() => {
+    if (!isMerchantLogged || isMerchantLogged === 'default_workspace') {
+      setCheckingPlan(false);
+      return;
+    }
+
+    supabase
+      .from('workspaces')
+      .select('id, name, store_slug, status, config, created_at')
+      .eq('id', isMerchantLogged)
+      .maybeSingle()
+      .then(({ data: ws, error }) => {
+        if (!error && ws) {
+          const planStatus = checkMerchantPlanStatus(ws);
+          if (planStatus.isExpired) {
+            setExpiredWs(ws);
+          }
+        }
+        setCheckingPlan(false);
+      })
+      .catch(() => setCheckingPlan(false));
+  }, [isMerchantLogged]);
+
   if (!isMerchantLogged) {
     return <Navigate to="/merchant/login" replace />;
+  }
+
+  if (checkingPlan) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 p-6 select-none">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <span className="text-xs font-bold text-slate-500 animate-pulse">Verificando suscripción VIP...</span>
+      </div>
+    );
+  }
+
+  if (expiredWs) {
+    return (
+      <MerchantPlanExpiredView 
+        workspace={expiredWs} 
+        onLogout={() => {
+          localStorage.removeItem('activeWorkspace');
+          localStorage.removeItem('storeSlug');
+          window.location.href = '/merchant/login';
+        }} 
+      />
+    );
   }
 
   return <Outlet />;

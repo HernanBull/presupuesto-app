@@ -8,6 +8,8 @@ import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { loginUser } from '../../../supabaseAuth';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
+import { checkMerchantPlanStatus } from '../services/planSecurityService';
+import MerchantPlanExpiredView from '../components/MerchantPlanExpiredView';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
@@ -24,6 +26,7 @@ export default function MerchantLoginPage() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [expiredWorkspace, setExpiredWorkspace] = useState(null);
 
   // Iniciar sesión con Correo y Contraseña
   const handleSubmit = async (e) => {
@@ -101,6 +104,14 @@ export default function MerchantLoginPage() {
         throw new Error('Esta tienda se encuentra temporalmente suspendida.');
       }
 
+      // Verificación estricta de Vencimiento de Prueba VIP (7 Días) o Suscripción
+      const planStatus = checkMerchantPlanStatus(ws);
+      if (planStatus.isExpired) {
+        setExpiredWorkspace(ws);
+        setLoading(false);
+        return;
+      }
+
       const activeWsId = ws.id;
       const storeSlug = ws.store_slug || 'mi-tienda';
 
@@ -165,6 +176,14 @@ export default function MerchantLoginPage() {
         .maybeSingle();
 
       if (wsData) {
+        // Verificación estricta de Vencimiento de Prueba VIP (7 Días) o Suscripción
+        const planStatus = checkMerchantPlanStatus(wsData);
+        if (planStatus.isExpired) {
+          setExpiredWorkspace(wsData);
+          setLoading(false);
+          return;
+        }
+
         localStorage.setItem('activeWorkspace', wsData.id);
         localStorage.setItem('storeSlug', wsData.store_slug || '');
         if (wsData.name) {
@@ -213,6 +232,16 @@ export default function MerchantLoginPage() {
       setResetLoading(false);
     }
   };
+
+  if (expiredWorkspace) {
+    return (
+      <MerchantPlanExpiredView 
+        workspace={expiredWorkspace} 
+        onClose={() => setExpiredWorkspace(null)} 
+        onLogout={() => setExpiredWorkspace(null)} 
+      />
+    );
+  }
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
