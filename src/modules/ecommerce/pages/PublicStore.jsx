@@ -402,22 +402,77 @@ export default function PublicStore() {
   const [storeRatingAvg, setStoreRatingAvg] = useState(0);
   const [storeReviewsList, setStoreReviewsList] = useState([]);
   const [storeNews, setStoreNews] = useState([]);
-  const merchantStatuses = useMemo(() => {
+  // Estados y Promociones Permanentes (Fijos en la barra superior "Estados y Promociones")
+  const permanentStatuses = useMemo(() => {
     const storeAvatar = config?.logoUrl || config?.storefront?.logoUrl;
     const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
     const storeName = config?.business_name || 'Comercio';
 
-    // Filtrar estrictamente publicaciones marcadas como estado con vigencia máxima de 24 horas (como WhatsApp / Stories)
-    const now = Date.now();
-    const explicitStatuses = (storeNews || []).filter(news => {
+    const items = (storeNews || []).filter(news => {
       if (news.status && news.status !== 'Publicado') return false;
+      const isPermanent = news.is_permanent === true || 
+        (typeof news.title === 'string' && (news.title.startsWith('[ESTADO_PERMANENTE]') || news.title.startsWith('[ESTADO_FIJO]')));
+      const isStatus = news.post_type === 'status' || (typeof news.title === 'string' && news.title.startsWith('[ESTADO'));
+      return isStatus && isPermanent;
+    });
+
+    return items.map((news, idx) => {
+      const cleanTitle = (news.title || '')
+        .replace(/^\[ESTADO_PERMANENTE\]\s*/i, '')
+        .replace(/^\[ESTADO_FIJO\]\s*/i, '')
+        .replace(/^\[ESTADO\]\s*/i, '')
+        .trim();
+      const imagesList = resolvePostImages(news);
+      let rawMedia = imagesList[0] || news.image_url || storeCover || storeAvatar;
+      const isVid = news.media_type === 'video' || (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia));
+
+      return {
+        id: news.id,
+        name: storeName,
+        store_name: storeName,
+        slug: slug,
+        store_slug: slug,
+        avatar: storeAvatar,
+        store_logo: storeAvatar,
+        mediaUrl: rawMedia,
+        media_url: rawMedia,
+        images: imagesList.length > 0 ? imagesList : (rawMedia ? [rawMedia] : []),
+        image_urls: imagesList.length > 0 ? imagesList : (rawMedia ? [rawMedia] : []),
+        video_url: isVid ? rawMedia : null,
+        media_type: isVid ? 'video' : 'image',
+        caption: cleanTitle ? (news.content ? `${cleanTitle}: ${news.content}` : cleanTitle) : news.content,
+        time: 'Permanente',
+        isPermanent: true,
+        is_permanent: true,
+        hoursLeft: null,
+        isVerified: !!config?.is_verified,
+        is_verified: !!config?.is_verified,
+        statusIndex: idx
+      };
+    });
+  }, [storeNews, config, slug]);
+
+  // Estados Efímeros de 24 Horas (Exclusivos para la pestaña "Estados" estilo WhatsApp)
+  const ephemeralStatuses = useMemo(() => {
+    const storeAvatar = config?.logoUrl || config?.storefront?.logoUrl;
+    const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
+    const storeName = config?.business_name || 'Comercio';
+    const now = Date.now();
+
+    const items = (storeNews || []).filter(news => {
+      if (news.status && news.status !== 'Publicado') return false;
+      const isPermanent = news.is_permanent === true || 
+        (typeof news.title === 'string' && (news.title.startsWith('[ESTADO_PERMANENTE]') || news.title.startsWith('[ESTADO_FIJO]')));
+      if (isPermanent) return false;
+
       const isStatus = news.post_type === 'status' || (typeof news.title === 'string' && news.title.startsWith('[ESTADO]'));
       if (!isStatus) return false;
+
       const createdAt = new Date(news.created_at || now).getTime();
       return (now - createdAt) <= (24 * 60 * 60 * 1000);
     });
 
-    const list = explicitStatuses.map((news) => {
+    return items.map((news, idx) => {
       const cleanTitle = (news.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
       const imagesList = resolvePostImages(news);
       let rawMedia = imagesList[0] || news.image_url || storeCover || storeAvatar;
@@ -443,21 +498,58 @@ export default function PublicStore() {
         caption: cleanTitle ? (news.content ? `${cleanTitle}: ${news.content}` : cleanTitle) : news.content,
         time: formatStatusTime(news.created_at),
         hoursLeft,
+        isPermanent: false,
+        is_permanent: false,
         isVerified: !!config?.is_verified,
-        is_verified: !!config?.is_verified
+        is_verified: !!config?.is_verified,
+        statusIndex: idx
       };
     });
-
-    return list;
   }, [storeNews, config, slug]);
 
+  const [activeStatusModalList, setActiveStatusModalList] = useState('permanent'); // 'permanent' | 'ephemeral'
+  const activeStatusesForViewer = useMemo(() => {
+    if (activeStatusModalList === 'ephemeral') {
+      return ephemeralStatuses.length > 0 ? ephemeralStatuses : permanentStatuses;
+    }
+    return permanentStatuses.length > 0 ? permanentStatuses : ephemeralStatuses;
+  }, [activeStatusModalList, permanentStatuses, ephemeralStatuses]);
+
+  // Limpieza automática en segundo plano de estados efímeros de más de 24 horas
+  useEffect(() => {
+    if (!storeNews || storeNews.length === 0) return;
+    const now = Date.now();
+    const expiredEphemeral = storeNews.filter(n => {
+      const isPermanent = n.is_permanent === true || (typeof n.title === 'string' && n.title.startsWith('[ESTADO_PERMANENTE]'));
+      if (isPermanent) return false;
+      const isStatus = n.post_type === 'status' || (typeof n.title === 'string' && n.title.startsWith('[ESTADO]'));
+      if (!isStatus) return false;
+      const createdAt = new Date(n.created_at || now).getTime();
+      return (now - createdAt) > (24 * 60 * 60 * 1000);
+    });
+
+    if (expiredEphemeral.length > 0 && isMerchantOwner) {
+      const expiredIds = expiredEphemeral.map(n => n.id).filter(Boolean);
+      if (expiredIds.length > 0) {
+        supabase
+          .from('ecommerce_store_news')
+          .delete()
+          .in('id', expiredIds)
+          .then(() => {
+            console.log(`Auto-limpieza de estados 24h: eliminados ${expiredIds.length} estados caducados.`);
+          })
+          .catch(err => console.warn('Error en auto-limpieza:', err));
+      }
+    }
+  }, [storeNews, isMerchantOwner]);
+
   const hasActiveStatuses = useMemo(() => {
-    return (merchantStatuses || []).length > 0;
-  }, [merchantStatuses]);
+    return permanentStatuses.length > 0 || ephemeralStatuses.length > 0;
+  }, [permanentStatuses, ephemeralStatuses]);
 
   const latestStatusId = useMemo(() => {
-    return merchantStatuses[0]?.id || slug;
-  }, [merchantStatuses, slug]);
+    return permanentStatuses[0]?.id || ephemeralStatuses[0]?.id || slug;
+  }, [permanentStatuses, ephemeralStatuses, slug]);
 
   const [hasViewedStatus, setHasViewedStatus] = useState(false);
 
@@ -471,20 +563,22 @@ export default function PublicStore() {
     }
   }, [latestStatusId]);
 
-  const markStatusAsViewed = (idx = 0) => {
+  const markStatusAsViewed = (idx = 0, sourceList = 'permanent') => {
+    setActiveStatusModalList(sourceList);
     setActiveStatusIndex(idx);
     setIsStatusViewerOpen(true);
     setHasViewedStatus(true);
     try {
-      const targetStatus = merchantStatuses?.[idx];
+      const targetStatuses = sourceList === 'permanent' ? permanentStatuses : ephemeralStatuses;
+      const targetStatus = targetStatuses?.[idx];
       const targetId = targetStatus?.id || latestStatusId;
       if (targetId) {
         recordPostView(targetId, config?.id || config?.workspace_id, currentCustomer?.id || 'guest');
       }
       const viewed = localStorage.getItem('axon_viewed_statuses');
       const viewedArr = viewed ? JSON.parse(viewed) : [];
-      if (!viewedArr.includes(latestStatusId)) {
-        viewedArr.push(latestStatusId);
+      if (targetId && !viewedArr.includes(targetId)) {
+        viewedArr.push(targetId);
         localStorage.setItem('axon_viewed_statuses', JSON.stringify(viewedArr));
       }
     } catch (e) {
@@ -492,7 +586,7 @@ export default function PublicStore() {
     }
   };
 
-  const [profileSubTab, setProfileSubTab] = useState('info'); // 'info' | 'media'
+  const [profileSubTab, setProfileSubTab] = useState('info'); // 'info' | 'media' | 'statuses'
   const profileTouchStartX = useRef(0);
   const handleProfileTouchStart = (e) => {
     if (e.touches && e.touches[0]) {
@@ -503,10 +597,12 @@ export default function PublicStore() {
     if (e.changedTouches && e.changedTouches[0]) {
       const touchEndX = e.changedTouches[0].clientX;
       const diff = profileTouchStartX.current - touchEndX;
-      if (diff > 50) {
-        setProfileSubTab('media');
-      } else if (diff < -50) {
-        setProfileSubTab('info');
+      const tabs = ['info', 'media', 'statuses'];
+      const curIdx = tabs.indexOf(profileSubTab);
+      if (diff > 50 && curIdx < tabs.length - 1) {
+        setProfileSubTab(tabs[curIdx + 1]);
+      } else if (diff < -50 && curIdx > 0) {
+        setProfileSubTab(tabs[curIdx - 1]);
       }
     }
   };
@@ -521,8 +617,9 @@ export default function PublicStore() {
   const merchantVideos = useMemo(() => {
     const list = [];
     const seenUrls = new Set();
+    const allStatuses = [...permanentStatuses, ...ephemeralStatuses];
 
-    (merchantStatuses || []).forEach((st, idx) => {
+    allStatuses.forEach((st, idx) => {
       const isVid = st.media_type === 'video' || (typeof st.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(st.mediaUrl));
       if (!isVid) return; // Exclusivo videos reales
       const url = st.video_url || st.mediaUrl;
@@ -2787,19 +2884,22 @@ export default function PublicStore() {
             {/* Profile Content Container (Estados y Sub-Pestañas Inteligentes) */}
             <div className="relative z-10 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col pt-3">
 
-              {/* Sección de Estados del Comercio (Estilo WhatsApp / Stories Cards con vigencia 24h) */}
-              {(merchantStatuses.length > 0 || isMerchantOwner) && (
+              {/* Sección de Estados Permanentes del Comercio (Carrusel Superior "Estados y Promociones") */}
+              {(permanentStatuses.length > 0 || isMerchantOwner) && (
                 <div className="mt-5 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
                   <div className="flex items-center justify-between mb-3 px-1">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: primaryColor }}></span>
                       <h3 className="text-xs font-black tracking-wider uppercase text-slate-900 flex items-center gap-1.5" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                         <span>Estados y Promociones</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border" style={{ color: primaryColor, borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}12` }}>
+                          Destacados
+                        </span>
                       </h3>
                     </div>
                     {isMerchantOwner && (
                       <button
-                        onClick={() => navigate('/social-feed?type=status&create=true')}
+                        onClick={() => navigate('/social-feed?type=status&permanent=true&create=true')}
                         className="text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer hover:opacity-85"
                         style={{ color: primaryColor, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
                       >
@@ -2810,12 +2910,12 @@ export default function PublicStore() {
                   </div>
 
                   <div className="flex overflow-x-auto gap-3 py-1 px-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                    {merchantStatuses.map((status, idx) => (
+                    {permanentStatuses.map((status, idx) => (
                       <div 
                         key={status.id || idx}
-                        onClick={() => markStatusAsViewed(idx)}
+                        onClick={() => markStatusAsViewed(idx, 'permanent')}
                         className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
-                        title={`Ver estado: ${status.caption || status.name}`}
+                        title={`Ver estado permanente: ${status.caption || status.name}`}
                       >
                         {/* Imagen o Video de fondo / Preview del Estado */}
                         {(status.media_type === 'video' || (typeof status.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(status.mediaUrl))) ? (
@@ -2842,7 +2942,7 @@ export default function PublicStore() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
 
                         {/* Avatar del comerciante en la esquina superior izquierda */}
-                        <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
+                        <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] shadow-md" style={{ background: `linear-gradient(135deg, ${primaryColor}, #f59e0b)` }}>
                           <div className="w-full h-full rounded-full bg-white overflow-hidden">
                             {status.avatar ? (
                               <img 
@@ -2851,7 +2951,7 @@ export default function PublicStore() {
                                 className="w-full h-full object-cover" 
                               />
                             ) : (
-                              <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
+                              <div className="w-full h-full flex items-center justify-center font-bold text-[10px]" style={{ color: primaryColor }}>
                                 <Store size={14} />
                               </div>
                             )}
@@ -2860,59 +2960,58 @@ export default function PublicStore() {
 
                         {/* Icono de Play en la esquina superior derecha */}
                         <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
-                          <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
+                          <Play size={10} fill="currentColor" className="translate-x-[0.5px]" style={{ color: primaryColor }} />
                         </div>
 
-                        {/* Contenido / Título y horas restantes */}
+                        {/* Contenido / Título y etiqueta de permanente */}
                         <div className="absolute bottom-2 left-2 right-2 flex flex-col">
                           <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
                             {status.caption || status.name}
                           </span>
-                          <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs flex items-center gap-1">
-                            <span>{status.time || 'Hoy'}</span>
-                            <span className="text-zinc-400">·</span>
-                            <span>{status.hoursLeft || 24}h</span>
+                          <span className="text-[9px] font-bold drop-shadow-xs flex items-center gap-1 mt-0.5" style={{ color: primaryColor }}>
+                            <span>📌 Destacado</span>
                           </span>
                         </div>
                       </div>
                     ))}
 
-                    {merchantStatuses.length === 0 && isMerchantOwner && (
+                    {permanentStatuses.length === 0 && isMerchantOwner && (
                       <div 
-                        onClick={() => navigate('/social-feed?type=status&create=true')}
-                        className="w-28 h-36 sm:h-40 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shrink-0 p-3 text-center group"
+                        onClick={() => navigate('/social-feed?type=status&permanent=true&create=true')}
+                        className="w-28 h-36 sm:h-40 rounded-2xl border-2 border-dashed border-slate-300 hover:border-orange-500 bg-slate-50 hover:bg-orange-50/40 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shrink-0 p-3 text-center group"
                       >
-                        <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <div className="w-10 h-10 rounded-full text-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform" style={{ backgroundColor: primaryColor }}>
                           <Plus size={20} strokeWidth={2.5} />
                         </div>
-                        <span className="text-xs font-bold text-slate-700">Subir Estado</span>
-                        <span className="text-[10px] text-slate-400 leading-tight">Dura 24 horas</span>
+                        <span className="text-xs font-bold text-slate-700">Fijar Promo</span>
+                        <span className="text-[10px] text-slate-400 leading-tight">Permanente</span>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* SUB-PESTAÑAS INTELIGENTES: 2 ÍCONOS (Información vs Multimedia / Videos) */}
+              {/* SUB-PESTAÑAS INTELIGENTES: 3 ÍCONOS (Información vs Videos vs Estados 24h) */}
               <div className="mt-5 border-b border-slate-200 bg-white rounded-t-2xl shadow-xs overflow-hidden">
-                <div className="grid grid-cols-2 max-w-[420px] mx-auto">
+                <div className="grid grid-cols-3 max-w-[480px] mx-auto">
                   {/* Ícono 1: Información del Comerciante */}
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('info')}
-                    className={`py-3.5 flex items-center justify-center gap-2 relative transition-all cursor-pointer ${
+                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
                       profileSubTab === 'info' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                     title="Información del Comerciante"
                   >
                     <div className="flex items-center gap-1.5">
-                      <Info size={18} className="stroke-[2.4]" />
-                      <span className="text-xs uppercase tracking-wider font-extrabold">Información</span>
+                      <Info size={16} className="stroke-[2.4]" />
+                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Información</span>
                     </div>
                     {profileSubTab === 'info' && (
                       <motion.div 
                         layoutId="profileSubTabIndicator"
-                        className="absolute bottom-0 left-6 right-6 h-[2.5px] bg-slate-900 rounded-full" 
+                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        style={{ backgroundColor: primaryColor }}
                       />
                     )}
                   </button>
@@ -2921,19 +3020,45 @@ export default function PublicStore() {
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('media')}
-                    className={`py-3.5 flex items-center justify-center gap-2 relative transition-all cursor-pointer ${
+                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
                       profileSubTab === 'media' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                     title="Multimedia y Videos"
                   >
                     <div className="flex items-center gap-1.5">
-                      <Film size={18} className="stroke-[2.4]" />
-                      <span className="text-xs uppercase tracking-wider font-extrabold">Videos</span>
+                      <Film size={16} className="stroke-[2.4]" />
+                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Videos</span>
                     </div>
                     {profileSubTab === 'media' && (
                       <motion.div 
                         layoutId="profileSubTabIndicator"
-                        className="absolute bottom-0 left-6 right-6 h-[2.5px] bg-slate-900 rounded-full" 
+                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        style={{ backgroundColor: primaryColor }}
+                      />
+                    )}
+                  </button>
+
+                  {/* Ícono 3: Estados de 24 Horas WhatsApp Style */}
+                  <button
+                    type="button"
+                    onClick={() => setProfileSubTab('statuses')}
+                    className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
+                      profileSubTab === 'statuses' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                    title="Estados de 24 Horas"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={16} className="stroke-[2.4]" />
+                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Estados</span>
+                      {ephemeralStatuses.length > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      )}
+                    </div>
+                    {profileSubTab === 'statuses' && (
+                      <motion.div 
+                        layoutId="profileSubTabIndicator"
+                        className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full" 
+                        style={{ backgroundColor: primaryColor }}
                       />
                     )}
                   </button>
@@ -2946,12 +3071,13 @@ export default function PublicStore() {
                 onTouchEnd={handleProfileTouchEnd}
                 className="transition-all"
               >
-                {profileSubTab === 'info' ? (
+                {/* PESTAÑA 1: INFORMACIÓN */}
+                {profileSubTab === 'info' && (
                   <div className="space-y-4 pt-3 pb-8">
                     {/* Información */}
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                       <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
-                        <Building2 size={18} className="text-orange-600" />
+                        <Building2 size={18} style={{ color: primaryColor }} />
                         <span>Información</span>
                       </h2>
                       <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
@@ -2963,14 +3089,15 @@ export default function PublicStore() {
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                       <div className="flex justify-between items-center mb-3">
                         <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                          <Clock size={18} className="text-orange-600 shrink-0" />
+                          <Clock size={18} style={{ color: primaryColor }} className="shrink-0" />
                           <span>¿A qué hora abrimos?</span>
                         </h2>
                         {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
                           <button 
                             type="button"
                             onClick={() => setShowFullSchedule(!showFullSchedule)}
-                            className="text-xs font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
+                            className="text-xs font-bold transition-colors cursor-pointer px-2.5 py-1 rounded-lg"
+                            style={{ color: primaryColor, backgroundColor: `${primaryColor}14` }}
                           >
                             {showFullSchedule ? 'Ocultar' : 'Ver todo'}
                           </button>
@@ -3018,29 +3145,28 @@ export default function PublicStore() {
                                   key={day} 
                                   className={`flex justify-between items-center px-3 py-2 rounded-xl transition-colors ${
                                     isToday 
-                                      ? 'bg-orange-50 border border-orange-200' 
+                                      ? 'border' 
                                       : 'border-b border-slate-200/50 last:border-0 hover:bg-white'
                                   }`}
+                                  style={isToday ? { borderColor: `${primaryColor}40`, backgroundColor: `${primaryColor}0d` } : {}}
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className={`capitalize text-xs sm:text-sm ${
                                       isToday 
-                                        ? 'font-bold text-orange-900' 
+                                        ? 'font-bold' 
                                         : 'font-medium text-slate-700'
-                                    }`}>
+                                    }`} style={isToday ? { color: primaryColor } : {}}>
                                       {day}
                                     </span>
                                     {isToday && (
-                                      <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-orange-500 text-white leading-none">
+                                      <span className="text-[10px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md text-white leading-none shadow-xs" style={{ backgroundColor: primaryColor }}>
                                         Hoy
                                       </span>
                                     )}
                                   </div>
                                   <span className="tracking-wide">
                                     {isOpen ? (
-                                      <span className={`text-xs sm:text-sm font-bold ${
-                                        isToday ? 'text-orange-950' : 'text-slate-900'
-                                      }`}>
+                                      <span className="text-xs sm:text-sm font-bold text-slate-900">
                                         {sched.openTime || '08:00'} - {sched.closeTime || '18:00'}
                                       </span>
                                     ) : (
@@ -3061,7 +3187,7 @@ export default function PublicStore() {
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
                       <div className="flex justify-between items-center mb-3">
                         <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-                          <MapPin size={18} className="text-orange-600 shrink-0" />
+                          <MapPin size={18} style={{ color: primaryColor }} className="shrink-0" />
                           <span>Encuéntranos en</span>
                         </h2>
                         <button 
@@ -3072,7 +3198,8 @@ export default function PublicStore() {
                             const addr = config?.address || config?.location?.address || config?.expediente?.address || config?.business_name || 'Venezuela';
                             window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat && lng ? `${lat},${lng}` : addr)}`);
                           }} 
-                          className="text-xs sm:text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors cursor-pointer px-2.5 py-1 rounded-lg hover:bg-orange-50"
+                          className="text-xs sm:text-sm font-bold transition-colors cursor-pointer px-2.5 py-1 rounded-lg"
+                          style={{ color: primaryColor, backgroundColor: `${primaryColor}14` }}
                         >
                           Abrir en Maps
                         </button>
@@ -3118,8 +3245,8 @@ export default function PublicStore() {
                                 {config?.logoUrl ? (
                                   <img src={resolveImageUrl(config.logoUrl)} alt="Store" className="w-full h-full object-cover" />
                                 ) : (
-                                  <div className="w-full h-full bg-orange-500 flex items-center justify-center">
-                                    <Store size={16} className="text-white" />
+                                  <div className="w-full h-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
+                                    <Store size={16} />
                                   </div>
                                 )}
                               </div>
@@ -3142,15 +3269,17 @@ export default function PublicStore() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  /* PESTAÑA MULTIMEDIA / VIDEOS: Cuadrícula Vertical de 3 Columnas (Estilo TikTok / Reels - Imagen 2) */
+                )}
+
+                {/* PESTAÑA 2: MULTIMEDIA / VIDEOS */}
+                {profileSubTab === 'media' && (
                   <div className="pt-3 pb-8">
                     {merchantVideos.length > 0 ? (
                       <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
                         {merchantVideos.map((item, idx) => (
                           <div
                             key={item.id || idx}
-                            onClick={() => markStatusAsViewed(item.statusIndex)}
+                            onClick={() => markStatusAsViewed(item.statusIndex, 'permanent')}
                             className="relative aspect-[9/16] rounded-xl overflow-hidden bg-zinc-900 group cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 transition-all select-none"
                             title={item.caption || 'Ver video'}
                           >
@@ -3195,8 +3324,11 @@ export default function PublicStore() {
                       </div>
                     ) : (
                       <div className="text-center py-12 px-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
-                        <div className="w-14 h-14 mx-auto rounded-full bg-orange-50 text-orange-600 flex items-center justify-center mb-3">
-                          <Play size={24} className="fill-orange-500 translate-x-0.5" />
+                        <div 
+                          className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+                          style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                        >
+                          <Play size={24} style={{ fill: primaryColor }} className="translate-x-0.5" />
                         </div>
                         <h4 className="text-base font-bold text-slate-800">No hay videos publicados aún</h4>
                         <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
@@ -3205,10 +3337,92 @@ export default function PublicStore() {
                         {isMerchantOwner && (
                           <button
                             onClick={() => navigate('/social-feed?type=status&create=true')}
-                            className="mt-4 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer"
+                            className="mt-4 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-95"
+                            style={{ backgroundColor: primaryColor }}
                           >
                             <Plus size={14} />
                             <span>Publicar nuevo video</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* PESTAÑA 3: ESTADOS EFÍMEROS DE 24 HORAS (WHATSAPP STYLE) */}
+                {profileSubTab === 'statuses' && (
+                  <div className="pt-3 pb-8">
+                    {ephemeralStatuses.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3.5">
+                        {ephemeralStatuses.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            onClick={() => markStatusAsViewed(idx, 'ephemeral')}
+                            className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-zinc-900 group cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-98 select-none border border-slate-200/80"
+                            title={item.caption || 'Ver estado'}
+                          >
+                            {item.isVideo ? (
+                              <video 
+                                src={resolveImageUrl(item.mediaUrl)} 
+                                muted 
+                                playsInline 
+                                loop 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                              />
+                            ) : (
+                              <img 
+                                src={resolveImageUrl(item.mediaUrl)} 
+                                alt={item.caption || ''} 
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40 pointer-events-none" />
+
+                            {/* Badge de Tiempo Restante WhatsApp Style */}
+                            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded-full border border-white/20 text-[10px] font-bold text-white shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              <span>Expira en {item.hoursLeft || 24}h</span>
+                            </div>
+
+                            {/* Multi-foto indicator */}
+                            {item.images && item.images.length > 1 && (
+                              <div className="absolute top-2.5 right-2.5 z-10 bg-black/60 px-1.5 py-0.5 rounded-md border border-white/20 text-[9px] font-black text-white">
+                                1/{item.images.length}
+                              </div>
+                            )}
+
+                            {/* Pie de foto / Título */}
+                            <div className="absolute inset-x-0 bottom-0 p-3 z-10 flex flex-col justify-end">
+                              <p className="text-white text-xs font-bold line-clamp-2 drop-shadow-sm leading-snug">
+                                {item.caption}
+                              </p>
+                              <span className="text-[10px] text-zinc-300 font-medium mt-1">
+                                {item.time}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 px-4 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+                        <div 
+                          className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
+                          style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                        >
+                          <Clock size={24} className="stroke-[2.2]" />
+                        </div>
+                        <h4 className="text-base font-bold text-slate-800">No hay estados de 24 horas activos</h4>
+                        <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
+                          Los estados de 24 horas son efímeros y desaparecen automáticamente como en WhatsApp.
+                        </p>
+                        {isMerchantOwner && (
+                          <button
+                            onClick={() => navigate('/social-feed?type=status&create=true')}
+                            className="mt-4 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-95"
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            <Plus size={14} />
+                            <span>Publicar estado de 24 horas</span>
                           </button>
                         )}
                       </div>
@@ -3669,7 +3883,7 @@ export default function PublicStore() {
       <MerchantStatusViewerModal
         isOpen={isStatusViewerOpen}
         onClose={() => setIsStatusViewerOpen(false)}
-        statuses={merchantStatuses}
+        statuses={activeStatusesForViewer}
         initialIndex={activeStatusIndex}
         primaryColor={primaryColor}
         workspaceId={config?.id || config?.workspace_id}

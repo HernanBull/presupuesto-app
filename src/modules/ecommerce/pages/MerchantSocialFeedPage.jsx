@@ -83,7 +83,8 @@ export default function MerchantSocialFeedPage() {
     media_type: 'image',
     status: 'Publicado',
     badge: '🔥 Oferta Exclusiva',
-    post_type: 'post' // 'post' o 'status'
+    post_type: 'post', // 'post' o 'status'
+    is_permanent: false
   });
 
   const workspaceId = localStorage.getItem('activeWorkspace');
@@ -433,18 +434,24 @@ export default function MerchantSocialFeedPage() {
   useEffect(() => {
     const shouldCreate = searchParams.get('create') === 'true';
     const reqType = searchParams.get('type') || 'post';
+    const reqPermanent = searchParams.get('permanent') === 'true';
     if (shouldCreate) {
-      handleOpenModal(null, reqType);
+      handleOpenModal(null, reqType, reqPermanent);
       setSearchParams({}, { replace: true });
     }
   }, [searchParams]);
 
-  const handleOpenModal = (newsItem = null, defaultType = 'post') => {
+  const handleOpenModal = (newsItem = null, defaultType = 'post', defaultPermanent = false) => {
     setPreviewPhotoIndex(0);
     if (newsItem) {
       const isVid = newsItem.media_type === 'video' || (newsItem.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(newsItem.image_url));
-      const isStatus = newsItem.post_type === 'status' || (newsItem.title && newsItem.title.startsWith('[ESTADO]'));
-      const cleanTitle = (newsItem.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
+      const isPermanent = newsItem.is_permanent === true || (typeof newsItem.title === 'string' && (newsItem.title.startsWith('[ESTADO_PERMANENTE]') || newsItem.title.startsWith('[ESTADO_FIJO]')));
+      const isStatus = newsItem.post_type === 'status' || (newsItem.title && newsItem.title.startsWith('[ESTADO'));
+      const cleanTitle = (newsItem.title || '')
+        .replace(/^\[ESTADO_PERMANENTE\]\s*/i, '')
+        .replace(/^\[ESTADO_FIJO\]\s*/i, '')
+        .replace(/^\[ESTADO\]\s*/i, '')
+        .trim();
       const existingImages = resolvePostImages(newsItem);
 
       setFormData({
@@ -456,7 +463,8 @@ export default function MerchantSocialFeedPage() {
         media_type: isVid ? 'video' : 'image',
         status: newsItem.status || 'Publicado',
         badge: newsItem.badge || '🔥 Oferta Exclusiva',
-        post_type: isStatus ? 'status' : 'post'
+        post_type: isStatus ? 'status' : 'post',
+        is_permanent: isPermanent
       });
     } else {
       setFormData({
@@ -468,7 +476,8 @@ export default function MerchantSocialFeedPage() {
         media_type: 'image',
         status: 'Publicado',
         badge: '🔥 Oferta Exclusiva',
-        post_type: defaultType
+        post_type: defaultType,
+        is_permanent: defaultPermanent
       });
     }
     setIsModalOpen(true);
@@ -489,8 +498,14 @@ export default function MerchantSocialFeedPage() {
     try {
       const isVideo = Boolean(formData.media_type === 'video' || (formData.image_url && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(formData.image_url)));
       const isStatus = formData.post_type === 'status';
-      const cleanTitle = formData.title.trim().replace(/^\[ESTADO\]\s*/i, '');
-      const finalTitle = isStatus ? `[ESTADO] ${cleanTitle}` : cleanTitle;
+      const isPermanent = Boolean(formData.is_permanent);
+      const cleanTitle = formData.title.trim()
+        .replace(/^\[ESTADO_PERMANENTE\]\s*/i, '')
+        .replace(/^\[ESTADO_FIJO\]\s*/i, '')
+        .replace(/^\[ESTADO\]\s*/i, '');
+      const finalTitle = isStatus 
+        ? (isPermanent ? `[ESTADO_PERMANENTE] ${cleanTitle}` : `[ESTADO] ${cleanTitle}`)
+        : cleanTitle;
 
       const finalImages = (formData.images || []).filter(Boolean);
       let finalImageUrl = null;
@@ -509,7 +524,8 @@ export default function MerchantSocialFeedPage() {
         image_url: finalImageUrl,
         media_type: isVideo ? 'video' : 'image',
         status: formData.status || 'Publicado',
-        post_type: isStatus ? 'status' : 'post'
+        post_type: isStatus ? 'status' : 'post',
+        is_permanent: isStatus ? isPermanent : false
       };
 
       let opError = null;
@@ -524,6 +540,18 @@ export default function MerchantSocialFeedPage() {
           .from('ecommerce_store_news')
           .insert([payload]);
         opError = error;
+      }
+
+      // Si falla por columna is_permanent inexistente en BD, reintentar sin ella
+      if (opError && opError.message?.toLowerCase().includes('is_permanent')) {
+        delete payload.is_permanent;
+        if (formData.id) {
+          const { error } = await supabase.from('ecommerce_store_news').update(payload).eq('id', formData.id);
+          opError = error;
+        } else {
+          const { error } = await supabase.from('ecommerce_store_news').insert([payload]);
+          opError = error;
+        }
       }
 
       // Si falla por columna post_type inexistente en BD, reintentar sin ella
@@ -554,8 +582,8 @@ export default function MerchantSocialFeedPage() {
 
       toast.success(
         formData.id 
-          ? (isStatus ? 'Estado de vitrina actualizado' : 'Publicación actualizada en el feed') 
-          : (isStatus ? '¡Estado publicado en tu vitrina exitosamente!' : '¡Publicado en Axon Market exitosamente!')
+          ? (isStatus ? (isPermanent ? 'Estado permanente actualizado' : 'Estado de 24h actualizado') : 'Publicación actualizada en el feed') 
+          : (isStatus ? (isPermanent ? '¡Estado permanente fijado en tu vitrina!' : '¡Estado publicado con vigencia de 24 horas!') : '¡Publicado en Axon Market exitosamente!')
       );
 
       // Notificar al feed global para actualización instantánea
@@ -1142,7 +1170,7 @@ export default function MerchantSocialFeedPage() {
                   <div className="text-[11px] px-1">
                     {formData.post_type === 'status' ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                        🟢 Se publicará como Estado de Vitrina con vigencia de 24 horas (estilo WhatsApp Stories) y soporte multi-foto.
+                        🟢 Se publicará en tu Vitrina comercial con soporte multi-foto y video.
                       </span>
                     ) : (
                       <span className="text-amber-600 dark:text-amber-400 font-medium">
@@ -1151,6 +1179,50 @@ export default function MerchantSocialFeedPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Modalidad de Estado: 24 Horas Efímero vs Permanente Destacado */}
+                {formData.post_type === 'status' && (
+                  <div className="space-y-2 p-3 bg-emerald-50/50 dark:bg-zinc-800/60 rounded-2xl border border-emerald-500/20">
+                    <label className="block text-[11px] font-black text-gray-800 dark:text-zinc-200 uppercase tracking-wider">
+                      Modalidad y Duración del Estado:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, is_permanent: false }))}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          !formData.is_permanent
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-md ring-2 ring-emerald-500/30'
+                            : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-700 hover:border-emerald-400'
+                        }`}
+                      >
+                        <div className="font-bold text-xs flex items-center gap-1.5">
+                          <span>⏳ 24 Horas (WhatsApp)</span>
+                        </div>
+                        <p className={`text-[10px] mt-1 leading-snug ${!formData.is_permanent ? 'text-emerald-100' : 'text-gray-500 dark:text-zinc-400'}`}>
+                          Desaparece automáticamente a las 24h. Se muestra en la pestaña "Estados".
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, is_permanent: true }))}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          formData.is_permanent
+                            ? 'bg-orange-600 text-white border-orange-500 shadow-md ring-2 ring-orange-500/30'
+                            : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-700 hover:border-orange-400'
+                        }`}
+                      >
+                        <div className="font-bold text-xs flex items-center gap-1.5">
+                          <span>📌 Permanente Fijo</span>
+                        </div>
+                        <p className={`text-[10px] mt-1 leading-snug ${formData.is_permanent ? 'text-orange-100' : 'text-gray-500 dark:text-zinc-400'}`}>
+                          No se borra. Se muestra arriba en "Estados y Promociones".
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Título */}
                 <div>

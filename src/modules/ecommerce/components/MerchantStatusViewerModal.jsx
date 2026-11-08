@@ -356,8 +356,15 @@ export default function MerchantStatusViewerModal({
                 <Clock size={11} className="text-emerald-400" />
                 <span>{currentStatus.time || 'Hace unos momentos'}</span>
                 <span className="text-zinc-400">·</span>
-                <span className="text-amber-400 font-bold text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded-full border border-amber-500/30">
-                  Expira en {currentStatus.hoursLeft || 24}h
+                <span 
+                  className="font-bold text-[10px] px-2 py-0.5 rounded-full border shadow-xs"
+                  style={{
+                    backgroundColor: currentStatus.isPermanent ? `${primaryColor}25` : 'rgba(16, 185, 129, 0.2)',
+                    borderColor: currentStatus.isPermanent ? `${primaryColor}60` : 'rgba(16, 185, 129, 0.4)',
+                    color: currentStatus.isPermanent ? '#ffffff' : '#34d399'
+                  }}
+                >
+                  {currentStatus.isPermanent ? '📌 Destacado permanente' : `Expira en ${currentStatus.hoursLeft || 24}h`}
                 </span>
                 <span className="text-zinc-400">·</span>
                 <div className="flex items-center gap-1 text-zinc-100 font-bold bg-black/40 px-2 py-0.5 rounded-full border border-white/15">
