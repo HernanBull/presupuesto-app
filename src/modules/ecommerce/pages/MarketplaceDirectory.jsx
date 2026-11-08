@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play, LayoutDashboard } from 'lucide-react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
+import { FileText, Cookie, Scale, FileBadge2, Shield, ShoppingBag, Search, Star, ArrowRight, TrendingUp, ShoppingCart, Store, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, User, X, Package, Heart, Loader2, Zap, Lock, Utensils, ShoppingBasket, Apple, ShieldAlert, Shirt, Car, Settings, Wrench, Smartphone, Home, Sparkles, Coffee, Eye, EyeOff, MapPin, MessageSquare, CheckCircle, ShieldCheck, Menu, Bell, MoreHorizontal, MoreVertical, MessageCircle, Send, Bookmark, Camera, Image as ImageIcon, UploadCloud, Trash2, Flame, Gift, Tag, Play, LayoutDashboard, LogOut } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -1701,13 +1702,51 @@ export default function MarketplaceDirectory() {
     navigate(`/${targetSlug}`);
   };
 
-  // Restaurar posición de scroll y tarjeta exacta al volver de una vitrina de comerciante
-  useEffect(() => {
+  // Cierre de sesión de comerciante limpio y sin complicaciones
+  const handleMerchantLogout = () => {
+    localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('storeSlug');
+    localStorage.removeItem('workspace_id');
+    localStorage.removeItem('currentWorkspaceId');
+    localStorage.removeItem('merchant_token');
+    sessionStorage.removeItem('axon_directory_visible_count');
+    sessionStorage.removeItem('axon_feed_target_post_id');
+    sessionStorage.removeItem('axon_feed_target_index');
+    setCurrentMerchant(null);
+    setIsMobileMenuOpen(false);
+    toast.success('Sesión de comerciante cerrada');
+    setTimeout(() => {
+      window.location.reload();
+    }, 250);
+  };
+
+  // Cierre de sesión de cliente
+  const handleCustomerLogout = () => {
+    localStorage.removeItem('ecommerce_current_customer');
+    setCurrentCustomer(null);
+    setIsMobileMenuOpen(false);
+    toast.success('Sesión de cliente cerrada');
+    window.dispatchEvent(new CustomEvent('customer_updated', { detail: null }));
+  };
+
+  // Estado para prevenir el flasheo de la primera publicación al restaurar scroll
+  const [isRestoringScroll, setIsRestoringScroll] = useState(() => {
+    return Boolean(
+      sessionStorage.getItem('axon_feed_target_post_id') || 
+      sessionStorage.getItem('axon_directory_scroll_top')
+    );
+  });
+
+  // Restaurar posición de scroll y tarjeta exacta al volver de una vitrina de comerciante (Cero Flasheo)
+  useLayoutEffect(() => {
     const savedTargetPostId = sessionStorage.getItem('axon_feed_target_post_id');
     const savedTargetIndex = sessionStorage.getItem('axon_feed_target_index');
     const savedScroll = sessionStorage.getItem('axon_directory_scroll_top');
 
-    if (!savedTargetPostId && !savedScroll) return;
+    if (!savedTargetPostId && !savedScroll) {
+      if (isRestoringScroll) setIsRestoringScroll(false);
+      return;
+    }
     if (feedPosts.length === 0) return;
 
     if (savedTargetIndex) {
@@ -1718,38 +1757,58 @@ export default function MarketplaceDirectory() {
       }
     }
 
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
+    const c = mainContainerRef.current;
+    const performScroll = () => {
       const targetCard = savedTargetPostId ? document.getElementById(`post-${savedTargetPostId}`) : null;
-      const c = mainContainerRef.current;
-
       if (targetCard) {
         targetCard.scrollIntoView({ behavior: 'instant', block: 'start' });
-        clearInterval(interval);
         if (savedTargetIndex && parseInt(savedTargetIndex, 10) > 0) {
           isNavOpenRef.current = false;
           setIsBottomNavOpen(false);
         }
+        setIsRestoringScroll(false);
+        return true;
       } else if (c && savedScroll) {
         const top = parseInt(savedScroll, 10);
-        if (!isNaN(top) && c.scrollHeight > top) {
+        if (!isNaN(top) && (c.scrollHeight > top || c.scrollHeight > 400)) {
           c.scrollTop = top;
-          clearInterval(interval);
           if (top > 30) {
             isNavOpenRef.current = false;
             setIsBottomNavOpen(false);
           }
+          setIsRestoringScroll(false);
+          return true;
         }
       }
+      return false;
+    };
 
-      if (attempts >= 15) {
-        clearInterval(interval);
+    // Intento inmediato antes de renderizar la primera pintura
+    if (performScroll()) return;
+
+    // Sincronizar en animation frame
+    let rafId;
+    let attempts = 0;
+    const attemptScroll = () => {
+      attempts++;
+      if (performScroll() || attempts >= 10) {
+        setIsRestoringScroll(false);
+      } else {
+        rafId = requestAnimationFrame(attemptScroll);
       }
-    }, 50);
+    };
+    rafId = requestAnimationFrame(attemptScroll);
 
-    return () => clearInterval(interval);
-  }, [feedPosts.length, visibleFeedCount]);
+    // Timeout de seguridad máximo para asegurar visibilidad bajo cualquier circunstancia
+    const safetyTimer = setTimeout(() => {
+      setIsRestoringScroll(false);
+    }, 350);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout(safetyTimer);
+    };
+  }, [feedPosts.length, visibleFeedCount, isRestoringScroll]);
 
   // Manejo de scroll para ocultamiento de barras y carga progresiva
   const handleScroll = () => {
@@ -2084,7 +2143,7 @@ export default function MarketplaceDirectory() {
       <div 
         ref={mainContainerRef} 
         onScroll={handleScroll}
-        className="marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none"
+        className={`marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none transition-opacity duration-150 ${isRestoringScroll ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none', overscrollBehaviorY: 'none' }}
       >
         {/* Feed Principal de Publicaciones (Carga Progresiva Uno a Uno sin Saturación) */}
@@ -3323,6 +3382,7 @@ export default function MarketplaceDirectory() {
                       <span className="text-[9px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full">Activo</span>
                     </div>
                     <button
+                      type="button"
                       onClick={() => { setIsMobileMenuOpen(false); navigate('/dashboard'); }}
                       className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white font-black text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                     >
@@ -3332,26 +3392,68 @@ export default function MarketplaceDirectory() {
                       </div>
                       <ChevronRight size={16} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={handleMerchantLogout}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+                    >
+                      <LogOut size={14} />
+                      <span>Cerrar Sesión de Tienda</span>
+                    </button>
                   </div>
                 )}
 
-                {currentCustomer && (
-                  <div 
-                    onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
-                    className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200/80 rounded-2xl cursor-pointer hover:bg-amber-100/50 transition-colors"
+                {/* Acceso para Iniciar Sesión como Cliente (cuando no hay cliente iniciado) */}
+                {!currentCustomer && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setAuthMode('login');
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full flex items-center justify-between p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all"
                   >
-                    {currentCustomer.profile_pic ? (
-                      <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-10 h-10 rounded-full object-cover border-2 border-amber-500" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-amber-300">
-                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">
+                        <User size={15} />
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{currentCustomer.name || 'Mi Perfil'}</p>
-                      <p className="text-xs text-amber-700 truncate">@{currentCustomer.email?.split('@')[0] || 'cliente'}</p>
+                      <div className="flex flex-col text-left">
+                        <span className="font-bold text-xs text-slate-900">Iniciar sesión como Cliente</span>
+                        <span className="text-[10px] text-amber-700">Para compras, favoritos y pedidos</span>
+                      </div>
                     </div>
-                    <ChevronRight size={16} className="text-amber-600 shrink-0" />
+                    <ChevronRight size={16} className="text-amber-600" />
+                  </button>
+                )}
+
+                {currentCustomer && (
+                  <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex flex-col gap-2">
+                    <div 
+                      onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
+                      className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      {currentCustomer.profile_pic ? (
+                        <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-10 h-10 rounded-full object-cover border-2 border-amber-500" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-950 font-black text-sm flex items-center justify-center border-2 border-amber-300">
+                          {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{currentCustomer.name || 'Mi Perfil'}</p>
+                        <p className="text-xs text-amber-700 truncate">@{currentCustomer.email?.split('@')[0] || 'cliente'}</p>
+                      </div>
+                      <ChevronRight size={16} className="text-amber-600 shrink-0" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCustomerLogout}
+                      className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-600 font-bold text-[11px] active:scale-95 transition-all cursor-pointer"
+                    >
+                      <LogOut size={13} />
+                      <span>Cerrar Sesión de Cliente</span>
+                    </button>
                   </div>
                 )}
                 
@@ -3438,7 +3540,34 @@ export default function MarketplaceDirectory() {
 
                 </div>
               </div>
-              <div className="p-5 border-t border-zinc-200 bg-white">
+              {/* Botón de cierre de sesión al final del menú sin complicaciones */}
+              <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex flex-col gap-2">
+                {hasMerchantAccess && (
+                  <button
+                    type="button"
+                    onClick={handleMerchantLogout}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    <LogOut size={15} />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                )}
+                {!currentCustomer && !hasMerchantAccess && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setAuthMode('login');
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    <User size={15} />
+                    <span>Iniciar Sesión como Cliente</span>
+                  </button>
+                )}
+              </div>
+              <div className="p-4 border-t border-zinc-200 bg-white">
                 <p className="text-[10px] text-zinc-400 text-center font-medium">
                   © 2026 AxonMarket. Todos los derechos reservados.
                 </p>

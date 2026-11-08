@@ -145,6 +145,19 @@ export default function PublicStore() {
   const [followersCount, setFollowersCount] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
 
+  // Modo Administrador y Comerciante Visitante (Exploración B2B)
+  const activeMerchantWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
+  const activeMerchantSlug = localStorage.getItem('storeSlug');
+  const isAnyMerchantLoggedIn = Boolean(
+    (activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== 'null' && activeMerchantWs !== 'undefined' && activeMerchantWs.trim() !== '') ||
+    (activeMerchantSlug && activeMerchantSlug !== 'null' && activeMerchantSlug !== 'undefined' && activeMerchantSlug.trim() !== '')
+  );
+  const isMerchantOwner = Boolean(
+    (activeMerchantWs && workspaceId && activeMerchantWs === workspaceId) ||
+    (activeMerchantSlug && slug && activeMerchantSlug.toLowerCase() === slug.toLowerCase())
+  );
+  const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner);
+
   // Personalización del Color de Marca en vivo (exclusivo para el comerciante en su vitrina)
   const [brandColorCustomizerOpen, setBrandColorCustomizerOpen] = useState(false);
   const [liveBrandColor, setLiveBrandColor] = useState(null);
@@ -2066,18 +2079,7 @@ export default function PublicStore() {
   const safeSections = Array.isArray(sections) ? sections : [];
   const isTransparentHeader = headerStyle === 'transparent' && currentPage === 'home' && safeSections[0]?.type === 'hero';
 
-  // Modo Administrador y Comerciante Visitante (Exploración B2B)
-  const activeMerchantWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
-  const activeMerchantSlug = localStorage.getItem('storeSlug');
-  const isAnyMerchantLoggedIn = Boolean(
-    (activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== 'null' && activeMerchantWs !== 'undefined' && activeMerchantWs.trim() !== '') ||
-    (activeMerchantSlug && activeMerchantSlug !== 'null' && activeMerchantSlug !== 'undefined' && activeMerchantSlug.trim() !== '')
-  );
-  const isMerchantOwner = Boolean(
-    (activeMerchantWs && workspaceId && activeMerchantWs === workspaceId) ||
-    (activeMerchantSlug && slug && activeMerchantSlug.toLowerCase() === slug.toLowerCase())
-  );
-  const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner);
+
 
   // Guardar nuevo color de marca en Supabase (solo para el comerciante dueño)
   const handleSaveBrandColor = async (colorToSave) => {
