@@ -1838,15 +1838,28 @@ export default function PublicStore() {
 
   useEffect(() => {
     const fetchStoreData = async () => {
-      const cacheKey = `ecommerce_store_${slug}`;
+      // Función pura para sanitizar el slug de entrada desde cualquier origen o red social
+      const sanitizeSlug = (raw) => {
+        if (!raw) return '';
+        let s = String(raw).trim();
+        try { s = decodeURIComponent(s); } catch(e) {}
+        s = s.replace(/^@+/, '');
+        s = s.replace(/^\/+|\/+$/g, '');
+        return s.trim();
+      };
+
+      const cleanSlug = sanitizeSlug(slug);
+      const cacheKey = `ecommerce_store_${cleanSlug || slug}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          setConfig(parsed.config);
-          setWorkspaceId(parsed.workspaceId);
-          setProducts(parsed.products);
-          setCategories(parsed.categories);
+          if (parsed && parsed.config) {
+            setConfig(parsed.config);
+            setWorkspaceId(parsed.workspaceId);
+            setProducts(parsed.products || []);
+            setCategories(parsed.categories || ['Todas']);
+          }
         } catch(e) {}
       }
 
@@ -1857,79 +1870,72 @@ export default function PublicStore() {
         newsletterTitle: 'Únete a nuestro boletín', newsletterSub: 'Recibe ofertas exclusivas en tu correo.', testimonialsTitle: 'Lo que dicen nuestros clientes'
       };
 
-      try {
-        const targetSlug = (slug || 'tienda-ejemplo').trim();
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetSlug);
-        
-        let storeData = null;
-        let storeError = null;
+      let storeData = null;
 
-        if (isUuid) {
-          const res = await supabase.from('workspaces').select('*').or(`id.eq.${targetSlug},store_slug.ilike.${targetSlug}`).maybeSingle();
-          storeData = res.data;
-          storeError = res.error;
-        } else {
-          const res = await supabase.from('workspaces').select('*').or(`store_slug.ilike.${targetSlug},name.ilike.${targetSlug}`).maybeSingle();
-          storeData = res.data;
-          storeError = res.error;
+      // ═══ RESOLUCIÓN MULTICAPA RESILIENTE DE VITRINA ═══
+      try {
+        const targetSlug = cleanSlug || (slug || 'tienda-ejemplo').trim();
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetSlug);
+
+        // Capa 1: Búsqueda exacta case-insensitive en store_slug
+        const resSlug = await supabase.from('workspaces').select('*').ilike('store_slug', targetSlug).maybeSingle();
+        if (resSlug.data) {
+          storeData = resSlug.data;
         }
 
-        // Resilient fallback: buscar por slug normalizado
+        // Capa 2: Si es UUID, búsqueda directa por id
+        if (!storeData && isUuid) {
+          const resUuid = await supabase.from('workspaces').select('*').eq('id', targetSlug).maybeSingle();
+          if (resUuid.data) {
+            storeData = resUuid.data;
+          }
+        }
+
+        // Capa 3: Búsqueda por nombre de tienda (soporta guiones sustituidos por espacios)
         if (!storeData) {
-          const { data: allWs } = await supabase.from('workspaces').select('*').limit(100);
-          if (allWs) {
-            const cleanTarget = targetSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const nameWithSpaces = targetSlug.replace(/-/g, ' ');
+          const resName = await supabase.from('workspaces').select('*').ilike('name', nameWithSpaces).maybeSingle();
+          if (resName.data) {
+            storeData = resName.data;
+          }
+        }
+
+        // Capa 4: Fallback alfanumérico normalizado sobre comercios
+        if (!storeData) {
+          const alphaClean = targetSlug.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const { data: allWs } = await supabase.from('workspaces').select('*').limit(150);
+          if (allWs && allWs.length > 0) {
             storeData = allWs.find(w => {
               const wsSlug = (w.store_slug || '').toLowerCase().replace(/[^a-z0-9]/g, '');
               const wsName = (w.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-              return w.id === targetSlug || wsSlug === cleanTarget || wsName === cleanTarget;
+              return w.id === targetSlug || wsSlug === alphaClean || wsName === alphaClean;
             }) || null;
           }
         }
 
+        // Si después de todas las capas no existe el comercio en la base de datos
         if (!storeData) {
           const savedStr = localStorage.getItem('storefrontConfig');
           if (savedStr) {
-             const saved = JSON.parse(savedStr);
-             saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
-             setConfig(saved);
-             setWorkspaceId('default_workspace');
-             const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', 'default_workspace');
-             if (!pError && pData) {
-               const published = pData
-                 .filter(p => {
-                   const s = (p.publish_status || '').toLowerCase();
-                   const st = (p.status || '').toLowerCase();
-                   return s === 'publicado' || s === 'activo' || s === 'published' || st === 'activo' || (!p.publish_status && !p.status);
-                 })
-                 .map(p => ({
-                   ...p,
-                   stock_vitrina: (Number(p.stock_vitrina) > 0) ? Number(p.stock_vitrina) : (Number(p.stock) > 0 ? Number(p.stock) : (p.stock_vitrina || 0))
-                 }))
-                 .sort((a, b) => {
-                    const aStock = a.stock_vitrina || 0;
-                    const bStock = b.stock_vitrina || 0;
-                    if (aStock > 0 && bStock <= 0) return -1;
-                    if (aStock <= 0 && bStock > 0) return 1;
-                    return 0;
-                 });
-               setProducts(published);
-               const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
-               setMainCategories(['Todas', ...Array.from(cats)]);
-               const allSubCats = new Set(published.map(p => p.subcategory || 'General'));
-               setSubCategories(['Todos', ...Array.from(allSubCats)]);
-             }
-             return;
+            try {
+              const saved = JSON.parse(savedStr);
+              saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
+              setConfig(saved);
+              setWorkspaceId('default_workspace');
+              return;
+            } catch (e) {}
           }
           setStoreNotFound(true);
           return;
         }
-        
+
+        // Comercio encontrado exitosamente
+        setStoreNotFound(false);
         setWorkspaceId(storeData.id);
-        
-        const baseConf = storeData.config || {};
-        const storefrontConf = storeData.config?.storefront || {};
-        
+
+        const baseConf = typeof storeData.config === 'object' && storeData.config !== null ? storeData.config : {};
+        const storefrontConf = baseConf.storefront || {};
+
         let saved = {
           ...baseConf,
           ...storefrontConf,
@@ -1954,17 +1960,15 @@ export default function PublicStore() {
             business_name: storeData.name
           };
         }
-        
+
         saved.texts = { ...defaultTexts, ...(saved.texts || {}) };
         if (!Array.isArray(saved.sections)) {
           saved.sections = [{ id: 'sec-hero-1', type: 'hero' }, { id: 'sec-feat-1', type: 'featured' }];
         }
-        
-        // Ensure logo and cover are taken from the main store config if not explicitly set in storefront
+
         saved.logoUrl = baseConf.logoUrl || storefrontConf.logoUrl || saved.logoUrl;
         saved.heroUrl = baseConf.coverUrl || storefrontConf.heroUrl || saved.heroUrl || saved.coverUrl;
 
-        // Resolve location & address with complete fallbacks
         const storeLat = baseConf.location?.lat || baseConf.expediente?.gps?.lat || storeData.latitude;
         const storeLng = baseConf.location?.lng || baseConf.expediente?.gps?.lng || storeData.longitude;
         const storeAddr = baseConf.address || baseConf.location?.address || baseConf.expediente?.address || storeData.map_address || '';
@@ -1986,7 +1990,6 @@ export default function PublicStore() {
           saved.description = baseConf.description;
         }
 
-        // Resolucion completa de métodos de pago con fallbacks
         const basePay = baseConf.paymentProfile || {};
         saved.paymentProfile = {
           paymentMobile: basePay.paymentMobile !== false && baseConf.paymentMobile !== false,
@@ -2000,65 +2003,81 @@ export default function PublicStore() {
           ...basePay
         };
         saved.bcvRate = baseConf.bcvRate || saved.bcvRate || 36.50;
-        
         saved.business_name = storeData.name;
+
         setConfig(saved);
         trackEvent('visit', storeData.id);
 
-        const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', storeData.id);
-        if (!pError && pData) {
-          const published = pData
-             .filter(p => {
-               const s = (p.publish_status || '').toLowerCase();
-               const st = (p.status || '').toLowerCase();
-               return s === 'publicado' || s === 'activo' || s === 'published' || st === 'activo' || (!p.publish_status && !p.status);
-             })
-             .map(p => ({
-               ...p,
-               stock_vitrina: (Number(p.stock_vitrina) > 0) ? Number(p.stock_vitrina) : (Number(p.stock) > 0 ? Number(p.stock) : (p.stock_vitrina || 0))
-             }))
-             .sort((a, b) => {
+        // ═══ CARGA AISLADA DE PRODUCTOS (ERRORES NO TUMBAN LA TIENDA) ═══
+        let finalPublished = [];
+        let finalCats = ['Todas'];
+        try {
+          const { data: pData, error: pError } = await supabase.from('ecommerce_products').select('*').eq('workspace_id', storeData.id);
+          if (!pError && pData) {
+            finalPublished = pData
+              .filter(p => {
+                const s = (p.publish_status || '').toLowerCase();
+                const st = (p.status || '').toLowerCase();
+                return s === 'publicado' || s === 'activo' || s === 'published' || st === 'activo' || (!p.publish_status && !p.status);
+              })
+              .map(p => ({
+                ...p,
+                stock_vitrina: (Number(p.stock_vitrina) > 0) ? Number(p.stock_vitrina) : (Number(p.stock) > 0 ? Number(p.stock) : (p.stock_vitrina || 0))
+              }))
+              .sort((a, b) => {
                 const aStock = a.stock_vitrina || 0;
                 const bStock = b.stock_vitrina || 0;
                 if (aStock > 0 && bStock <= 0) return -1;
                 if (aStock <= 0 && bStock > 0) return 1;
                 return 0;
-             });
-          setProducts(published);
-          const cats = new Set(published.map(p => p.category || 'Sin Categoría'));
-          const finalCats = ['Todas', ...Array.from(cats)];
-          setMainCategories(finalCats);
-          // Subcategories initial setup
-          const allSubCats = new Set(published.map(p => p.subcategory || 'General'));
-          setSubCategories(['Todos', ...Array.from(allSubCats)]);
-          
+              });
+            setProducts(finalPublished);
+            const cats = new Set(finalPublished.map(p => p.category || 'Sin Categoría'));
+            finalCats = ['Todas', ...Array.from(cats)];
+            setMainCategories(finalCats);
+            const allSubCats = new Set(finalPublished.map(p => p.subcategory || 'General'));
+            setSubCategories(['Todos', ...Array.from(allSubCats)]);
+          }
+        } catch (prodErr) {
+          console.warn('[PublicStore] Error cargando productos de vitrina:', prodErr);
+        }
+
+        // ═══ CACHÉ LOCAL SEGURO (PROTEGIDO CONTRA CUOTA EXCEDIDA) ═══
+        try {
           const newCache = JSON.stringify({
             config: saved,
             workspaceId: storeData.id,
-            products: published,
+            products: finalPublished,
             categories: finalCats
           });
           if (cached !== newCache) {
-             localStorage.setItem(cacheKey, newCache);
+            localStorage.setItem(cacheKey, newCache);
           }
-        }
-        
-        // Fetch store reviews average
-        const { data: storeReviews } = await supabase.from('ecommerce_reviews').select('*').eq('workspace_id', storeData.id).eq('status', 'Aprobado');
-        if (storeReviews && storeReviews.length > 0) {
-           const total = storeReviews.reduce((acc, curr) => acc + curr.rating, 0);
-           setStoreRatingAvg((total / storeReviews.length).toFixed(1));
-           setStoreReviewsList(storeReviews);
-        }
+        } catch (cacheErr) {}
 
-        // Fetch store news
-        const { data: newsData } = await supabase.from('ecommerce_store_news').select('*').eq('workspace_id', storeData.id).eq('status', 'Publicado').order('created_at', { ascending: false });
-        if (newsData) {
-           setStoreNews(newsData);
+        // ═══ CARGA AISLADA DE RESEÑAS ═══
+        try {
+          const { data: storeReviews } = await supabase.from('ecommerce_reviews').select('*').eq('workspace_id', storeData.id).eq('status', 'Aprobado');
+          if (storeReviews && storeReviews.length > 0) {
+            const total = storeReviews.reduce((acc, curr) => acc + curr.rating, 0);
+            setStoreRatingAvg((total / storeReviews.length).toFixed(1));
+            setStoreReviewsList(storeReviews);
+          }
+        } catch (revErr) {}
+
+        // ═══ CARGA AISLADA DE NOTICIAS ═══
+        try {
+          const { data: newsData } = await supabase.from('ecommerce_store_news').select('*').eq('workspace_id', storeData.id).eq('status', 'Publicado').order('created_at', { ascending: false });
+          if (newsData) {
+            setStoreNews(newsData);
+          }
+        } catch (newsErr) {}
+
+      } catch (fatalErr) {
+        console.error('[PublicStore] Error crítico resolviendo vitrina:', fatalErr);
+        if (!storeData) {
+          setStoreNotFound(true);
         }
-      } catch (error) {
-        console.error(error);
-        setStoreNotFound(true);
       }
     };
 
@@ -2069,11 +2088,20 @@ export default function PublicStore() {
 
   if (storeNotFound) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white font-light flex-col gap-4 font-sans selection:bg-amber-500/30 relative">
-        <Store size={48} className="text-zinc-700 mb-2" />
-        <h2 className="text-3xl text-zinc-300">Tienda no encontrada</h2>
-        <p className="text-zinc-500">La URL ingresada no corresponde a ningún comercio.</p>
-        <button onClick={() => navigate('/explorar')} className="mt-4 px-6 py-3 bg-white/5 border border-white/10 rounded-full text-sm hover:bg-white/10 transition-colors">Volver al Mercado</button>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white font-light flex-col gap-4 font-sans selection:bg-amber-500/30 relative px-6 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-zinc-900/80 border border-white/10 flex items-center justify-center text-zinc-500 mb-2 shadow-xl">
+          <Store size={40} className="text-orange-500/80" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-white tracking-tight">Tienda no encontrada</h2>
+        <p className="text-zinc-400 text-sm max-w-sm">
+          La dirección ingresada no coincide con un comercio activo o el enlace ha expirado.
+        </p>
+        <button 
+          onClick={() => navigate('/explorar')} 
+          className="mt-4 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-zinc-950 font-bold rounded-full text-sm transition-all shadow-lg shadow-orange-500/20 active:scale-95 cursor-pointer"
+        >
+          Explorar Comercios en AxonMarket
+        </button>
       </div>
     );
   }
