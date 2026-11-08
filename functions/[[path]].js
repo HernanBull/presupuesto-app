@@ -22,6 +22,9 @@ export async function onRequest(context) {
 
   let slug = path;
   if (slug.startsWith('c/')) slug = slug.replace(/^c\//, '');
+  if (slug.startsWith('tienda/')) slug = slug.replace(/^tienda\//, '');
+  if (slug.startsWith('vitrina/')) slug = slug.replace(/^vitrina\//, '');
+  if (slug.startsWith('store/')) slug = slug.replace(/^store\//, '');
 
   // Get standard static response
   const response = await next();
@@ -29,11 +32,33 @@ export async function onRequest(context) {
   if (slug && !reservedPaths.includes(slug.toLowerCase())) {
     try {
       let html = await response.text();
-      const storeName = slug
+      let storeName = slug
         .replace(/[-_]/g, ' ')
         .split(' ')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+
+      // Consultar Supabase para obtener el nombre exacto registrado de la tienda
+      const supabaseUrl = 'https://iafhbrjeterrhtpctwqb.supabase.co';
+      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhZmhicmpldGVycmh0cGN0d3FiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NzY5OTAsImV4cCI6MjEwMzM1Mjk5MH0.BM5lcBTAIYP2n1EYg1G-xKoWTEYQRF6nSjcQJL8-Klw';
+
+      try {
+        const cleanSlug = encodeURIComponent(slug.toLowerCase().trim());
+        const sbRes = await fetch(`${supabaseUrl}/rest/v1/workspaces?store_slug=ilike.${cleanSlug}&select=name`, {
+          headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`
+          }
+        });
+        if (sbRes.ok) {
+          const rows = await sbRes.json();
+          if (rows && rows.length > 0 && rows[0].name) {
+            storeName = rows[0].name;
+          }
+        }
+      } catch (err) {
+        // Fallback al nombre formateado del slug si falla el fetch
+      }
 
       const title = `${storeName} — Catálogo & Vitrina Oficial`;
       const description = `Tus precios y stock real en vivo. Armá tu pedido directo desde el catálogo oficial en AxonMarket.`;
@@ -43,10 +68,12 @@ export async function onRequest(context) {
       // Replace Open Graph and Twitter tags dynamically
       html = html
         .replace(/<title>.*?<\/title>/gi, `<title>${title}</title>`)
+        .replace(/<meta property="og:site_name"[^>]*>/gi, `<meta property="og:site_name" content="AxonMarket" />`)
         .replace(/<meta property="og:title"[^>]*>/gi, `<meta property="og:title" content="${title}" />`)
         .replace(/<meta property="og:description"[^>]*>/gi, `<meta property="og:description" content="${description}" />`)
         .replace(/<meta property="og:url"[^>]*>/gi, `<meta property="og:url" content="${canonicalUrl}" />`)
         .replace(/<meta property="og:image"[^>]*>/gi, `<meta property="og:image" content="${ogBanner}" />`)
+        .replace(/<meta property="og:image:secure_url"[^>]*>/gi, `<meta property="og:image:secure_url" content="${ogBanner}" />`)
         .replace(/<meta name="twitter:title"[^>]*>/gi, `<meta name="twitter:title" content="${title}" />`)
         .replace(/<meta name="twitter:description"[^>]*>/gi, `<meta name="twitter:description" content="${description}" />`)
         .replace(/<meta name="twitter:image"[^>]*>/gi, `<meta name="twitter:image" content="${ogBanner}" />`);
