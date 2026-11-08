@@ -1668,6 +1668,47 @@ export default function MarketplaceDirectory() {
     }
   }, [feedPosts.length, visibleFeedCount]);
 
+  // Navegación a tienda reteniendo la posición exacta de scroll en el feed
+  const handleNavigateToStore = (targetSlug) => {
+    if (!targetSlug) return;
+    const c = mainContainerRef.current;
+    const currentTop = c ? c.scrollTop : (window.scrollY || 0);
+    sessionStorage.setItem('axon_directory_scroll_top', String(currentTop));
+    sessionStorage.setItem('axon_directory_visible_count', String(visibleFeedCount));
+    navigate(`/${targetSlug}`);
+  };
+
+  // Restaurar posición de scroll exacta al volver de una vitrina de comerciante
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('axon_directory_scroll_top');
+    const savedCount = sessionStorage.getItem('axon_directory_visible_count');
+
+    if (savedCount) {
+      const count = parseInt(savedCount, 10);
+      if (!isNaN(count) && count > visibleFeedCount) {
+        setVisibleFeedCount(count);
+      }
+    }
+
+    if (savedScroll) {
+      const top = parseInt(savedScroll, 10);
+      if (!isNaN(top) && top > 0) {
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          const c = mainContainerRef.current;
+          if (c && c.scrollHeight > top) {
+            c.scrollTop = top;
+            clearInterval(interval);
+          } else if (attempts >= 12) {
+            clearInterval(interval);
+          }
+        }, 80);
+        return () => clearInterval(interval);
+      }
+    }
+  }, [feedPosts.length]);
+
   // Manejo de scroll para ocultamiento de barras y carga progresiva
   const handleScroll = () => {
     const c = mainContainerRef.current;
@@ -1931,7 +1972,16 @@ export default function MarketplaceDirectory() {
               </button>
               <div 
                 className="flex items-center gap-2 select-none cursor-pointer" 
-                onClick={() => { setActiveCategory('Todas'); setSearchTerm(''); setDiscoveryFilter('all'); mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); window.scrollTo({ top: 0, behavior: 'instant' }); navigate('/explorar'); }}
+                onClick={() => { 
+                  sessionStorage.removeItem('axon_directory_scroll_top');
+                  sessionStorage.removeItem('axon_directory_visible_count');
+                  setActiveCategory('Todas'); 
+                  setSearchTerm(''); 
+                  setDiscoveryFilter('all'); 
+                  mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); 
+                  window.scrollTo({ top: 0, behavior: 'instant' }); 
+                  navigate('/explorar'); 
+                }}
               >
                 <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
                   <ShoppingBag size={16} className="stroke-[2.5]"/>
@@ -2083,7 +2133,7 @@ export default function MarketplaceDirectory() {
                   currentMerchant={currentMerchant}
                   onOpenComments={(target) => setActiveCommentsPost(target)}
                   onRequireAuth={() => setIsAuthModalOpen(true)}
-                  onNavigateStore={(slug) => navigate(`/${slug}`)}
+                  onNavigateStore={(slug) => handleNavigateToStore(slug)}
                   onCardVisible={handleCardVisible}
                 />
               ))
@@ -2145,6 +2195,8 @@ export default function MarketplaceDirectory() {
         <div className="flex justify-between items-center h-16 px-2 relative">
           <button 
             onClick={() => { 
+              sessionStorage.removeItem('axon_directory_scroll_top');
+              sessionStorage.removeItem('axon_directory_visible_count');
               const c = mainContainerRef.current;
               if (c) {
                 c.scrollTop = 0;
@@ -2228,7 +2280,7 @@ export default function MarketplaceDirectory() {
         onClose={() => setIsStatusViewerOpen(false)}
         statuses={merchantStatuses}
         initialIndex={activeStatusIndex}
-        onNavigateStore={(slug) => navigate(`/${slug}`)}
+        onNavigateStore={(slug) => handleNavigateToStore(slug)}
       />
 
       {/* Cart Slide-over */}
@@ -2304,7 +2356,7 @@ export default function MarketplaceDirectory() {
                             </div>
                           ))}
                         </div>
-                        <button onClick={() => navigate(`/${storeSlug}`)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                        <button onClick={() => handleNavigateToStore(storeSlug)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
                           Completar Pedido <ArrowRight size={16} />
                         </button>
                       </div>

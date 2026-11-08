@@ -3,7 +3,7 @@ import {
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
   ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
-  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame
+  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame, Compass
 } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -391,21 +391,34 @@ export default function EcommerceDashboard() {
           <div className="absolute -top-16 -right-16 w-52 h-52 bg-amber-300/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 -left-12 w-40 h-40 bg-orange-700/30 rounded-full blur-2xl pointer-events-none" />
 
-          {/* Fila Superior: Badge Tienda (link a vitrina virtual) y Ocultar/Mostrar Divisas */}
-          <div className="flex items-center justify-between mb-4 relative z-10">
-            <a 
-              href={storeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs text-white"
-              title={`Ir a la tienda virtual: ${storeInfo.name}`}
-            >
-              <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
-                <ShoppingBag size={11} strokeWidth={2.5} />
-              </div>
-              <span className="text-xs font-black tracking-wide truncate max-w-[170px]">{storeInfo.name}</span>
-              <ExternalLink size={11} className="text-white/80 shrink-0" />
-            </a>
+          {/* Fila Superior: Badge Tienda, Atajo a Mercado General y Ocultar/Mostrar Divisas */}
+          <div className="flex items-center justify-between mb-4 relative z-10 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <a 
+                href={storeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md px-3.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/20 shadow-xs text-white"
+                title={`Ir a la tienda virtual: ${storeInfo.name}`}
+              >
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center text-orange-600 shadow-2xs shrink-0">
+                  <ShoppingBag size={11} strokeWidth={2.5} />
+                </div>
+                <span className="text-xs font-black tracking-wide truncate max-w-[130px] sm:max-w-[170px]">{storeInfo.name}</span>
+                <ExternalLink size={11} className="text-white/80 shrink-0" />
+              </a>
+
+              {/* Botón Atajo al Mercado General */}
+              <button
+                type="button"
+                onClick={() => navigate('/explorar')}
+                className="flex items-center gap-1.5 bg-amber-400/25 hover:bg-amber-400/35 backdrop-blur-md px-3 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-amber-300/40 shadow-xs text-white"
+                title="Ir al Mercado General de AxonMarket (Explorar Comercios y Publicaciones)"
+              >
+                <Compass size={13} className="text-amber-300 shrink-0" />
+                <span className="text-xs font-black tracking-wide">Mercado</span>
+              </button>
+            </div>
 
             <button
               onClick={toggleHideFinancials}

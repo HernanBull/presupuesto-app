@@ -43,6 +43,22 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
+export const resolveStoreCategory = (cfg) => {
+  if (!cfg) return '';
+  const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
+  
+  if (Array.isArray(cfg.categories) && cfg.categories.length > 0) {
+    const valid = cfg.categories.find(c => !isInvalid(c));
+    if (valid) return valid;
+  }
+  if (!isInvalid(cfg.category)) return cfg.category;
+  if (!isInvalid(cfg.rubro)) return cfg.rubro;
+  if (!isInvalid(cfg.expediente?.rubro)) return cfg.expediente.rubro;
+  if (!isInvalid(cfg.expediente?.category)) return cfg.expediente.category;
+  if (!isInvalid(cfg.business_type)) return cfg.business_type;
+  return '';
+};
+
 
 const formatStatusTime = (dateStr) => {
   if (!dateStr) return 'Hoy';
@@ -1434,6 +1450,11 @@ export default function PublicStore() {
   };
 
   const addToCart = async (productId, stepSize) => {
+    if (isVisitingMerchant) {
+      alert("Estás explorando en modo comerciante. Puedes visualizar todo el catálogo, precios y promociones libremente. Para realizar pedidos y compras, debes ingresar con una cuenta de cliente.");
+      return;
+    }
+
     if (!isProfileComplete(currentCustomer)) {
       setIsWizardOpen(true);
       return;
@@ -1948,8 +1969,10 @@ export default function PublicStore() {
   const safeSections = Array.isArray(sections) ? sections : [];
   const isTransparentHeader = headerStyle === 'transparent' && currentPage === 'home' && safeSections[0]?.type === 'hero';
 
-  // Modo Administrador
-  const isMerchantOwner = localStorage.getItem('activeWorkspace') === workspaceId;
+  // Modo Administrador y Comerciante Visitante (Exploración B2B)
+  const activeMerchantWs = localStorage.getItem('activeWorkspace');
+  const isMerchantOwner = Boolean(activeMerchantWs && activeMerchantWs === workspaceId);
+  const isVisitingMerchant = Boolean(activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== workspaceId);
 
   // Guardar nuevo color de marca en Supabase (solo para el comerciante dueño)
   const handleSaveBrandColor = async (colorToSave) => {
@@ -2008,8 +2031,16 @@ export default function PublicStore() {
     }
   };
 
-  // Auth Gate
-  const isUserAllowedToSeePrices = currentCustomer || isMerchantOwner;
+  // Auth Gate: Clientes autenticados, dueño de vitrina y comerciantes visitantes pueden ver catálogo completo y precios
+  const isUserAllowedToSeePrices = currentCustomer || isMerchantOwner || isVisitingMerchant;
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/explorar');
+    }
+  };
 
   const renderAuthModal = () => {
     if (!showAuthModal) return null;
@@ -2295,7 +2326,7 @@ export default function PublicStore() {
           </div>
           
           <div className="flex items-center gap-2.5">
-             <button onClick={() => navigate('/explorar')} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+             <button onClick={handleGoBack} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                <ArrowLeft size={15} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
@@ -2353,7 +2384,7 @@ export default function PublicStore() {
             
             {/* Cabecera Superior Luminous White */}
             <div className="sticky top-0 left-0 w-full z-50 flex items-center justify-between px-4 py-3 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-              <button onClick={() => navigate('/explorar')} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer text-slate-700 hover:text-slate-900 active:scale-90" title="Volver a AxonMarket">
+              <button onClick={handleGoBack} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all cursor-pointer text-slate-700 hover:text-slate-900 active:scale-90" title="Volver al mercado">
                 <ChevronLeft size={20} className="stroke-[2.5]" />
               </button>
               <div className="flex flex-col items-center">
@@ -2363,18 +2394,13 @@ export default function PublicStore() {
                 ) : isLocatingUser ? (
                   <span className="text-xs text-slate-400 mt-0.5">Calculando distancia real...</span>
                 ) : (() => {
-                  const resolvedCategory = config?.business_type || config?.category || config?.rubro || config?.categoria || config?.expediente?.category || config?.expediente?.rubro;
-                  const rawAddress = (config?.address || config?.location?.address || config?.expediente?.address || '').trim();
-                  const isGeneric = !rawAddress || /^(venezuela|vzla|ve)$/i.test(rawAddress);
+                  const resolvedCategory = resolveStoreCategory(config);
                   if (resolvedCategory) {
                     return (
                       <span className="text-xs font-bold mt-0.5 flex items-center gap-1" style={{ color: primaryColor }}>
                         <Tag size={11} className="shrink-0" /> <span className="capitalize">{resolvedCategory}</span>
                       </span>
                     );
-                  }
-                  if (!isGeneric) {
-                    return <span className="text-xs text-slate-500 font-medium mt-0.5">📍 {rawAddress}</span>;
                   }
                   return null;
                 })()}
@@ -2553,35 +2579,25 @@ export default function PublicStore() {
                     </p>
                   )}
 
-                  {/* Categoría / Rubro del comercio y Dirección (reemplaza Venezuela genérico) */}
+                  {/* Categoría / Rubro oficial del comercio (descarta 'almacén' y no duplica la dirección del mapa) */}
                   {(() => {
-                    const resolvedCategory = config?.business_type || config?.category || config?.rubro || config?.categoria || config?.expediente?.category || config?.expediente?.rubro;
-                    const rawAddress = (config?.address || config?.location?.address || config?.expediente?.address || '').trim();
-                    const isGeneric = !rawAddress || /^(venezuela|vzla|ve)$/i.test(rawAddress);
+                    const resolvedCategory = resolveStoreCategory(config);
 
-                    return (
+                    return resolvedCategory ? (
                       <div className="flex flex-col gap-1.5 mt-2">
-                        {resolvedCategory && (
-                          <div 
-                            className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit transition-all shadow-2xs"
-                            style={{ 
-                              backgroundColor: themeStyles.subtleBg, 
-                              color: primaryColor,
-                              border: `1px solid ${primaryColor}30`
-                            }}
-                          >
-                            <Tag size={13} className="shrink-0" />
-                            <span className="capitalize">{resolvedCategory}</span>
-                          </div>
-                        )}
-                        {!isGeneric && (
-                          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                            <MapPin size={13} className="text-red-500 shrink-0" />
-                            <span className="truncate">{rawAddress}</span>
-                          </div>
-                        )}
+                        <div 
+                          className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit transition-all shadow-2xs"
+                          style={{ 
+                            backgroundColor: themeStyles.subtleBg, 
+                            color: primaryColor,
+                            border: `1px solid ${primaryColor}30`
+                          }}
+                        >
+                          <Tag size={13} className="shrink-0" />
+                          <span className="capitalize">{resolvedCategory}</span>
+                        </div>
                       </div>
-                    );
+                    ) : null;
                   })()}
                 </div>
 
@@ -2939,7 +2955,7 @@ export default function PublicStore() {
                       <div className="flex justify-between items-center mb-3">
                         <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
                           <Clock size={18} className="text-orange-600 shrink-0" />
-                          <span>¿A qué horas abrimos?</span>
+                          <span>¿A qué hora abrimos?</span>
                         </h2>
                         {(config?.scheduleProfile?.workDays || config?.schedule?.workDays) && (
                           <button 
