@@ -2717,9 +2717,7 @@ export default function PublicStore() {
                       <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
                         {merchantPublications.length}
                       </span>
-                      <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">
-                        {merchantPublications.length === 1 ? 'Anuncio' : 'Anuncios'}
-                      </span>
+                      <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Anuncios</span>
                     </div>
                     {/* Seguidores */}
                     <div className="flex flex-col items-center px-2 select-none">
@@ -3113,11 +3111,11 @@ export default function PublicStore() {
                     className={`py-3.5 px-1 sm:px-2 flex items-center justify-center gap-1 sm:gap-1.5 min-w-0 relative transition-all cursor-pointer select-none ${
                       profileSubTab === 'media' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
-                    title="Anuncio"
+                    title="Anuncios"
                   >
                     <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
                       <Film size={15} className="stroke-[2.2] shrink-0" />
-                      <span className="text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-extrabold truncate">Anuncio</span>
+                      <span className="text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-extrabold truncate">Anuncios</span>
                       {merchantPublications.length > 0 && (
                         <span className="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 shrink-0">
                           {merchantPublications.length}
