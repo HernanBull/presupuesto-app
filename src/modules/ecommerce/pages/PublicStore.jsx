@@ -7,7 +7,7 @@ import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAuthModal from '../components/CustomerAuthModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
-import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList, recordPostView, getPostRealViews, formatRealViews } from '../services/socialService';
+import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList, recordPostView, getPostRealViews, formatRealViews, resolvePostImages } from '../services/socialService';
 import { buildWhatsAppUrl, resolveStoreWhatsApp } from '../utils/whatsappHelper';
 import { 
   STOREFRONT_COLOR_PRESETS, 
@@ -391,24 +391,25 @@ export default function PublicStore() {
     const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
     const storeName = config?.business_name || 'Comercio';
 
-    // Priorizar aquellos marcados explícitamente como estado (post_type === 'status' o [ESTADO])
-    const explicitStatuses = (storeNews || []).filter(
-      news => news.post_type === 'status' || (news.title && news.title.startsWith('[ESTADO]'))
-    );
+    // Filtrar estrictamente publicaciones marcadas como estado con vigencia máxima de 24 horas (como WhatsApp / Stories)
+    const now = Date.now();
+    const explicitStatuses = (storeNews || []).filter(news => {
+      if (news.status && news.status !== 'Publicado') return false;
+      const isStatus = news.post_type === 'status' || (typeof news.title === 'string' && news.title.startsWith('[ESTADO]'));
+      if (!isStatus) return false;
+      const createdAt = new Date(news.created_at || now).getTime();
+      return (now - createdAt) <= (24 * 60 * 60 * 1000);
+    });
 
-    // Si existen estados explícitos creados por el comercio, mostrar esos; si no, usar storeNews existentes como fallback
-    const sourceNews = explicitStatuses.length > 0 ? explicitStatuses : (storeNews || []);
-
-    const list = sourceNews.map((news) => {
+    const list = explicitStatuses.map((news) => {
       const cleanTitle = (news.title || '').replace(/^\[ESTADO\]\s*/i, '').trim();
-      let rawMedia = news.image_url || storeCover || storeAvatar;
-      if (typeof rawMedia === 'string' && rawMedia.startsWith('[')) {
-        try {
-          const parsed = JSON.parse(rawMedia);
-          if (Array.isArray(parsed) && parsed.length > 0) rawMedia = parsed[0];
-        } catch {}
-      }
+      const imagesList = resolvePostImages(news);
+      let rawMedia = imagesList[0] || news.image_url || storeCover || storeAvatar;
       const isVid = news.media_type === 'video' || (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia));
+      const createdAt = new Date(news.created_at || now).getTime();
+      const elapsedHours = Math.floor((now - createdAt) / (1000 * 60 * 60));
+      const hoursLeft = Math.max(1, 24 - elapsedHours);
+
       return {
         id: news.id,
         name: storeName,
@@ -419,41 +420,24 @@ export default function PublicStore() {
         store_logo: storeAvatar,
         mediaUrl: rawMedia,
         media_url: rawMedia,
+        images: imagesList.length > 0 ? imagesList : (rawMedia ? [rawMedia] : []),
+        image_urls: imagesList.length > 0 ? imagesList : (rawMedia ? [rawMedia] : []),
         video_url: isVid ? rawMedia : null,
         media_type: isVid ? 'video' : 'image',
         caption: cleanTitle ? (news.content ? `${cleanTitle}: ${news.content}` : cleanTitle) : news.content,
         time: formatStatusTime(news.created_at),
+        hoursLeft,
         isVerified: !!config?.is_verified,
         is_verified: !!config?.is_verified
       };
     });
 
-    if (list.length === 0) {
-      const fallbackMedia = storeCover || storeAvatar || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=600&q=80';
-      list.push({
-        id: `intro-${slug || 'store'}`,
-        name: storeName,
-        store_name: storeName,
-        slug: slug,
-        store_slug: slug,
-        avatar: storeAvatar,
-        store_logo: storeAvatar,
-        mediaUrl: fallbackMedia,
-        media_url: fallbackMedia,
-        media_type: 'image',
-        caption: config?.description || '¡Bienvenidos a nuestra vitrina oficial en AxonMarket!',
-        time: 'Hoy',
-        isVerified: !!config?.is_verified,
-        is_verified: !!config?.is_verified
-      });
-    }
-
     return list;
   }, [storeNews, config, slug]);
 
   const hasActiveStatuses = useMemo(() => {
-    return (storeNews || []).some(n => n.status === 'Publicado');
-  }, [storeNews]);
+    return (merchantStatuses || []).length > 0;
+  }, [merchantStatuses]);
 
   const latestStatusId = useMemo(() => {
     return merchantStatuses[0]?.id || slug;
@@ -524,14 +508,15 @@ export default function PublicStore() {
 
     (merchantStatuses || []).forEach((st, idx) => {
       const isVid = st.media_type === 'video' || (typeof st.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(st.mediaUrl));
-      const url = st.mediaUrl || st.video_url;
+      if (!isVid) return; // Exclusivo videos reales
+      const url = st.video_url || st.mediaUrl;
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url);
         const realViews = Number(st.views || st.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${st.id || `st-${idx}`}`) : 0) || 0);
         list.push({
           id: st.id || `st-${idx}`,
           mediaUrl: url,
-          isVideo: isVid,
+          isVideo: true,
           caption: st.caption || st.name,
           views: realViews,
           statusIndex: idx
@@ -540,15 +525,16 @@ export default function PublicStore() {
     });
 
     (storeNews || []).forEach((n, idx) => {
-      const isVid = n.media_type === 'video' || (typeof n.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.image_url));
-      const url = n.image_url || n.video_url;
+      const isVid = n.media_type === 'video' || (typeof n.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.image_url)) || (typeof n.video_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.video_url));
+      if (!isVid) return; // Exclusivo videos reales
+      const url = n.video_url || n.image_url;
       if (url && !seenUrls.has(url)) {
         seenUrls.add(url);
         const realViews = Number(n.views || n.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${n.id || `news-${idx}`}`) : 0) || 0);
         list.push({
           id: n.id || `news-${idx}`,
           mediaUrl: url,
-          isVideo: isVid,
+          isVideo: true,
           caption: n.title ? `${n.title}: ${n.content}` : n.content,
           views: realViews,
           statusIndex: 0
@@ -2376,9 +2362,22 @@ export default function PublicStore() {
                   <span className="text-xs font-bold text-orange-600 flex items-center gap-1 mt-0.5">{userDistance}</span>
                 ) : isLocatingUser ? (
                   <span className="text-xs text-slate-400 mt-0.5">Calculando distancia real...</span>
-                ) : config?.address || config?.location?.address || config?.expediente?.address ? (
-                  <span className="text-xs text-slate-500 font-medium mt-0.5">📍 {config?.address || config?.location?.address || config?.expediente?.address}</span>
-                ) : null}
+                ) : (() => {
+                  const resolvedCategory = config?.business_type || config?.category || config?.rubro || config?.categoria || config?.expediente?.category || config?.expediente?.rubro;
+                  const rawAddress = (config?.address || config?.location?.address || config?.expediente?.address || '').trim();
+                  const isGeneric = !rawAddress || /^(venezuela|vzla|ve)$/i.test(rawAddress);
+                  if (resolvedCategory) {
+                    return (
+                      <span className="text-xs font-bold mt-0.5 flex items-center gap-1" style={{ color: primaryColor }}>
+                        <Tag size={11} className="shrink-0" /> <span className="capitalize">{resolvedCategory}</span>
+                      </span>
+                    );
+                  }
+                  if (!isGeneric) {
+                    return <span className="text-xs text-slate-500 font-medium mt-0.5">📍 {rawAddress}</span>;
+                  }
+                  return null;
+                })()}
               </div>
               <div className="w-10 flex items-center justify-end">
                 {currentCustomer ? (
@@ -2554,13 +2553,36 @@ export default function PublicStore() {
                     </p>
                   )}
 
-                  {/* Dirección */}
-                  {(config?.address || config?.location?.address || config?.expediente?.address) && (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1.5 font-medium">
-                      <MapPin size={13} className="text-red-500 shrink-0" />
-                      <span className="truncate">{config?.address || config?.location?.address || config?.expediente?.address}</span>
-                    </div>
-                  )}
+                  {/* Categoría / Rubro del comercio y Dirección (reemplaza Venezuela genérico) */}
+                  {(() => {
+                    const resolvedCategory = config?.business_type || config?.category || config?.rubro || config?.categoria || config?.expediente?.category || config?.expediente?.rubro;
+                    const rawAddress = (config?.address || config?.location?.address || config?.expediente?.address || '').trim();
+                    const isGeneric = !rawAddress || /^(venezuela|vzla|ve)$/i.test(rawAddress);
+
+                    return (
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        {resolvedCategory && (
+                          <div 
+                            className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg w-fit transition-all shadow-2xs"
+                            style={{ 
+                              backgroundColor: themeStyles.subtleBg, 
+                              color: primaryColor,
+                              border: `1px solid ${primaryColor}30`
+                            }}
+                          >
+                            <Tag size={13} className="shrink-0" />
+                            <span className="capitalize">{resolvedCategory}</span>
+                          </div>
+                        )}
+                        {!isGeneric && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                            <MapPin size={13} className="text-red-500 shrink-0" />
+                            <span className="truncate">{rawAddress}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Botones de Acción (+ Seguir, Contactar, 🔗, 📷) */}
@@ -2740,94 +2762,111 @@ export default function PublicStore() {
             {/* Profile Content Container (Estados y Sub-Pestañas Inteligentes) */}
             <div className="relative z-10 px-4 md:px-8 max-w-[1200px] mx-auto w-full flex flex-col pt-3">
 
-              {/* Sección de Estados del Comercio (Estilo WhatsApp / Stories Cards) */}
-              <div className="mt-5 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <h3 className="text-xs font-black tracking-wider uppercase text-slate-900 flex items-center gap-1.5" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-                      <span>Estados y Promociones</span>
-                    </h3>
+              {/* Sección de Estados del Comercio (Estilo WhatsApp / Stories Cards con vigencia 24h) */}
+              {(merchantStatuses.length > 0 || isMerchantOwner) && (
+                <div className="mt-5 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <h3 className="text-xs font-black tracking-wider uppercase text-slate-900 flex items-center gap-1.5" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
+                        <span>Estados y Promociones</span>
+                      </h3>
+                    </div>
+                    {isMerchantOwner && (
+                      <button
+                        onClick={() => navigate('/social-feed?type=status&create=true')}
+                        className="text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer hover:opacity-85"
+                        style={{ color: primaryColor, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
+                      >
+                        <Plus size={13} className="stroke-[2.5]" />
+                        <span>Nuevo estado</span>
+                      </button>
+                    )}
                   </div>
-                  {isMerchantOwner && (
-                    <button
-                      onClick={() => navigate('/social-feed?type=status&create=true')}
-                      className="text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer hover:opacity-85"
-                      style={{ color: primaryColor, fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}
-                    >
-                      <Plus size={13} className="stroke-[2.5]" />
-                      <span>Nuevo estado</span>
-                    </button>
-                  )}
-                </div>
 
-                <div className="flex overflow-x-auto gap-3 py-1 px-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  {merchantStatuses.map((status, idx) => (
-                    <div 
-                      key={status.id || idx}
-                      onClick={() => markStatusAsViewed(idx)}
-                      className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
-                      title={`Ver estado: ${status.caption || status.name}`}
-                    >
-                      {/* Imagen o Video de fondo / Preview del Estado */}
-                      {(status.media_type === 'video' || (typeof status.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(status.mediaUrl))) ? (
-                        <video 
-                          src={resolveImageUrl(status.mediaUrl || status.avatar)} 
-                          muted 
-                          playsInline 
-                          loop 
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                        />
-                      ) : (
-                        <img 
-                          src={resolveImageUrl(status.mediaUrl || status.avatar)} 
-                          alt="" 
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
-                          }}
-                        />
-                      )}
+                  <div className="flex overflow-x-auto gap-3 py-1 px-0.5 scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                    {merchantStatuses.map((status, idx) => (
+                      <div 
+                        key={status.id || idx}
+                        onClick={() => markStatusAsViewed(idx)}
+                        className="relative w-24 sm:w-28 h-36 sm:h-40 rounded-2xl overflow-hidden cursor-pointer group snap-start shrink-0 select-none shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03] active:scale-95 border border-zinc-200/80 bg-zinc-900"
+                        title={`Ver estado: ${status.caption || status.name}`}
+                      >
+                        {/* Imagen o Video de fondo / Preview del Estado */}
+                        {(status.media_type === 'video' || (typeof status.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(status.mediaUrl))) ? (
+                          <video 
+                            src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                            muted 
+                            playsInline 
+                            loop 
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                          />
+                        ) : (
+                          <img 
+                            src={resolveImageUrl(status.mediaUrl || status.avatar)} 
+                            alt="" 
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = config?.coverUrl || config?.logoUrl || 'https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80';
+                            }}
+                          />
+                        )}
 
-                      {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
+                        {/* Degradado oscuro para que el texto y avatar resalten como en WhatsApp/Instagram */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/40" />
 
-                      {/* Avatar del comerciante en la esquina superior izquierda */}
-                      <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
-                        <div className="w-full h-full rounded-full bg-white overflow-hidden">
-                          {status.avatar ? (
-                            <img 
-                              src={resolveImageUrl(status.avatar)} 
-                              alt="" 
-                              className="w-full h-full object-cover" 
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
-                              <Store size={14} />
-                            </div>
-                          )}
+                        {/* Avatar del comerciante en la esquina superior izquierda */}
+                        <div className="absolute top-2 left-2 w-7 h-7 rounded-full p-[1.5px] bg-gradient-to-tr from-emerald-500 via-amber-500 to-orange-500 shadow-md">
+                          <div className="w-full h-full rounded-full bg-white overflow-hidden">
+                            {status.avatar ? (
+                              <img 
+                                src={resolveImageUrl(status.avatar)} 
+                                alt="" 
+                                className="w-full h-full object-cover" 
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-[10px]">
+                                <Store size={14} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Icono de Play en la esquina superior derecha */}
+                        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
+                          <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
+                        </div>
+
+                        {/* Contenido / Título y horas restantes */}
+                        <div className="absolute bottom-2 left-2 right-2 flex flex-col">
+                          <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
+                            {status.caption || status.name}
+                          </span>
+                          <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs flex items-center gap-1">
+                            <span>{status.time || 'Hoy'}</span>
+                            <span className="text-zinc-400">·</span>
+                            <span>{status.hoursLeft || 24}h</span>
+                          </span>
                         </div>
                       </div>
+                    ))}
 
-                      {/* Icono de Play en la esquina superior derecha */}
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/50 backdrop-blur-xs text-white flex items-center justify-center shadow-xs border border-white/20">
-                        <Play size={10} fill="currentColor" className="text-amber-400 translate-x-[0.5px]" />
+                    {merchantStatuses.length === 0 && isMerchantOwner && (
+                      <div 
+                        onClick={() => navigate('/social-feed?type=status&create=true')}
+                        className="w-28 h-36 sm:h-40 rounded-2xl border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all shrink-0 p-3 text-center group"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                          <Plus size={20} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-xs font-bold text-slate-700">Subir Estado</span>
+                        <span className="text-[10px] text-slate-400 leading-tight">Dura 24 horas</span>
                       </div>
-
-                      {/* Contenido / Título en la parte inferior */}
-                      <div className="absolute bottom-2 left-2 right-2 flex flex-col">
-                        <span className="text-[11px] font-bold text-white truncate drop-shadow-md leading-tight group-hover:text-amber-300 transition-colors">
-                          {status.caption || status.name}
-                        </span>
-                        <span className="text-[9px] font-medium text-emerald-400 drop-shadow-xs">
-                          {status.time || 'Hoy'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* SUB-PESTAÑAS INTELIGENTES: 2 ÍCONOS (Información vs Multimedia / Videos) */}
               <div className="mt-5 border-b border-slate-200 bg-white rounded-t-2xl shadow-xs overflow-hidden">

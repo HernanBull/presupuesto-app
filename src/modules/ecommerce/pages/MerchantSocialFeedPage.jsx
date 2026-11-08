@@ -1142,7 +1142,7 @@ export default function MerchantSocialFeedPage() {
                   <div className="text-[11px] px-1">
                     {formData.post_type === 'status' ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                        🟢 Aparecerá en el carrusel superior de historias de tu vitrina pública para fidelizar a los visitantes.
+                        🟢 Se publicará como Estado de Vitrina con vigencia de 24 horas (estilo WhatsApp Stories) y soporte multi-foto.
                       </span>
                     ) : (
                       <span className="text-amber-600 dark:text-amber-400 font-medium">

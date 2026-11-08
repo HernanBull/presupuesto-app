@@ -21,6 +21,7 @@ export default function MerchantStatusViewerModal({
   isMerchantOwner = false
 }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -29,6 +30,21 @@ export default function MerchantStatusViewerModal({
   const videoRef = useRef(null);
 
   const currentStatus = statuses[currentIndex] || {};
+
+  // Carrusel multi-foto del estado actual
+  const statusImages = React.useMemo(() => {
+    if (Array.isArray(currentStatus.images) && currentStatus.images.length > 0) return currentStatus.images.filter(Boolean);
+    if (Array.isArray(currentStatus.image_urls) && currentStatus.image_urls.length > 0) return currentStatus.image_urls.filter(Boolean);
+    if (currentStatus.mediaUrl) return [currentStatus.mediaUrl];
+    if (currentStatus.media_url) return [currentStatus.media_url];
+    if (currentStatus.image_url) return [currentStatus.image_url];
+    return [];
+  }, [currentStatus]);
+
+  useEffect(() => {
+    setCurrentSlideIndex(0);
+    setProgress(0);
+  }, [currentIndex]);
 
   useEffect(() => {
     if (isOpen && currentStatus) {
@@ -43,6 +59,7 @@ export default function MerchantStatusViewerModal({
   useEffect(() => {
     if (isOpen) {
       setCurrentIndex(Math.min(Math.max(0, initialIndex), statuses.length - 1));
+      setCurrentSlideIndex(0);
       setProgress(0);
       setIsPaused(false);
 
@@ -70,26 +87,44 @@ export default function MerchantStatusViewerModal({
   const isVerified = Boolean(currentStatus.is_verified ?? currentStatus.isVerified);
   const caption = currentStatus.caption || currentStatus.title || currentStatus.content || '';
 
-  const rawMedia = currentStatus.video_url || currentStatus.videoUrl || currentStatus.media_url || currentStatus.mediaUrl || currentStatus.image_url || currentStatus.imageUrl || '';
   const isVideo = Boolean(
     currentStatus.media_type === 'video' || 
     currentStatus.mediaType === 'video' || 
     Boolean(currentStatus.video_url || currentStatus.videoUrl) ||
-    (typeof rawMedia === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(rawMedia))
+    (typeof currentStatus.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(currentStatus.mediaUrl))
   );
+
+  const rawMedia = isVideo 
+    ? (currentStatus.video_url || currentStatus.videoUrl || currentStatus.media_url || currentStatus.mediaUrl)
+    : (statusImages[currentSlideIndex] || currentStatus.media_url || currentStatus.mediaUrl || currentStatus.image_url || '');
+
   const mediaUrl = resolveImageUrl(rawMedia);
 
   const handleNext = () => {
+    if (!isVideo && statusImages.length > 1 && currentSlideIndex < statusImages.length - 1) {
+      setCurrentSlideIndex(s => s + 1);
+      setProgress(0);
+      return;
+    }
     if (currentIndex < statuses.length - 1) {
       setCurrentIndex((i) => i + 1);
+      setCurrentSlideIndex(0);
+      setProgress(0);
     } else {
       onClose();
     }
   };
 
   const handlePrev = () => {
+    if (!isVideo && statusImages.length > 1 && currentSlideIndex > 0) {
+      setCurrentSlideIndex(s => s - 1);
+      setProgress(0);
+      return;
+    }
     if (currentIndex > 0) {
       setCurrentIndex((i) => i - 1);
+      setCurrentSlideIndex(0);
+      setProgress(0);
     }
   };
 
@@ -241,24 +276,58 @@ export default function MerchantStatusViewerModal({
           <div className="absolute bottom-0 inset-x-0 h-56 bg-gradient-to-t from-black via-black/60 to-transparent pointer-events-none z-10" />
         </div>
 
-        {/* Barras de Progreso Segmentadas Tipo WhatsApp / Instagram (Con animación visible) */}
+        {/* Barras de Progreso Segmentadas Tipo WhatsApp / Instagram Stories */}
         <div className="absolute top-3.5 inset-x-3 z-30 flex items-center gap-1.5 pt-[env(safe-area-inset-top,4px)]">
-          {statuses.map((_, idx) => (
-            <div 
-              key={idx} 
-              className="flex-1 h-1.5 bg-white/35 rounded-full overflow-hidden backdrop-blur-xs shadow-sm"
-            >
+          {statuses.length === 1 && statusImages.length > 1 ? (
+            statusImages.map((_, sIdx) => (
               <div 
-                className="h-full bg-white transition-all duration-75 ease-linear rounded-full shadow-xs"
-                style={{
-                  width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%'
-                }}
-              />
-            </div>
-          ))}
+                key={sIdx} 
+                className="flex-1 h-1.5 bg-white/35 rounded-full overflow-hidden backdrop-blur-xs shadow-sm"
+              >
+                <div 
+                  className="h-full bg-white transition-all duration-75 ease-linear rounded-full shadow-xs"
+                  style={{
+                    width: sIdx < currentSlideIndex ? '100%' : sIdx === currentSlideIndex ? `${progress}%` : '0%'
+                  }}
+                />
+              </div>
+            ))
+          ) : (
+            statuses.map((_, idx) => {
+              const isActive = idx === currentIndex;
+              let width = '0%';
+              if (idx < currentIndex) {
+                width = '100%';
+              } else if (isActive) {
+                if (!isVideo && statusImages.length > 1) {
+                  width = `${((currentSlideIndex + (progress / 100)) / statusImages.length) * 100}%`;
+                } else {
+                  width = `${progress}%`;
+                }
+              }
+              return (
+                <div 
+                  key={idx} 
+                  className="flex-1 h-1.5 bg-white/35 rounded-full overflow-hidden backdrop-blur-xs shadow-sm"
+                >
+                  <div 
+                    className="h-full bg-white transition-all duration-75 ease-linear rounded-full shadow-xs"
+                    style={{ width }}
+                  />
+                </div>
+              );
+            })
+          )}
         </div>
 
-        {/* Encabezado del Perfil (Estilo WhatsApp Status con tiempo visible) */}
+        {/* Indicador de Diapositiva Multi-foto (ej: 1/3) */}
+        {!isVideo && statusImages.length > 1 && (
+          <div className="absolute top-16 right-4 z-30 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[11px] font-black border border-white/20 shadow-md">
+            {currentSlideIndex + 1} / {statusImages.length}
+          </div>
+        )}
+
+        {/* Encabezado del Perfil (Estilo WhatsApp Status con tiempo y expiración 24h) */}
         <div className="absolute top-8 inset-x-3.5 z-30 flex items-center justify-between text-white pt-[env(safe-area-inset-top,4px)]">
           <div 
             className="flex items-center gap-2.5 cursor-pointer max-w-[75%]"
@@ -283,9 +352,13 @@ export default function MerchantStatusViewerModal({
                 </span>
                 {isVerified && <CheckCircle size={14} className="text-blue-400 fill-blue-400/20 shrink-0" />}
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-zinc-200 drop-shadow-md font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-zinc-200 drop-shadow-md font-medium flex-wrap">
                 <Clock size={11} className="text-emerald-400" />
                 <span>{currentStatus.time || 'Hace unos momentos'}</span>
+                <span className="text-zinc-400">·</span>
+                <span className="text-amber-400 font-bold text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded-full border border-amber-500/30">
+                  Expira en {currentStatus.hoursLeft || 24}h
+                </span>
                 <span className="text-zinc-400">·</span>
                 <div className="flex items-center gap-1 text-zinc-100 font-bold bg-black/40 px-2 py-0.5 rounded-full border border-white/15">
                   <Eye size={11} className="text-white" />

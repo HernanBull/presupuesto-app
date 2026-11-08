@@ -1780,6 +1780,7 @@ export default function MerchantOnboardingWizard({
                         <UploadCloud size={20} className="text-slate-400 mb-1" />
                         <span className="text-xs font-bold text-slate-700">Subir foto de portada</span>
                         <span className="text-[10px] text-slate-400 mt-0.5">JPG, PNG o WebP hasta 10 MB</span>
+                        <span className="text-[10px] text-amber-700 font-bold mt-1 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200">Recomendado: 1200 × 400 px (3:1) o 1280 × 720 px</span>
                       </div>
                     )}
                     <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
