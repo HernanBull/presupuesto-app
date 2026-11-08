@@ -2027,18 +2027,6 @@ export default function MarketplaceDirectory() {
                 </button>
               )}
 
-              {/* Botón de Retorno al Panel Administrador para Comerciantes */}
-              {hasMerchantAccess && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-[10px] sm:text-xs shadow-md shadow-orange-500/30 active:scale-95 transition-all cursor-pointer shrink-0"
-                  title="Volver a mi Panel de Administrador"
-                >
-                  <LayoutDashboard size={12} className="sm:w-3.5 sm:h-3.5 stroke-[2.5]" />
-                  <span>Panel Admin</span>
-                </button>
-              )}
-
               {/* Botón de Perfil o Login (Oculto si ya existe sesión de comerciante activa) */}
               {!hasMerchantAccess && (
                 currentCustomer ? (
@@ -2264,21 +2252,29 @@ export default function MarketplaceDirectory() {
             </div>
           </div>
 
-          <button onClick={() => {
-            if (!currentCustomer) { 
-              if (hasMerchantAccess) {
-                navigate('/dashboard');
-              } else {
+          {/* Botón de Favoritos (Para Clientes) o Panel Admin (Para Comerciantes) */}
+          {hasMerchantAccess ? (
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-orange-400 cursor-pointer group"
+              title="Panel Administrador"
+            >
+              <LayoutDashboard size={22} className="text-orange-500 group-hover:scale-110 transition-transform stroke-[2.2]" />
+              <span className="text-[10px] font-bold text-orange-400 transition-colors">Panel Admin</span>
+            </button>
+          ) : (
+            <button onClick={() => {
+              if (!currentCustomer) { 
                 setAuthMode('login'); 
                 setIsAuthModalOpen(true); 
+              } else {
+                navigate('/profile', { state: { tab: 'favoritas' } });
               }
-            } else {
-              navigate('/profile', { state: { tab: 'favoritas' } });
-            }
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
-            <Heart size={22} className="text-white group-hover:text-amber-400 transition-colors" />
-            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Favoritos</span>
-          </button>
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+              <Heart size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+              <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Favoritos</span>
+            </button>
+          )}
 
           <button onClick={() => {
             navigate('/mapa');

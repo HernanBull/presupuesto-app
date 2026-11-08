@@ -885,38 +885,40 @@ export default function SocialFeedCard({
           </span>
         </button>
 
-        {/* Favoritos / Guardar (Naranja Corporativo Axon con rebote y pulso) */}
-        <button 
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSave(e);
-          }}
-          className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-          title="Guardar en favoritos"
-        >
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
-            saveBounced 
-              ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
-              : isSaved 
-                ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] scale-105' 
-                : 'bg-black/60 border-white/20 group-hover:bg-black/75 hover:border-orange-400/50'
-          }`}>
-            <Bookmark 
-              size={20} 
-              strokeWidth={isSaved ? 0 : 2} 
-              fill={isSaved ? '#ffffff' : 'none'} 
-              className={`transition-all duration-300 ${
-                saveBounced ? 'scale-125 rotate-[-12deg]' : ''
-              } text-white ${isSaved ? 'drop-shadow-sm' : ''}`} 
-            />
-          </div>
-          <span className={`text-[10px] font-bold drop-shadow-sm tracking-tight transition-colors duration-200 ${
-            isSaved ? 'text-orange-400 font-black' : 'text-white'
-          }`}>
-            {isSaved ? 'Guardado' : 'Guardar'}
-          </span>
-        </button>
+        {/* Favoritos / Guardar (Solo visible para Clientes; los Comerciantes solo pueden Me gusta, Comentar y Compartir) */}
+        {!isMerchantAuth && (
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave(e);
+            }}
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Guardar en favoritos"
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
+              saveBounced 
+                ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
+                : isSaved 
+                  ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] scale-105' 
+                  : 'bg-black/60 border-white/20 group-hover:bg-black/75 hover:border-orange-400/50'
+            }`}>
+              <Bookmark 
+                size={20} 
+                strokeWidth={isSaved ? 0 : 2} 
+                fill={isSaved ? '#ffffff' : 'none'} 
+                className={`transition-all duration-300 ${
+                  saveBounced ? 'scale-125 rotate-[-12deg]' : ''
+                } text-white ${isSaved ? 'drop-shadow-sm' : ''}`} 
+              />
+            </div>
+            <span className={`text-[10px] font-bold drop-shadow-sm tracking-tight transition-colors duration-200 ${
+              isSaved ? 'text-orange-400 font-black' : 'text-white'
+            }`}>
+              {isSaved ? 'Guardado' : 'Guardar'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
