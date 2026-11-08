@@ -541,18 +541,102 @@ export default function PublicStore() {
     });
   }, [storeNews, config, slug]);
 
-  const [activeStatusModalList, setActiveStatusModalList] = useState('permanent'); // 'permanent' | 'ephemeral'
-  const activeStatusesForViewer = useMemo(() => {
-    if (activeStatusModalList === 'ephemeral') {
-      return ephemeralStatuses.length > 0 ? ephemeralStatuses : permanentStatuses;
-    }
-    return permanentStatuses.length > 0 ? permanentStatuses : ephemeralStatuses;
-  }, [activeStatusModalList, permanentStatuses, ephemeralStatuses]);
-
   // Colección unificada de estados del comercio (permanentes y efímeros)
   const merchantStatuses = useMemo(() => {
     return [...permanentStatuses, ...ephemeralStatuses];
   }, [permanentStatuses, ephemeralStatuses]);
+
+  // Colección completa de publicaciones (Fotos y Videos) — no excluye fotos
+  const merchantPublications = useMemo(() => {
+    const list = [];
+    const seenIds = new Set();
+    const storeAvatar = config?.logoUrl || config?.storefront?.logoUrl;
+    const storeCover = config?.coverUrl || config?.storefront?.heroUrl || config?.bannerUrl;
+    const storeName = config?.business_name || 'Comercio';
+
+    (storeNews || []).forEach((n, idx) => {
+      if (n.status && n.status !== 'Publicado') return;
+      const idKey = n.id || `news-${idx}`;
+      if (seenIds.has(idKey)) return;
+      seenIds.add(idKey);
+
+      const imagesList = resolvePostImages(n);
+      const isVid = n.media_type === 'video' || 
+        (typeof n.video_url === 'string' && n.video_url.length > 0) || 
+        (typeof n.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.image_url));
+
+      const primaryMedia = isVid 
+        ? (n.video_url || n.image_url || imagesList[0] || storeCover)
+        : (imagesList[0] || n.image_url || storeCover || storeAvatar);
+
+      const cleanTitle = (n.title || '')
+        .replace(/^\[ESTADO_PERMANENTE\]\s*/i, '')
+        .replace(/^\[ESTADO_FIJO\]\s*/i, '')
+        .replace(/^\[ESTADO\]\s*/i, '')
+        .trim();
+
+      const realViews = Number(n.views || n.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${idKey}`) : 0) || 0);
+
+      list.push({
+        id: idKey,
+        name: storeName,
+        store_name: storeName,
+        slug: slug,
+        store_slug: slug,
+        avatar: storeAvatar,
+        store_logo: storeAvatar,
+        mediaUrl: primaryMedia,
+        media_url: primaryMedia,
+        images: imagesList.length > 0 ? imagesList : (primaryMedia ? [primaryMedia] : []),
+        image_urls: imagesList.length > 0 ? imagesList : (primaryMedia ? [primaryMedia] : []),
+        video_url: isVid ? primaryMedia : null,
+        media_type: isVid ? 'video' : 'image',
+        isVideo: isVid,
+        imageCount: imagesList.length || (primaryMedia ? 1 : 0),
+        title: cleanTitle,
+        caption: cleanTitle ? (n.content ? `${cleanTitle}: ${n.content}` : cleanTitle) : (n.content || ''),
+        content: n.content || '',
+        views: realViews,
+        likes: Number(n.likes || n.like_count || 0),
+        created_at: n.created_at,
+        time: formatStatusTime(n.created_at),
+        isVerified: !!config?.is_verified,
+        statusIndex: idx,
+        sourceList: 'publications'
+      });
+    });
+
+    (permanentStatuses || []).forEach((st, idx) => {
+      const idKey = st.id || `st-perm-${idx}`;
+      if (seenIds.has(idKey)) return;
+      seenIds.add(idKey);
+      list.push({
+        ...st,
+        id: idKey,
+        isVideo: st.media_type === 'video',
+        imageCount: (st.images && st.images.length) || 1,
+        views: Number(st.views || 0),
+        likes: Number(st.likes || 0),
+        statusIndex: idx,
+        sourceList: 'permanent'
+      });
+    });
+
+    return list;
+  }, [storeNews, permanentStatuses, config, slug]);
+
+  const merchantVideos = merchantPublications;
+
+  const [activeStatusModalList, setActiveStatusModalList] = useState('publications'); // 'publications' | 'permanent' | 'ephemeral'
+  const activeStatusesForViewer = useMemo(() => {
+    if (activeStatusModalList === 'publications') {
+      return merchantPublications.length > 0 ? merchantPublications : merchantStatuses;
+    }
+    if (activeStatusModalList === 'ephemeral') {
+      return ephemeralStatuses.length > 0 ? ephemeralStatuses : permanentStatuses;
+    }
+    return permanentStatuses.length > 0 ? permanentStatuses : ephemeralStatuses;
+  }, [activeStatusModalList, merchantPublications, permanentStatuses, ephemeralStatuses, merchantStatuses]);
 
   // Limpieza automática en segundo plano de estados efímeros de más de 24 horas
   useEffect(() => {
@@ -653,49 +737,6 @@ export default function PublicStore() {
     return num.toString();
   };
 
-  const merchantVideos = useMemo(() => {
-    const list = [];
-    const seenUrls = new Set();
-    const allStatuses = merchantStatuses;
-
-    allStatuses.forEach((st, idx) => {
-      const isVid = st.media_type === 'video' || (typeof st.mediaUrl === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(st.mediaUrl));
-      if (!isVid) return; // Exclusivo videos reales
-      const url = st.video_url || st.mediaUrl;
-      if (url && !seenUrls.has(url)) {
-        seenUrls.add(url);
-        const realViews = Number(st.views || st.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${st.id || `st-${idx}`}`) : 0) || 0);
-        list.push({
-          id: st.id || `st-${idx}`,
-          mediaUrl: url,
-          isVideo: true,
-          caption: st.caption || st.name,
-          views: realViews,
-          statusIndex: idx
-        });
-      }
-    });
-
-    (storeNews || []).forEach((n, idx) => {
-      const isVid = n.media_type === 'video' || (typeof n.image_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.image_url)) || (typeof n.video_url === 'string' && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(n.video_url));
-      if (!isVid) return; // Exclusivo videos reales
-      const url = n.video_url || n.image_url;
-      if (url && !seenUrls.has(url)) {
-        seenUrls.add(url);
-        const realViews = Number(n.views || n.view_count || (typeof localStorage !== 'undefined' ? localStorage.getItem(`axon_views_${n.id || `news-${idx}`}`) : 0) || 0);
-        list.push({
-          id: n.id || `news-${idx}`,
-          mediaUrl: url,
-          isVideo: true,
-          caption: n.title ? `${n.title}: ${n.content}` : n.content,
-          views: realViews,
-          statusIndex: 0
-        });
-      }
-    });
-
-    return list;
-  }, [merchantStatuses, storeNews]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
@@ -2673,20 +2714,25 @@ export default function PublicStore() {
 
                   {/* Estadísticas Horizontales a la derecha (Estilo Instagram) */}
                   <div className="flex-1 flex justify-around items-center text-center">
-                    <div className="flex flex-col items-center">
+                    <div 
+                      onClick={() => setProfileSubTab('media')}
+                      className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
+                      title="Ver publicaciones"
+                    >
                       <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
-                        {products.length + (storeNews?.length || 0)}
+                        {merchantPublications.length}
                       </span>
                       <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Publicaciones</span>
                     </div>
-                    {/* Seguidores: solo número informativo sin visor de lista */}
+                    {/* Seguidores */}
                     <div className="flex flex-col items-center px-2 select-none">
                       <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
                         {followersCount}
                       </span>
                       <span className="text-slate-500 text-[11px] sm:text-xs font-semibold">Seguidores</span>
                     </div>
-                    <div className="flex flex-col items-center">
+                    {/* Me gusta */}
+                    <div className="flex flex-col items-center select-none">
                       <span className="font-black text-base sm:text-lg text-slate-900 leading-tight">
                         {likesCount}
                       </span>
@@ -2760,12 +2806,12 @@ export default function PublicStore() {
                 <div className="flex gap-2.5 mt-3.5 w-full">
                   <button 
                     onClick={async () => {
-                      const followerId = currentCustomer?.id || (isVisitingMerchant ? (activeMerchantWs || activeMerchantSlug) : null);
-                      if (!followerId && !isMerchantOwner) {
+                      const followerId = currentCustomer?.id || activeMerchantWs || activeMerchantSlug;
+                      if (!followerId) {
                         setShowAuthModal(true);
                         return;
                       }
-                      if (!followerId || !workspaceId) return;
+                      if (!workspaceId) return;
                       const newFollowing = !isFollowing;
                       setIsFollowing(newFollowing);
                       setFollowersCount(prev => newFollowing ? prev + 1 : Math.max(0, prev - 1));
@@ -3063,18 +3109,23 @@ export default function PublicStore() {
                     )}
                   </button>
 
-                  {/* Ícono 2: Multimedia / Videos */}
+                  {/* Ícono 2: Publicaciones (Fotos y Videos) */}
                   <button
                     type="button"
                     onClick={() => setProfileSubTab('media')}
                     className={`py-3.5 flex items-center justify-center gap-1.5 relative transition-all cursor-pointer ${
                       profileSubTab === 'media' ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
-                    title="Multimedia y Videos"
+                    title="Publicaciones (Fotos y Videos)"
                   >
                     <div className="flex items-center gap-1.5">
-                      <Film size={16} className="stroke-[2.4]" />
-                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Videos</span>
+                      <Grid size={16} className="stroke-[2.4]" />
+                      <span className="text-[11px] sm:text-xs uppercase tracking-wider font-extrabold">Publicaciones</span>
+                      {merchantPublications.length > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600">
+                          {merchantPublications.length}
+                        </span>
+                      )}
                     </div>
                     {profileSubTab === 'media' && (
                       <motion.div 
@@ -3318,17 +3369,22 @@ export default function PublicStore() {
                   </div>
                 )}
 
-                {/* PESTAÑA 2: MULTIMEDIA / VIDEOS */}
+                {/* PESTAÑA 2: PUBLICACIONES (FOTOS Y VIDEOS) */}
                 {profileSubTab === 'media' && (
                   <div className="pt-3 pb-8">
-                    {merchantVideos.length > 0 ? (
+                    {merchantPublications.length > 0 ? (
                       <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
-                        {merchantVideos.map((item, idx) => (
+                        {merchantPublications.map((item, idx) => (
                           <div
                             key={item.id || idx}
-                            onClick={() => markStatusAsViewed(item.statusIndex, 'permanent')}
+                            onClick={() => {
+                              setActiveStatusModalList('publications');
+                              setActiveStatusIndex(idx);
+                              setIsStatusViewerOpen(true);
+                              recordPostView(item.id, workspaceId, currentCustomer?.id || 'guest');
+                            }}
                             className="relative aspect-[9/16] rounded-xl overflow-hidden bg-zinc-900 group cursor-pointer shadow-xs hover:scale-[1.02] active:scale-98 transition-all select-none"
-                            title={item.caption || 'Ver video'}
+                            title={item.caption || item.title || 'Ver publicación'}
                           >
                             {/* Video o Imagen de Fondo */}
                             {item.isVideo ? (
@@ -3342,7 +3398,7 @@ export default function PublicStore() {
                             ) : (
                               <img 
                                 src={resolveImageUrl(item.mediaUrl)} 
-                                alt="" 
+                                alt={item.title || ''} 
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => {
                                   e.currentTarget.onerror = null;
@@ -3351,20 +3407,35 @@ export default function PublicStore() {
                               />
                             )}
 
-                            {/* Degradado inferior para resaltar métrica de reproducciones estilo TikTok */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent pointer-events-none" />
+                            {/* Degradado inferior cinematográfico */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent pointer-events-none" />
 
-                            {/* Badge Play en la esquina superior derecha */}
-                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center text-white/90">
-                              <Play size={10} fill="currentColor" className="text-white translate-x-[0.5px]" />
-                            </div>
+                            {/* Badge Play si es video / Badge Álbum si son varias fotos */}
+                            {item.isVideo ? (
+                              <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center text-white/90 shadow-xs">
+                                <Play size={10} fill="currentColor" className="text-white translate-x-[0.5px]" />
+                              </div>
+                            ) : item.imageCount > 1 ? (
+                              <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-xs flex items-center gap-1 text-[10px] font-bold text-white shadow-xs">
+                                <Copy size={10} />
+                                <span>{item.imageCount}</span>
+                              </div>
+                            ) : null}
 
-                            {/* Contador de Reproducciones en la esquina inferior izquierda (Estilo TikTok: ▶ 84,4 mil) */}
-                            <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1 text-white">
-                              <Play size={11} fill="white" className="text-white shrink-0 drop-shadow-md" />
-                              <span className="text-[11px] font-black tracking-tight drop-shadow-md truncate">
-                                {formatViews(item.views)}
-                              </span>
+                            {/* Métricas en el pie (Reproducciones y Likes) */}
+                            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-white text-[11px] font-black drop-shadow-md">
+                              <div className="flex items-center gap-1">
+                                <Play size={11} fill="white" className="text-white shrink-0 drop-shadow-md" />
+                                <span className="tracking-tight truncate">
+                                  {formatViews(item.views)}
+                                </span>
+                              </div>
+                              {item.likes > 0 && (
+                                <div className="flex items-center gap-0.5 text-red-400">
+                                  <Heart size={10} fill="#ef4444" className="text-red-500" />
+                                  <span>{item.likes}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -3375,20 +3446,20 @@ export default function PublicStore() {
                           className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3"
                           style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
                         >
-                          <Play size={24} style={{ fill: primaryColor }} className="translate-x-0.5" />
+                          <Grid size={24} style={{ color: primaryColor }} />
                         </div>
-                        <h4 className="text-base font-bold text-slate-800">No hay videos publicados aún</h4>
+                        <h4 className="text-base font-bold text-slate-800">No hay publicaciones aún</h4>
                         <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
-                          Este comercio aún no ha subido videos o reels a su vitrina.
+                          Este comercio aún no ha subido fotos, videos o novedades a su vitrina.
                         </p>
                         {isMerchantOwner && (
                           <button
-                            onClick={() => navigate('/social-feed?type=status&create=true')}
+                            onClick={() => navigate('/social-feed?create=true')}
                             className="mt-4 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-1.5 cursor-pointer hover:brightness-110 active:scale-95"
                             style={{ backgroundColor: primaryColor }}
                           >
                             <Plus size={14} />
-                            <span>Publicar nuevo video</span>
+                            <span>Crear nueva publicación</span>
                           </button>
                         )}
                       </div>
