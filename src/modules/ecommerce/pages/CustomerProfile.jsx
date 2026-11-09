@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check } from 'lucide-react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check, PackageCheck, Compass, SlidersHorizontal, Flame, Users, UserCog, BookmarkCheck } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -1102,53 +1102,71 @@ export default function CustomerProfile() {
           </div>
           */}
           
-          {/* Group 2 */}
+          {/* Grupo 1: Actividad y Colecciones */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'pedidos' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('pedidos')}>
                <div className="flex items-center gap-4">
-                  <ShoppingBag size={20} className={activeTab === 'pedidos' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Mis pedidos</span>
+                  <PackageCheck size={20} className={activeTab === 'pedidos' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">mis pedidos</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{orders.length}</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
+               <div className="flex items-center gap-4">
+                  <BookmarkCheck size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">guardados</span>
+               </div>
+               <ChevronRight size={18} className="text-slate-300" />
+            </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'direcciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('direcciones')}>
                <div className="flex items-center gap-4">
-                  <MapPin size={20} className={activeTab === 'direcciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Mis direcciones</span>
+                  <Compass size={20} className={activeTab === 'direcciones' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">mis elecciones</span>
                </div>
                <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
 
-          {/* Group 3 */}
+          {/* Grupo 2: Exploración y Comunidad */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'calificaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
-               <div className="flex items-center gap-4">
-                  <Star size={20} className={activeTab === 'calificaciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Mis calificaciones</span>
-               </div>
-               <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
-                  <ChevronRight size={18} className="text-slate-300" />
-               </div>
-            </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'recomendaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
                <div className="flex items-center gap-4">
-                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Recomendaciones</span>
+                  <Flame size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">las recomendaciones</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'visitas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
                <div className="flex items-center gap-4">
-                  <Store size={20} className={activeTab === 'visitas' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Visitas</span>
+                  <Users size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">seguidores</span>
+               </div>
+               <ChevronRight size={18} className="text-slate-300" />
+            </button>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'visitas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
+               <div className="flex items-center gap-4">
+                  <Eye size={20} className={activeTab === 'visitas' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">visita</span>
+               </div>
+               <div className="flex items-center gap-3">
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <ChevronRight size={18} className="text-slate-300" />
+               </div>
+            </button>
+          </div>
+
+          {/* Grupo 3: Calificación y Cuenta */}
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-4">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'calificaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
+               <div className="flex items-center gap-4">
+                  <Award size={20} className={activeTab === 'calificaciones' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">mi calificación</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
@@ -1157,26 +1175,8 @@ export default function CustomerProfile() {
             </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${(activeTab === 'datos' || activeTab === 'menu') ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('datos')}>
                <div className="flex items-center gap-4">
-                  <User size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Ajustes de Perfil</span>
-               </div>
-               <ChevronRight size={18} className="text-slate-300" />
-            </button>
-          </div>
-
-          {/* Group 4 */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-4">
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
-               <div className="flex items-center gap-4">
-                  <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Guardados</span>
-               </div>
-               <ChevronRight size={18} className="text-slate-300" />
-            </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
-               <div className="flex items-center gap-4">
-                  <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Seguidos</span>
+                  <UserCog size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">ajuste de perfil</span>
                </div>
                <ChevronRight size={18} className="text-slate-300" />
             </button>
@@ -1440,12 +1440,12 @@ export default function CustomerProfile() {
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Mis Calificaciones</h2>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Mi calificación</h2>
                       <p className="text-slate-500 text-sm">Reseñas y opiniones que has dejado a los comercios.</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Star size={48} className="mx-auto text-slate-300 mb-4" />
+                    <Award size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900">Aún no has dejado calificaciones</h3>
                     <p className="text-slate-500 text-sm mt-2">Cuando completes un pedido, podrás calificar la calidad de los productos y la atención del comercio.</p>
                   </div>
@@ -1459,12 +1459,12 @@ export default function CustomerProfile() {
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Recomendaciones para ti</h2>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Las recomendaciones</h2>
                       <p className="text-slate-500 text-sm">Productos y tiendas sugeridos según tus preferencias y ubicación.</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
+                    <Flame size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900">Personalizando recomendaciones...</h3>
                     <p className="text-slate-500 text-sm mt-2">Visita tiendas y guarda productos para recibir recomendaciones personalizadas.</p>
                     <button onClick={() => navigate('/explorar')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
@@ -1481,12 +1481,12 @@ export default function CustomerProfile() {
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Historial de Visitas</h2>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Visita</h2>
                       <p className="text-slate-500 text-sm">Comercios y tiendas que has visitado recientemente.</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Store size={48} className="mx-auto text-slate-300 mb-4" />
+                    <Eye size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900">Historial limpio</h3>
                     <p className="text-slate-500 text-sm mt-2">Tus visitas recientes a tiendas del ecosistema se reflejarán aquí para un acceso directo.</p>
                   </div>
@@ -1499,8 +1499,8 @@ export default function CustomerProfile() {
               <motion.div key="direcciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">Libreta de Direcciones</h2>
-                    <p className="text-slate-500 text-sm">Gestiona tus direcciones de entrega.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Mis elecciones</h2>
+                    <p className="text-slate-500 text-sm">Gestiona tus direcciones de entrega y preferencias.</p>
                   </div>
                   {!isAddingAddress && (
                      <button onClick={() => setIsAddingAddress(true)} className="flex items-center gap-2 bg-amber-500 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all shadow-xs">
@@ -1876,7 +1876,7 @@ export default function CustomerProfile() {
             {/* TABS: PRODUCTOS GUARDADOS (WISHLIST) */}
             {activeTab === 'wishlist' && (
               <motion.div key="wishlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-black text-slate-900 mb-2">Productos Guardados</h2>
+                <h2 className="text-2xl font-black text-slate-900 mb-2">Guardados</h2>
                 <p className="text-slate-500 text-sm mb-6">Tus artículos favoritos listos para cuando quieras comprar.</p>
                 
                 {parsedWishlist.length === 0 ? (
@@ -1929,7 +1929,7 @@ export default function CustomerProfile() {
               <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-1">Favoritos y Guardados</h2>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidores</h2>
                     <p className="text-slate-500 text-sm">Acceso directo a tus tiendas seguidas y publicaciones guardadas.</p>
                   </div>
 
