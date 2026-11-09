@@ -521,8 +521,7 @@ async function handleTelegramUpdate(update, supabase) {
         `Desde aquí puedes descargar reportes con la <b>data real</b> de tus entregas auditadas o enviar archivos para importar nuevos pedidos:\n\n` +
         `📥 <b>DESCARGAS DISPONIBLES:</b>\n` +
         `• 📊 <b>Reporte Hoy (Excel):</b> Hoja de cálculo con todos los pedidos, choferes y fletes reales de hoy.\n` +
-        `• 📄 <b>Reporte Hoy (Word .docx):</b> Informe ejecutivo con tablas y membrete institucional.\n` +
-        `• 📋 <b>Plantilla en Blanco (.xlsx):</b> Formato vacío para registro manual.\n\n` +
+        `• 📄 <b>Reporte Hoy (Word .docx):</b> Informe ejecutivo con tablas y membrete institucional.\n\n` +
         `📤 <b>IMPORTACIÓN DIRECTA:</b>\n` +
         `Envía o reenvía directamente a este chat cualquier archivo <code>.xlsx</code>, <code>.csv</code> o documento Word <code>.docx</code>. El bot auditará los despachos automáticamente.`;
 
@@ -533,9 +532,6 @@ async function handleTelegramUpdate(update, supabase) {
           ],
           [
             { text: "📄 Descargar Reporte Hoy (Word .docx)", callback_data: "export_report:today:docx" }
-          ],
-          [
-            { text: "📋 Plantilla Oficial en Blanco (.xlsx)", callback_data: "send_plantilla_blank" }
           ]
         ]
       };
