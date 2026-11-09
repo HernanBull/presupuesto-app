@@ -21,10 +21,10 @@ const SUPERUSER_KEYBOARD = {
   keyboard: [
     [{ text: "📊 Balance Hoy" }, { text: "⏮️ Ayer" }],
     [{ text: "📈 Esta Semana (7d)" }, { text: "🗓️ Mes en Curso" }],
-    [{ text: "🛵 Flota en Vivo" }, { text: "🏬 Comercios Activos" }],
-    [{ text: "⏱️ Tiempos de Entrega" }, { text: "🚨 Novedades / Alertas" }],
-    [{ text: "📁 Importar Excel/Word" }, { text: "🔍 Buscar Pedido" }],
-    [{ text: "❓ Ayuda Gerencial" }]
+    [{ text: "📍 Rutas y Sectores" }, { text: "🛵 Flota en Vivo" }],
+    [{ text: "🏬 Comercios Activos" }, { text: "⏱️ Tiempos de Entrega" }],
+    [{ text: "🚨 Novedades / Alertas" }, { text: "📁 Importar Excel/Word" }],
+    [{ text: "🔍 Buscar Pedido" }, { text: "❓ Ayuda Gerencial" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -501,6 +501,9 @@ async function handleTelegramUpdate(update, supabase) {
       }
     }
 
+    if (text === "📍 Rutas y Sectores" || cleanCmd === "/gerencia_rutas" || cleanCmd === "/rutas" || cleanCmd === "/sectores") {
+      return await handleGerenciaRutas(chatId, agencySuperuser, supabase);
+    }
     if (text === "🛵 Flota en Vivo" || cleanCmd === "/gerencia_choferes") {
       return await handleGerenciaChoferes(chatId, agencySuperuser, supabase);
     }
@@ -537,7 +540,7 @@ async function handleTelegramUpdate(update, supabase) {
       return new Response("OK", { headers: corsHeaders });
     }
     if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
-      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones directos del teclado inferior o escribe:\n\n📊 <b>Balance Hoy</b>: Resumen de ventas, fletes y pedidos de hoy.\n⏮️ <b>Ayer</b>: Balance del día anterior.\n📈 <b>Esta Semana</b>: Auditoría acumulada de los últimos 7 días.\n🗓️ <b>Mes en Curso</b>: Ventas y entregas del mes actual.\n🛵 <b>Flota en Vivo</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>Comercios Activos</b>: Comercios con más volumen de envíos.\n⏱️ <b>Tiempos de Entrega</b>: Desempeño y velocidad de despacho.\n🚨 <b>Novedades / Alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar 702892</code>).\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>05/11/2026</code> o <code>05/11</code> para auditar ese día.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
+      const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones directos del teclado inferior o escribe:\n\n📊 <b>Balance Hoy</b>: Resumen de fletes, entregas y pedidos de hoy.\n⏮️ <b>Ayer</b>: Balance del día anterior.\n📈 <b>Esta Semana</b>: Auditoría acumulada de los últimos 7 días.\n🗓️ <b>Mes en Curso</b>: Despachos y fletes del mes actual.\n📍 <b>Rutas y Sectores</b>: Tabulación de destinos y enlaces GPS a Google Maps para cálculo de tarifas.\n🛵 <b>Flota en Vivo</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>Comercios Activos</b>: Ranking de comercios por volumen de despachos.\n⏱️ <b>Tiempos de Entrega</b>: Desempeño y velocidad de despacho.\n🚨 <b>Novedades / Alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar 702892</code>).\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>05/11/2026</code> o <code>05/11</code> para auditar ese día.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
@@ -1456,7 +1459,6 @@ async function handleTelegramDocument(message: any, supabase: any) {
 • 🛵 <b>En Ruta:</b> ${inRouteCount} pedidos
 • ⚠️ <b>Cancelados / Novedades:</b> ${cancelledCount} pedidos
 • 💰 <b>Fletes EnMinutos (Estimado):</b> $${totalFletes.toFixed(2)} USD
-• 🏬 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
 
 👁️ <b>VISTA PREVIA (Últimos Despachos):</b>
 ${previewList}
@@ -1706,6 +1708,73 @@ function getVenezuelaDateRange(type: string, customDateStr?: string) {
   return { startIso: startUtc, endIso: endUtc, label, start: startDate, end: endDate };
 }
 
+function capitalizeWords(str: string): string {
+  return str.replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function extractOrderSector(order: any): { sector: string; mapsUrl?: string } {
+  let shipping: any = {};
+  try {
+    shipping = typeof order.shipping_info === 'string' 
+      ? JSON.parse(order.shipping_info) 
+      : (order.shipping_info || {});
+  } catch {
+    shipping = {};
+  }
+
+  const mapsUrl = shipping?.maps_url || 
+    (shipping?.location?.lat && shipping?.location?.lng 
+      ? `https://maps.google.com/?q=${shipping.location.lat},${shipping.location.lng}` 
+      : undefined);
+
+  if (shipping?.sector && typeof shipping.sector === 'string' && shipping.sector.trim().length > 1) {
+    return { sector: capitalizeWords(shipping.sector.trim()), mapsUrl };
+  }
+
+  const fullAddress = (order.address || shipping?.address || '').trim();
+  if (!fullAddress || fullAddress.toLowerCase().includes('mostrador') || fullAddress.toLowerCase().includes('pos')) {
+    return { sector: 'Sin Sector / Mostrador', mapsUrl };
+  }
+
+  const knownSectors = [
+    { pattern: /\b(ciudad\s*jard[ií]n)\b/i, name: "Ciudad Jardín" },
+    { pattern: /\b(corinsa)\b/i, name: "Corinsa" },
+    { pattern: /\b(casco\s*central|centro\s*cagua|el\s*centro)\b/i, name: "Casco Central" },
+    { pattern: /\b(encrucijada|la\s*encrucijada)\b/i, name: "La Encrucijada" },
+    { pattern: /\b(prados\s*de\s*la\s*encrucijada|prados)\b/i, name: "Prados Encrucijada" },
+    { pattern: /\b(fundacagua)\b/i, name: "Fundacagua" },
+    { pattern: /\b(huete)\b/i, name: "Huete" },
+    { pattern: /\b(bella\s*vista)\b/i, name: "Bella Vista" },
+    { pattern: /\b(santa\s*rosal[ií]a)\b/i, name: "Santa Rosalía" },
+    { pattern: /\b(las\s*vegas)\b/i, name: "Las Vegas" },
+    { pattern: /\b(tamborito)\b/i, name: "Tamborito" },
+    { pattern: /\b(el\s*bosque)\b/i, name: "El Bosque" },
+    { pattern: /\b(san\s*jos[eé])\b/i, name: "San José" },
+    { pattern: /\b(la\s*segundera)\b/i, name: "La Segundera" },
+    { pattern: /\b(barranc[oó]n|el\s*barranc[oó]n)\b/i, name: "El Barrancón" },
+    { pattern: /\b(turmero)\b/i, name: "Turmero" },
+    { pattern: /\b(san\s*mateo)\b/i, name: "San Mateo" },
+    { pattern: /\b(palo\s*negro)\b/i, name: "Palo Negro" },
+    { pattern: /\b(maracay)\b/i, name: "Maracay" }
+  ];
+
+  for (const item of knownSectors) {
+    if (item.pattern.test(fullAddress)) {
+      return { sector: item.name, mapsUrl };
+    }
+  }
+
+  const parts = fullAddress.split(/[,;\n]/).map((p: string) => p.trim()).filter((p: string) => p.length > 0);
+  if (parts.length > 0) {
+    const firstPart = parts[0].replace(/^(calle|av\.|avenida|casa|edif|edificio|urb\.|urbanizaci[oó]n)\s+/i, '').trim();
+    if (firstPart.length > 1) {
+      return { sector: capitalizeWords(firstPart.slice(0, 25)), mapsUrl };
+    }
+  }
+
+  return { sector: 'Sector General', mapsUrl };
+}
+
 // 1. Reporte Gerencial por Período/Fecha (/gerencia hoy, ayer, antier, custom)
 async function sendGerenciaReport(chatId: string, superuser: any, range: any, supabase: any, editMessageId?: number) {
   if (!range) {
@@ -1718,7 +1787,7 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
   // Consultar órdenes en el rango UTC exacto
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
-    .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name, delivery_driver_id, workspace_id, order_type')
+    .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name, delivery_driver_id, workspace_id, order_type, address, shipping_info')
     .gte('date', startIso)
     .lte('date', endIso);
 
@@ -1726,7 +1795,7 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
 
   // Filtrar exclusivamente pedidos asociados al servicio de delivery (excluyendo ventas directas de mostrador POS)
   const deliveryOrders = orderList.filter((o: any) => {
-    const isPos = (o.order_type || '').toLowerCase() === 'pos' && !o.delivery_driver_id && o.delivery_telegram_status === 'idle';
+    const isPos = (o.order_type || '').toLowerCase() === 'pos' && !o.delivery_driver_id && (!o.delivery_telegram_status || o.delivery_telegram_status === 'idle');
     return !isPos;
   });
 
@@ -1736,16 +1805,21 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
   const broadcasted = deliveryOrders.filter((o: any) => o.delivery_telegram_status === 'broadcasted').length;
   const aborted = deliveryOrders.filter((o: any) => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
 
-  let totalGmv = 0;
-  deliveryOrders.forEach((o: any) => {
-    if (o.status !== 'Cancelado') {
-      totalGmv += Number(o.total || 0);
-    }
-  });
-
   const { data: feeSet } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_base_fee').maybeSingle();
   const baseFee = parseFloat(feeSet?.value || '2.00');
-  const deliveryIncome = delivered * baseFee;
+
+  // Recaudación exclusiva de fletes de EnMinutos (Cero datos privados de facturación del comercio)
+  let deliveryIncome = 0;
+  deliveryOrders.forEach((o: any) => {
+    let fee = baseFee;
+    try {
+      const sh = typeof o.shipping_info === 'string' ? JSON.parse(o.shipping_info) : o.shipping_info;
+      if (sh?.cost && Number(sh.cost) > 0) fee = Number(sh.cost);
+    } catch {}
+    if (o.status === 'Entregado' || o.delivery_telegram_status === 'delivered') {
+      deliveryIncome += fee;
+    }
+  });
 
   // Mapa de Choferes para resolución de nombres
   const { data: driversList } = await supabase.from('delivery_drivers').select('id, name, driver_code');
@@ -1763,7 +1837,18 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
     if (w.id) wsMap[w.id] = w.name;
   });
 
-  // Desglose por Comercios Top en la fecha
+  // Desglose por Rutas / Sectores
+  const sectorCounts: Record<string, number> = {};
+  deliveryOrders.forEach((o: any) => {
+    const { sector } = extractOrderSector(o);
+    sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
+  });
+  const topSectors = Object.entries(sectorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([sec, count]) => `  • 📌 ${sec}: <b>${count}</b> ${count === 1 ? 'pedido' : 'pedidos'}`)
+    .join('\n');
+
+  // Desglose por Comercios Top en la fecha (SOLO cantidad de envíos)
   const storeCounts: Record<string, number> = {};
   deliveryOrders.forEach((o: any) => {
     const store = o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio General';
@@ -1772,7 +1857,7 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
   const topStores = Object.entries(storeCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([name, count]) => `  • 🏬 ${name}: <b>${count}</b> pedidos`)
+    .map(([name, count]) => `  • 🏬 ${name}: <b>${count}</b> ${count === 1 ? 'pedido' : 'pedidos'}`)
     .join('\n');
 
   // Desglose por Choferes que entregaron en la fecha
@@ -1797,9 +1882,11 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
 • 📢 <b>En Espera / Subasta:</b> ${broadcasted} pedidos
 • ⚠️ <b>Cancelados / Abortados:</b> ${aborted} pedidos
 
-💰 <b>FINANZAS OPERATIVAS (ESTIMADO):</b>
-• 💵 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
+💰 <b>FINANZAS OPERATIVAS (FLETES):</b>
 • 🛵 <b>Recaudación en Fletes:</b> $${deliveryIncome.toFixed(2)} USD (Ref. $${baseFee.toFixed(2)}/envío)
+
+📍 <b>DESPACHOS POR RUTA / SECTOR:</b>
+${topSectors || '  <i>(Sin despachos registrados en esta fecha)</i>'}
 
 🏬 <b>COMERCIOS CON DESPACHOS:</b>
 ${topStores || '  <i>(Sin despachos registrados en esta fecha)</i>'}
@@ -1823,6 +1910,62 @@ ${topDrivers || '  <i>(Sin entregas completadas en esta fecha)</i>'}
 async function handleGerenciaHoy(chatId: string, superuser: any, supabase: any) {
   const range = getVenezuelaDateRange('today');
   return await sendGerenciaReport(chatId, superuser, range, supabase);
+}
+
+// 1.1 Tabulación Geográfica de Rutas y Sectores (/gerencia rutas)
+async function handleGerenciaRutas(chatId: string, superuser: any, supabase: any) {
+  const range = getVenezuelaDateRange('today');
+  const { data: orders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, address, shipping_info, status, delivery_telegram_status, pickup_store_name, delivery_driver_name, workspace_id, order_type')
+    .gte('date', range.startIso)
+    .lte('date', range.endIso)
+    .order('date', { ascending: false });
+
+  const deliveryOrders = (orders || []).filter((o: any) => {
+    const isPos = (o.order_type || '').toLowerCase() === 'pos' && (!o.delivery_telegram_status || o.delivery_telegram_status === 'idle');
+    return !isPos;
+  });
+
+  if (deliveryOrders.length === 0) {
+    await sendMessageToChat(chatId, `📍 <b>TABULACIÓN DE RUTAS Y SECTORES — HOY</b> 🛵\n━━━━━━━━━━━━━━━━━━━━━━\n<i>No se han registrado despachos por delivery el día de hoy.</i>\n\n💡 Cuando las tiendas emitan órdenes de despacho a domicilio, aquí podrás auditar los sectores y ubicaciones GPS para aplicar las tarifas por zona.`, SUPERUSER_KEYBOARD);
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  const sectorCounts: Record<string, number> = {};
+  const orderLines: string[] = [];
+
+  deliveryOrders.forEach((o: any, idx: number) => {
+    const { sector, mapsUrl } = extractOrderSector(o);
+    sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
+
+    const statusIcon = (o.status === 'Entregado' || o.delivery_telegram_status === 'delivered') ? '✅' : (o.status === 'Cancelado' || o.delivery_telegram_status === 'aborted') ? '⚠️' : '🛵';
+    const driver = o.delivery_driver_name ? ` (🛵 ${o.delivery_driver_name})` : '';
+    const mapsLink = mapsUrl ? ` [<a href="${mapsUrl}">Ver Maps 🗺️</a>]` : '';
+
+    orderLines.push(`${idx + 1}. <b>#${o.id}</b> | 🏬 ${o.pickup_store_name || 'Comercio'}\n   📍 <b>Sector:</b> <u>${sector}</u> | ${statusIcon} ${o.status || 'En camino'}${driver}${mapsLink}`);
+  });
+
+  const summarySectors = Object.entries(sectorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([sec, cnt]) => `• 📌 <b>${sec}:</b> ${cnt} ${cnt === 1 ? 'despacho' : 'despachos'} (${Math.round((cnt / deliveryOrders.length) * 100)}%)`)
+    .join('\n');
+
+  const msg = `📍 <b>TABULACIÓN DE RUTAS Y SECTORES — HOY</b> 🛵
+📅 <b>PERÍODO:</b> <u>${range.label}</u>
+━━━━━━━━━━━━━━━━━━━━━━
+📊 <b>RESUMEN DE DESPACHOS POR ZONA:</b>
+${summarySectors}
+
+━━━━━━━━━━━━━━━━━━━━━━
+📋 <b>DETALLE DE PEDIDOS Y UBICACIÓN:</b>
+${orderLines.slice(0, 15).join('\n\n')}${orderLines.length > 15 ? `\n\n<i>... y ${orderLines.length - 15} pedidos adicionales.</i>` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━
+💡 <i>Información geográfica para el cálculo del tarifario de fletes por ruta de EnMinutos.</i>`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
 }
 
 // Manejador de botones inline (Callback Queries de Telegram)
@@ -1947,7 +2090,6 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
 • 🟢 <b>Nuevas Órdenes:</b> ${createdCount} registradas
 • 🔄 <b>Actualizadas:</b> ${updatedCount} órdenes
 • 🛵 <b>Fletes EnMinutos:</b> $${totalFletes.toFixed(2)} USD
-• 🏬 <b>Ventas en Comercios:</b> $${totalGmv.toFixed(2)} USD
 
 <i>Tus métricas de Hoy, Ayer y Esta Semana en el bot ya han sido actualizadas automáticamente en tiempo real.</i>`;
 
@@ -2104,9 +2246,14 @@ async function handleGerenciaTiendas(chatId: string, superuser: any, supabase: a
   const range = getVenezuelaDateRange('today');
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
-    .select('pickup_store_name, workspace_id, total')
+    .select('pickup_store_name, workspace_id, order_type, delivery_driver_id, delivery_telegram_status')
     .gte('date', range.startIso)
     .lte('date', range.endIso);
+
+  const deliveryOrders = (orders || []).filter((o: any) => {
+    const isPos = (o.order_type || '').toLowerCase() === 'pos' && !o.delivery_driver_id && (!o.delivery_telegram_status || o.delivery_telegram_status === 'idle');
+    return !isPos;
+  });
 
   const { data: wsList } = await supabase.from('workspaces').select('id, name');
   const wsMap: Record<string, string> = {};
@@ -2114,21 +2261,19 @@ async function handleGerenciaTiendas(chatId: string, superuser: any, supabase: a
     if (w.id) wsMap[w.id] = w.name;
   });
 
-  const storeMap: Record<string, { count: number; total: number }> = {};
-  (orders || []).forEach((o: any) => {
-    const name = o.pickup_store_name || wsMap[o.workspace_id] || 'Tienda AxonPOS';
-    if (!storeMap[name]) storeMap[name] = { count: 0, total: 0 };
-    storeMap[name].count++;
-    storeMap[name].total += Number(o.total || 0);
+  const storeMap: Record<string, number> = {};
+  deliveryOrders.forEach((o: any) => {
+    const name = o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio General';
+    storeMap[name] = (storeMap[name] || 0) + 1;
   });
 
-  const sorted = Object.entries(storeMap).sort((a, b) => b[1].count - a[1].count);
+  const sorted = Object.entries(storeMap).sort((a, b) => b[1] - a[1]);
 
   let text = '';
   if (sorted.length === 0) {
-    text = '<i>Aún no se han registrado pedidos en comercios hoy.</i>';
+    text = '<i>Aún no se han registrado despachos en comercios hoy.</i>';
   } else {
-    text = sorted.map(([store, data], i) => `${i + 1}. 🏢 <b>${store}</b>: <b>${data.count}</b> despachos ($${data.total.toFixed(2)} USD)`).join('\n');
+    text = sorted.map(([store, count], i) => `${i + 1}. 🏢 <b>${store}</b>: <b>${count}</b> ${count === 1 ? 'despacho' : 'despachos'}`).join('\n');
   }
 
   const msg = `🏬 <b>COMERCIOS CON MÁS DESPACHOS HOY</b>
@@ -2231,7 +2376,7 @@ ${order.delivery_driver_name ? `• Chofer: <b>${order.delivery_driver_name}</b>
 🔐 <b>PIN DE SEGURIDAD:</b>
 • PIN Retiro Tienda: <code>${(order.shipping_info as any)?.pickup_pin || 'Pendiente'}</code>
 • PIN Entrega Cliente: <code>${order.delivery_pin || 'Pendiente'}</code>
-💵 <b>Total Pedido:</b> $${Number(order.total || 0).toFixed(2)} USD`;
+🛵 <b>Flete Delivery:</b> $${(order.shipping_info as any)?.cost ? Number((order.shipping_info as any).cost).toFixed(2) : '2.00'} USD`;
 
   await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
   return new Response("OK", { headers: corsHeaders });
