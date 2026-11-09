@@ -516,19 +516,64 @@ async function handleTelegramUpdate(update, supabase) {
     if (text === "🚨 Novedades / Alertas" || text === "🚨 Novedades e Incidentes" || cleanCmd === "/gerencia_alertas") {
       return await handleGerenciaAlertas(chatId, agencySuperuser, supabase);
     }
-    if (text === "📁 Importar Excel/Word" || cleanCmd === "/importar" || cleanCmd === "/import" || cleanCmd === "/despachos") {
-      const importInfoMsg = `⚡ <b>MÓDULO DE GESTIÓN OPERATIVA — ENMINUTOS (EM)</b> 🛵\n\nPuedes enviar o reenviar directamente a este chat tus archivos de gestión:\n• <b>Planillas de Despachos:</b> <code>.xlsx</code>, <code>.xls</code> o <code>.csv</code>\n• <b>Reportes o Tablas Word:</b> <code>.docx</code>\n\n💡 <i>El bot auditará automáticamente las fechas, comercios aliados, repartidores, fletes y montos, mostrándote un balance previo antes de actualizar los reportes gerenciales.</i>\n\n👇 <i>Toca abajo para obtener la plantilla oficial de la agencia:</i>`;
+    if (text === "📁 Importar Excel/Word" || cleanCmd === "/importar" || cleanCmd === "/import" || cleanCmd === "/despachos" || cleanCmd === "/descargar" || cleanCmd === "/reportes") {
+      const importInfoMsg = `⚡ <b>CENTRO DE REPORTES Y DESPACHOS — ENMINUTOS (EM)</b> 🛵\n━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `Desde aquí puedes descargar reportes con la <b>data real</b> de tus entregas auditadas o enviar archivos para importar nuevos pedidos:\n\n` +
+        `📥 <b>DESCARGAS DISPONIBLES:</b>\n` +
+        `• 📊 <b>Reporte Hoy (Excel):</b> Hoja de cálculo con todos los pedidos, choferes y fletes reales de hoy.\n` +
+        `• 📄 <b>Reporte Hoy (Word .docx):</b> Informe ejecutivo con tablas y membrete institucional.\n` +
+        `• 📋 <b>Plantilla en Blanco (.xlsx):</b> Formato vacío para registro manual.\n\n` +
+        `📤 <b>IMPORTACIÓN DIRECTA:</b>\n` +
+        `Envía o reenvía directamente a este chat cualquier archivo <code>.xlsx</code>, <code>.csv</code> o documento Word <code>.docx</code>. El bot auditará los despachos automáticamente.`;
+
       const importKeyboard = {
         inline_keyboard: [
-          [{ text: "📥 Descargar Plantilla Oficial EnMinutos (.xlsx)", callback_data: "send_plantilla" }]
+          [
+            { text: "📊 Descargar Reporte Hoy (Excel .xlsx)", callback_data: "export_report:today:xlsx" }
+          ],
+          [
+            { text: "📄 Descargar Reporte Hoy (Word .docx)", callback_data: "export_report:today:docx" }
+          ],
+          [
+            { text: "📋 Plantilla Oficial en Blanco (.xlsx)", callback_data: "send_plantilla_blank" }
+          ]
         ]
       };
       await sendMessageToChat(chatId, importInfoMsg, importKeyboard);
       return new Response("OK", { headers: corsHeaders });
     }
+
+    if (cleanCmd === "/excel" || cleanCmd === "/reporte_excel") {
+      const range = getVenezuelaDateRange('today');
+      const { data: rawOrders } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('*')
+        .gte('date', range.startIso)
+        .lte('date', range.endIso)
+        .order('date', { ascending: false });
+      const ordersList = (rawOrders || []).filter((o: any) => (o.order_type || '').toLowerCase() !== 'pos' || o.delivery_driver_id);
+      const excelBuf = await generateExcelReport(ordersList, range.label, supabase);
+      await sendDocumentToChat(chatId, excelBuf, 'reporte_despachos_enminutos_hoy.xlsx', `📊 <b>REPORTE OFICIAL ENMINUTOS (EXCEL)</b> 🛵\n📅 ${range.label} | ${ordersList.length} despachos.`);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
+    if (cleanCmd === "/word" || cleanCmd === "/reporte_word") {
+      const range = getVenezuelaDateRange('today');
+      const { data: rawOrders } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('*')
+        .gte('date', range.startIso)
+        .lte('date', range.endIso)
+        .order('date', { ascending: false });
+      const ordersList = (rawOrders || []).filter((o: any) => (o.order_type || '').toLowerCase() !== 'pos' || o.delivery_driver_id);
+      const docxBuf = await generateWordDocxReport(ordersList, range.label, supabase);
+      await sendDocumentToChat(chatId, docxBuf, 'reporte_despachos_enminutos_hoy.docx', `📄 <b>REPORTE OFICIAL ENMINUTOS (WORD)</b> 🛵\n📅 ${range.label} | ${ordersList.length} despachos.`);
+      return new Response("OK", { headers: corsHeaders });
+    }
+
     if (cleanCmd === "/plantilla" || cleanCmd === "/plantilla_excel" || cleanCmd === "/plantilla_enminutos" || cleanCmd === "/plantilla_despachos") {
       const templateBuf = generateExcelTemplate();
-      await sendDocumentToChat(chatId, templateBuf, 'plantilla_despachos_enminutos.xlsx', '⚡ <b>PLANTILLA OFICIAL DE DESPACHOS — ENMINUTOS (EM)</b> 🛵\n\nPlanilla profesional para registro y auditoría de envíos, fletes de repartidores y ventas de comercios aliados.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
+      await sendDocumentToChat(chatId, templateBuf, 'plantilla_en_blanco_enminutos.xlsx', '📋 <b>PLANTILLA OFICIAL EN BLANCO — ENMINUTOS (EM)</b> 🛵\n\nPlanilla profesional para registro manual de envíos y fletes.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
       return new Response("OK", { headers: corsHeaders });
     }
     if (text === "🔍 Buscar Pedido" || cleanCmd.startsWith('/buscar')) {
@@ -1104,37 +1149,104 @@ function parsePrice(str: string | number): number {
   return isNaN(num) ? 0 : num;
 }
 
-function parseDocxTables(xml: string): any[] {
+function parseDocxContent(xml: string): any[] {
   const rows: any[] = [];
-  const trMatches = xml.match(/<w:tr[\s>][\s\S]*?<\/w:tr>/g);
-  if (!trMatches || trMatches.length < 2) return rows;
 
-  const tableData: string[][] = [];
-  for (const tr of trMatches) {
-    const rowCells: string[] = [];
-    const tcMatches = tr.match(/<w:tc[\s>][\s\S]*?<\/w:tc>/g);
-    if (tcMatches) {
-      for (const tc of tcMatches) {
-        const tMatches = tc.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
-        const cellText = tMatches.map(t => t.replace(/<[^>]+>/g, '')).join('').trim();
-        rowCells.push(cellText);
+  // Estrategia 1: Tablas OpenXML <w:tr>
+  const trMatches = xml.match(/<w:tr[\s>][\s\S]*?<\/w:tr>/g);
+  if (trMatches && trMatches.length >= 2) {
+    const tableData: string[][] = [];
+    for (const tr of trMatches) {
+      const rowCells: string[] = [];
+      const tcMatches = tr.match(/<w:tc[\s>][\s\S]*?<\/w:tc>/g);
+      if (tcMatches) {
+        for (const tc of tcMatches) {
+          const tMatches = tc.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
+          const cellText = tMatches.map(t => t.replace(/<[^>]+>/g, '')).join(' ').trim();
+          rowCells.push(cellText);
+        }
+        if (rowCells.some(c => c.length > 0)) {
+          tableData.push(rowCells);
+        }
       }
-      if (rowCells.some(c => c.length > 0)) {
-        tableData.push(rowCells);
+    }
+
+    if (tableData.length >= 2) {
+      const headers = tableData[0].map(h => h.trim());
+      for (let i = 1; i < tableData.length; i++) {
+        const rowObj: Record<string, string> = {};
+        const cells = tableData[i];
+        headers.forEach((h, colIdx) => {
+          rowObj[h] = cells[colIdx] || '';
+        });
+        rows.push(rowObj);
       }
+      if (rows.length > 0) return rows;
     }
   }
 
-  if (tableData.length < 2) return rows;
-  const headers = tableData[0].map(h => h.trim());
-  for (let i = 1; i < tableData.length; i++) {
-    const rowObj: Record<string, string> = {};
-    const cells = tableData[i];
-    headers.forEach((h, colIdx) => {
-      rowObj[h] = cells[colIdx] || '';
-    });
-    rows.push(rowObj);
+  // Estrategia 2: Párrafos OpenXML <w:p> (listas de texto o formato clave-valor)
+  const pMatches = xml.match(/<w:p[\s>][\s\S]*?<\/w:p>/g) || [];
+  const textLines: string[] = [];
+  for (const p of pMatches) {
+    const tMatches = p.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) || [];
+    const lineText = tMatches.map(t => t.replace(/<[^>]+>/g, '')).join('').trim();
+    if (lineText.length > 0) {
+      textLines.push(lineText);
+    }
   }
+
+  if (textLines.length === 0) return [];
+
+  // 2.A: Líneas delimitadas por tabulador (\t), barra (|) o punto y coma (;)
+  const delim = textLines[0].includes('\t') ? '\t' : textLines[0].includes('|') ? '|' : textLines[0].includes(';') ? ';' : null;
+  if (delim && textLines.length >= 2) {
+    const headers = textLines[0].split(delim).map(h => h.trim());
+    for (let i = 1; i < textLines.length; i++) {
+      const cells = textLines[i].split(delim).map(c => c.trim());
+      const rowObj: Record<string, string> = {};
+      headers.forEach((h, idx) => {
+        rowObj[h] = cells[idx] || '';
+      });
+      rows.push(rowObj);
+    }
+    if (rows.length > 0) return rows;
+  }
+
+  // 2.B: Bloques de texto estructurado por párrafos (Pedido:, Cliente:, etc.)
+  let currentOrder: Record<string, string> = {};
+  for (const line of textLines) {
+    const lower = line.toLowerCase();
+    if (lower.startsWith('pedido') || lower.startsWith('orden') || lower.startsWith('despacho') || lower.startsWith('#')) {
+      if (Object.keys(currentOrder).length > 0) {
+        rows.push(currentOrder);
+        currentOrder = {};
+      }
+      currentOrder['Nro Pedido / Guia'] = line.replace(/^[#\w\s:]+/, '').trim() || line;
+    } else if (lower.startsWith('comercio') || lower.startsWith('tienda')) {
+      currentOrder['Comercio Aliado'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('chofer') || lower.startsWith('repartidor') || lower.startsWith('moto')) {
+      currentOrder['Repartidor / Chofer'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('cliente')) {
+      currentOrder['Cliente'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('telefono') || lower.startsWith('tel')) {
+      currentOrder['Telefono Cliente'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('sector') || lower.startsWith('ruta') || lower.startsWith('destino')) {
+      currentOrder['Sector / Ruta'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('direccion') || lower.startsWith('dir')) {
+      currentOrder['Direccion Entrega'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('flete') || lower.startsWith('tarifa') || lower.startsWith('costo')) {
+      currentOrder['Flete EnMinutos USD'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('estado') || lower.startsWith('status')) {
+      currentOrder['Estado Despacho'] = line.replace(/^[\w\s:]+/, '').trim();
+    } else if (lower.startsWith('fecha')) {
+      currentOrder['Fecha (AAAA-MM-DD)'] = line.replace(/^[\w\s:]+/, '').trim();
+    }
+  }
+  if (Object.keys(currentOrder).length > 0) {
+    rows.push(currentOrder);
+  }
+
   return rows;
 }
 
@@ -1264,54 +1376,270 @@ function normalizeDeliveryRow(row: Record<string, any>, idx: number) {
   };
 }
 
+// ==============================================================================
+// GENERADORES DINÁMICOS DE REPORTES (EXCEL Y WORD) Y PLANTILLAS ENMINUTOS
+// ==============================================================================
+
+async function generateExcelReport(orders: any[], rangeLabel: string, supabase: any): Promise<Uint8Array> {
+  const wb = XLSX.utils.book_new();
+
+  const { data: wsList } = await supabase.from('workspaces').select('id, name');
+  const wsMap: Record<string, string> = {};
+  (wsList || []).forEach((w: any) => { if (w.id) wsMap[w.id] = w.name; });
+
+  const { data: driversList } = await supabase.from('delivery_drivers').select('id, name, driver_code');
+  const driverMap: Record<string, string> = {};
+  (driversList || []).forEach((d: any) => { if (d.id) driverMap[d.id.toString()] = d.name || d.driver_code; });
+
+  let totalFletes = 0;
+  const rows = orders.map((o: any) => {
+    let fee = 2.0;
+    try {
+      const sh = typeof o.shipping_info === 'string' ? JSON.parse(o.shipping_info) : (o.shipping_info || {});
+      if (sh?.cost && Number(sh.cost) > 0) fee = Number(sh.cost);
+    } catch {}
+    totalFletes += fee;
+
+    const { sector } = extractOrderSector(o);
+    const store = o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio General';
+    const driver = o.delivery_driver_name || (o.delivery_driver_id ? driverMap[o.delivery_driver_id.toString()] : null) || 'Enrique';
+    const phone = o.paymentdetails?.phone || (o.shipping_info as any)?.phone || '';
+    const dateFormatted = (o.date || '').slice(0, 10);
+
+    return {
+      "Fecha (AAAA-MM-DD)": dateFormatted,
+      "Nro Pedido / Guia": o.id,
+      "Comercio Aliado": store,
+      "Sector / Ruta": sector,
+      "Direccion Entrega": o.address || 'Mostrador / General',
+      "Cliente": o.customer || 'Cliente',
+      "Telefono Cliente": phone,
+      "Repartidor / Chofer": driver,
+      "Estado Despacho": o.status || 'Entregado',
+      "Flete EnMinutos USD": Number(fee.toFixed(2)),
+      "Metodo Pago": o.paymentmethod || 'Pago Móvil',
+      "Notas / Novedad": o.delivery_abort_reason || 'Despacho conforme'
+    };
+  });
+
+  // Fila resumen de totales
+  if (rows.length > 0) {
+    rows.push({
+      "Fecha (AAAA-MM-DD)": "TOTALES:",
+      "Nro Pedido / Guia": `${orders.length} pedidos`,
+      "Comercio Aliado": "ENMINUTOS DELIVERY",
+      "Sector / Ruta": "TODOS",
+      "Direccion Entrega": "",
+      "Cliente": "",
+      "Telefono Cliente": "",
+      "Repartidor / Chofer": "",
+      "Estado Despacho": "AUDITADO",
+      "Flete EnMinutos USD": Number(totalFletes.toFixed(2)),
+      "Metodo Pago": "",
+      "Notas / Novedad": `Recaudación Total: $${totalFletes.toFixed(2)} USD`
+    });
+  }
+
+  const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{
+    "Fecha (AAAA-MM-DD)": (new Date().toISOString()).slice(0, 10),
+    "Nro Pedido / Guia": "ORD-VACIO",
+    "Comercio Aliado": "Sin despachos en esta fecha",
+    "Sector / Ruta": "",
+    "Direccion Entrega": "",
+    "Cliente": "",
+    "Telefono Cliente": "",
+    "Repartidor / Chofer": "",
+    "Estado Despacho": "Sin actividad",
+    "Flete EnMinutos USD": 0.00,
+    "Metodo Pago": "",
+    "Notas / Novedad": "No se registraron entregas"
+  }]);
+
+  ws['!cols'] = [
+    { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 20 },
+    { wch: 35 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
+    { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 35 }
+  ];
+  XLSX.utils.book_append_sheet(wb, ws, "Despachos_EnMinutos");
+
+  // Hoja 2: Resumen Ejecutivo
+  const resumenData = [
+    { "REPORTE OFICIAL": "ENMINUTOS (EM) ⚡ — AGENCIA DE DELIVERY" },
+    { "REPORTE OFICIAL": `Período: ${rangeLabel}` },
+    { "REPORTE OFICIAL": `Total Despachos Auditados: ${orders.length}` },
+    { "REPORTE OFICIAL": `Recaudación Total en Fletes: $${totalFletes.toFixed(2)} USD` },
+    { "REPORTE OFICIAL": `Fecha de Emisión: ${new Date().toISOString()}` }
+  ];
+  const wsResumen = XLSX.utils.json_to_sheet(resumenData);
+  wsResumen['!cols'] = [{ wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen_Ejecutivo");
+
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  return new Uint8Array(buf);
+}
+
+async function generateWordDocxReport(orders: any[], rangeLabel: string, supabase: any): Promise<Uint8Array> {
+  const { data: wsList } = await supabase.from('workspaces').select('id, name');
+  const wsMap: Record<string, string> = {};
+  (wsList || []).forEach((w: any) => { if (w.id) wsMap[w.id] = w.name; });
+
+  const { data: driversList } = await supabase.from('delivery_drivers').select('id, name, driver_code');
+  const driverMap: Record<string, string> = {};
+  (driversList || []).forEach((d: any) => { if (d.id) driverMap[d.id.toString()] = d.name || d.driver_code; });
+
+  let totalFletes = 0;
+  const tableRowsXml: string[] = [];
+
+  tableRowsXml.push(`
+    <w:tr>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t># Pedido</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Comercio</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Sector / Ruta</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Repartidor</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Estado</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="EA580C"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Flete USD</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  `);
+
+  for (const o of orders) {
+    let fee = 2.0;
+    try {
+      const sh = typeof o.shipping_info === 'string' ? JSON.parse(o.shipping_info) : (o.shipping_info || {});
+      if (sh?.cost && Number(sh.cost) > 0) fee = Number(sh.cost);
+    } catch {}
+    totalFletes += fee;
+
+    const { sector } = extractOrderSector(o);
+    const store = (o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio General').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const driver = (o.delivery_driver_name || (o.delivery_driver_id ? driverMap[o.delivery_driver_id.toString()] : null) || 'Enrique').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const orderId = (o.id || '').replace(/&/g, '&amp;');
+    const safeSector = sector.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const status = (o.status || 'Entregado').replace(/&/g, '&amp;');
+
+    tableRowsXml.push(`
+      <w:tr>
+        <w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${orderId}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>${store}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>${safeSector}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>${driver}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:t>${status}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>$${fee.toFixed(2)}</w:t></w:r></w:p></w:tc>
+      </w:tr>
+    `);
+  }
+
+  tableRowsXml.push(`
+    <w:tr>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>TOTALES:</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${orders.length} pedidos</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:t></w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:t></w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>AUDITADO</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:shd w:val="clear" w:color="auto" w:fill="F1F5F9"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="EA580C"/></w:rPr><w:t>$${totalFletes.toFixed(2)} USD</w:t></w:r></w:p></w:tc>
+    </w:tr>
+  `);
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:pPr><w:jc w:val="center"/></w:pPr>
+      <w:r>
+        <w:rPr><w:b/><w:sz w:val="36"/><w:color w:val="EA580C"/></w:rPr>
+        <w:t>ENMINUTOS DELIVERY ⚡ — REPORTE OPERATIVO</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr><w:jc w:val="center"/></w:pPr>
+      <w:r>
+        <w:rPr><w:i/><w:sz w:val="22"/><w:color w:val="64748B"/></w:rPr>
+        <w:t>Auditoría Oficial de Despachos y Fletes | Período: ${rangeLabel}</w:t>
+      </w:r>
+    </w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p>
+      <w:r><w:rPr><w:b/></w:rPr><w:t>RESUMEN OPERATIVO: </w:t></w:r>
+      <w:r><w:t>Total Despachos: ${orders.length} pedidos | Recaudación en Fletes: $${totalFletes.toFixed(2)} USD</w:t></w:r>
+    </w:p>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:w="5000" w:type="pct"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>
+          <w:bottom w:val="single" w:sz="6" w:space="0" w:color="CBD5E1"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="E2E8F0"/>
+          <w:insideV w:val="none"/>
+        </w:tblBorders>
+      </w:tblPr>
+      ${tableRowsXml.join('')}
+    </w:tbl>
+    <w:p><w:r><w:t></w:t></w:r></w:p>
+    <w:p>
+      <w:r><w:rPr><w:i/><w:sz w:val="18"/><w:color w:val="94A3B8"/></w:rPr>
+        <w:t>Documento oficial emitido por el sistema gerencial de EnMinutos Delivery en AxonMarket.</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`;
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", contentTypesXml);
+  zip.file("_rels/.rels", relsXml);
+  zip.file("word/document.xml", documentXml);
+
+  const buf = await zip.generateAsync({ type: "uint8array" });
+  return buf;
+}
+
 function generateExcelTemplate(): Uint8Array {
   const wb = XLSX.utils.book_new();
 
-  // Hoja 1: Despachos y Viajes de Delivery EnMinutos (Estructura Oficial Limpia)
+  // Hoja 1: Plantilla Oficial en Blanco para Nuevos Despachos
   const despachosData = [
     {
-      "Fecha (AAAA-MM-DD)": "2026-11-08",
-      "Nro Pedido / Guia": "ORD-1001",
-      "Comercio Aliado": "Los Mejores Asados",
-      "Sector / Ruta": "Ciudad Jardín",
-      "Direccion Entrega": "Calle 4, Casa 12",
-      "Cliente": "Cliente Ejemplo",
-      "Telefono Cliente": "0424-1234567",
-      "Repartidor / Chofer": "Enrique",
+      "Fecha (AAAA-MM-DD)": (new Date().toISOString()).slice(0, 10),
+      "Nro Pedido / Guia": "EJ: ORD-1001",
+      "Comercio Aliado": "Nombre de la Tienda",
+      "Sector / Ruta": "Sector o Urbanización",
+      "Direccion Entrega": "Dirección completa",
+      "Cliente": "Nombre del Cliente",
+      "Telefono Cliente": "0424-XXXXXXX",
+      "Repartidor / Chofer": "Nombre del Repartidor",
       "Estado Despacho": "Entregado",
       "Flete EnMinutos USD": 2.00,
       "Metodo Pago": "Pago Móvil",
-      "Notas / Novedad": "Entregado conforme"
+      "Notas / Novedad": "Opcional"
     }
   ];
 
   const ws = XLSX.utils.json_to_sheet(despachosData);
   ws['!cols'] = [
-    { wch: 18 }, // Fecha
-    { wch: 18 }, // Nro Pedido
-    { wch: 25 }, // Comercio
-    { wch: 20 }, // Sector / Ruta
-    { wch: 35 }, // Dirección Entrega
-    { wch: 22 }, // Cliente
-    { wch: 16 }, // Teléfono
-    { wch: 20 }, // Chofer
-    { wch: 16 }, // Estado
-    { wch: 18 }, // Flete USD
-    { wch: 16 }, // Metodo Pago
-    { wch: 35 }  // Notas
+    { wch: 18 }, { wch: 18 }, { wch: 25 }, { wch: 20 },
+    { wch: 35 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
+    { wch: 16 }, { wch: 18 }, { wch: 16 }, { wch: 35 }
   ];
-  XLSX.utils.book_append_sheet(wb, ws, "Despachos_EnMinutos");
+  XLSX.utils.book_append_sheet(wb, ws, "Plantilla_EnMinutos");
 
   // Hoja 2: Guía Oficial
   const guiaData = [
-    { "GUÍA OFICIAL": "ENMINUTOS (EM) ⚡ — AGENCIA DE DELIVERY" },
-    { "GUÍA OFICIAL": "Instrucciones para la carga y auditoría de planillas:" },
-    { "GUÍA OFICIAL": "1. Fecha: Formato AAAA-MM-DD (ej: 2026-11-08) o DD/MM/AAAA." },
-    { "GUÍA OFICIAL": "2. Nro Pedido: Código único del despacho o ticket." },
-    { "GUÍA OFICIAL": "3. Sector / Ruta: Urbanización o sector destino (ej. Ciudad Jardín, Corinsa, Centro)." },
-    { "GUÍA OFICIAL": "4. Estado: Entregado, Enviado (En Ruta), o Cancelado." },
-    { "GUÍA OFICIAL": "5. Flete USD: Tarifa cobrada por el envío (ej. 2.00)." },
-    { "GUÍA OFICIAL": "Guarda los cambios y envía este archivo directamente al bot de Telegram." }
+    { "GUÍA OFICIAL": "ENMINUTOS (EM) ⚡ — PLANTILLA EN BLANCO PARA DESPACHOS" },
+    { "GUÍA OFICIAL": "Instrucciones de uso:" },
+    { "GUÍA OFICIAL": "1. Completa una fila por cada despacho realizado." },
+    { "GUÍA OFICIAL": "2. Las columnas principales son Fecha, Nro Pedido, Comercio, Sector y Flete USD." },
+    { "GUÍA OFICIAL": "3. Guarda los cambios y reenvía este archivo directamente al bot de Telegram." }
   ];
   const wsGuia = XLSX.utils.json_to_sheet(guiaData);
   wsGuia['!cols'] = [{ wch: 75 }];
@@ -1338,8 +1666,8 @@ async function handleTelegramDocument(message: any, supabase: any) {
   const fileSize = doc.file_size || 0;
   const ext = fileName.toLowerCase().split('.').pop() || '';
 
-  if (!['xlsx', 'xls', 'csv', 'docx'].includes(ext)) {
-    await sendMessageToChat(chatId, `⚠️ <b>Formato no compatible:</b> El archivo <code>${fileName}</code> no es un formato admitido.\n\nPor favor envía un documento en formato <b>.xlsx</b>, <b>.xls</b>, <b>.csv</b> o <b>.docx</b>.`);
+  if (!['xlsx', 'xls', 'csv', 'docx', 'txt'].includes(ext)) {
+    await sendMessageToChat(chatId, `⚠️ <b>Formato no compatible:</b> El archivo <code>${fileName}</code> no es un formato admitido.\n\nPor favor envía un documento en formato <b>.xlsx</b>, <b>.xls</b>, <b>.csv</b>, <b>.docx</b> o <b>.txt</b>.`);
     return new Response("OK", { headers: corsHeaders });
   }
 
@@ -1363,8 +1691,13 @@ async function handleTelegramDocument(message: any, supabase: any) {
       const zip = await JSZip.loadAsync(arrayBuffer);
       const docXml = await zip.file("word/document.xml")?.async("text");
       if (docXml) {
-        rawRows = parseDocxTables(docXml);
+        rawRows = parseDocxContent(docXml);
       }
+    } else if (ext === 'txt') {
+      const text = new TextDecoder().decode(arrayBuffer);
+      // Simular estructura XML de párrafos para parseDocxContent
+      const fakeXml = text.split('\n').map(l => `<w:p><w:t>${l}</w:t></w:p>`).join('');
+      rawRows = parseDocxContent(fakeXml);
     } else {
       const wb = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
       const firstSheetName = wb.SheetNames[0];
@@ -1373,7 +1706,7 @@ async function handleTelegramDocument(message: any, supabase: any) {
     }
 
     if (!rawRows || rawRows.length === 0) {
-      await sendMessageToChat(chatId, `⚠️ No se detectaron filas de datos en <code>${fileName}</code>.\nAsegúrate de que la hoja de cálculo contenga datos estructurados o que el documento Word incluya una tabla.`);
+      await sendMessageToChat(chatId, `⚠️ No se detectaron filas de datos en <code>${fileName}</code>.\nAsegúrate de que la hoja de cálculo o documento Word incluya los datos de tus despachos.`);
       return new Response("OK", { headers: corsHeaders });
     }
 
@@ -2214,9 +2547,46 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     return new Response("OK", { headers: corsHeaders });
   }
 
-  if (data === 'send_plantilla') {
+  // --- EXPORTAR REPORTES REALES EN EXCEL O WORD ---
+  if (data.startsWith('export_report:')) {
+    const parts = data.replace('export_report:', '').split(':');
+    const rangeKey = parts[0] || 'today';
+    const format = parts[1] || 'xlsx';
+
+    const range = getVenezuelaDateRange(rangeKey);
+    const rangeLabel = range ? range.label : 'Hoy';
+
+    await sendMessageToChat(chatId, `⏳ <i>Consultando base de datos y preparando reporte oficial ${format.toUpperCase()} de EnMinutos (EM) ⚡...</i>`);
+
+    let query = supabase
+      .from('ecommerce_orders_v2')
+      .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name, delivery_driver_id, workspace_id, order_type, address, shipping_info, paymentmethod, paymentdetails')
+      .order('date', { ascending: false });
+
+    if (range) {
+      query = query.gte('date', range.startIso).lte('date', range.endIso);
+    }
+
+    const { data: rawOrders } = await query;
+    const ordersList = (rawOrders || []).filter((o: any) => {
+      const isPos = (o.order_type || '').toLowerCase() === 'pos' && !o.delivery_driver_id && (!o.delivery_telegram_status || o.delivery_telegram_status === 'idle');
+      return !isPos;
+    });
+
+    if (format === 'docx') {
+      const docxBuf = await generateWordDocxReport(ordersList, rangeLabel, supabase);
+      await sendDocumentToChat(chatId, docxBuf, `reporte_despachos_enminutos_${rangeKey}.docx`, `📄 <b>REPORTE OFICIAL ENMINUTOS (WORD)</b> 🛵\n━━━━━━━━━━━━━━━━━━━━━━\n📅 <b>Período:</b> ${rangeLabel}\n📦 <b>Despachos Auditados:</b> ${ordersList.length} pedidos\n✨ <i>Documento ejecutivo con tablas y membrete institucional listo para imprimir o enviar.</i>`);
+    } else {
+      const excelBuf = await generateExcelReport(ordersList, rangeLabel, supabase);
+      await sendDocumentToChat(chatId, excelBuf, `reporte_despachos_enminutos_${rangeKey}.xlsx`, `📊 <b>REPORTE OFICIAL ENMINUTOS (EXCEL)</b> 🛵\n━━━━━━━━━━━━━━━━━━━━━━\n📅 <b>Período:</b> ${rangeLabel}\n📦 <b>Despachos Auditados:</b> ${ordersList.length} pedidos\n✨ <i>Hoja de cálculo con datos reales, choferes, destinos y sumatoria total de fletes.</i>`);
+    }
+
+    return new Response("OK", { headers: corsHeaders });
+  }
+
+  if (data === 'send_plantilla' || data === 'send_plantilla_blank') {
     const templateBuf = generateExcelTemplate();
-    await sendDocumentToChat(chatId, templateBuf, 'plantilla_despachos_enminutos.xlsx', '⚡ <b>PLANTILLA OFICIAL DE DESPACHOS — ENMINUTOS (EM)</b> 🛵\n\nPlanilla profesional para registro y auditoría de envíos, fletes de repartidores y ventas de comercios aliados.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
+    await sendDocumentToChat(chatId, templateBuf, 'plantilla_en_blanco_enminutos.xlsx', '📋 <b>PLANTILLA OFICIAL EN BLANCO — ENMINUTOS (EM)</b> 🛵\n━━━━━━━━━━━━━━━━━━━━━━\nPlanilla en blanco para registro manual de envíos y fletes.\n\nCompleta los datos en esta hoja de cálculo y reenvíala a este chat.');
     return new Response("OK", { headers: corsHeaders });
   }
 
