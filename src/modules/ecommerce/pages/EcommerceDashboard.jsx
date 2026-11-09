@@ -9,6 +9,26 @@ import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, 
 import { supabase } from '../../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
+// Helper para determinar si una orden tiene pago verificado y aprobado
+export const isOrderPaidAndApproved = (o) => {
+  if (!o) return false;
+  if (o.status === 'Cancelado') return false;
+  const pStatus = (o.paymentstatus || o.paymentStatus || '').toLowerCase();
+  if (pStatus === 'rejected' || pStatus === 'fraud') return false;
+  // Si el comerciante ya aprobó el pago
+  if (pStatus === 'approved') return true;
+  // Si el pedido ya avanzó en la preparación / despacho
+  if (['Preparando', 'Enviado', 'Entregado'].includes(o.status)) return true;
+  // Ventas directas de mostrador del POS
+  const orderType = (o.order_type || '').toLowerCase();
+  const addr = (o.address || '').toLowerCase();
+  if (orderType === 'pos' || addr.includes('venta en mostrador') || addr.includes('(pos)')) {
+    return true;
+  }
+  // Órdenes nuevas en 'Pendiente' con pago sin verificar NO se reflejan en el dinero de caja
+  return false;
+};
+
 export default function EcommerceDashboard() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState({ 
@@ -202,22 +222,26 @@ export default function EcommerceDashboard() {
 
         const curOrders = currentOrders || [];
         const prvOrders = prevOrders || [];
+
+        // Regla: No reflejar el dinero hasta que el comerciante verifique y apruebe el pago
+        const curPaidOrders = curOrders.filter(isOrderPaidAndApproved);
+        const prvPaidOrders = prvOrders.filter(isOrderPaidAndApproved);
         
-        const curRevenue = curOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-        const prvRevenue = prvOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const curRevenue = curPaidOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const prvRevenue = prvPaidOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
         
-        const curAOV = curOrders.length > 0 ? curRevenue / curOrders.length : 0;
-        const prvAOV = prvOrders.length > 0 ? prvRevenue / prvOrders.length : 0;
+        const curAOV = curPaidOrders.length > 0 ? curRevenue / curPaidOrders.length : 0;
+        const prvAOV = prvPaidOrders.length > 0 ? prvRevenue / prvPaidOrders.length : 0;
 
         const calcChange = (cur, prv) => prv === 0 ? (cur > 0 ? 100 : 0) : ((cur - prv) / prv) * 100;
 
         setSummary({
           revenue: curRevenue,
-          orders: curOrders.length,
+          orders: curPaidOrders.length,
           aov: curAOV,
           products: productsCount || 0,
           revenueChange: calcChange(curRevenue, prvRevenue),
-          ordersChange: calcChange(curOrders.length, prvOrders.length),
+          ordersChange: calcChange(curPaidOrders.length, prvPaidOrders.length),
           aovChange: calcChange(curAOV, prvAOV),
           productsChange: 0
         });
@@ -233,15 +257,19 @@ export default function EcommerceDashboard() {
           return t >= startYesterday.getTime() && t <= yesterdaySameTime.getTime();
         });
 
-        const tSales = todayOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-        const ySales = yesterdayOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-        const pendingCount = todayOrders.filter(o => o.status === 'Pendiente').length;
-        const tAov = todayOrders.length > 0 ? tSales / todayOrders.length : 0;
+        const todayPaidOrders = todayOrders.filter(isOrderPaidAndApproved);
+        const yesterdayPaidOrders = yesterdayOrders.filter(isOrderPaidAndApproved);
+
+        const tSales = todayPaidOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const ySales = yesterdayPaidOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const pendingCount = todayOrders.filter(o => o.status === 'Pendiente' || !isOrderPaidAndApproved(o)).length;
+        const tAov = todayPaidOrders.length > 0 ? tSales / todayPaidOrders.length : 0;
         const vsYesterday = ySales === 0 ? (tSales > 0 ? 100 : 0) : ((tSales - ySales) / ySales) * 100;
 
         setTodayMetrics({
           sales: tSales,
           orders: todayOrders.length,
+          paidOrders: todayPaidOrders.length,
           pendingOrders: pendingCount,
           aov: tAov,
           vsYesterdayPercent: vsYesterday
@@ -250,12 +278,14 @@ export default function EcommerceDashboard() {
         const monthOrders = curOrders.filter(o => {
           return new Date(o.date).getTime() >= startMonth.getTime();
         });
-        const mSales = monthOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
-        const mAov = monthOrders.length > 0 ? mSales / monthOrders.length : 0;
+        const monthPaidOrders = monthOrders.filter(isOrderPaidAndApproved);
+        const mSales = monthPaidOrders.reduce((acc, o) => acc + (Number(o.total) || 0), 0);
+        const mAov = monthPaidOrders.length > 0 ? mSales / monthPaidOrders.length : 0;
 
         setMonthMetrics({
           sales: mSales,
           orders: monthOrders.length,
+          paidOrders: monthPaidOrders.length,
           aov: mAov
         });
 
@@ -272,9 +302,9 @@ export default function EcommerceDashboard() {
         });
         setNewCustomersCount(uniqueCustomers.size);
 
-        // 6. Gráfico Desktop
+        // 6. Gráfico Desktop (solo ventas confirmadas)
         const salesMap = {};
-        curOrders.forEach(o => {
+        curPaidOrders.forEach(o => {
           const d = o.date.substring(0, 10);
           if (!salesMap[d]) salesMap[d] = { date: d, revenue: 0, orders: 0 };
           salesMap[d].revenue += Number(o.total) || 0;
@@ -303,9 +333,9 @@ export default function EcommerceDashboard() {
            setSalesData(salesArray);
         }
 
-        // 7. Top Sellers
+        // 7. Top Sellers (solo ventas confirmadas)
         const productMap = {};
-        curOrders.forEach(o => {
+        curPaidOrders.forEach(o => {
           let items = [];
           if (typeof o.items === 'string') {
             try { items = JSON.parse(o.items); } catch(e){}
@@ -339,7 +369,38 @@ export default function EcommerceDashboard() {
         setLoading(false);
       }
     };
+
     fetchData();
+
+    // Suscripción Realtime a cambios en órdenes (aprobaciones, nuevos pedidos, etc.)
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    let dbOrdersSub = null;
+    if (workspaceId) {
+      dbOrdersSub = supabase
+        .channel(`dashboard-orders-sync-${workspaceId}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'ecommerce_orders_v2',
+          filter: `workspace_id=eq.${workspaceId}`
+        }, () => {
+          fetchData();
+        })
+        .subscribe();
+    }
+
+    const handleLocalOrderChange = () => {
+      fetchData();
+    };
+
+    window.addEventListener('axon_new_order', handleLocalOrderChange);
+    window.addEventListener('axon_order_updated', handleLocalOrderChange);
+
+    return () => {
+      if (dbOrdersSub) dbOrdersSub.unsubscribe();
+      window.removeEventListener('axon_new_order', handleLocalOrderChange);
+      window.removeEventListener('axon_order_updated', handleLocalOrderChange);
+    };
   }, [timeRange]);
 
   const formatChange = (val) => {
@@ -371,6 +432,7 @@ export default function EcommerceDashboard() {
   const currentSales = mobilePeriod === 'today' ? todayMetrics.sales : monthMetrics.sales;
   const currentSalesVes = currentSales * bcvRate;
   const currentOrdersCount = mobilePeriod === 'today' ? todayMetrics.orders : monthMetrics.orders;
+  const currentPaidCount = mobilePeriod === 'today' ? (todayMetrics.paidOrders || 0) : (monthMetrics.paidOrders || 0);
   const currentAov = mobilePeriod === 'today' ? todayMetrics.aov : monthMetrics.aov;
   const comparisonText = mobilePeriod === 'today' 
     ? `${todayMetrics.vsYesterdayPercent >= 0 ? '↑' : '↓'} ${Math.abs(todayMetrics.vsYesterdayPercent).toFixed(0)}% vs. ayer a esta hora`
@@ -559,7 +621,7 @@ export default function EcommerceDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-slate-800 dark:text-white leading-tight">Ticket promedio</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">sobre {currentOrdersCount} ventas</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">sobre {currentPaidCount} ventas</p>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-0.5">

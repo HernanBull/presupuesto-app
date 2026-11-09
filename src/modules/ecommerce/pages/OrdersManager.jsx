@@ -4,6 +4,7 @@ import { ShoppingCart, Clock, Package, Truck, CheckCircle2, Search, Filter, Eye,
 import { supabase } from '../../presupuesto/utils/supabaseClient';
 import { sendDeliveryRequest, globalListeners } from '../../delivery/utils/telegramService';
 import ResponsiveModal from '../components/ResponsiveModal';
+import { isOrderPaidAndApproved } from './EcommerceDashboard';
 
 // ==============================================================================
 // UTILIDADES DE FECHA LOCAL (VENEZUELA / UTC-4) Y FORMATEO CRONOLÓGICO
@@ -249,6 +250,27 @@ export default function OrdersManager() {
       config: { broadcast: { ack: false } }
     });
 
+    const handleIncomingNewOrder = (payload) => {
+      const order = payload?.order || payload?.new;
+      if (!order || !order.id) return;
+      setOrders(prevOrders => {
+        if (prevOrders.some(o => o.id === order.id)) return prevOrders;
+        const mapped = {
+          ...order,
+          dateRaw: order.date,
+          date: new Date(order.date || Date.now()).toLocaleString(),
+          paymentMethod: order.paymentmethod || order.paymentMethod,
+          paymentStatus: order.paymentstatus || order.paymentStatus || 'pending',
+          paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : (order.paymentdetails || order.paymentDetails),
+          shippingInfo: typeof order.shipping_info === 'string' ? JSON.parse(order.shipping_info) : (order.shipping_info || order.shippingInfo),
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []),
+          deliveryPin: order.delivery_pin || order.deliveryPin,
+          status: order.status || 'Pendiente'
+        };
+        return [mapped, ...prevOrders];
+      });
+    };
+
     channel.on('broadcast', { event: 'ORDER_COMPLETED' }, (payload) => {
       if (payload.payload?.orderId) {
         setOrders(prevOrders => {
@@ -260,6 +282,11 @@ export default function OrdersManager() {
             order.id === payload.payload.orderId ? { ...order, status: 'Enviado' } : order
           );
         });
+      }
+    })
+    .on('broadcast', { event: 'NEW_ECOMMERCE_ORDER' }, (payload) => {
+      if (payload?.payload) {
+        handleIncomingNewOrder(payload.payload);
       }
     })
     .on('broadcast', { event: 'PICKER_ASSIGNED' }, (payload) => {
@@ -286,8 +313,16 @@ export default function OrdersManager() {
       }
     }).subscribe();
 
+    const onCustomNewOrder = (e) => {
+      if (e.detail) {
+        handleIncomingNewOrder(e.detail);
+      }
+    };
+    window.addEventListener('axon_new_order', onCustomNewOrder);
+
     return () => {
       channel.unsubscribe();
+      window.removeEventListener('axon_new_order', onCustomNewOrder);
     };
   }, []);
 
@@ -357,12 +392,18 @@ export default function OrdersManager() {
       }
       
       // Update optimista
+      const isNowApproved = previousStatus === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(targetStatus);
+      const newPaymentStatus = isNowApproved ? 'approved' : orderToMove.paymentStatus;
+
       setOrders(orders.map(order => 
-        order.id === draggedOrderId ? { ...order, status: targetStatus, deliveryPin: newDeliveryPin } : order
+        order.id === draggedOrderId ? { ...order, status: targetStatus, deliveryPin: newDeliveryPin, paymentStatus: newPaymentStatus } : order
       ));
       
       try {
         const payload = { status: targetStatus };
+        if (isNowApproved) {
+          payload.paymentstatus = 'approved';
+        }
         if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.delivery_pin = newDeliveryPin;
 
         const { error } = await supabase
@@ -373,14 +414,17 @@ export default function OrdersManager() {
         if (error) {
           alert('Error al actualizar pedido: ' + error.message);
           // Revertir
-          setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus } : order));
+          setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus, paymentStatus: orderToMove.paymentStatus } : order));
           return;
         }
 
         // Lógica Anti-Spam: Restar inventario solo al pasar de Pendiente a estados posteriores
-        if (previousStatus === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(targetStatus)) {
+        if (isNowApproved) {
           deductInventory(orderToMove.items);
         }
+
+        // Notificar a Dashboard y vistas en vivo
+        window.dispatchEvent(new CustomEvent('axon_order_updated', { detail: { id: draggedOrderId, status: targetStatus, paymentstatus: payload.paymentstatus } }));
 
         // Integración Telegram Delivery
         if (targetStatus === 'Enviado' && orderToMove.status !== 'Enviado') {
@@ -388,7 +432,7 @@ export default function OrdersManager() {
         }
       } catch (err) {
         console.error(err);
-        setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus } : order));
+        setOrders(prev => prev.map(order => order.id === draggedOrderId ? { ...order, status: previousStatus, paymentStatus: orderToMove.paymentStatus } : order));
       }
       setDraggedOrderId(null);
     }
@@ -403,20 +447,27 @@ export default function OrdersManager() {
       newDeliveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     }
 
+    const isNowApproved = orderToMove.status === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(newStatus);
+    const newPaymentStatus = isNowApproved ? 'approved' : orderToMove.paymentStatus;
+
     setOrders(orders.map(order => 
-      order.id === id ? { ...order, status: newStatus, deliveryPin: newDeliveryPin } : order
+      order.id === id ? { ...order, status: newStatus, deliveryPin: newDeliveryPin, paymentStatus: newPaymentStatus } : order
     ));
     
     const payload = { status: newStatus };
+    if (isNowApproved) {
+      payload.paymentstatus = 'approved';
+    }
     if (newDeliveryPin && newDeliveryPin !== orderToMove.deliveryPin) payload.delivery_pin = newDeliveryPin;
 
     // Update en backend
     supabase.from('ecommerce_orders_v2').update(payload).eq('id', id).then(({error}) => {
-      if (!error && orderToMove.status === 'Pendiente' && ['Preparando', 'Enviado', 'Entregado'].includes(newStatus)) {
+      if (!error && isNowApproved) {
         deductInventory(orderToMove.items);
       }
       if (!error) {
         supabase.channel('support_orders_updates').send({ type: 'broadcast', event: 'order_updated', payload: { orderId: id } });
+        window.dispatchEvent(new CustomEvent('axon_order_updated', { detail: { id, status: newStatus, paymentstatus: payload.paymentstatus } }));
       }
     }).catch(console.error);
 
@@ -495,6 +546,8 @@ export default function OrdersManager() {
         if (action === 'approve' && previousStatus === 'Pendiente') {
           deductInventory(orderToMove.items);
         }
+        // Notificar en vivo al Dashboard y vistas
+        window.dispatchEvent(new CustomEvent('axon_order_updated', { detail: { id, status: newStatus || previousStatus, paymentstatus: newPaymentStatus } }));
       }
     } catch(err) {
       console.error(err);
@@ -521,10 +574,14 @@ export default function OrdersManager() {
     let preparingCount = 0;
     let dispatchedCount = 0;
     let deliveredCount = 0;
+    let paidCount = 0;
 
     filteredOrders.forEach((o) => {
-      if (o.status !== 'Cancelado') {
+      // Regla: No reflejar dinero de pedidos pendientes hasta que el comerciante verifique y apruebe
+      const isPaid = isOrderPaidAndApproved(o);
+      if (isPaid) {
         totalUsd += Number(o.total || 0);
+        paidCount++;
       }
       if (o.status === 'Pendiente') pendingCount++;
       else if (o.status === 'Preparando') preparingCount++;
@@ -532,8 +589,7 @@ export default function OrdersManager() {
       else if (o.status === 'Entregado') deliveredCount++;
     });
 
-    const validCount = filteredOrders.filter(o => o.status !== 'Cancelado').length;
-    const avgTicketUsd = validCount > 0 ? totalUsd / validCount : 0;
+    const avgTicketUsd = paidCount > 0 ? totalUsd / paidCount : 0;
 
     return {
       totalUsd,
@@ -542,7 +598,8 @@ export default function OrdersManager() {
       preparingCount,
       dispatchedCount,
       deliveredCount,
-      avgTicketUsd
+      avgTicketUsd,
+      paidCount
     };
   }, [filteredOrders]);
 

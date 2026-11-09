@@ -6,6 +6,23 @@
 
 let audioCtx = null;
 
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  };
+  ['click', 'touchstart', 'keydown'].forEach(evt => {
+    window.addEventListener(evt, unlockAudio, { passive: true, once: false });
+  });
+}
+
 const getAudioContext = () => {
   if (typeof window === 'undefined') return null;
   if (!audioCtx) {
@@ -146,6 +163,66 @@ export function playItemRemovedSound() {
     osc.stop(ctx.currentTime + 0.095);
   } catch (e) {
     // Silencioso
+  }
+}
+
+/**
+ * Notificación "Plin-Plin" cristalina de nuevo pedido en vitrina virtual
+ * Sintetiza un doble toque de campana armónica (Mi6 -> Si6 / Sol6) con resonancia viva
+ * que alerta al comerciante al instante cuando entra una compra.
+ */
+export function playNewOrderPlinPlin() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    const playBellTone = (time, fundFreq, overtoneFreq, vol, duration) => {
+      // Oscilador 1: Tono fundamental senoidal limpio
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(fundFreq, time);
+
+      // Oscilador 2: Armónico cristalino brillante
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(overtoneFreq, time);
+
+      // Envolvente con ataque percusivo instantáneo y decaimiento armónico
+      gain1.gain.setValueAtTime(0.0001, time);
+      gain1.gain.linearRampToValueAtTime(vol, time + 0.006);
+      gain1.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+      gain2.gain.setValueAtTime(0.0001, time);
+      gain2.gain.linearRampToValueAtTime(vol * 0.4, time + 0.006);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, time + duration * 0.7);
+
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+
+      osc1.start(time);
+      osc1.stop(time + duration + 0.05);
+      osc2.start(time);
+      osc2.stop(time + duration + 0.05);
+    };
+
+    // 1er Plin: Do6 (1046.5 Hz) + armónico Do7 (2093 Hz)
+    playBellTone(now, 1046.5, 2093.0, 0.38, 0.28);
+
+    // 2do Plin: Sol6 (1568.0 Hz) + armónico Sol7 (3136 Hz) - Toque más alto y resonante
+    playBellTone(now + 0.13, 1568.0, 3136.0, 0.48, 0.58);
+
+    // Vibración háptica en teléfonos móviles Android
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([160, 90, 240]);
+    }
+  } catch (e) {
+    console.warn('[posAudioService] Error reproduciendo plin plin:', e);
   }
 }
 

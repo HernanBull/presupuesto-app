@@ -18,6 +18,7 @@ import { supabase } from '../../supabaseClient';
 import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
 import UserManagementModal from './components/admin/UserManagementModal';
 import BackupManagerModal from './components/admin/BackupManagerModal';
+import { playNewOrderPlinPlin } from './utils/posAudioService';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -61,6 +62,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   });
   const isCashier = activeUserRole === 'CASHIER' || localStorage.getItem('axon_cashier_mode') === 'true';
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [incomingOrderBanner, setIncomingOrderBanner] = useState(null);
 
   // Escuchar cambios de sesión y modo cajero
   useEffect(() => {
@@ -92,6 +94,87 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     fetchPendingOrders();
     const interval = setInterval(fetchPendingOrders, 10000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Realtime Listener Global: Notificación "Plin-Plin" para nuevas compras en vitrina virtual
+  useEffect(() => {
+    const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+    if (!workspaceId) return;
+
+    const recentAlertedOrders = new Set();
+    let bannerTimeout = null;
+
+    const notifyNewOrder = (payload) => {
+      const orderId = payload?.orderId || payload?.order?.id || payload?.new?.id;
+      if (orderId && recentAlertedOrders.has(orderId)) return;
+      if (orderId) {
+        recentAlertedOrders.add(orderId);
+        setTimeout(() => recentAlertedOrders.delete(orderId), 15000);
+      }
+
+      // 1. Sonido Plin-Plin cristalino
+      playNewOrderPlinPlin();
+
+      // 2. Incrementar contador de órdenes pendientes
+      setPendingOrdersCount(prev => prev + 1);
+
+      // 3. Banner flotante interactivo de notificación
+      const customerName = payload?.order?.customer || payload?.new?.customer || 'Cliente Tienda';
+      const orderTotal = payload?.order?.total || payload?.new?.total || '';
+      
+      setIncomingOrderBanner({
+        orderId: orderId || 'Nuevo',
+        customer: customerName,
+        total: orderTotal ? `$${Number(orderTotal).toFixed(2)}` : ''
+      });
+
+      if (bannerTimeout) clearTimeout(bannerTimeout);
+      bannerTimeout = setTimeout(() => {
+        setIncomingOrderBanner(null);
+      }, 12000);
+
+      // 4. Disparar evento global para refrescar componentes activos (OrdersManager, Dashboard, etc.)
+      window.dispatchEvent(new CustomEvent('axon_new_order', { detail: payload }));
+    };
+
+    // Canal 1: Broadcast directo desde PublicStore ('store-' + workspaceId + '-orders')
+    const storeOrdersChannel = supabase.channel(`store-${workspaceId}-orders`)
+      .on('broadcast', { event: 'NEW_ORDER' }, (msg) => {
+        if (msg.payload) notifyNewOrder(msg.payload);
+      })
+      .subscribe();
+
+    // Canal 2: Broadcast desde picking-sync
+    const pickingChannel = supabase.channel('picking-sync')
+      .on('broadcast', { event: 'NEW_ECOMMERCE_ORDER' }, (msg) => {
+        if (msg.payload?.workspaceId === workspaceId || !msg.payload?.workspaceId) {
+          notifyNewOrder(msg.payload);
+        }
+      })
+      .subscribe();
+
+    // Canal 3: Escucha directa en Postgres para insertar pedidos (por si la red pierde el broadcast)
+    const dbChannel = supabase.channel(`db-orders-${workspaceId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'ecommerce_orders_v2',
+        filter: `workspace_id=eq.${workspaceId}`
+      }, (payload) => {
+        const orderType = (payload?.new?.order_type || '').toLowerCase();
+        // Ignorar ventas directas POS del propio cajero para no duplicar sonido
+        if (orderType !== 'pos') {
+          notifyNewOrder(payload);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (bannerTimeout) clearTimeout(bannerTimeout);
+      storeOrdersChannel.unsubscribe();
+      pickingChannel.unsubscribe();
+      dbChannel.unsubscribe();
+    };
   }, []);
 
   // Bloqueo estricto de rutas administrativas para Cajero (Solo POS, Pedidos y Turno)
@@ -517,8 +600,47 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const isPosRoute = location.pathname === '/pos';
 
   return (
-    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#f4f7fb] dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans">
+    <div className="h-[100dvh] flex flex-col md:flex-row bg-[#f4f7fb] dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans relative">
       
+      {/* Toast Flotante / Banner de Alerta "¡Nuevo Pedido Recibido!" (Plin-Plin) */}
+      {incomingOrderBanner && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92%] sm:w-full bg-slate-900/95 dark:bg-black/95 text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl border border-orange-500/50 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/30 animate-pulse">
+              <ShoppingBag size={20} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-orange-400 uppercase tracking-wider">¡Nuevo Pedido!</span>
+                <span className="text-[11px] font-mono font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/90 truncate max-w-[120px]">
+                  #{incomingOrderBanner.orderId}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-200 truncate mt-0.5">
+                {incomingOrderBanner.customer} {incomingOrderBanner.total ? `• ${incomingOrderBanner.total}` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setIncomingOrderBanner(null);
+                navigate('/orders');
+              }}
+              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all active:scale-95 shadow-md shadow-orange-500/25 cursor-pointer whitespace-nowrap"
+            >
+              Ver Pedido
+            </button>
+            <button
+              onClick={() => setIncomingOrderBanner(null)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================
           SIDEBAR COMMERCY ULTRA-COMPACTO (IMAGEN 1) EN MODO POS
           ======================================================== */}
