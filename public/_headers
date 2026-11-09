@@ -1,15 +1,18 @@
 # Cloudflare Pages Headers Configuration
 # Previene que la PWA y los bundles queden congelados en caché móvil vieja
+# Alt-Svc: clear evita que operadoras celulares en Venezuela fallen por bloqueo de UDP/QUIC (ERR_FAILED)
 
 /*
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
   Expires: 0
+  Alt-Svc: clear
 
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
   Pragma: no-cache
   Expires: 0
+  Alt-Svc: clear
 
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
