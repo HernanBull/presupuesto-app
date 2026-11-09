@@ -364,6 +364,21 @@ export const toggleLikePost = async (postId, workspaceId, customerId) => {
       .eq('post_id', String(postId));
 
     const finalCount = count || 0;
+
+    // Sincronizar cache de likes personales del cliente
+    try {
+      const customerLikesKey = `${LOCAL_STORAGE_PREFIX}customer_likes_${rawId}`;
+      const rawCustomerLikes = localStorage.getItem(customerLikesKey);
+      let customerLikes = rawCustomerLikes ? JSON.parse(rawCustomerLikes) : [];
+      const strPostId = String(postId);
+      if (isLiked && !customerLikes.includes(strPostId)) {
+        customerLikes.push(strPostId);
+      } else if (!isLiked && customerLikes.includes(strPostId)) {
+        customerLikes = customerLikes.filter(id => id !== strPostId);
+      }
+      localStorage.setItem(customerLikesKey, JSON.stringify(customerLikes));
+    } catch (e) {}
+
     notifySocialUpdate('like', { postId, customerId, isLiked, count: finalCount });
     return { isLiked, count: finalCount };
   } catch (err) {
@@ -381,6 +396,21 @@ export const toggleLikePost = async (postId, workspaceId, customerId) => {
       isLiked = true;
     }
     localStorage.setItem(key, JSON.stringify(likes));
+
+    // Sincronizar cache de likes personales del cliente en fallback
+    try {
+      const customerLikesKey = `${LOCAL_STORAGE_PREFIX}customer_likes_${rawId}`;
+      const rawCustomerLikes = localStorage.getItem(customerLikesKey);
+      let customerLikes = rawCustomerLikes ? JSON.parse(rawCustomerLikes) : [];
+      const strPostId = String(postId);
+      if (isLiked && !customerLikes.includes(strPostId)) {
+        customerLikes.push(strPostId);
+      } else if (!isLiked && customerLikes.includes(strPostId)) {
+        customerLikes = customerLikes.filter(id => id !== strPostId);
+      }
+      localStorage.setItem(customerLikesKey, JSON.stringify(customerLikes));
+    } catch (e) {}
+
     notifySocialUpdate('like', { postId, customerId, isLiked, count: likes.length });
     return { isLiked, count: likes.length };
   }
@@ -740,6 +770,176 @@ export const getCustomerSavedPosts = async (customerId) => {
   } catch (err) {
     console.warn('Error fetching customer saved posts:', err);
     return [];
+  }
+};
+
+/**
+ * Consulta las publicaciones a las que el cliente dio "Me Encanta" / Like
+ */
+export const getCustomerLikedPosts = async (customerId) => {
+  if (!customerId) return [];
+  const rawId = String(customerId);
+  const uuidId = toSocialUuid(customerId);
+  const localKey = `${LOCAL_STORAGE_PREFIX}customer_likes_${rawId}`;
+
+  let likedPostIds = [];
+  try {
+    const rawLocal = localStorage.getItem(localKey);
+    if (rawLocal) {
+      likedPostIds = JSON.parse(rawLocal);
+    }
+  } catch (e) {}
+
+  try {
+    let dbLikes = [];
+    const { data: d1 } = await supabase
+      .from('ecommerce_post_likes')
+      .select('post_id, workspace_id, created_at')
+      .eq('customer_id', rawId)
+      .order('created_at', { ascending: false });
+    if (d1 && d1.length > 0) dbLikes = d1;
+
+    if (!isUuid(rawId)) {
+      const { data: d2 } = await supabase
+        .from('ecommerce_post_likes')
+        .select('post_id, workspace_id, created_at')
+        .eq('customer_id', uuidId)
+        .order('created_at', { ascending: false });
+      if (d2 && d2.length > 0) {
+        dbLikes = [...dbLikes, ...d2];
+      }
+    }
+
+    const setIds = new Set([...likedPostIds, ...dbLikes.map(l => l.post_id)]);
+    const allIds = Array.from(setIds).filter(Boolean);
+    if (allIds.length === 0) return [];
+
+    // Buscar detalles en ecommerce_store_news
+    const validNewsIds = allIds.filter(id => isUuid(id));
+    let newsData = [];
+    if (validNewsIds.length > 0) {
+      const { data: news } = await supabase
+        .from('ecommerce_store_news')
+        .select('*')
+        .in('id', validNewsIds);
+      newsData = news || [];
+    }
+
+    return allIds.map(postId => {
+      const foundNews = newsData.find(n => String(n.id) === String(postId));
+      const foundDb = dbLikes.find(l => String(l.post_id) === String(postId));
+      const postImages = resolvePostImages(foundNews);
+      const cover = postImages[0] || foundNews?.image_url || foundNews?.image || '';
+      return {
+        id: postId,
+        postId: postId,
+        workspaceId: foundNews?.workspace_id || foundDb?.workspace_id,
+        title: foundNews?.title || 'Publicación Destacada',
+        content: foundNews?.content || '',
+        image_url: cover,
+        images: postImages,
+        media_type: foundNews?.media_type || (cover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(cover) ? 'video' : 'image'),
+        store_name: foundNews?.store_name || 'Comercio',
+        store_slug: foundNews?.store_slug || '',
+        likes_count: foundNews?.likes_count || 1,
+        created_at: foundDb?.created_at || foundNews?.created_at || new Date().toISOString()
+      };
+    });
+  } catch (err) {
+    console.warn('Error fetching customer liked posts:', err);
+    return [];
+  }
+};
+
+/**
+ * =========================================================================
+ * 5. SISTEMA DE HISTORIAL DE VITRINAS VISITADAS ("LUGARES RECORRIDOS")
+ * =========================================================================
+ */
+export const recordStoreVisit = (storeObj, wsId, customerId = null) => {
+  if (!storeObj) return;
+  try {
+    const rawCustomer = typeof localStorage !== 'undefined' ? localStorage.getItem('ecommerce_current_customer') : null;
+    const customer = rawCustomer ? JSON.parse(rawCustomer) : null;
+    const custId = customerId || customer?.id || 'guest';
+    const key = `axon_visited_stores_${custId}`;
+    const raw = localStorage.getItem(key);
+    let visits = raw ? JSON.parse(raw) : [];
+
+    const storeSlug = storeObj.store_slug || storeObj.slug || storeObj.storeSlug;
+    if (!storeSlug && !wsId) return;
+
+    const baseConf = typeof storeObj.config === 'object' && storeObj.config !== null ? storeObj.config : {};
+    const storefrontConf = baseConf.storefront || {};
+
+    const visitEntry = {
+      workspaceId: wsId || storeObj.id,
+      slug: storeSlug,
+      name: storeObj.name || storeObj.business_name || baseConf.business_name || 'Comercio',
+      logo: storeObj.logo || storeObj.logoUrl || storefrontConf.logoUrl || baseConf.logoUrl || '',
+      banner: storeObj.bannerUrl || storeObj.coverUrl || storefrontConf.heroUrl || baseConf.coverUrl || '',
+      category: storeObj.category || storeObj.rubro || baseConf.category || 'Comercio Aliado',
+      visitedAt: new Date().toISOString()
+    };
+
+    // Quitar si ya existía para colocar la visita al inicio (orden cronológico reciente)
+    visits = visits.filter(v => 
+      (visitEntry.slug ? v.slug !== visitEntry.slug : true) && 
+      (visitEntry.workspaceId ? v.workspaceId !== visitEntry.workspaceId : true)
+    );
+    visits.unshift(visitEntry);
+    if (visits.length > 50) visits = visits.slice(0, 50);
+
+    localStorage.setItem(key, JSON.stringify(visits));
+    localStorage.setItem('axon_visited_stores_universal', JSON.stringify(visits));
+
+    notifySocialUpdate('store_visited', { visit: visitEntry, customerId: custId });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('axon_store_visited', { detail: visitEntry }));
+    }
+  } catch (e) {
+    console.warn('Error recording store visit:', e);
+  }
+};
+
+export const getVisitedStores = (customerId = null) => {
+  try {
+    const rawCustomer = typeof localStorage !== 'undefined' ? localStorage.getItem('ecommerce_current_customer') : null;
+    const customer = rawCustomer ? JSON.parse(rawCustomer) : null;
+    const custId = customerId || customer?.id || 'guest';
+    
+    const key = `axon_visited_stores_${custId}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+
+    const universal = localStorage.getItem('axon_visited_stores_universal');
+    if (universal) {
+      const parsedUniv = JSON.parse(universal);
+      if (Array.isArray(parsedUniv)) return parsedUniv;
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const clearVisitedStores = (customerId = null) => {
+  try {
+    const rawCustomer = typeof localStorage !== 'undefined' ? localStorage.getItem('ecommerce_current_customer') : null;
+    const customer = rawCustomer ? JSON.parse(rawCustomer) : null;
+    const custId = customerId || customer?.id || 'guest';
+    localStorage.removeItem(`axon_visited_stores_${custId}`);
+    localStorage.removeItem('axon_visited_stores_universal');
+    notifySocialUpdate('store_visited', { cleared: true });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('axon_store_visited', { detail: { cleared: true } }));
+    }
+    return true;
+  } catch (e) {
+    return false;
   }
 };
 

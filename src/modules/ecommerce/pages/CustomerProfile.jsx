@@ -20,7 +20,16 @@ L.Icon.Default.mergeOptions({
 });
 
 import ProfileWizardModal from '../components/ProfileWizardModal';
-import { getCustomerSavedPosts, isUuid, resolvePostImages } from '../services/socialService';
+import { 
+  getCustomerSavedPosts, 
+  isUuid, 
+  resolvePostImages, 
+  getCustomerLikedPosts, 
+  getVisitedStores, 
+  clearVisitedStores, 
+  toggleSavePost, 
+  toggleLikePost 
+} from '../services/socialService';
 
 export default function CustomerProfile() {
   const navigate = useNavigate();
@@ -34,6 +43,10 @@ export default function CustomerProfile() {
   const [savedPosts, setSavedPosts] = useState([]);
   const [favSubTab, setFavSubTab] = useState('tiendas');
   const [loadingSavedPosts, setLoadingSavedPosts] = useState(false);
+  const [visitedStores, setVisitedStores] = useState(() => getVisitedStores());
+  const [likedPosts, setLikedPosts] = useState([]);
+  const [loadingLikedPosts, setLoadingLikedPosts] = useState(false);
+  const [guardadosSubTab, setGuardadosSubTab] = useState('publicaciones');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -415,6 +428,105 @@ export default function CustomerProfile() {
 
     fetchSaves();
   }, [currentCustomer?.id, currentCustomer?.favorites]);
+
+  // Cargar publicaciones a las que el cliente dio Like ("Lo más TOP")
+  const fetchLikedPosts = async () => {
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    if (!custId) return;
+    setLoadingLikedPosts(true);
+    try {
+      const posts = await getCustomerLikedPosts(custId);
+      setLikedPosts(posts || []);
+    } catch (e) {
+      console.warn('Error fetching liked posts:', e);
+    } finally {
+      setLoadingLikedPosts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLikedPosts();
+  }, [currentCustomer?.id]);
+
+  // Cargar historial de tiendas visitadas ("Lugares recorridos")
+  const refreshVisitedStores = () => {
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    setVisitedStores(getVisitedStores(custId));
+  };
+
+  useEffect(() => {
+    refreshVisitedStores();
+
+    const handleSocialUpdate = (e) => {
+      const { eventType } = e.detail || {};
+      if (eventType === 'save' || eventType === 'save_sync') {
+        const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+        if (custId) {
+          getCustomerSavedPosts(custId).then(saves => {
+            if (saves) {
+              const custFavs = Array.isArray(currentCustomer?.favorites) ? currentCustomer.favorites : [];
+              const postFavs = custFavs.filter(f => f && (f.type === 'post' || f.postId));
+              setSavedPosts(postFavs.map(f => ({
+                id: f.id || f.postId,
+                postId: f.postId || f.id,
+                workspaceId: f.workspace_id,
+                title: f.title || f.name || 'Publicación Guardada',
+                content: f.caption || '',
+                image_url: f.cover || f.image_url || '',
+                media_type: (f.cover || f.image_url) && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(f.cover || f.image_url) ? 'video' : 'image',
+                store_name: f.store_name || 'Comercio',
+                store_slug: f.store_slug || f.workspace_id,
+                created_at: f.savedAt || new Date().toISOString()
+              })));
+            }
+          });
+        }
+      } else if (eventType === 'like') {
+        fetchLikedPosts();
+      } else if (eventType === 'store_visited') {
+        refreshVisitedStores();
+      }
+    };
+
+    const handleStoreVisited = () => {
+      refreshVisitedStores();
+    };
+
+    window.addEventListener('axon_social_updated', handleSocialUpdate);
+    window.addEventListener('axon_store_visited', handleStoreVisited);
+    return () => {
+      window.removeEventListener('axon_social_updated', handleSocialUpdate);
+      window.removeEventListener('axon_store_visited', handleStoreVisited);
+    };
+  }, [currentCustomer?.id]);
+
+  const handleRemoveSavedPost = async (postId, workspaceId) => {
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    if (!custId || !postId) return;
+    setSavedPosts(prev => prev.filter(p => String(p.id) !== String(postId) && String(p.postId) !== String(postId)));
+    try {
+      await toggleSavePost(postId, workspaceId, custId);
+    } catch (e) {
+      console.warn('Error un-saving post:', e);
+    }
+  };
+
+  const handleToggleLikeTopPost = async (postId, workspaceId) => {
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    if (!custId || !postId) return;
+    setLikedPosts(prev => prev.filter(p => String(p.id) !== String(postId) && String(p.postId) !== String(postId)));
+    try {
+      await toggleLikePost(postId, workspaceId, custId);
+    } catch (e) {
+      console.warn('Error toggling like:', e);
+    }
+  };
+
+  const handleClearVisitedStores = () => {
+    const custId = currentCustomer?.id || currentCustomer?.uid || currentCustomer?.docId;
+    clearVisitedStores(custId);
+    setVisitedStores([]);
+  };
 
   useEffect(() => {
     if (!currentCustomer?.email) return;
@@ -1132,7 +1244,7 @@ export default function CustomerProfile() {
                   <span className="text-[15px] font-medium">Lo más TOP</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{likedPosts.length}</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
@@ -1142,7 +1254,7 @@ export default function CustomerProfile() {
                   <span className="text-[15px] font-medium">Lugares recorridos</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{visitedStores.length}</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
@@ -1162,14 +1274,20 @@ export default function CustomerProfile() {
                   <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Guardados</span>
                </div>
-               <ChevronRight size={18} className="text-slate-300" />
+               <div className="flex items-center gap-3">
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{savedPosts.length + parsedWishlist.length}</span>
+                  <ChevronRight size={18} className="text-slate-300" />
+               </div>
             </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
                <div className="flex items-center gap-4">
                   <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
                   <span className="text-[15px] font-medium">Seguidos</span>
                </div>
-               <ChevronRight size={18} className="text-slate-300" />
+               <div className="flex items-center gap-3">
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{parsedFavorites.length}</span>
+                  <ChevronRight size={18} className="text-slate-300" />
+               </div>
             </button>
           </div>
 
@@ -1444,44 +1562,194 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: RECOMENDACIONES */}
+            {/* TABS: RECOMENDACIONES / LO MAS TOP */}
             {activeTab === 'recomendaciones' && (
               <motion.div key="recomendaciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Lo más TOP</h2>
-                      <p className="text-slate-500 text-sm">Productos y tiendas sugeridos según tus preferencias y ubicación.</p>
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Lo más TOP</h2>
+                    <p className="text-slate-500 text-sm">Publicaciones y novedades a las que has dado "Me encanta".</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900">Personalizando sugerencias TOP...</h3>
-                    <p className="text-slate-500 text-sm mt-2">Visita tiendas y guarda productos para recibir recomendaciones personalizadas.</p>
-                    <button onClick={() => navigate('/explorar')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
-                      Explorar Marketplace
+                  <button 
+                    onClick={() => navigate('/explorar')} 
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-xs flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <Sparkles size={14} /> Explorar Feed
+                  </button>
+                </div>
+
+                {loadingLikedPosts ? (
+                  <div className="bg-white rounded-3xl p-16 border border-slate-200/80 shadow-xs flex flex-col items-center justify-center text-slate-400">
+                    <Loader2 size={36} className="animate-spin text-amber-500 mb-3" />
+                    <p className="text-sm font-bold">Cargando tus favoritos TOP...</p>
+                  </div>
+                ) : likedPosts.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-12 border border-dashed border-slate-200 text-center shadow-xs">
+                    <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4 border border-red-100 shadow-xs">
+                      <Heart size={32} fill="currentColor" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Aún no tienes publicaciones con "Me encanta"</h3>
+                    <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Cuando le des al corazón ❤️ a una publicación de un comercio en el feed o la vitrina, aparecerá guardada aquí automáticamente.</p>
+                    <button 
+                      onClick={() => navigate('/explorar')} 
+                      className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold text-sm hover:bg-amber-400 transition-all shadow-xs"
+                    >
+                      Descubrir Publicaciones
                     </button>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {likedPosts.map((post) => {
+                      const postImgs = post.images && post.images.length > 0 ? post.images : (post.image_url ? [post.image_url] : []);
+                      const cover = postImgs[0] || post.image_url;
+                      const isVid = post.media_type === 'video' || (cover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(cover));
+                      return (
+                        <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
+                          {cover ? (
+                            <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
+                              {isVid ? (
+                                <>
+                                  <video 
+                                    src={cover} 
+                                    muted 
+                                    loop 
+                                    playsInline 
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                  />
+                                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                                    <Video size={11} className="text-amber-400" /> Video
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <img src={cover} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                  {postImgs.length > 1 && (
+                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white flex items-center gap-1 font-semibold z-10">
+                                      <span>📷 {postImgs.length}</span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                              <button 
+                                onClick={() => handleToggleLikeTopPost(post.postId || post.id, post.workspaceId)}
+                                className="absolute top-3 left-3 w-8 h-8 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:scale-110 transition-transform shadow-xs"
+                                title="Quitar de mis favoritos"
+                              >
+                                <Heart size={16} fill="currentColor" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
+                              <Store size={32} />
+                            </div>
+                          )}
+                          <div className="p-5 flex-1 flex flex-col justify-between">
+                            <div>
+                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block mb-1 truncate">{post.store_name}</span>
+                              <h4 className="font-bold text-slate-900 leading-tight mb-2 line-clamp-2">{post.title}</h4>
+                              {post.content && (
+                                <p className="text-slate-500 text-xs line-clamp-2">{post.content}</p>
+                              )}
+                            </div>
+                            <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                              <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                                <Heart size={13} className="text-red-500" fill="currentColor" /> Favorito TOP
+                              </span>
+                              <button 
+                                onClick={() => navigate(`/${post.store_slug || post.workspaceId}`)}
+                                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1"
+                              >
+                                Ir a Vitrina <ChevronRight size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </motion.div>
             )}
 
-            {/* TABS: VISITAS */}
+            {/* TABS: VISITAS / LUGARES RECORRIDOS */}
             {activeTab === 'visitas' && (
               <motion.div key="visitas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Lugares recorridos</h2>
-                      <p className="text-slate-500 text-sm">Comercios y tiendas que has visitado recientemente.</p>
-                    </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Lugares recorridos</h2>
+                    <p className="text-slate-500 text-sm">Comercios y vitrinas que has visitado recientemente.</p>
                   </div>
-                  <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Store size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900">Historial limpio</h3>
-                    <p className="text-slate-500 text-sm mt-2">Tus visitas recientes a tiendas del ecosistema se reflejarán aquí para un acceso directo.</p>
-                  </div>
+                  {visitedStores.length > 0 && (
+                    <button 
+                      onClick={handleClearVisitedStores}
+                      className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 self-start sm:self-auto border border-red-200"
+                    >
+                      <Trash2 size={14} /> Limpiar Historial
+                    </button>
+                  )}
                 </div>
+
+                {visitedStores.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-12 border border-dashed border-slate-200 text-center shadow-xs">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100 shadow-xs">
+                      <Store size={32} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Aún no has visitado vitrinas</h3>
+                    <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Cada vez que entres a la vitrina de un comercio aliado, se registrará aquí para que puedas volver en cualquier momento con un solo toque.</p>
+                    <button 
+                      onClick={() => navigate('/explorar')} 
+                      className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold text-sm hover:bg-amber-400 transition-all shadow-xs"
+                    >
+                      Explorar Vitrinas
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {visitedStores.map((store, idx) => (
+                      <div 
+                        key={store.slug || store.workspaceId || idx}
+                        onClick={() => navigate(`/${store.slug || store.workspaceId}`)}
+                        className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer flex flex-col justify-between"
+                      >
+                        <div className="h-28 w-full relative bg-gradient-to-br from-amber-100 to-amber-50 overflow-hidden">
+                          {store.banner ? (
+                            <img src={store.banner} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-amber-400">
+                              <Store size={36} />
+                            </div>
+                          )}
+                          <div className="absolute -bottom-5 left-5">
+                            {store.logo ? (
+                              <img src={store.logo} alt={store.name} className="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-md bg-white" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 font-bold flex items-center justify-center border-2 border-white shadow-md">
+                                <Store size={20} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="pt-7 p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors text-base truncate">{store.name}</h4>
+                            <span className="text-xs font-semibold text-slate-400 block mt-0.5">{store.category || 'Comercio Aliado'}</span>
+                          </div>
+
+                          <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                            <span className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                              <Clock size={12} className="text-slate-400" /> 
+                              {store.visitedAt ? new Date(store.visitedAt).toLocaleDateString() : 'Reciente'}
+                            </span>
+                            <span className="text-xs font-bold text-amber-600 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                              Entrar <ChevronRight size={14} />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
             
@@ -1864,156 +2132,64 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: PRODUCTOS GUARDADOS (WISHLIST) */}
+            {/* TABS: GUARDADOS (PUBLICACIONES Y PRODUCTOS) */}
             {activeTab === 'wishlist' && (
               <motion.div key="wishlist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h2 className="text-2xl font-black text-slate-900 mb-2">Guardados</h2>
-                <p className="text-slate-500 text-sm mb-6">Tus artículos favoritos listos para cuando quieras comprar.</p>
-                
-                {parsedWishlist.length === 0 ? (
-                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
-                    <Package size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900">Tu lista está vacía</h3>
-                    <p className="text-slate-500 text-sm mt-2">Guarda productos haciendo clic en el corazón mientras navegas por las tiendas.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {parsedWishlist.map(product => (
-                      <div key={product.productId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
-                        <div className="h-40 w-full relative bg-slate-100">
-                          {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400"><Package size={40}/></div>
-                          )}
-                          <button 
-                            onClick={() => removeWishlist(product.productId)}
-                            className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-white transition-all shadow-sm"
-                          >
-                            <Heart size={16} fill="currentColor" />
-                          </button>
-                        </div>
-                        <div className="p-4 flex-1 flex flex-col justify-between">
-                          <div>
-                            <div className="text-xs text-amber-600 font-bold mb-1 uppercase tracking-wide truncate">{product.storeName}</div>
-                            <h4 className="font-bold text-slate-900 leading-tight mb-2 line-clamp-2">{product.productName}</h4>
-                          </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <span className="font-black text-slate-900 text-lg">${product.productPrice?.toFixed(2)}</span>
-                            <button 
-                              onClick={() => navigate(`/${product.storeSlug}`)}
-                              className="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-sm font-bold shadow-xs hover:bg-amber-400 transition-all"
-                            >
-                              Ver Tienda
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* TABS: FAVORITAS Y GUARDADOS */}
-            {activeTab === 'favoritas' && (
-              <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidos</h2>
-                    <p className="text-slate-500 text-sm">Acceso directo a tus tiendas seguidas y publicaciones guardadas.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Guardados</h2>
+                    <p className="text-slate-500 text-sm">Tus publicaciones y productos favoritos guardados en Axon Market.</p>
                   </div>
 
                   {/* Selector de Sub-pestañas */}
                   <div className="flex items-center bg-slate-100 p-1 rounded-2xl w-max">
                     <button
-                      onClick={() => setFavSubTab('tiendas')}
+                      onClick={() => setGuardadosSubTab('publicaciones')}
                       className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        favSubTab === 'tiendas' 
-                          ? 'bg-white text-slate-900 shadow-xs' 
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      Tiendas ({parsedFavorites.length})
-                    </button>
-                    <button
-                      onClick={() => setFavSubTab('publicaciones')}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        favSubTab === 'publicaciones' 
+                        guardadosSubTab === 'publicaciones' 
                           ? 'bg-white text-slate-900 shadow-xs' 
                           : 'text-slate-500 hover:text-slate-900'
                       }`}
                     >
                       Publicaciones ({savedPosts.length})
                     </button>
+                    <button
+                      onClick={() => setGuardadosSubTab('productos')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        guardadosSubTab === 'productos' 
+                          ? 'bg-white text-slate-900 shadow-xs' 
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      Productos ({parsedWishlist.length})
+                    </button>
                   </div>
                 </div>
-                
-                {favSubTab === 'tiendas' ? (
-                  parsedFavorites.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
-                      <Heart size={48} className="mx-auto text-slate-300 mb-4" />
-                      <h3 className="text-lg font-bold text-slate-900">Aún no sigues tiendas</h3>
-                      <p className="text-slate-500 text-sm mt-2">Navega por el marketplace o el feed y guarda los comercios que más te gusten.</p>
-                      <button 
-                        onClick={() => navigate('/explorar')} 
-                        className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
-                      >
-                        Explorar Directorio
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {parsedFavorites.map((store, idx) => (
-                        <div 
-                          key={store.slug || store.id || idx} 
-                          className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" 
-                          onClick={() => navigate(`/${store.slug || store.id}`)}
-                        >
-                          {store.logo ? (
-                            <img src={store.logo} alt={store.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs" />
-                          ) : (
-                            <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
-                               <Store size={24} />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors truncate">{store.name}</h4>
-                            <span className="text-xs text-slate-500 mt-1 block">Toca para visitar vitrina</span>
-                          </div>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug || store.id); }}
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                            title="Eliminar de favoritos"
-                          >
-                            <Heart size={20} fill="currentColor" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
+
+                {guardadosSubTab === 'publicaciones' ? (
                   savedPosts.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center">
-                      <Bookmark size={48} className="mx-auto text-slate-300 mb-4" />
+                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center shadow-xs">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100 shadow-xs">
+                        <Bookmark size={32} />
+                      </div>
                       <h3 className="text-lg font-bold text-slate-900">No tienes publicaciones guardadas</h3>
-                      <p className="text-slate-500 text-sm mt-2">Guarda publicaciones desde el feed con el botón de guardar para verlas cuando desees.</p>
+                      <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Guarda publicaciones desde el feed o las vitrinas con el botón de guardar (🔖) para verlas aquí cuando desees.</p>
                       <button 
                         onClick={() => navigate('/explorar')} 
-                        className="mt-4 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all"
+                        className="mt-6 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-xs"
                       >
                         Ver Feed Social
                       </button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {savedPosts.map((post) => (
-                        <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
-                          {(() => {
-                            const postImgs = resolvePostImages(post);
-                            const cover = postImgs[0] || post.image_url;
-                            const isVid = post.media_type === 'video' || (cover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(cover));
-                            return cover ? (
+                      {savedPosts.map((post) => {
+                        const postImgs = resolvePostImages(post);
+                        const cover = postImgs[0] || post.image_url;
+                        const isVid = post.media_type === 'video' || (cover && /\.(mp4|webm|mov|ogg)(\?.*)?$/i.test(cover));
+                        return (
+                          <div key={post.id || post.postId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
+                            {cover ? (
                               <div className="h-44 w-full relative bg-slate-100 overflow-hidden">
                                 {isVid ? (
                                   <>
@@ -2038,33 +2214,92 @@ export default function CustomerProfile() {
                                     )}
                                   </>
                                 )}
+                                <button 
+                                  onClick={() => handleRemoveSavedPost(post.postId || post.id, post.workspaceId)}
+                                  className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-white shadow-xs transition-all"
+                                  title="Quitar de guardados"
+                                >
+                                  <Bookmark size={16} fill="currentColor" />
+                                </button>
                               </div>
                             ) : (
                               <div className="h-28 w-full bg-amber-50/50 flex items-center justify-center text-amber-500">
                                 <Store size={32} />
                               </div>
-                            );
-                          })()}
-                          <div className="p-5 flex-1 flex flex-col justify-between">
-                            <div>
-                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block mb-1">{post.store_name}</span>
-                              <h4 className="font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{post.title || post.content}</h4>
-                              {post.content && post.title && (
-                                <p className="text-xs text-slate-500 line-clamp-2">{post.content}</p>
-                              )}
+                            )}
+                            <div className="p-5 flex-1 flex flex-col justify-between">
+                              <div>
+                                <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider block mb-1 truncate">{post.store_name}</span>
+                                <h4 className="font-bold text-slate-900 line-clamp-2 leading-snug mb-2">{post.title || post.content}</h4>
+                                {post.content && post.title && (
+                                  <p className="text-xs text-slate-500 line-clamp-2">{post.content}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                                <button 
+                                  onClick={() => navigate(`/${post.store_slug || post.workspaceId}`)}
+                                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-xs"
+                                >
+                                  Visitar Vitrina
+                                </button>
+                                <button 
+                                  onClick={() => navigate('/explorar')}
+                                  className="text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
+                                >
+                                  Ver en Feed
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                ) : (
+                  parsedWishlist.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center shadow-xs">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100 shadow-xs">
+                        <Package size={32} />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-900">Tu lista de productos está vacía</h3>
+                      <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Guarda productos haciendo clic en el corazón mientras navegas por los catálogos de las tiendas.</p>
+                      <button 
+                        onClick={() => navigate('/explorar')} 
+                        className="mt-6 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-xs"
+                      >
+                        Explorar Productos
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {parsedWishlist.map(product => (
+                        <div key={product.productId} className="bg-white rounded-3xl overflow-hidden border border-slate-200 shadow-xs flex flex-col group hover:border-amber-400 hover:shadow-md transition-all">
+                          <div className="h-40 w-full relative bg-slate-100">
+                            {product.imageUrl ? (
+                              <img src={product.imageUrl} alt={product.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400"><Package size={40}/></div>
+                            )}
+                            <button 
+                              onClick={() => removeWishlist(product.productId)}
+                              className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-white transition-all shadow-sm"
+                              title="Quitar de favoritos"
+                            >
+                              <Heart size={16} fill="currentColor" />
+                            </button>
+                          </div>
+                          <div className="p-4 flex-1 flex flex-col justify-between">
+                            <div>
+                              <div className="text-xs text-amber-600 font-bold mb-1 uppercase tracking-wide truncate">{product.storeName}</div>
+                              <h4 className="font-bold text-slate-900 leading-tight mb-2 line-clamp-2">{product.productName}</h4>
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                              <span className="font-black text-slate-900 text-lg">${product.productPrice?.toFixed(2)}</span>
                               <button 
-                                onClick={() => navigate(`/${post.store_slug || post.workspaceId}`)}
-                                className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all"
+                                onClick={() => navigate(`/${product.storeSlug}`)}
+                                className="px-4 py-2 bg-amber-500 text-slate-950 rounded-xl text-sm font-bold shadow-xs hover:bg-amber-400 transition-all"
                               >
-                                Visitar Vitrina
-                              </button>
-                              <button 
-                                onClick={() => navigate('/explorar')}
-                                className="text-xs text-slate-400 hover:text-slate-700 font-medium transition-colors"
-                              >
-                                Ver en Feed
+                                Ver Tienda
                               </button>
                             </div>
                           </div>
@@ -2072,6 +2307,61 @@ export default function CustomerProfile() {
                       ))}
                     </div>
                   )
+                )}
+              </motion.div>
+            )}
+
+            {/* TABS: SEGUIDOS (TIENDAS ALIADAS) */}
+            {activeTab === 'favoritas' && (
+              <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidos</h2>
+                  <p className="text-slate-500 text-sm">Tiendas y comercios oficiales a los que sigues en Axon Market.</p>
+                </div>
+                
+                {parsedFavorites.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center shadow-xs">
+                    <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100 shadow-xs">
+                      <UserPlus size={32} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Aún no sigues tiendas</h3>
+                    <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Navega por el marketplace o el feed y sigue a tus comercios favoritos para enterarte de sus novedades antes que nadie.</p>
+                    <button 
+                      onClick={() => navigate('/explorar')} 
+                      className="mt-6 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-xs"
+                    >
+                      Explorar Directorio
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {parsedFavorites.map((store, idx) => (
+                      <div 
+                        key={store.slug || store.id || idx} 
+                        className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" 
+                        onClick={() => navigate(`/${store.slug || store.id}`)}
+                      >
+                        {store.logo ? (
+                          <img src={store.logo} alt={store.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs" />
+                        ) : (
+                          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
+                             <Store size={24} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors truncate">{store.name}</h4>
+                          <span className="text-xs text-slate-500 mt-1 block">Toca para visitar vitrina</span>
+                        </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug || store.id); }}
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
+                          title="Dejar de seguir"
+                        >
+                          <Heart size={20} fill="currentColor" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </motion.div>
             )}

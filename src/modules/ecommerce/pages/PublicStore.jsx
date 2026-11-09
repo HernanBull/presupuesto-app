@@ -7,7 +7,7 @@ import ProfileWizardModal from '../components/ProfileWizardModal';
 import CustomerAuthModal from '../components/CustomerAuthModal';
 import ResponsiveModal from '../components/ResponsiveModal';
 import MerchantStatusViewerModal from '../components/MerchantStatusViewerModal';
-import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList, recordPostView, getPostRealViews, formatRealViews, resolvePostImages } from '../services/socialService';
+import { getStoreFollowState, toggleFollowStore, getStoreRealMetrics, getStoreFollowersList, recordPostView, getPostRealViews, formatRealViews, resolvePostImages, recordStoreVisit } from '../services/socialService';
 import { buildWhatsAppUrl, resolveStoreWhatsApp } from '../utils/whatsappHelper';
 import { 
   STOREFRONT_COLOR_PRESETS, 
@@ -2111,6 +2111,9 @@ export default function PublicStore() {
         // Comercio encontrado exitosamente
         setStoreNotFound(false);
         setWorkspaceId(storeData.id);
+
+        // Registrar visita orgánica en historial del cliente ("Lugares recorridos")
+        recordStoreVisit(storeData, storeData.id);
 
         const baseConf = typeof storeData.config === 'object' && storeData.config !== null ? storeData.config : {};
         const storefrontConf = baseConf.storefront || {};
