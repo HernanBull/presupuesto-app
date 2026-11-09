@@ -34,7 +34,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-
 export default function SuperAdminRouter({ session }) {
   const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [superKey, setSuperKey] = useState(localStorage.getItem('superadmin_key') || 'cac2003');
+  const [superKey, setSuperKey] = useState(localStorage.getItem('superadmin_key') || '');
   
   // Estados para formulario de autenticación
   const [authMode, setAuthMode] = useState('credentials'); // 'credentials' | 'key'
@@ -55,6 +55,16 @@ export default function SuperAdminRouter({ session }) {
   const checkInitialAuthorization = async () => {
     setIsLoading(true);
     setFormError('');
+
+    // BLOQUEO ESTRICTO: Trabajadores de mostrador (Cajeros y Pickers) NUNCA pueden acceder a SuperAdmin
+    const isCashierKiosk = localStorage.getItem('axon_cashier_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'CASHIER';
+    const isPickerKiosk = localStorage.getItem('axon_picker_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'PICKER';
+    if (isCashierKiosk || isPickerKiosk) {
+      setIsSuperadmin(false);
+      setIsLoading(false);
+      setFormError('Acceso restringido: Esta estación está vinculada a un rol operativo.');
+      return;
+    }
 
     // A. Revisar si ya tiene una clave guardada válida
     const savedKey = localStorage.getItem('superadmin_key');

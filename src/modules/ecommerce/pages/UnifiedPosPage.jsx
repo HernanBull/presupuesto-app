@@ -52,6 +52,21 @@ export default function UnifiedPosPage() {
     return localStorage.getItem('axonpos_active_user_role') === 'CASHIER' || 
            localStorage.getItem('axon_cashier_mode') === 'true';
   });
+
+  const handleExitCashier = () => {
+    if (window.confirm('¿Deseas cerrar tu sesión en esta caja registradora?')) {
+      const slug = localStorage.getItem('storeSlug');
+      localStorage.removeItem('axon_cashier_mode');
+      localStorage.removeItem('axon_active_shift');
+      localStorage.removeItem('axon_active_register_id');
+      localStorage.removeItem('axon_active_register_name');
+      localStorage.removeItem('axonpos_active_user_role');
+      localStorage.removeItem('axonpos_active_user_name');
+      localStorage.removeItem('activeWorkspace');
+      toast.success('Sesión de caja cerrada con éxito');
+      window.location.href = slug ? `/${slug}/caja` : '/caja';
+    }
+  };
   
   // Modales Administrativos Críticos (AxonPOS ➔ AxonMarket)
   const [isCashShiftModalOpen, setIsCashShiftModalOpen] = useState(
@@ -1589,6 +1604,20 @@ export default function UnifiedPosPage() {
               <span className="hidden sm:inline">{activeShift?.registerName || localStorage.getItem('axon_active_register_name') || 'Caja'}</span>
               <span className="sm:hidden">Caja</span>
             </button>
+
+            {/* Botón Visible de Cerrar Sesión de Caja (Modo Cajero) */}
+            {isCashier && (
+              <button
+                type="button"
+                onClick={handleExitCashier}
+                className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200/80 dark:border-rose-900/40 px-2.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer shrink-0"
+                title="Cerrar sesión en esta caja registradora"
+              >
+                <LogOut size={13} className="shrink-0 text-rose-500" />
+                <span className="hidden sm:inline">Cerrar Caja</span>
+                <span className="sm:hidden">Salir</span>
+              </button>
+            )}
 
             {/* Configuración de Hardware (Solo visible en Desktop) */}
             <button 

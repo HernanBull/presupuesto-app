@@ -199,6 +199,20 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     }
   }, [location.pathname]);
 
+  const handleCashierLogout = () => {
+    if (window.confirm('¿Deseas cerrar tu sesión en esta caja registradora?')) {
+      const slug = localStorage.getItem('storeSlug');
+      localStorage.removeItem('axon_cashier_mode');
+      localStorage.removeItem('axon_active_shift');
+      localStorage.removeItem('axon_active_register_id');
+      localStorage.removeItem('axon_active_register_name');
+      localStorage.removeItem('axonpos_active_user_role');
+      localStorage.removeItem('axonpos_active_user_name');
+      localStorage.removeItem('activeWorkspace');
+      window.location.href = slug ? `/${slug}/caja` : '/caja';
+    }
+  };
+
   const handleLogout = () => {
     if (window.confirm('¿Deseas cerrar sesión de tu tienda?')) {
       localStorage.removeItem('activeWorkspace');
@@ -1327,11 +1341,28 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         >
           <div className="flex items-center justify-around px-1 pt-2">
             {isCashier ? (
-              // Barra Exclusiva de Terminal de Caja (Solo Caja POS y Pedidos)
+              // Barra Exclusiva de Terminal de Caja (Caja POS, Pedidos y Cerrar Sesión)
               [
                 { name: 'Caja POS', path: '/pos?view=pos', icon: ShoppingCart },
                 { name: 'Pedidos', path: '/pos?view=orders', icon: ClipboardList, badge: pendingOrdersCount },
+                { name: 'Cerrar Caja', action: 'logout', icon: LogOut, isDanger: true }
               ].map((item) => {
+                if (item.action === 'logout') {
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={handleCashierLogout}
+                      className="relative flex flex-col items-center justify-center p-2 transition-all min-w-[4.5rem] group cursor-pointer text-rose-500 hover:text-rose-600 active:scale-95"
+                    >
+                      <div className="p-1.5 rounded-xl mb-0.5 transition-all duration-200 text-rose-500">
+                        <LogOut size={22} strokeWidth={2.2} />
+                      </div>
+                      <span className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                }
                 const searchParams = new URLSearchParams(location.search);
                 const currentView = searchParams.get('view') || 'pos';
                 const isActive = (item.path.includes('view=orders') && (currentView === 'orders' || location.pathname === '/orders')) ||

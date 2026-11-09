@@ -147,6 +147,11 @@ export default function MarketplaceDirectory() {
   });
   const hasMerchantAccess = useMemo(() => {
     try {
+      // Bloqueo estricto: Roles operativos por QR (Cajero o Picker) nunca ven el botón de Panel Admin
+      const isCashierKiosk = localStorage.getItem('axon_cashier_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'CASHIER';
+      const isPickerKiosk = localStorage.getItem('axon_picker_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'PICKER';
+      if (isCashierKiosk || isPickerKiosk) return false;
+
       const ws = localStorage.getItem('activeWorkspace');
       return Boolean((ws && ws !== 'default_workspace') || currentMerchant);
     } catch {

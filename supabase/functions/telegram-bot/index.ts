@@ -539,6 +539,9 @@ async function handleTelegramUpdate(update, supabase) {
       await sendMessageToChat(chatId, `🛡️ Tu Telegram User ID es: <code>${chatId}</code>`, SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
+    if (text === "🌙 Cierre de Jornada" || cleanCmd === "/cierre" || cleanCmd === "/cierre_nocturno" || cleanCmd === "/medianoche") {
+      return await handleGerenciaAutoCierreMidnight(chatId, agencySuperuser, supabase);
+    }
     if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
       const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones directos del teclado inferior o escribe:\n\n📊 <b>Balance Hoy</b>: Resumen de fletes, entregas y pedidos de hoy.\n⏮️ <b>Ayer</b>: Balance del día anterior.\n📈 <b>Esta Semana</b>: Auditoría acumulada de los últimos 7 días.\n🗓️ <b>Mes en Curso</b>: Despachos y fletes del mes actual.\n📍 <b>Rutas y Sectores</b>: Tabulación de destinos y enlaces GPS a Google Maps para cálculo de tarifas.\n🛵 <b>Flota en Vivo</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>Comercios Activos</b>: Ranking de comercios por volumen de despachos.\n⏱️ <b>Tiempos de Entrega</b>: Desempeño y velocidad de despacho.\n🚨 <b>Novedades / Alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar 702892</code>).\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>05/11/2026</code> o <code>05/11</code> para auditar ese día.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
@@ -1264,49 +1267,21 @@ function normalizeDeliveryRow(row: Record<string, any>, idx: number) {
 function generateExcelTemplate(): Uint8Array {
   const wb = XLSX.utils.book_new();
 
-  // Hoja 1: Despachos y Viajes de Delivery EnMinutos
+  // Hoja 1: Despachos y Viajes de Delivery EnMinutos (Estructura Oficial Limpia)
   const despachosData = [
     {
-      "Fecha (AAAA-MM-DD)": "2026-11-06",
-      "Nro Pedido / Guia": "ORD-702892",
-      "Comercio Aliado": "Bodega Luz Cagua",
-      "Cliente": "Hernan Perdomo",
-      "Telefono Cliente": "0424-3592392",
-      "Direccion Entrega": "Urb. Ciudad Jardín, Calle 4, Casa 12",
-      "Repartidor / Chofer": "Pedro Moto 01",
+      "Fecha (AAAA-MM-DD)": "2026-11-08",
+      "Nro Pedido / Guia": "ORD-1001",
+      "Comercio Aliado": "Los Mejores Asados",
+      "Sector / Ruta": "Ciudad Jardín",
+      "Direccion Entrega": "Calle 4, Casa 12",
+      "Cliente": "Cliente Ejemplo",
+      "Telefono Cliente": "0424-1234567",
+      "Repartidor / Chofer": "Enrique",
       "Estado Despacho": "Entregado",
       "Flete EnMinutos USD": 2.00,
-      "Monto Venta Comercio USD": 24.50,
       "Metodo Pago": "Pago Móvil",
-      "Notas / Novedad": "Entregado conforme con PIN de seguridad"
-    },
-    {
-      "Fecha (AAAA-MM-DD)": "2026-11-06",
-      "Nro Pedido / Guia": "ORD-702893",
-      "Comercio Aliado": "Pizzería Nápoles",
-      "Cliente": "María Delgado",
-      "Telefono Cliente": "0412-8877665",
-      "Direccion Entrega": "Urb. Corinsa, Manzana E",
-      "Repartidor / Chofer": "Carlos Delivery",
-      "Estado Despacho": "Entregado",
-      "Flete EnMinutos USD": 2.00,
-      "Monto Venta Comercio USD": 18.00,
-      "Metodo Pago": "Efectivo USD",
-      "Notas / Novedad": "Sin novedad"
-    },
-    {
-      "Fecha (AAAA-MM-DD)": "2026-11-06",
-      "Nro Pedido / Guia": "ORD-702894",
-      "Comercio Aliado": "Farmacia Central Cagua",
-      "Cliente": "José Rodríguez",
-      "Telefono Cliente": "0414-9988112",
-      "Direccion Entrega": "Centro de Cagua, Calle Bolívar",
-      "Repartidor / Chofer": "Pedro Moto 01",
-      "Estado Despacho": "Cancelado",
-      "Flete EnMinutos USD": 0.00,
-      "Monto Venta Comercio USD": 12.00,
-      "Metodo Pago": "Pago Móvil",
-      "Notas / Novedad": "Cliente canceló por tiempo de espera"
+      "Notas / Novedad": "Entregado conforme"
     }
   ];
 
@@ -1314,15 +1289,15 @@ function generateExcelTemplate(): Uint8Array {
   ws['!cols'] = [
     { wch: 18 }, // Fecha
     { wch: 18 }, // Nro Pedido
-    { wch: 24 }, // Comercio
-    { wch: 20 }, // Cliente
+    { wch: 25 }, // Comercio
+    { wch: 20 }, // Sector / Ruta
+    { wch: 35 }, // Dirección Entrega
+    { wch: 22 }, // Cliente
     { wch: 16 }, // Teléfono
-    { wch: 35 }, // Dirección
-    { wch: 22 }, // Chofer
+    { wch: 20 }, // Chofer
     { wch: 16 }, // Estado
     { wch: 18 }, // Flete USD
-    { wch: 24 }, // Monto Comercio
-    { wch: 15 }, // Metodo Pago
+    { wch: 16 }, // Metodo Pago
     { wch: 35 }  // Notas
   ];
   XLSX.utils.book_append_sheet(wb, ws, "Despachos_EnMinutos");
@@ -1331,11 +1306,11 @@ function generateExcelTemplate(): Uint8Array {
   const guiaData = [
     { "GUÍA OFICIAL": "ENMINUTOS (EM) ⚡ — AGENCIA DE DELIVERY" },
     { "GUÍA OFICIAL": "Instrucciones para la carga y auditoría de planillas:" },
-    { "GUÍA OFICIAL": "1. Fecha: Formato AAAA-MM-DD (ej: 2026-11-06) o DD/MM/AAAA." },
+    { "GUÍA OFICIAL": "1. Fecha: Formato AAAA-MM-DD (ej: 2026-11-08) o DD/MM/AAAA." },
     { "GUÍA OFICIAL": "2. Nro Pedido: Código único del despacho o ticket." },
-    { "GUÍA OFICIAL": "3. Estado: Entregado, Enviado (En Ruta), o Cancelado." },
-    { "GUÍA OFICIAL": "4. Flete: Tarifa del envío cobrada por la agencia (ej. 2.00)." },
-    { "GUÍA OFICIAL": "5. Monto Venta: Total facturado por el comercio para estadísticas." },
+    { "GUÍA OFICIAL": "3. Sector / Ruta: Urbanización o sector destino (ej. Ciudad Jardín, Corinsa, Centro)." },
+    { "GUÍA OFICIAL": "4. Estado: Entregado, Enviado (En Ruta), o Cancelado." },
+    { "GUÍA OFICIAL": "5. Flete USD: Tarifa cobrada por el envío (ej. 2.00)." },
     { "GUÍA OFICIAL": "Guarda los cambios y envía este archivo directamente al bot de Telegram." }
   ];
   const wsGuia = XLSX.utils.json_to_sheet(guiaData);
@@ -1444,6 +1419,15 @@ async function handleTelegramDocument(message: any, supabase: any) {
         })
       });
 
+      // Detectar desglose por fechas para permitir filtro por días
+      const datesMap: Record<string, number> = {};
+      validDeliveries.forEach(d => {
+        const dt = (d.dateIso || '').slice(0, 10) || 'Sin fecha';
+        datesMap[dt] = (datesMap[dt] || 0) + 1;
+      });
+      const distinctDates = Object.keys(datesMap).sort();
+      const datesSummary = distinctDates.map(dt => `  • 📅 <code>${dt}</code>: ${datesMap[dt]} despachos`).join('\n');
+
       const previewCount = Math.min(validDeliveries.length, 3);
       const previewList = validDeliveries.slice(0, previewCount).map((item, idx) => {
         const icon = item.status === 'Entregado' ? '✅' : item.status === 'Cancelado' ? '⚠️' : '🛵';
@@ -1460,17 +1444,28 @@ async function handleTelegramDocument(message: any, supabase: any) {
 • ⚠️ <b>Cancelados / Novedades:</b> ${cancelledCount} pedidos
 • 💰 <b>Fletes EnMinutos (Estimado):</b> $${totalFletes.toFixed(2)} USD
 
+📅 <b>JORNADAS DETECTADAS:</b>
+${datesSummary}
+
 👁️ <b>VISTA PREVIA (Últimos Despachos):</b>
 ${previewList}
 ${validDeliveries.length > previewCount ? `\n<i>... y ${validDeliveries.length - previewCount} despachos adicionales.</i>\n` : '\n'}━━━━━━━━━━━━━━━━━━━━━━
 ¿Deseas confirmar e integrar estos despachos al histórico de EnMinutos?`;
 
+      const dateButtons: any[] = [];
+      if (distinctDates.length > 1) {
+        distinctDates.slice(0, 4).forEach(dt => {
+          dateButtons.push([{ text: `📅 Solo ${dt} (${datesMap[dt]} despachos)`, callback_data: `import_confirm:${chatId}:${dt}` }]);
+        });
+      }
+
       const confirmKeyboard = {
         inline_keyboard: [
           [
-            { text: `✅ Confirmar Despachos (${validDeliveries.length})`, callback_data: `import_confirm:${chatId}` },
+            { text: `✅ Confirmar Todo (${validDeliveries.length})`, callback_data: `import_confirm:${chatId}:all` },
             { text: "❌ Cancelar", callback_data: `import_cancel:${chatId}` }
-          ]
+          ],
+          ...dateButtons
         ]
       };
 
@@ -2002,7 +1997,11 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
 
   // --- CONFIRMAR O CANCELAR IMPORTACIÓN DE ARCHIVOS ---
   if (data.startsWith('import_confirm:')) {
-    const targetChatId = data.replace('import_confirm:', '');
+    const rawTarget = data.replace('import_confirm:', '');
+    const parts = rawTarget.split(':');
+    const targetChatId = parts[0];
+    const filterDate = parts[1] || 'all';
+
     const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', `telegram_pending_import_${targetChatId}`).maybeSingle();
 
     if (!setting || !setting.value) {
@@ -2016,11 +2015,19 @@ async function handleTelegramCallbackQuery(callbackQuery: any, supabase: any) {
     } catch (e) {}
 
     if (!parsedSetting || !parsedSetting.items || parsedSetting.items.length === 0) {
-      await sendMessageToChat(chatId, "⚠️ No se encontraron productos pendientes en esta sesión.", SUPERUSER_KEYBOARD);
+      await sendMessageToChat(chatId, "⚠️ No se encontraron despachos pendientes en esta sesión.", SUPERUSER_KEYBOARD);
       return new Response("OK", { headers: corsHeaders });
     }
 
-    const items = parsedSetting.items;
+    const allItems = parsedSetting.items;
+    const items = (parsedSetting.type === 'delivery' && filterDate !== 'all')
+      ? allItems.filter((d: any) => (d.dateIso || '').slice(0, 10) === filterDate)
+      : allItems;
+
+    if (items.length === 0) {
+      await sendMessageToChat(chatId, `⚠️ No se encontraron despachos para la fecha <code>${filterDate}</code>.`, SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
 
     if (parsedSetting.type === 'delivery') {
       let createdCount = 0;
@@ -2379,6 +2386,62 @@ ${order.delivery_driver_name ? `• Chofer: <b>${order.delivery_driver_name}</b>
 🛵 <b>Flete Delivery:</b> $${(order.shipping_info as any)?.cost ? Number((order.shipping_info as any).cost).toFixed(2) : '2.00'} USD`;
 
   await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  return new Response("OK", { headers: corsHeaders });
+}
+
+// 7. Auto-cierre de Medianoche y Cierre Formal de Jornada (/cierre, /medianoche)
+async function handleGerenciaAutoCierreMidnight(chatId: string, superuser: any, supabase: any) {
+  const range = getVenezuelaDateRange('today');
+
+  // Buscar órdenes en broadcast o sin asignar de hoy y cerrarlas
+  const { data: openOrders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, status, delivery_telegram_status')
+    .gte('date', range.startIso)
+    .lte('date', range.endIso)
+    .in('delivery_telegram_status', ['broadcasted', 'idle', 'offered']);
+
+  let closedCount = 0;
+  if (openOrders && openOrders.length > 0) {
+    for (const o of openOrders) {
+      await supabase
+        .from('ecommerce_orders_v2')
+        .update({
+          status: 'Cancelado',
+          delivery_telegram_status: 'aborted',
+          delivery_abort_reason: 'Cierre de jornada a medianoche (No asignado)'
+        })
+        .eq('id', o.id);
+      closedCount++;
+    }
+  }
+
+  // Recalcular métricas consolidadas del cierre
+  const { data: finalOrders } = await supabase
+    .from('ecommerce_orders_v2')
+    .select('id, status, delivery_telegram_status, shipping_info, delivery_driver_name')
+    .gte('date', range.startIso)
+    .lte('date', range.endIso);
+
+  const list = finalOrders || [];
+  const delivered = list.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered');
+  let totalFletes = 0;
+  delivered.forEach((o: any) => {
+    const cost = Number((o.shipping_info as any)?.cost || 2.0);
+    totalFletes += cost;
+  });
+
+  const msg = `🌙 <b>CIERRE FORMAL DE JORNADA — ENMINUTOS DELIVERY</b> 🛵
+━━━━━━━━━━━━━━━━━━━━━━
+📅 <b>Fecha Cerrada:</b> <code>${range.label}</code>
+• ✅ <b>Despachos Entregados:</b> ${delivered.length} viajes completados
+• 💰 <b>Fletes Recaudados:</b> $${totalFletes.toFixed(2)} USD
+• 📦 <b>Subastas Expiradas Cerradas:</b> ${closedCount} órdenes
+━━━━━━━━━━━━━━━━━━━━━━
+✨ <i>La jornada ha sido archivada con éxito en el histórico. A partir de las 00:00 hrs, el botón "📊 Balance Hoy" iniciará en 0 para la nueva jornada. Puedes consultar este resumen en cualquier momento tocando "⏮️ Ayer".</i>`;
+
+  await sendMessageToChat(chatId, msg, SUPERUSER_KEYBOARD);
+  await logEvent('INFO', `Cierre de Jornada EnMinutos (${range.label}) ejecutado por ${chatId}: ${delivered.length} entregados, $${totalFletes} fletes`, {}, supabase);
   return new Response("OK", { headers: corsHeaders });
 }
 

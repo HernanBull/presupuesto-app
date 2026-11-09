@@ -58,6 +58,19 @@ const MerchantGuard = () => {
   localStorage.removeItem('ecommerce_current_customer');
   localStorage.removeItem('ecommerce_user');
 
+  // AISLAMIENTO TOTAL: Bloqueo de rutas administrativas para Cajeros y Pickers (QR)
+  const isCashierKiosk = localStorage.getItem('axon_cashier_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'CASHIER';
+  const isPickerKiosk = localStorage.getItem('axon_picker_mode') === 'true' || localStorage.getItem('axonpos_active_user_role') === 'PICKER';
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+
+  if (isCashierKiosk && currentPath !== '/pos' && !currentPath.startsWith('/pos')) {
+    return <Navigate to="/pos" replace />;
+  }
+
+  if (isPickerKiosk && currentPath !== '/picking' && currentPath !== '/picker') {
+    return <Navigate to="/picking" replace />;
+  }
+
   React.useEffect(() => {
     if (!isMerchantLogged || isMerchantLogged === 'default_workspace') {
       setCheckingPlan(false);

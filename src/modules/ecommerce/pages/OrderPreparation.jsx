@@ -677,6 +677,8 @@ export default function OrderPreparation() {
         };
         sessionStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
         localStorage.setItem('axon_active_picker', JSON.stringify(matchedWorker));
+        localStorage.setItem('axon_picker_mode', 'true');
+        localStorage.setItem('axonpos_active_user_role', 'PICKER');
         setActiveWorker(matchedWorker);
         triggerHaptic([50, 50, 100]);
         playBeep(980, 0.12);
@@ -712,6 +714,8 @@ export default function OrderPreparation() {
       };
       sessionStorage.setItem('axon_active_picker', JSON.stringify(matched));
       localStorage.setItem('axon_active_picker', JSON.stringify(matched));
+      localStorage.setItem('axon_picker_mode', 'true');
+      localStorage.setItem('axonpos_active_user_role', 'PICKER');
       setActiveWorker(matched);
       triggerHaptic([50, 50, 100]);
       playBeep(980, 0.12);
@@ -890,6 +894,9 @@ export default function OrderPreparation() {
     triggerHaptic(40);
     sessionStorage.removeItem('axon_active_picker');
     localStorage.removeItem('axon_active_picker');
+    localStorage.removeItem('axon_picker_mode');
+    localStorage.removeItem('axonpos_active_user_role');
+    localStorage.removeItem('activeWorkspace');
     setActiveWorker(null);
     setSelectedOrderId(null);
     setPinInput('');
