@@ -64,6 +64,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   });
   const isCashier = activeUserRole === 'CASHIER' || localStorage.getItem('axon_cashier_mode') === 'true';
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [deliveredVitrinaCount, setDeliveredVitrinaCount] = useState(0);
   const [incomingOrderBanner, setIncomingOrderBanner] = useState(null);
   const [isAlarmMuted, setIsAlarmMuted] = useState(false);
 
@@ -97,6 +98,55 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
     fetchPendingOrders();
     const interval = setInterval(fetchPendingOrders, 10000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Consultar consumo mensual de órdenes de vitrina entregadas (Límite 500 pedidos + $0.10 exceso)
+  const fetchVitrinaDeliveredOrders = async () => {
+    try {
+      const workspaceId = localStorage.getItem('activeWorkspace') || 'default_workspace';
+      if (!workspaceId) return;
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      const { data, error } = await supabase
+        .from('ecommerce_orders_v2')
+        .select('id, order_type, address, status, date')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'Entregado')
+        .gte('date', startOfMonth)
+        .lte('date', endOfMonth);
+
+      if (!error && Array.isArray(data)) {
+        // Excluir ventas de mostrador POS, sólo pedidos online de vitrina entregados
+        const vitrinaDelivered = data.filter(order => {
+          const type = (order.order_type || '').toLowerCase();
+          const addr = (order.address || '').toLowerCase();
+          return type !== 'pos' && !addr.includes('venta en mostrador') && !addr.includes('(pos)');
+        });
+        setDeliveredVitrinaCount(vitrinaDelivered.length);
+      }
+    } catch (e) {
+      console.error('Error fetching vitrina delivered orders:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchVitrinaDeliveredOrders();
+    const interval = setInterval(fetchVitrinaDeliveredOrders, 20000);
+    const handleUpdate = () => fetchVitrinaDeliveredOrders();
+    window.addEventListener('axon_new_order', handleUpdate);
+    window.addEventListener('axon_order_updated', handleUpdate);
+    window.addEventListener('axon_orders_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('axon_new_order', handleUpdate);
+      window.removeEventListener('axon_order_updated', handleUpdate);
+      window.removeEventListener('axon_orders_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   // Realtime Listener Global: Notificación "Plin-Plin" para nuevas compras en vitrina virtual
@@ -414,7 +464,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: ShoppingCart,
       isDropdown: true,
       items: [
-        { name: 'Órdenes', path: '/orders' },
+        { name: 'Órdenes', path: '/orders', badge: `${deliveredVitrinaCount}/500` },
         { name: 'POS Kiosco', path: '/pos', isPos: true },
         { name: 'Caja Maestra & Turnos', path: '/cash-master' },
       ]
@@ -732,8 +782,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                   if (fallback) fallback.style.display = 'flex';
                 }}
               />
-              <div className="fallback-logo hidden w-full h-full rounded-2xl bg-[#ea580c] items-center justify-center text-white shadow-sm">
-                <Store size={22} className="text-white" />
+              <div className="fallback-logo hidden w-full h-full rounded-2xl bg-amber-500 items-center justify-center text-zinc-950 shadow-sm">
+                <ShoppingBag size={22} className="stroke-[2.5] text-zinc-950" />
               </div>
             </div>
 
@@ -839,15 +889,35 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       ) : (
         <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#ea580c] via-[#ea580c] to-[#c2410c] text-white z-20 shrink-0 select-none shadow-2xl shadow-orange-950/20 font-sans border-r border-orange-700/40">
         
-        {/* 1. Header: Logo comerciante / AxonMarket */}
-        <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xs border border-white/20">
-              <ShoppingBag size={18} className="text-white" />
+        {/* 1. Header: Logo Oficial AxonMarket Original */}
+        <div 
+          onClick={() => navigate('/dashboard')}
+          title="AxonMarket · Panel de Control"
+          className="px-5 pt-5 pb-3 flex items-center justify-between cursor-pointer select-none group"
+        >
+          <div className="flex items-center gap-3">
+            {/* Logo Original Anaranjado con Centro Negro (Cajita Negra) */}
+            <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-md shrink-0 flex items-center justify-center bg-amber-500 border border-amber-400/40 group-hover:scale-105 transition-transform">
+              <img 
+                src="/axonmarket-logo-icon.png" 
+                alt="AxonMarket" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fb = e.currentTarget.parentElement.querySelector('.axon-fallback-icon');
+                  if (fb) fb.style.display = 'flex';
+                }}
+              />
+              <div className="axon-fallback-icon hidden w-full h-full bg-amber-500 items-center justify-center text-zinc-950">
+                <ShoppingBag size={20} className="stroke-[2.5] text-zinc-950" />
+              </div>
             </div>
-            <span className="text-xl font-black tracking-tight text-white lowercase">
-              axonmarket
-            </span>
+
+            {/* Tipografía Original: Letras Negras (AXON) y Letras Blancas (MARKET) */}
+            <div className="flex items-center tracking-[0.16em] uppercase select-none leading-none">
+              <span className="text-xl font-black text-zinc-950 drop-shadow-xs">AXON</span>
+              <span className="text-xl font-black text-white ml-1.5 drop-shadow-xs">MARKET</span>
+            </div>
           </div>
         </div>
 
@@ -883,6 +953,13 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                     {trialDaysRemaining > 0 
                       ? `${trialDaysRemaining}d restantes` 
                       : 'Vence hoy'}
+                  </span>
+                  <span className="text-white/40 text-[9px]">•</span>
+                  <span 
+                    title={`${deliveredVitrinaCount} pedidos online entregados de 500 incluidos`}
+                    className="text-[10px] font-mono font-black px-1.5 py-0.2 rounded-full leading-none flex items-center shrink-0 bg-white/20 text-white"
+                  >
+                    {deliveredVitrinaCount}/500
                   </span>
                 </div>
               </div>
@@ -1013,8 +1090,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
         <div className="shrink-0 pt-2 pb-3 border-t border-white/15 bg-black/5 backdrop-blur-xs">
           
           {/* Tarjeta de Vigencia / Vencimiento del Plan Profesional y Prueba */}
-          <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-xs">
-            <div className="flex items-center justify-between text-xs font-bold text-white mb-1.5">
+          <div className="mx-3.5 mb-2.5 p-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md shadow-xs space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-white mb-1">
               <span className="flex items-center gap-1.5 min-w-0">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${trialDaysRemaining <= 3 ? 'bg-amber-300 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
                 <span className="truncate text-[11px]">
@@ -1030,7 +1107,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               </button>
             </div>
             
-            <div className="flex items-center justify-between text-[10px] text-white/80 font-medium mb-1.5">
+            <div className="flex items-center justify-between text-[10px] text-white/80 font-medium mb-1">
               <span>{trialDaysRemaining > 0 ? `${trialDaysRemaining} días vigentes` : 'Vence hoy'}</span>
               {expirationDateStr && <span className="font-mono text-white/90">Hasta {expirationDateStr}</span>}
             </div>
@@ -1045,6 +1122,58 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
                 }}
               />
             </div>
+
+            {/* Consumo Oficial de Pedidos Entregados de Vitrina (500 pedidos / $0.10 comisión por exceso) */}
+            {(() => {
+              const limit = 500;
+              const excess = Math.max(0, deliveredVitrinaCount - limit);
+              const percent = Math.min(100, Math.round((deliveredVitrinaCount / limit) * 100));
+              const hasExcess = excess > 0;
+              const tariff = excess * 0.10;
+
+              return (
+                <div 
+                  onClick={() => navigate('/subscription')}
+                  title="Ver consumo de vitrina y reporte de comisiones"
+                  className="pt-2 border-t border-white/15 cursor-pointer group/pedidos select-none"
+                >
+                  <div className="flex items-center justify-between text-[11px] font-bold text-white mb-1">
+                    <span className="flex items-center gap-1.5">
+                      <ShoppingBag size={12} className="text-amber-200" />
+                      <span className="group-hover/pedidos:underline">Pedidos Vitrina</span>
+                    </span>
+                    <span className="font-mono text-[11px] text-white">
+                      <strong className={hasExcess ? "text-amber-300 font-black" : "text-white font-black"}>
+                        {deliveredVitrinaCount}
+                      </strong>
+                      <span className="text-white/70"> / {limit}</span>
+                    </span>
+                  </div>
+
+                  <div className="w-full h-1.5 bg-black/25 rounded-full overflow-hidden p-[0.5px]">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        hasExcess 
+                          ? 'bg-gradient-to-r from-amber-300 to-rose-400' 
+                          : 'bg-gradient-to-r from-amber-300 to-emerald-300'
+                      }`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[9px] text-white/85 font-medium mt-1">
+                    {hasExcess ? (
+                      <span className="text-amber-200 font-extrabold">
+                        +{excess} exceso (${tariff.toFixed(2)} USD)
+                      </span>
+                    ) : (
+                      <span>{Math.max(0, limit - deliveredVitrinaCount)} pedidos libres</span>
+                    )}
+                    <span className="text-white/60 font-mono">+$0.10 c/u</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Secondary Utility Links (Sucursales, Notificaciones, Chat, Personal & Usuarios, Configuración) */}
