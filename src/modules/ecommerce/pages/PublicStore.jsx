@@ -283,6 +283,13 @@ export default function PublicStore() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [discountCode, setDiscountCode] = useState('');
+
+  const merchantWhatsAppUrl = useMemo(() => {
+    const phone = resolveStoreWhatsApp(config);
+    if (!phone || !lastPlacedOrder) return null;
+    const msg = `🛍️ *¡NUEVO PEDIDO RECIBIDO EN TU VITRINA AXONMARKET!* 📦\n━━━━━━━━━━━━━━━━━━━━━━\n• *Orden:* #${lastPlacedOrder.id}\n• *Total:* $${Number(lastPlacedOrder.total || 0).toFixed(2)} USD\n• *Cliente:* ${currentCustomer?.name || 'Cliente'}\n• *Teléfono:* ${currentCustomer?.phone || 'No especificado'}\n• *Dirección:* ${lastPlacedOrder.address || 'Mostrador / Retiro'}\n━━━━━━━━━━━━━━━━━━━━━━\n👉 *Revisar en tu Panel de Administrador:* https://axonmarket.vip/orders`;
+    return buildWhatsAppUrl(phone, msg);
+  }, [config, lastPlacedOrder, currentCustomer]);
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [discountError, setDiscountError] = useState('');
   const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
@@ -5287,6 +5294,17 @@ export default function PublicStore() {
         </div>
         
         <div className="space-y-2.5">
+          {merchantWhatsAppUrl && (
+            <a
+              href={merchantWhatsAppUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 text-sm cursor-pointer"
+            >
+              <MessageCircle size={18} />
+              <span>Notificar Pedido al Comercio por WhatsApp</span>
+            </a>
+          )}
           <button 
             onClick={() => {
               setShowSuccessModal(false);
@@ -5701,23 +5719,6 @@ export default function PublicStore() {
             </button>
           </div>
         </nav>
-      )}
-
-      {/* Botón flotante para el comerciante dueño (Acceso rápido al Color de Vitrina) */}
-      {isMerchantOwner && !brandColorCustomizerOpen && (
-        <button
-          type="button"
-          onClick={() => {
-            setCustomHexInput(primaryColor);
-            setBrandColorCustomizerOpen(true);
-          }}
-          className="fixed bottom-20 right-4 md:right-8 z-40 bg-slate-900/90 hover:bg-black text-white px-3.5 py-2 rounded-full shadow-2xl border border-white/20 flex items-center gap-2 text-xs font-bold backdrop-blur-md transition-all hover:scale-105 active:scale-95 cursor-pointer"
-          title="Personalizar color de marca de tu vitrina"
-        >
-          <Palette size={15} style={{ color: primaryColor }} />
-          <span className="hidden sm:inline">Color de Marca</span>
-          <span className="w-3.5 h-3.5 rounded-full border border-white/30 shadow-xs" style={{ backgroundColor: primaryColor }} />
-        </button>
       )}
 
       {/* Modal / Sheet de Personalización de Color de Marca (Exclusivo Dueño en su Vitrina) */}

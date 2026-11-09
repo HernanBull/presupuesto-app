@@ -226,3 +226,40 @@ export function playNewOrderPlinPlin() {
   }
 }
 
+let orderAlarmInterval = null;
+
+/**
+ * Inicia una alarma sonora continua en bucle (tipo timbre de pedidos / UberEats)
+ * Suena inmediatamente y repite cada `intervalMs` hasta que se llame a `stopOrderAlarmLoop()`.
+ */
+export function startOrderAlarmLoop(intervalMs = 3000) {
+  try {
+    playNewOrderPlinPlin();
+    if (!orderAlarmInterval) {
+      orderAlarmInterval = setInterval(() => {
+        playNewOrderPlinPlin();
+      }, intervalMs);
+    }
+  } catch (e) {
+    console.warn('[posAudioService] Error iniciando bucle de alarma:', e);
+  }
+}
+
+/**
+ * Detiene inmediatamente la alarma sonora continua de nuevo pedido
+ */
+export function stopOrderAlarmLoop() {
+  try {
+    if (orderAlarmInterval) {
+      clearInterval(orderAlarmInterval);
+      orderAlarmInterval = null;
+    }
+  } catch (e) {
+    console.warn('[posAudioService] Error deteniendo bucle de alarma:', e);
+  }
+}
+
+export function isOrderAlarmPlaying() {
+  return orderAlarmInterval !== null;
+}
+

@@ -10,7 +10,8 @@ import {
   Receipt, RotateCcw, Award, CheckSquare, Sparkles, FolderTree,
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
   HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
-  Clock, RefreshCw, ShieldCheck, Wallet, Flame, BarChart2
+  Clock, RefreshCw, ShieldCheck, Wallet, Flame, BarChart2,
+  Volume2, VolumeX, MessageCircle
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -18,7 +19,8 @@ import { supabase } from '../../supabaseClient';
 import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
 import UserManagementModal from './components/admin/UserManagementModal';
 import BackupManagerModal from './components/admin/BackupManagerModal';
-import { playNewOrderPlinPlin } from './utils/posAudioService';
+import { playNewOrderPlinPlin, startOrderAlarmLoop, stopOrderAlarmLoop, isOrderAlarmPlaying } from './utils/posAudioService';
+import { buildWhatsAppUrl } from './utils/whatsappHelper';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -63,6 +65,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const isCashier = activeUserRole === 'CASHIER' || localStorage.getItem('axon_cashier_mode') === 'true';
   const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
   const [incomingOrderBanner, setIncomingOrderBanner] = useState(null);
+  const [isAlarmMuted, setIsAlarmMuted] = useState(false);
 
   // Escuchar cambios de sesión y modo cajero
   useEffect(() => {
@@ -109,29 +112,29 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       if (orderId && recentAlertedOrders.has(orderId)) return;
       if (orderId) {
         recentAlertedOrders.add(orderId);
-        setTimeout(() => recentAlertedOrders.delete(orderId), 15000);
+        setTimeout(() => recentAlertedOrders.delete(orderId), 30000);
       }
 
-      // 1. Sonido Plin-Plin cristalino
-      playNewOrderPlinPlin();
+      // 1. Iniciar Alarma Sonora Continua en Bucle (suena cada 3.2s hasta que se acepte el pedido)
+      startOrderAlarmLoop(3200);
+      setIsAlarmMuted(false);
 
       // 2. Incrementar contador de órdenes pendientes
       setPendingOrdersCount(prev => prev + 1);
 
-      // 3. Banner flotante interactivo de notificación
+      // 3. Banner flotante persistente de notificación con detalles para WhatsApp
       const customerName = payload?.order?.customer || payload?.new?.customer || 'Cliente Tienda';
       const orderTotal = payload?.order?.total || payload?.new?.total || '';
+      const customerPhone = payload?.order?.paymentdetails?.phone || payload?.new?.paymentdetails?.phone || '';
+      const orderAddress = payload?.order?.address || payload?.new?.address || '';
       
       setIncomingOrderBanner({
         orderId: orderId || 'Nuevo',
         customer: customerName,
-        total: orderTotal ? `$${Number(orderTotal).toFixed(2)}` : ''
+        total: orderTotal ? `$${Number(orderTotal).toFixed(2)}` : '',
+        phone: customerPhone,
+        address: orderAddress
       });
-
-      if (bannerTimeout) clearTimeout(bannerTimeout);
-      bannerTimeout = setTimeout(() => {
-        setIncomingOrderBanner(null);
-      }, 12000);
 
       // 4. Disparar evento global para refrescar componentes activos (OrdersManager, Dashboard, etc.)
       window.dispatchEvent(new CustomEvent('axon_new_order', { detail: payload }));
@@ -170,6 +173,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       .subscribe();
 
     return () => {
+      stopOrderAlarmLoop();
       if (bannerTimeout) clearTimeout(bannerTimeout);
       storeOrdersChannel.unsubscribe();
       pickingChannel.unsubscribe();
@@ -616,40 +620,88 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row bg-[#f4f7fb] dark:bg-black text-slate-900 dark:text-slate-50 overflow-hidden font-sans relative">
       
-      {/* Toast Flotante / Banner de Alerta "¡Nuevo Pedido Recibido!" (Plin-Plin) */}
+      {/* Modal / Toast Flotante de Alta Prioridad "¡Nuevo Pedido Recibido!" (Alarma Continua en Bucle) */}
       {incomingOrderBanner && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92%] sm:w-full bg-slate-900/95 dark:bg-black/95 text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl border border-orange-500/50 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-300 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/30 animate-pulse">
-              <ShoppingBag size={20} />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] max-w-lg w-[95%] sm:w-full bg-slate-950/95 dark:bg-black/95 text-white p-4 rounded-2xl shadow-[0_20px_50px_rgba(249,115,22,0.35)] border-2 border-orange-500 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300 ring-4 ring-orange-500/30 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3.5 min-w-0 w-full sm:w-auto">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/40 animate-bounce">
+              <Bell size={24} className="animate-pulse" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-orange-400 uppercase tracking-wider">¡Nuevo Pedido!</span>
-                <span className="text-[11px] font-mono font-bold bg-white/10 px-1.5 py-0.5 rounded text-white/90 truncate max-w-[120px]">
+                <span className="text-xs font-black text-orange-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+                  ¡NUEVO PEDIDO RECIBIDO!
+                </span>
+                <span className="text-[11px] font-mono font-black bg-white/10 px-2 py-0.5 rounded text-white truncate">
                   #{incomingOrderBanner.orderId}
                 </span>
               </div>
-              <p className="text-xs font-bold text-slate-200 truncate mt-0.5">
+              <p className="text-sm font-extrabold text-slate-100 truncate mt-0.5">
                 {incomingOrderBanner.customer} {incomingOrderBanner.total ? `• ${incomingOrderBanner.total}` : ''}
               </p>
+              {incomingOrderBanner.address && (
+                <p className="text-[11px] text-slate-400 truncate font-medium">
+                  📍 {incomingOrderBanner.address}
+                </p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            {/* Botón WhatsApp si hay teléfono del cliente */}
+            {incomingOrderBanner.phone && (
+              <a
+                href={buildWhatsAppUrl(incomingOrderBanner.phone, `¡Hola ${incomingOrderBanner.customer}! Recibimos con éxito tu pedido #${incomingOrderBanner.orderId} en AxonMarket. Ya está siendo preparado en nuestra tienda.`)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="Abrir WhatsApp del cliente"
+              >
+                <MessageCircle size={15} />
+                <span className="hidden sm:inline">WhatsApp</span>
+              </a>
+            )}
+
+            {/* Botón Silenciar Alarma Sonora */}
             <button
               onClick={() => {
+                stopOrderAlarmLoop();
+                setIsAlarmMuted(true);
+              }}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isAlarmMuted 
+                  ? 'bg-zinc-800 text-zinc-400 border-zinc-700' 
+                  : 'bg-orange-500/20 text-orange-400 border-orange-500/40 hover:bg-orange-500/30'
+              }`}
+              title={isAlarmMuted ? 'Alarma silenciada' : 'Silenciar sonido continuo'}
+            >
+              {isAlarmMuted ? <VolumeX size={17} /> : <Volume2 size={17} className="animate-pulse" />}
+            </button>
+
+            {/* Botón Principal: Aceptar y Tomar Pedido */}
+            <button
+              onClick={() => {
+                stopOrderAlarmLoop();
                 setIncomingOrderBanner(null);
                 navigate('/orders');
               }}
-              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition-all active:scale-95 shadow-md shadow-orange-500/25 cursor-pointer whitespace-nowrap"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black transition-all active:scale-95 shadow-lg shadow-orange-500/30 cursor-pointer whitespace-nowrap flex items-center gap-1.5"
             >
-              Ver Pedido
+              <CheckSquare size={15} />
+              Aceptar Pedido
             </button>
+
+            {/* Cerrar Banner */}
             <button
-              onClick={() => setIncomingOrderBanner(null)}
+              onClick={() => {
+                stopOrderAlarmLoop();
+                setIncomingOrderBanner(null);
+              }}
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Cerrar notificación"
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
         </div>

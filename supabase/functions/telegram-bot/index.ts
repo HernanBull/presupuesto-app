@@ -1867,6 +1867,29 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
     .map(([name, count]) => `  • 🛵 ${name}: <b>${count}</b> entregas`)
     .join('\n');
 
+  // Listado detallado orden por orden para auditoría completa y transparente
+  let orderDetailLines = '';
+  if (deliveryOrders.length > 0) {
+    const sortedOrders = [...deliveryOrders].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const displayOrders = sortedOrders.slice(0, 10);
+    orderDetailLines = displayOrders.map((o: any, idx: number) => {
+      const store = o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio';
+      const driver = o.delivery_driver_name || (o.delivery_driver_id ? driverMap[o.delivery_driver_id.toString()] : null) || 'Sin asignar';
+      const statusIcon = (o.status === 'Entregado' || o.delivery_telegram_status === 'delivered') ? '✅' : (o.status === 'Cancelado' || o.delivery_telegram_status === 'aborted') ? '⚠️' : '🛵';
+      const { sector } = extractOrderSector(o);
+      let fee = baseFee;
+      try {
+        const sh = typeof o.shipping_info === 'string' ? JSON.parse(o.shipping_info) : o.shipping_info;
+        if (sh?.cost && Number(sh.cost) > 0) fee = Number(sh.cost);
+      } catch {}
+      return `${idx + 1}. <code>#${o.id}</code> | ${statusIcon} <b>${o.status || 'En camino'}</b>\n   🏬 ${store} ➔ 🛵 ${driver}\n   📍 ${sector} | Flete: $${fee.toFixed(2)}`;
+    }).join('\n\n');
+
+    if (sortedOrders.length > 10) {
+      orderDetailLines += `\n\n<i>... y ${sortedOrders.length - 10} despachos más registrados.</i>`;
+    }
+  }
+
   const msg = `👔 <b>CONSOLA GERENCIAL — ${superuser.agency_name || 'ENMINUTOS'}</b> 🚀
 📅 <b>PERÍODO:</b> <u>${label}</u>
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -1879,6 +1902,9 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
 
 💰 <b>FINANZAS OPERATIVAS (FLETES):</b>
 • 🛵 <b>Recaudación en Fletes:</b> $${deliveryIncome.toFixed(2)} USD (Ref. $${baseFee.toFixed(2)}/envío)
+
+📋 <b>LISTADO AUDITADO DE DESPACHOS (${totalCount}):</b>
+${orderDetailLines || '  <i>(Sin despachos registrados en esta fecha)</i>'}
 
 📍 <b>DESPACHOS POR RUTA / SECTOR:</b>
 ${topSectors || '  <i>(Sin despachos registrados en esta fecha)</i>'}
