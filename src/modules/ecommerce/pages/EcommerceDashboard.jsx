@@ -3,7 +3,7 @@ import {
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
   ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
-  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame, Compass
+  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame, Compass, Bell
 } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
@@ -54,6 +54,92 @@ export default function EcommerceDashboard() {
       return next;
     });
   };
+
+  // Contador de Notificaciones y Alertas No Leídas para el Comerciante
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      const wsId = localStorage.getItem('activeWorkspace');
+      const slug = localStorage.getItem('storeSlug');
+      if (!wsId && !slug) return;
+
+      try {
+        let count = 0;
+
+        // 1. Notificaciones no leídas en ecommerce_notifications
+        if (wsId || slug) {
+          try {
+            const query = supabase
+              .from('ecommerce_notifications')
+              .select('*', { count: 'exact', head: true })
+              .eq('is_read', 0);
+            if (wsId && slug) {
+              query.or(`workspace_id.eq.${wsId},workspace_id.eq.${slug}`);
+            } else if (wsId) {
+              query.eq('workspace_id', wsId);
+            } else {
+              query.eq('workspace_id', slug);
+            }
+            const { count: c } = await query;
+            if (typeof c === 'number') count += c;
+          } catch (_) {}
+        }
+
+        // 2. Alertas de stock bajo en vitrina
+        if (wsId) {
+          try {
+            const { data: lowStock } = await supabase
+              .from('ecommerce_products')
+              .select('id')
+              .eq('workspace_id', wsId)
+              .lte('stock_vitrina', 4)
+              .gt('stock', 0)
+              .in('publish_status', ['Activo', 'Publicado']);
+
+            if (lowStock && lowStock.length > 0) {
+              const readIds = JSON.parse(localStorage.getItem(`read_notifs_${wsId}`) || '[]');
+              const dismissedIds = JSON.parse(localStorage.getItem(`dismissed_notifs_${wsId}`) || '[]');
+              const unreadLowStock = lowStock.filter(p => !readIds.includes('virtual-stock-' + p.id) && !dismissedIds.includes('virtual-stock-' + p.id));
+              count += unreadLowStock.length;
+            }
+          } catch (_) {}
+        }
+
+        // 3. Órdenes pendientes por atender en vitrina
+        if (wsId) {
+          try {
+            const { count: pendingCount } = await supabase
+              .from('ecommerce_orders_v2')
+              .select('*', { count: 'exact', head: true })
+              .eq('workspace_id', wsId)
+              .eq('status', 'Pendiente');
+            if (typeof pendingCount === 'number') count += pendingCount;
+          } catch (_) {}
+        }
+
+        setUnreadNotifsCount(count);
+      } catch (err) {
+        console.error('Error fetching dashboard unread count:', err);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000);
+    const handleUpdate = () => fetchUnreadCount();
+    window.addEventListener('notifications_updated', handleUpdate);
+    window.addEventListener('axon_new_order', handleUpdate);
+    window.addEventListener('axon_order_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications_updated', handleUpdate);
+      window.removeEventListener('axon_new_order', handleUpdate);
+      window.removeEventListener('axon_order_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
   // Estados específicos para la vista móvil estilo Commercy (en Naranja Corporativo)
   const [storeInfo, setStoreInfo] = useState(() => {
@@ -481,13 +567,32 @@ export default function EcommerceDashboard() {
               </button>
             </div>
 
-            <button
-              onClick={toggleHideFinancials}
-              className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border border-white/20 shadow-xs cursor-pointer"
-              title={hideFinancials ? "Mostrar cifras y divisas" : "Ocultar cifras y divisas"}
-            >
-              {hideFinancials ? <EyeOff size={17} /> : <Eye size={17} />}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Campanita de Notificaciones */}
+              <button
+                type="button"
+                onClick={() => navigate('/notifications')}
+                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border border-white/20 shadow-xs cursor-pointer relative"
+                title={unreadNotifsCount > 0 ? `${unreadNotifsCount} notificaciones pendientes` : "Ver notificaciones"}
+              >
+                <Bell size={17} />
+                {unreadNotifsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse border-2 border-[#ea580c] px-1">
+                    {unreadNotifsCount > 9 ? '9+' : unreadNotifsCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Botón Ocultar/Mostrar Divisas */}
+              <button
+                type="button"
+                onClick={toggleHideFinancials}
+                className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border border-white/20 shadow-xs cursor-pointer"
+                title={hideFinancials ? "Mostrar cifras y divisas" : "Ocultar cifras y divisas"}
+              >
+                {hideFinancials ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           {/* Saludo */}
@@ -829,8 +934,24 @@ export default function EcommerceDashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
+              type="button"
+              onClick={() => navigate('/notifications')}
+              className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-500 transition-all shadow-xs cursor-pointer flex items-center gap-2 text-xs font-bold relative"
+              title={unreadNotifsCount > 0 ? `${unreadNotifsCount} notificaciones pendientes` : "Ver notificaciones"}
+            >
+              <Bell size={16} />
+              {unreadNotifsCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-red-500 absolute top-2 right-2 animate-pulse" />
+              )}
+              <span className="hidden sm:inline">
+                {unreadNotifsCount > 0 ? `Alertas (${unreadNotifsCount})` : 'Alertas'}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={toggleHideFinancials}
               className="p-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-orange-600 hover:border-orange-500 transition-all shadow-xs cursor-pointer flex items-center gap-2 text-xs font-bold"
               title={hideFinancials ? "Mostrar cifras y divisas" : "Ocultar cifras y divisas"}
