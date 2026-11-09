@@ -872,9 +872,13 @@ async function handleTelegramUpdate(update, supabase) {
     }
   } else if (text.startsWith('/start complete_')) {
     const orderId = text.replace('/start complete_', '');
+    const activeDriverName = driverData?.name || driverName || 'Repartidor';
     await supabase.from('ecommerce_orders_v2').update({ 
       driver_confirmed: 1,
       delivery_driver_id: chatId.toString(),
+      delivery_driver_name: activeDriverName,
+      delivery_driver_phone: driverData?.telefono || null,
+      delivery_driver_moto: `${driverData?.moto || 'Moto'} (${driverData?.placa || ''})`.trim(),
       delivery_telegram_status: 'delivered'
     }).eq('id', orderId);
 
@@ -885,25 +889,29 @@ async function handleTelegramUpdate(update, supabase) {
 
       const { data: setting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_master_group_id').single();
       if (setting && setting.value) {
-        await sendMessageToChat(setting.value, `✅ El pedido <b>#${orderId}</b> ha sido entregado exitosamente por <b>${driverName}</b> y el cliente ha confirmado.`);
+        await sendMessageToChat(setting.value, `✅ El pedido <b>#${orderId}</b> ha sido entregado exitosamente por <b>${activeDriverName}</b> y el cliente ha confirmado.`);
       }
 
       // Sumar estadísticas al conductor
       const { data: feeSetting } = await supabase.from('platform_settings').select('value').eq('key', 'delivery_base_fee').single();
-      const baseFee = parseFloat(feeSetting?.value || '0');
-      const currentTrips = driverData.total_trips || 0;
-      const currentEarned = parseFloat(driverData.total_earned || '0');
+      const baseFee = parseFloat(feeSetting?.value || '2.00');
+      const currentTrips = Number(driverData?.total_trips || 0);
+      const currentEarned = parseFloat(driverData?.total_earned || '0');
       
       await supabase.from('delivery_drivers').update({ 
         total_trips: currentTrips + 1, 
         total_earned: currentEarned + baseFee 
       }).eq('id', chatId);
 
-      await supabase.from('ecommerce_orders_v2').update({ status: 'Entregado', delivery_driver_id: chatId.toString() }).eq('id', orderId);
-      await logEvent('info', `Pedido #${orderId} entregado exitosamente por ${driverName}`, { orderId, driverName }, supabase);
+      await supabase.from('ecommerce_orders_v2').update({ 
+        status: 'Entregado', 
+        delivery_driver_id: chatId.toString(),
+        delivery_driver_name: activeDriverName
+      }).eq('id', orderId);
+      await logEvent('info', `Pedido #${orderId} entregado exitosamente por ${activeDriverName}`, { orderId, driverName: activeDriverName }, supabase);
     } else {
       await sendMessageToChat(chatId, `⏳ <b>¡Buen trabajo!</b> Ya entregaste el pedido <b>#${orderId}</b>. Ahora estamos esperando que el cliente confirme de recibido en la app.`);
-      await logEvent('info', `Repartidor ${driverName} marcó pedido #${orderId} como entregado (esperando cliente)`, { orderId, driverName }, supabase);
+      await logEvent('info', `Repartidor ${activeDriverName} marcó pedido #${orderId} como entregado (esperando cliente)`, { orderId, driverName: activeDriverName }, supabase);
     }
   } else if (text.startsWith('/start cancel_')) {
     const orderId = text.replace('/start cancel_', '');
@@ -1689,10 +1697,13 @@ function getVenezuelaDateRange(type: string, customDateStr?: string) {
     return null;
   }
 
-  const startIso = `${startDate.getUTCFullYear()}-${pad(startDate.getUTCMonth() + 1)}-${pad(startDate.getUTCDate())}T00:00:00.000-04:00`;
-  const endIso = `${endDate.getUTCFullYear()}-${pad(endDate.getUTCMonth() + 1)}-${pad(endDate.getUTCDate())}T23:59:59.999-04:00`;
+  // Conversión exacta al huso horario de Venezuela (UTC-4):
+  // 00:00:00 Venezuela = 04:00:00 UTC
+  // 23:59:59.999 Venezuela = 03:59:59.999 UTC del día siguiente
+  const startUtc = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate(), 4, 0, 0, 0)).toISOString();
+  const endUtc = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate() + 1, 3, 59, 59, 999)).toISOString();
 
-  return { startIso, endIso, label, start: startDate, end: endDate };
+  return { startIso: startUtc, endIso: endUtc, label, start: startDate, end: endDate };
 }
 
 // 1. Reporte Gerencial por Período/Fecha (/gerencia hoy, ayer, antier, custom)
@@ -1704,21 +1715,29 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
 
   const { startIso, endIso, label } = range;
 
+  // Consultar órdenes en el rango UTC exacto
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
-    .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name')
+    .select('id, total, status, delivery_telegram_status, date, pickup_store_name, delivery_driver_name, delivery_driver_id, workspace_id, order_type')
     .gte('date', startIso)
     .lte('date', endIso);
 
   const orderList = orders || [];
-  const totalCount = orderList.length;
-  const delivered = orderList.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').length;
-  const inRoute = orderList.filter((o: any) => o.status === 'Enviado' || o.delivery_telegram_status === 'assigned').length;
-  const broadcasted = orderList.filter((o: any) => o.delivery_telegram_status === 'broadcasted').length;
-  const aborted = orderList.filter((o: any) => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
+
+  // Filtrar exclusivamente pedidos asociados al servicio de delivery (excluyendo ventas directas de mostrador POS)
+  const deliveryOrders = orderList.filter((o: any) => {
+    const isPos = (o.order_type || '').toLowerCase() === 'pos' && !o.delivery_driver_id && o.delivery_telegram_status === 'idle';
+    return !isPos;
+  });
+
+  const totalCount = deliveryOrders.length;
+  const delivered = deliveryOrders.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').length;
+  const inRoute = deliveryOrders.filter((o: any) => o.status === 'Enviado' || o.delivery_telegram_status === 'assigned').length;
+  const broadcasted = deliveryOrders.filter((o: any) => o.delivery_telegram_status === 'broadcasted').length;
+  const aborted = deliveryOrders.filter((o: any) => o.delivery_telegram_status === 'aborted' || o.status === 'Cancelado').length;
 
   let totalGmv = 0;
-  orderList.forEach((o: any) => {
+  deliveryOrders.forEach((o: any) => {
     if (o.status !== 'Cancelado') {
       totalGmv += Number(o.total || 0);
     }
@@ -1728,10 +1747,26 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
   const baseFee = parseFloat(feeSet?.value || '2.00');
   const deliveryIncome = delivered * baseFee;
 
+  // Mapa de Choferes para resolución de nombres
+  const { data: driversList } = await supabase.from('delivery_drivers').select('id, name, driver_code');
+  const driverMap: Record<string, string> = {};
+  (driversList || []).forEach((d: any) => {
+    if (d.id) {
+      driverMap[d.id.toString()] = d.name ? `${d.name} (${d.driver_code || 'REP'})` : (d.driver_code || 'Repartidor');
+    }
+  });
+
+  // Mapa de Tiendas (workspaces) para resolución de comercios
+  const { data: wsList } = await supabase.from('workspaces').select('id, name');
+  const wsMap: Record<string, string> = {};
+  (wsList || []).forEach((w: any) => {
+    if (w.id) wsMap[w.id] = w.name;
+  });
+
   // Desglose por Comercios Top en la fecha
   const storeCounts: Record<string, number> = {};
-  orderList.forEach((o: any) => {
-    const store = o.pickup_store_name || 'Comercio General';
+  deliveryOrders.forEach((o: any) => {
+    const store = o.pickup_store_name || wsMap[o.workspace_id] || 'Comercio General';
     storeCounts[store] = (storeCounts[store] || 0) + 1;
   });
   const topStores = Object.entries(storeCounts)
@@ -1742,8 +1777,8 @@ async function sendGerenciaReport(chatId: string, superuser: any, range: any, su
 
   // Desglose por Choferes que entregaron en la fecha
   const driverCounts: Record<string, number> = {};
-  orderList.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').forEach((o: any) => {
-    const dName = o.delivery_driver_name || 'Repartidor';
+  deliveryOrders.filter((o: any) => o.status === 'Entregado' || o.delivery_telegram_status === 'delivered').forEach((o: any) => {
+    const dName = o.delivery_driver_name || (o.delivery_driver_id ? driverMap[o.delivery_driver_id.toString()] : null) || 'Repartidor';
     driverCounts[dName] = (driverCounts[dName] || 0) + 1;
   });
   const topDrivers = Object.entries(driverCounts)
@@ -2069,13 +2104,19 @@ async function handleGerenciaTiendas(chatId: string, superuser: any, supabase: a
   const range = getVenezuelaDateRange('today');
   const { data: orders } = await supabase
     .from('ecommerce_orders_v2')
-    .select('pickup_store_name, total')
+    .select('pickup_store_name, workspace_id, total')
     .gte('date', range.startIso)
     .lte('date', range.endIso);
 
+  const { data: wsList } = await supabase.from('workspaces').select('id, name');
+  const wsMap: Record<string, string> = {};
+  (wsList || []).forEach((w: any) => {
+    if (w.id) wsMap[w.id] = w.name;
+  });
+
   const storeMap: Record<string, { count: number; total: number }> = {};
   (orders || []).forEach((o: any) => {
-    const name = o.pickup_store_name || 'Tienda AxonPOS';
+    const name = o.pickup_store_name || wsMap[o.workspace_id] || 'Tienda AxonPOS';
     if (!storeMap[name]) storeMap[name] = { count: 0, total: 0 };
     storeMap[name].count++;
     storeMap[name].total += Number(o.total || 0);
