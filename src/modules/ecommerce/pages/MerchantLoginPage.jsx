@@ -73,31 +73,120 @@ export default function MerchantLoginPage() {
         if (byId) ws = byId;
       }
 
+      // Si no encontró por id directo de usuario auth, buscar por emails en el workspace
       if (!ws) {
-        const { data: byEmail } = await supabase
-          .from('workspaces')
-          .select('*')
-          .ilike('config->>adminEmail', cleanEmail)
-          .maybeSingle();
+        const { data: allWs } = await supabase.from('workspaces').select('*').limit(100);
+        
+        if (allWs && allWs.length > 0) {
+          // 1. Buscar coincidencia exacta o coincidencia en contact / expediente / onboarding
+          const matchedWs = allWs.find(w => {
+            const cfg = typeof w.config === 'object' && w.config !== null ? w.config : (typeof w.config === 'string' ? JSON.parse(w.config || '{}') : {});
+            const adminE = (cfg.adminEmail || '').trim().toLowerCase();
+            const contactE = (cfg.contact?.email || '').trim().toLowerCase();
+            const genE = (cfg.email || '').trim().toLowerCase();
+            const expE = (cfg.expediente?.email || '').trim().toLowerCase();
+            const onbE = (cfg.onboarding?.email || '').trim().toLowerCase();
 
-        if (byEmail) {
-          const cfg = typeof byEmail.config === 'object' && byEmail.config !== null 
-            ? byEmail.config 
-            : JSON.parse(byEmail.config || '{}');
-          
-          // Si Supabase Auth no autenticó, verificar contra las credenciales del workspace
-          if (!authData?.user) {
-            const validPassword = cfg.adminPassword || cfg.adminPin;
-            if (validPassword && validPassword !== password) {
-              throw new Error('Contraseña incorrecta.');
-            }
-            // Si la contraseña no estaba guardada en el config, sincronizarla ahora
-            if (!validPassword) {
-              const updatedConfig = { ...cfg, adminPassword: password, adminPin: password };
-              await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', byEmail.id);
+            // Coincidencia directa o coincidencia sin números/variantes
+            const baseClean = cleanEmail.replace(/\d+@/, '@');
+            const baseAdmin = adminE.replace(/\d+@/, '@');
+
+            return adminE === cleanEmail || contactE === cleanEmail || genE === cleanEmail || expE === cleanEmail || onbE === cleanEmail || (baseClean && baseAdmin && baseClean === baseAdmin);
+          });
+
+          if (matchedWs) {
+            const cfg = typeof matchedWs.config === 'object' && matchedWs.config !== null 
+              ? matchedWs.config 
+              : JSON.parse(matchedWs.config || '{}');
+            
+            const validPassword = cfg.adminPassword || cfg.generatedPassword || cfg.adminPin;
+
+            // Si Supabase Auth autenticó con éxito, aceptamos de inmediato
+            if (authData?.user) {
+              ws = matchedWs;
+            } else if (validPassword) {
+              if (validPassword === password) {
+                ws = matchedWs;
+              } else {
+                // Verificar si coincide con la contraseña registrada en ecommerce_customers
+                const { data: custCheck } = await supabase
+                  .from('ecommerce_customers')
+                  .select('password')
+                  .ilike('email', cleanEmail)
+                  .maybeSingle();
+                if (custCheck && custCheck.password === password) {
+                  ws = matchedWs;
+                  // Sincronizar credenciales en el workspace
+                  const updatedConfig = { 
+                    ...cfg, 
+                    adminPassword: password, 
+                    generatedPassword: password, 
+                    adminPin: password, 
+                    adminEmail: cleanEmail 
+                  };
+                  await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', matchedWs.id);
+                } else {
+                  throw new Error('Contraseña incorrecta.');
+                }
+              }
+            } else {
+              // Si la contraseña no estaba guardada en config, validar contra ecommerce_customers o sincronizarla
+              const { data: custCheck } = await supabase
+                .from('ecommerce_customers')
+                .select('password')
+                .ilike('email', cleanEmail)
+                .maybeSingle();
+              if (custCheck && custCheck.password && custCheck.password !== password) {
+                throw new Error('Contraseña incorrecta.');
+              }
+              const updatedConfig = { 
+                ...cfg, 
+                adminPassword: password, 
+                generatedPassword: password, 
+                adminPin: password, 
+                adminEmail: cleanEmail 
+              };
+              await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', matchedWs.id);
+              ws = matchedWs;
             }
           }
-          ws = byEmail;
+        }
+      }
+
+      // Si aún no hay workspace, verificar si es un comerciante/usuario en ecommerce_customers
+      if (!ws) {
+        const { data: customerRecord } = await supabase
+          .from('ecommerce_customers')
+          .select('*')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        if (customerRecord) {
+          if (customerRecord.password && customerRecord.password !== password && customerRecord.password !== 'SUPABASE_AUTH' && customerRecord.password !== 'GOOGLE_AUTH') {
+            throw new Error('Contraseña incorrecta.');
+          }
+
+          // Si la contraseña coincide (o authData autenticó), vincular con el workspace de la tienda
+          const { data: allWsFallback } = await supabase.from('workspaces').select('*').limit(50);
+          if (allWsFallback && allWsFallback.length > 0) {
+            // Buscar por customerRecord.workspace_id o el primer workspace disponible
+            const targetWs = allWsFallback.find(w => w.id === customerRecord.workspace_id) || allWsFallback[0];
+            if (targetWs) {
+              ws = targetWs;
+              const cfg = typeof ws.config === 'object' && ws.config !== null ? ws.config : JSON.parse(ws.config || '{}');
+              const updatedConfig = {
+                ...cfg,
+                adminEmail: cleanEmail,
+                adminPassword: password,
+                generatedPassword: password,
+                adminPin: password
+              };
+              await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', ws.id);
+              try {
+                await supabase.from('ecommerce_customers').update({ workspace_id: ws.id, is_merchant: true }).eq('id', customerRecord.id);
+              } catch (_) {}
+            }
+          }
         }
       }
 

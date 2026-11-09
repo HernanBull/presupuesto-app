@@ -536,6 +536,9 @@ export default function StoreProfileManager() {
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '') || 'mi-tienda';
       
+      const effectiveAdminEmail = (adminEmail || prevCfg.adminEmail || '').trim();
+      const effectiveAdminPassword = prevCfg.adminPassword || prevCfg.generatedPassword || prevCfg.adminPin || '';
+
       const newConfig = {
         ...prevCfg,
         name: storeName.trim(),
@@ -546,6 +549,8 @@ export default function StoreProfileManager() {
         currency,
         description,
         adminPin,
+        ...(effectiveAdminEmail ? { adminEmail: effectiveAdminEmail } : {}),
+        ...(effectiveAdminPassword ? { adminPassword: effectiveAdminPassword, generatedPassword: effectiveAdminPassword } : {}),
         logoUrl,
         coverUrl,
         heroUrl: coverUrl,

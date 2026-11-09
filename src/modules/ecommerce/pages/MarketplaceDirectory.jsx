@@ -3479,29 +3479,31 @@ export default function MarketplaceDirectory() {
                   </div>
                 )}
 
-                {/* Opciones de Acceso Neutral (Únicamente cuando NO hay sesión activa de ningún rol) */}
-                {!hasMerchantAccess && !currentCustomer && (
+                {/* Opciones de Acceso Neutral (Únicamente cuando NO hay sesión activa de comerciante) */}
+                {!hasMerchantAccess && (
                   <div className="flex flex-col gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        setAuthMode('login');
-                        setIsAuthModalOpen(true);
-                      }}
-                      className="w-full flex items-center justify-between p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center">
-                          <User size={15} />
+                    {!currentCustomer && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setAuthMode('login');
+                          setIsAuthModalOpen(true);
+                        }}
+                        className="w-full flex items-center justify-between p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all shadow-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shadow-sm shrink-0">
+                            <User size={18} />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span className="font-bold text-sm text-slate-900 leading-tight">Soy Cliente</span>
+                            <span className="text-[11px] text-amber-800 font-medium leading-tight mt-0.5">Para compras, favoritos y pedidos</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col text-left">
-                          <span className="font-bold text-xs text-slate-900">Soy Cliente</span>
-                          <span className="text-[10px] text-amber-700">Para compras, favoritos y pedidos</span>
-                        </div>
-                      </div>
-                      <ChevronRight size={16} className="text-amber-600" />
-                    </button>
+                        <ChevronRight size={18} className="text-amber-600 shrink-0" />
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -3509,18 +3511,18 @@ export default function MarketplaceDirectory() {
                         setIsMobileMenuOpen(false);
                         navigate('/merchant/login?redirect=/explorar');
                       }}
-                      className="w-full flex items-center justify-between p-3 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700/60 rounded-2xl cursor-pointer active:scale-95 transition-all"
+                      className="w-full flex items-center justify-between p-3.5 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-orange-500/10 hover:from-orange-500/20 hover:to-amber-500/15 border border-orange-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all shadow-xs"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black flex items-center justify-center">
-                          <Store size={15} />
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black flex items-center justify-center shadow-sm shrink-0">
+                          <Store size={18} />
                         </div>
                         <div className="flex flex-col text-left">
-                          <span className="font-bold text-xs text-white">Soy Comerciante</span>
-                          <span className="text-[10px] text-zinc-400">Iniciar sesión con mi tienda</span>
+                          <span className="font-bold text-sm text-slate-900 leading-tight">Soy Comerciante</span>
+                          <span className="text-[11px] text-orange-800 font-medium leading-tight mt-0.5">Iniciar sesión con mi tienda</span>
                         </div>
                       </div>
-                      <ChevronRight size={16} className="text-zinc-400" />
+                      <ChevronRight size={18} className="text-orange-500 shrink-0" />
                     </button>
                   </div>
                 )}
