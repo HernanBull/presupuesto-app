@@ -1102,71 +1102,44 @@ export default function CustomerProfile() {
           </div>
           */}
           
-          {/* Grupo 1: Actividad y Colecciones */}
+          {/* Group 1: Compras y Ubicación */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'pedidos' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('pedidos')}>
                <div className="flex items-center gap-4">
-                  <PackageCheck size={20} className={activeTab === 'pedidos' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">mis pedidos</span>
+                  <ShoppingBag size={20} className={activeTab === 'pedidos' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Mis compras</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{orders.length}</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
-               <div className="flex items-center gap-4">
-                  <BookmarkCheck size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">guardados</span>
-               </div>
-               <ChevronRight size={18} className="text-slate-300" />
-            </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'direcciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('direcciones')}>
                <div className="flex items-center gap-4">
-                  <Compass size={20} className={activeTab === 'direcciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">mis elecciones</span>
+                  <MapPin size={20} className={activeTab === 'direcciones' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Donde me ubican</span>
                </div>
                <ChevronRight size={18} className="text-slate-300" />
             </button>
           </div>
 
-          {/* Grupo 2: Exploración y Comunidad */}
+          {/* Group 2: Recomendaciones, Visitas y Perfil */}
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs">
+            {/* Mis calificaciones oculto a solicitud del usuario */}
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'recomendaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
                <div className="flex items-center gap-4">
-                  <Flame size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">las recomendaciones</span>
+                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Lo más TOP</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'visitas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
                <div className="flex items-center gap-4">
-                  <Users size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">seguidores</span>
-               </div>
-               <ChevronRight size={18} className="text-slate-300" />
-            </button>
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'visitas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('visitas')}>
-               <div className="flex items-center gap-4">
-                  <Eye size={20} className={activeTab === 'visitas' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">visita</span>
-               </div>
-               <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
-                  <ChevronRight size={18} className="text-slate-300" />
-               </div>
-            </button>
-          </div>
-
-          {/* Grupo 3: Calificación y Cuenta */}
-          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-4">
-            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'calificaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('calificaciones')}>
-               <div className="flex items-center gap-4">
-                  <Award size={20} className={activeTab === 'calificaciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">mi calificación</span>
+                  <Store size={20} className={activeTab === 'visitas' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Lugares recorridos</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">0</span>
@@ -1175,8 +1148,26 @@ export default function CustomerProfile() {
             </button>
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${(activeTab === 'datos' || activeTab === 'menu') ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('datos')}>
                <div className="flex items-center gap-4">
-                  <UserCog size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">ajuste de perfil</span>
+                  <User size={20} className={(activeTab === 'datos' || activeTab === 'menu') ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Ajustes de Perfil</span>
+               </div>
+               <ChevronRight size={18} className="text-slate-300" />
+            </button>
+          </div>
+
+          {/* Group 3: Guardados y Seguidos */}
+          <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs mb-4">
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'wishlist' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('wishlist')}>
+               <div className="flex items-center gap-4">
+                  <Bookmark size={20} className={activeTab === 'wishlist' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Guardados</span>
+               </div>
+               <ChevronRight size={18} className="text-slate-300" />
+            </button>
+            <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors ${activeTab === 'favoritas' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('favoritas')}>
+               <div className="flex items-center gap-4">
+                  <UserPlus size={20} className={activeTab === 'favoritas' ? 'text-amber-600' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Seguidos</span>
                </div>
                <ChevronRight size={18} className="text-slate-300" />
             </button>
@@ -1459,13 +1450,13 @@ export default function CustomerProfile() {
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Las recomendaciones</h2>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Lo más TOP</h2>
                       <p className="text-slate-500 text-sm">Productos y tiendas sugeridos según tus preferencias y ubicación.</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Flame size={48} className="mx-auto text-slate-300 mb-4" />
-                    <h3 className="text-lg font-bold text-slate-900">Personalizando recomendaciones...</h3>
+                    <Heart size={48} className="mx-auto text-slate-300 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">Personalizando sugerencias TOP...</h3>
                     <p className="text-slate-500 text-sm mt-2">Visita tiendas y guarda productos para recibir recomendaciones personalizadas.</p>
                     <button onClick={() => navigate('/explorar')} className="mt-6 px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold hover:bg-amber-400 transition-all shadow-xs">
                       Explorar Marketplace
@@ -1481,12 +1472,12 @@ export default function CustomerProfile() {
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-black text-slate-900 mb-1">Visita</h2>
+                      <h2 className="text-2xl font-black text-slate-900 mb-1">Lugares recorridos</h2>
                       <p className="text-slate-500 text-sm">Comercios y tiendas que has visitado recientemente.</p>
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-2xl p-12 border border-dashed border-slate-200 text-center">
-                    <Eye size={48} className="mx-auto text-slate-300 mb-4" />
+                    <Store size={48} className="mx-auto text-slate-300 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900">Historial limpio</h3>
                     <p className="text-slate-500 text-sm mt-2">Tus visitas recientes a tiendas del ecosistema se reflejarán aquí para un acceso directo.</p>
                   </div>
@@ -1499,8 +1490,8 @@ export default function CustomerProfile() {
               <motion.div key="direcciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">Mis elecciones</h2>
-                    <p className="text-slate-500 text-sm">Gestiona tus direcciones de entrega y preferencias.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Donde me ubican</h2>
+                    <p className="text-slate-500 text-sm">Gestiona tus direcciones de entrega y ubicación.</p>
                   </div>
                   {!isAddingAddress && (
                      <button onClick={() => setIsAddingAddress(true)} className="flex items-center gap-2 bg-amber-500 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold hover:bg-amber-400 transition-all shadow-xs">
@@ -1662,8 +1653,8 @@ export default function CustomerProfile() {
               <motion.div key="pedidos" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">Historial de Pedidos</h2>
-                    <p className="text-slate-500 text-sm">Revisa el estado de tus compras anteriores y deja reseñas.</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Mis compras</h2>
+                    <p className="text-slate-500 text-sm">Revisa el estado de tus compras anteriores y comprobantes.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <div className="flex flex-col gap-1">
@@ -1929,7 +1920,7 @@ export default function CustomerProfile() {
               <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidores</h2>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidos</h2>
                     <p className="text-slate-500 text-sm">Acceso directo a tus tiendas seguidas y publicaciones guardadas.</p>
                   </div>
 
