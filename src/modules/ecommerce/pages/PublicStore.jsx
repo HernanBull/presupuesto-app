@@ -43,6 +43,31 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '106606679170-oheuro9l1qicfspsvsmf6c4ihuif2fq1.apps.googleusercontent.com';
 
+const VENEZUELA_BANKS = [
+  '0102 - Banco de Venezuela',
+  '0104 - Banco Venezolano de Crédito',
+  '0105 - Banco Mercantil',
+  '0108 - Banco Provincial',
+  '0114 - Bancaribe',
+  '0115 - Banco Exterior',
+  '0128 - Banco Caroní',
+  '0134 - Banesco',
+  '0138 - Banco Plaza',
+  '0151 - Fondo Común (BFC)',
+  '0156 - 100% Banco',
+  '0157 - Del Sur',
+  '0163 - Banco del Tesoro',
+  '0166 - Banco Agrícola de Venezuela',
+  '0168 - Bancrecer',
+  '0169 - Mi Banco',
+  '0171 - Banco Activo',
+  '0172 - Bancamiga',
+  '0174 - Banplus',
+  '0175 - Banco Bicentenario',
+  '0177 - Banco de las Fuerzas Armadas (Banfanb)',
+  '0191 - Banco Nacional de Crédito (BNC)'
+];
+
 export const resolveStoreCategory = (cfg) => {
   if (!cfg) return '';
   const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
@@ -265,7 +290,7 @@ export default function PublicStore() {
   const [receiptUrl, setReceiptUrl] = useState(null);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [paymentReference, setPaymentReference] = useState('');
-  const [paymentBank, setPaymentBank] = useState('');
+  const [paymentBank, setPaymentBank] = useState('0102 - Banco de Venezuela');
   const [selectedPaymentProfileIdx, setSelectedPaymentProfileIdx] = useState('');
   const [duplicateRefError, setDuplicateRefError] = useState(null);
   const [isCheckingRef, setIsCheckingRef] = useState(false);
@@ -4776,16 +4801,24 @@ export default function PublicStore() {
 
                                 <div>
                                   <label className="text-xs font-bold text-slate-700 mb-1 block">Banco Emisor (desde donde pagas)</label>
-                                  <input 
-                                    type="text" 
-                                    value={paymentBank} 
-                                    onChange={e => {
-                                      setPaymentBank(e.target.value);
-                                      setSelectedPaymentProfileIdx('');
-                                    }} 
-                                    placeholder="Ej: Banesco, Banco de Venezuela, Mercantil..." 
-                                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900 placeholder-slate-400 font-medium shadow-xs" 
-                                  />
+                                  <div className="relative">
+                                    <select 
+                                      value={paymentBank} 
+                                      onChange={e => {
+                                        setPaymentBank(e.target.value);
+                                        setSelectedPaymentProfileIdx('');
+                                      }} 
+                                      className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:border-amber-500 text-slate-900 font-medium shadow-xs appearance-none cursor-pointer pr-10"
+                                    >
+                                      <option value="">Selecciona tu banco...</option>
+                                      {VENEZUELA_BANKS.map((b, idx) => (
+                                        <option key={idx} value={b}>{b}</option>
+                                      ))}
+                                    </select>
+                                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                      <ChevronRight size={16} className="rotate-90 stroke-[2.5]" />
+                                    </div>
+                                  </div>
                                 </div>
 
                                 <div>
