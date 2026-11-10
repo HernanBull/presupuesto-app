@@ -26,6 +26,15 @@ import BackupManagerModal from '../components/admin/BackupManagerModal';
 import { authService } from '../services/authService';
 import { playPosBeep, playCashRegisterSound, playItemRemovedSound } from '../utils/posAudioService';
 import ConfettiCelebration from '../components/ConfettiCelebration';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+
+const MARKETPLACE_DEPT_NAMES = new Set(
+  MARKETPLACE_CATEGORIES.flatMap(c => [
+    (c.id || '').toLowerCase().trim(),
+    (c.name || '').toLowerCase().trim(),
+    (c.fullName || '').toLowerCase().trim()
+  ]).filter(Boolean)
+);
 
 export default function UnifiedPosPage() {
   const location = useLocation();
@@ -580,17 +589,27 @@ export default function UnifiedPosPage() {
           .eq('id', wsId)
           .single();
 
-        const rawCustom = wsData?.config?.customCategories || wsData?.config?.categories || [];
-        const customCategoriesList = Array.isArray(rawCustom)
-          ? rawCustom.map(c => typeof c === 'string' ? { name: c, color: '#EA580C' } : c).filter(c => c && c.name)
-          : [];
+        const rawCustom = Array.isArray(wsData?.config?.customCategories) ? wsData.config.customCategories : [];
+        const customCategoriesList = rawCustom
+          .map(c => typeof c === 'string' ? { name: c, color: '#EA580C' } : c)
+          .filter(c => c && c.name);
+
+        const posProducts = data || [];
+        const posProdCatsLower = new Set(
+          posProducts.map(p => (p.category || 'General').trim().toLowerCase())
+        );
 
         const catMap = new Map();
         const subcatMap = new Map();
 
         // Registrar categorías y subcategorías configuradas por el comerciante
+        // (Omitiendo departamentos globales de Marketplace con 0 productos)
         customCategoriesList.forEach(c => {
           const cName = String(c.name || '').trim();
+          const cNameLower = cName.toLowerCase();
+          if (MARKETPLACE_DEPT_NAMES.has(cNameLower) && !posProdCatsLower.has(cNameLower)) {
+            return;
+          }
           if (cName && !catMap.has(cName)) {
             catMap.set(cName, {
               id: cName,

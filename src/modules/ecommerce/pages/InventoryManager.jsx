@@ -4,6 +4,15 @@ import { PackageSearch, TrendingDown, TrendingUp, Truck, PackagePlus, Edit2, Tra
 import MultiImageUploader from '../components/MultiImageUploader';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+
+const MARKETPLACE_DEPT_NAMES = new Set(
+  MARKETPLACE_CATEGORIES.flatMap(c => [
+    (c.id || '').toLowerCase().trim(),
+    (c.name || '').toLowerCase().trim(),
+    (c.fullName || '').toLowerCase().trim()
+  ]).filter(Boolean)
+);
 
 const initialInventory = [];
 
@@ -101,7 +110,7 @@ export default function InventoryManager() {
         
       // Cargar categorías configuradas en la tienda (estructura limpia y jerárquica)
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const rawCustom = ws?.config?.customCategories || ws?.config?.categories || [];
+      const rawCustom = Array.isArray(ws?.config?.customCategories) ? ws.config.customCategories : [];
       const parsedCategories = Array.isArray(rawCustom)
         ? rawCustom.map(item => {
             if (typeof item === 'string') {
@@ -296,8 +305,19 @@ export default function InventoryManager() {
   // Categorías principales únicas creadas por el comerciante o presentes en sus productos (Inicia 100% limpio)
   const availableCategories = useMemo(() => {
     const names = new Set();
+    const invCategoriesLower = new Set(
+      inventory.map(i => (i.category || '').trim().toLowerCase())
+    );
+
     customCategories.forEach(c => {
-      if (c && c.name && c.name !== 'General') names.add(c.name);
+      if (c && c.name && c.name !== 'General') {
+        const cLower = c.name.trim().toLowerCase();
+        // Si coincide con un rubro global de Marketplace y no tiene productos en inventario, omitir
+        if (MARKETPLACE_DEPT_NAMES.has(cLower) && !invCategoriesLower.has(cLower)) {
+          return;
+        }
+        names.add(c.name);
+      }
     });
     inventory.forEach(i => {
       if (i.category && i.category !== 'General') names.add(i.category);

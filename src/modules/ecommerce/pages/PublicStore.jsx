@@ -3129,9 +3129,11 @@ export default function PublicStore() {
                   {/* Categorías / Rubros oficiales del comercio (descarta 'almacén' y no duplica la dirección del mapa) */}
                   {(() => {
                     const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
-                    const rawCats = Array.isArray(config?.categories) && config.categories.length > 0
-                      ? config.categories
-                      : (resolveStoreCategory(config) ? [resolveStoreCategory(config)] : []);
+                    const rawCats = Array.isArray(config?.marketplaceCategories) && config.marketplaceCategories.length > 0
+                      ? config.marketplaceCategories
+                      : (Array.isArray(config?.categories) && config.categories.length > 0
+                        ? config.categories
+                        : (resolveStoreCategory(config) ? [resolveStoreCategory(config)] : []));
                     const resolvedCategories = rawCats.filter(c => !isInvalid(c));
 
                     return resolvedCategories.length > 0 ? (

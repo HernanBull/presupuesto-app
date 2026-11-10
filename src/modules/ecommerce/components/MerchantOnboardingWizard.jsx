@@ -535,18 +535,14 @@ export default function MerchantOnboardingWizard({
 
         const primaryCat = selectedCategories[0] || 'Víveres';
 
-        // Preparamos categorías y subcategorías iniciales para que el POS e Inventario arranquen listos
-        const initialCustomCategories = selectedCategories.map(catName => ({
-          name: catName,
-          color: '#EA580C',
-          subcategories: [{ name: 'General' }]
-        }));
+        const initialCustomCategories = Array.isArray(prevConfig.customCategories) ? prevConfig.customCategories : [];
 
         const updatedConfig = {
           ...prevConfig,
           adminEmail: merchantEmail,
           business_type: primaryCat,
           category: primaryCat,
+          marketplaceCategories: selectedCategories,
           categories: selectedCategories,
           customCategories: initialCustomCategories,
           trialActive: true,

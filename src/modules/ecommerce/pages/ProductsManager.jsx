@@ -9,6 +9,15 @@ import {
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import ComboBuilderModal from '../components/ComboBuilderModal';
+import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+
+const MARKETPLACE_DEPT_NAMES = new Set(
+  MARKETPLACE_CATEGORIES.flatMap(c => [
+    (c.id || '').toLowerCase().trim(),
+    (c.name || '').toLowerCase().trim(),
+    (c.fullName || '').toLowerCase().trim()
+  ]).filter(Boolean)
+);
 
 export default function ProductsManager() {
   const navigate = useNavigate();
@@ -53,12 +62,12 @@ export default function ProductsManager() {
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
-      // Cargar categorías personalizadas de la configuración de la tienda
+      // Cargar categorías personalizadas del catálogo interno (aisladas de las categorías del Marketplace)
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const rawCustom = ws?.config?.customCategories || ws?.config?.categories || [];
-      const validCats = Array.isArray(rawCustom)
-        ? rawCustom.map(c => typeof c === 'string' ? c : c.name).filter(Boolean)
-        : [];
+      const rawCustom = Array.isArray(ws?.config?.customCategories) ? ws.config.customCategories : [];
+      const validCats = rawCustom
+        .map(c => typeof c === 'string' ? c.trim() : (c?.name || '').trim())
+        .filter(Boolean);
       setCustomCategories(validCats);
 
       if (!error && data) {
@@ -158,8 +167,17 @@ export default function ProductsManager() {
     const map = new Map();
 
     // 1. Agregar primero las categorías configuradas por el comerciante
+    // (Omitiendo rubros de Marketplace que tengan 0 productos para evitar categorías fantasma)
+    const productCategoriesLower = new Set(
+      products.map(p => (p.category || 'General').trim().toLowerCase())
+    );
+
     customCategories.forEach(catName => {
       const clean = String(catName).trim();
+      const cleanLower = clean.toLowerCase();
+      if (MARKETPLACE_DEPT_NAMES.has(cleanLower) && !productCategoriesLower.has(cleanLower)) {
+        return;
+      }
       if (clean && !map.has(clean)) {
         map.set(clean, {
           name: clean,

@@ -1438,9 +1438,10 @@ export default function MarketplaceDirectory() {
       cfg = {};
     }
 
-    const storeCats = Array.isArray(cfg.categories) 
-      ? [...cfg.categories] 
-      : (cfg.categories ? [cfg.categories] : []);
+    const rawMarketCats = Array.isArray(cfg.marketplaceCategories) && cfg.marketplaceCategories.length > 0
+      ? cfg.marketplaceCategories
+      : (Array.isArray(cfg.categories) ? cfg.categories : (cfg.categories ? [cfg.categories] : []));
+    const storeCats = [...rawMarketCats];
     
     if (cfg.category) storeCats.push(cfg.category);
     if (cfg.rubro) storeCats.push(cfg.rubro);

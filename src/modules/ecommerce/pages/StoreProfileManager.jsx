@@ -270,7 +270,9 @@ export default function StoreProfileManager() {
             const normalizedColor = normalizeHex(loadedColor);
             setPrimaryColor(normalizedColor);
             setCustomHexInput(normalizedColor);
-            if (Array.isArray(cfg.categories) && cfg.categories.length > 0) {
+            if (Array.isArray(cfg.marketplaceCategories) && cfg.marketplaceCategories.length > 0) {
+              setStoreCategories(cfg.marketplaceCategories);
+            } else if (Array.isArray(cfg.categories) && cfg.categories.length > 0) {
               setStoreCategories(cfg.categories);
             } else if (cfg.category) {
               setStoreCategories([cfg.category]);
@@ -543,6 +545,7 @@ export default function StoreProfileManager() {
         ...prevCfg,
         name: storeName.trim(),
         business_name: storeName.trim(),
+        marketplaceCategories: storeCategories,
         categories: storeCategories,
         category: primaryCat,
         business_type: primaryCat,
@@ -611,6 +614,7 @@ export default function StoreProfileManager() {
           ...(prevCfg.onboarding || {}),
           owner_name: ownerName.trim(),
           business_name: storeName.trim(),
+          marketplaceCategories: storeCategories,
           categories: storeCategories
         }
       };
