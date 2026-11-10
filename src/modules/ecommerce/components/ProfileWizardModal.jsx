@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation } from 'lucide-react';
+import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation, Smartphone, Download, AlertCircle, CheckCircle2, RefreshCw, Compass } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import ResponsiveModal from './ResponsiveModal';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -85,10 +85,41 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [gpsStatus, setGpsStatus] = useState('idle'); // 'idle' | 'detecting' | 'success' | 'error'
+  const [gpsErrorMsg, setGpsErrorMsg] = useState('');
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+  const [savedCustomerData, setSavedCustomerData] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (isStandalone) {
+      setIsAppInstalled(true);
+    }
+
+    if (window.deferredPwaPrompt) {
+      setInstallPrompt(window.deferredPwaPrompt);
+    }
+
+    const handlePrompt = (e) => {
+      setInstallPrompt(e.detail || window.deferredPwaPrompt);
+    };
+
+    const handleInstalled = () => {
+      setIsAppInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('axon-pwa-prompt-available', handlePrompt);
+    window.addEventListener('axon-pwa-app-installed', handleInstalled);
+    return () => {
+      window.removeEventListener('axon-pwa-prompt-available', handlePrompt);
+      window.removeEventListener('axon-pwa-app-installed', handleInstalled);
+    };
   }, []);
 
   // Obtener cliente seguro de props o de localStorage
@@ -339,7 +370,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
             payment_profile: [paymentProfile] 
           };
           localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
-          onComplete(updatedCustomer);
+          setSavedCustomerData(updatedCustomer);
+          setStep(4);
         } else {
           let { error } = await supabase
             .from('ecommerce_customers')
@@ -365,7 +397,8 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
             payment_profile: [paymentProfile] 
           };
           localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedCustomer));
-          onComplete(updatedCustomer);
+          setSavedCustomerData(updatedCustomer);
+          setStep(4);
         }
       } catch (err) {
         console.error(err);
@@ -377,29 +410,74 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
 
   const handleDetectLocation = () => {
     setIsDetectingLocation(true);
+    setGpsStatus('detecting');
+    setGpsErrorMsg('');
+
     if (!navigator.geolocation) {
-      alert('Tu navegador no soporta geolocalización');
+      setGpsStatus('error');
+      setGpsErrorMsg('Tu navegador o dispositivo no soporta geolocalización GPS.');
       setIsDetectingLocation(false);
       return;
     }
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        setGpsStatus('success');
+        setGpsErrorMsg('');
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
           const data = await res.json();
-          const addr = data.display_name || `Lat: ${latitude}, Lng: ${longitude}`;
-          setFormData({ ...formData, addressDetail: addr, lat: latitude, lng: longitude });
+          const addr = data.display_name || `Lat: ${latitude.toFixed(5)}, Lng: ${longitude.toFixed(5)}`;
+          setFormData(prev => ({ ...prev, addressDetail: prev.addressDetail || addr, lat: latitude, lng: longitude }));
         } catch(e) {
-          setFormData({ ...formData, addressDetail: `${latitude}, ${longitude}`, lat: latitude, lng: longitude });
+          setFormData(prev => ({ ...prev, lat: latitude, lng: longitude }));
+        } finally {
+          setIsDetectingLocation(false);
         }
-        setIsDetectingLocation(false);
       },
       (error) => {
-        alert('No se pudo obtener la ubicación');
         setIsDetectingLocation(false);
+        setGpsStatus('error');
+        if (error.code === 1) { // PERMISSION_DENIED
+          setGpsErrorMsg('Permiso de GPS no concedido. Por favor activa la ubicación en tu teléfono y autoriza al navegador, o toca directamente en el mapa para marcar tu casa.');
+        } else if (error.code === 2) { // POSITION_UNAVAILABLE
+          setGpsErrorMsg('GPS no disponible. Enciende la ubicación (GPS) en la barra de tu teléfono o selecciona tu punto directamente en el mapa.');
+        } else if (error.code === 3) { // TIMEOUT
+          setGpsErrorMsg('Tiempo de espera agotado buscando señal GPS. Puedes pulsar de nuevo o marcar tu punto en el mapa.');
+        } else {
+          setGpsErrorMsg('No se pudo obtener la señal GPS. Puedes fijar tu ubicación tocando directamente en el mapa.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 9000,
+        maximumAge: 30000
       }
     );
+  };
+
+  const handleInstallPWA = async () => {
+    const promptEvent = installPrompt || window.deferredPwaPrompt;
+    if (promptEvent) {
+      promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        setIsAppInstalled(true);
+      }
+    } else {
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIos) {
+        setShowIosGuide(true);
+      } else {
+        alert("Para instalar la aplicación:\n1. Toca el menú de 3 puntos (⋮) de tu navegador.\n2. Selecciona 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+      }
+    }
   };
 
   const handleImageChange = (e) => {
@@ -412,22 +490,28 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     }
   };
 
-  const renderStepIndicator = () => (
-    <div className="flex gap-2 mb-6">
-      {[0,1,2,3].map((s) => (
-        <div 
-          key={s} 
-          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= step ? 'bg-amber-500' : 'bg-slate-200'}`} 
-        />
-      ))}
-    </div>
-  );
+  const renderStepIndicator = () => {
+    if (step >= 4) return null;
+    return (
+      <div className="flex gap-2 mb-6">
+        {[0,1,2,3].map((s) => (
+          <div 
+            key={s} 
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= step ? 'bg-amber-500' : 'bg-slate-200'}`} 
+          />
+        ))}
+      </div>
+    );
+  };
 
   return (
     <ResponsiveModal
       isOpen={isOpen}
-      onClose={canClose ? onClose : () => {}}
-      title="Completa tu Perfil"
+      onClose={() => {
+        if (step === 4 && onComplete && savedCustomerData) onComplete(savedCustomerData);
+        if (canClose) onClose();
+      }}
+      title={step === 4 ? "¡Bienvenido a Axon Market!" : "Completa tu Perfil"}
       showCloseButton={canClose}
       className="md:max-w-md bg-white border border-slate-200 shadow-2xl rounded-3xl"
       contentClassName="p-6 sm:p-8 relative bg-white text-slate-800"
@@ -616,28 +700,91 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
               </div>
 
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-3 items-end">
-                  <div className="flex-1 w-full space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600">Punto GPS (Opcional)</label>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between h-[52px] shadow-sm">
-                       {formData.lat && formData.lng ? (
-                         <span className="font-mono text-sm text-amber-600 font-bold">
-                           {formData.lat.toFixed(5)}, {formData.lng.toFixed(5)}
-                         </span>
-                       ) : (
-                         <span className="text-sm text-slate-400 italic">No fijado en el mapa</span>
-                       )}
+                {/* WIDGET INTERACTIVO DE ACTIVACIÓN GPS */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  formData.lat && formData.lng 
+                    ? 'bg-emerald-50/90 border-emerald-300 shadow-sm'
+                    : gpsStatus === 'error'
+                      ? 'bg-amber-50/90 border-amber-300 shadow-sm'
+                      : 'bg-gradient-to-r from-blue-50 to-indigo-50/80 border-blue-200/90 shadow-sm'
+                }`}>
+                  <div className="flex items-start justify-between gap-3 mb-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        formData.lat && formData.lng 
+                          ? 'bg-emerald-500 text-white shadow-xs' 
+                          : gpsStatus === 'error'
+                            ? 'bg-amber-500 text-white shadow-xs'
+                            : 'bg-blue-600 text-white shadow-xs'
+                      }`}>
+                        {formData.lat && formData.lng ? (
+                          <CheckCircle2 size={20} className="stroke-[2.5]" />
+                        ) : isDetectingLocation ? (
+                          <Loader2 size={20} className="animate-spin" />
+                        ) : gpsStatus === 'error' ? (
+                          <AlertCircle size={20} />
+                        ) : (
+                          <Compass size={20} />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                          <span>{formData.lat && formData.lng ? 'Ubicación GPS Confirmada' : 'Activar Ubicación GPS'}</span>
+                          {formData.lat && formData.lng && (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.2 rounded-full">Activa</span>
+                          )}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                          {formData.lat && formData.lng 
+                            ? `${formData.lat.toFixed(5)}, ${formData.lng.toFixed(5)}`
+                            : 'Enciende el GPS de tu teléfono para fijar la entrega exacta.'}
+                        </p>
+                      </div>
                     </div>
+
+                    <button 
+                      type="button"
+                      onClick={handleDetectLocation}
+                      disabled={isDetectingLocation}
+                      className={`px-3.5 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95 cursor-pointer ${
+                        formData.lat && formData.lng
+                          ? 'bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-300'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      {isDetectingLocation ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Detectando...</span>
+                        </>
+                      ) : formData.lat && formData.lng ? (
+                        <>
+                          <RefreshCw size={12} />
+                          <span>Actualizar</span>
+                        </>
+                      ) : (
+                        <>
+                          <Navigation size={13} />
+                          <span>Activar GPS</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <button 
-                    type="button"
-                    onClick={handleDetectLocation}
-                    disabled={isDetectingLocation}
-                    className="w-full sm:w-auto px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 h-[52px]"
-                  >
-                    {isDetectingLocation ? <Loader2 size={18} className="animate-spin" /> : <Navigation size={18} />}
-                    Usar GPS
-                  </button>
+
+                  {/* Mensaje de orientación si hubo error o GPS apagado */}
+                  {gpsStatus === 'error' && gpsErrorMsg && (
+                    <div className="mt-2.5 pt-2.5 border-t border-amber-200/80 text-[11px] text-amber-800 flex items-start gap-1.5">
+                      <AlertCircle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{gpsErrorMsg}</span>
+                    </div>
+                  )}
+
+                  {!formData.lat && gpsStatus !== 'error' && (
+                    <div className="mt-2 text-[10px] text-slate-500 flex items-center gap-1">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span>O también puedes tocar directamente en el mapa para marcar tu casa.</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="h-[200px] w-full rounded-2xl overflow-hidden border border-slate-200 relative z-0 shadow-sm">
@@ -652,7 +799,11 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
                     />
                     <LocationPickerMarker 
                       position={formData.lat && formData.lng ? [formData.lat, formData.lng] : null} 
-                      setPosition={(pos) => setFormData({...formData, lat: pos.lat, lng: pos.lng})} 
+                      setPosition={(pos) => {
+                        setFormData(prev => ({...prev, lat: pos.lat, lng: pos.lng}));
+                        setGpsStatus('success');
+                        setGpsErrorMsg('');
+                      }} 
                       setAddressDetail={(addr) => setFormData(prev => ({...prev, addressDetail: addr}))}
                     />
                   </MapContainer>
@@ -686,33 +837,89 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
               </div>
             </motion.div>
           )}
+
+          {step === 4 && (
+            <motion.div key="step4" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-2">
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center mb-3 border border-emerald-200 shadow-sm">
+                <Check size={32} className="stroke-[2.5]" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1">¡Tu perfil está completado! 🎉</h3>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed mb-5">
+                Hemos registrado tus datos para tus pedidos y pagos móviles en Axon Market.
+              </p>
+
+              {/* Tarjeta de Descarga de App Móvil (Opcional) */}
+              <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300/80 rounded-2xl p-4 text-left shadow-xs">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="w-11 h-11 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
+                    <Smartphone size={22} className="stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Descarga la App en tu Teléfono</h4>
+                    <p className="text-[11px] text-slate-600 leading-snug mt-0.5">
+                      Instala Axon Market en tu pantalla de inicio para acceder en 1 toque y seguir tus pedidos en tiempo real.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={handleInstallPWA}
+                    className="flex-1 bg-slate-900 hover:bg-black text-amber-400 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Download size={15} />
+                    <span>Instalar App (Opcional)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onComplete && savedCustomerData) onComplete(savedCustomerData);
+                      if (onClose) onClose();
+                    }}
+                    className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
+                  >
+                    Continuar al Mercado
+                  </button>
+                </div>
+
+                {showIosGuide && (
+                  <div className="mt-3 p-2.5 bg-white/90 rounded-xl border border-amber-200 text-[11px] text-slate-700 leading-tight">
+                    📲 <strong>En iPhone/iPad:</strong> Toca el botón <strong>Compartir</strong> <span className="font-mono">[↑]</span> en Safari y selecciona <strong>"Agregar a pantalla de inicio"</strong>.
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
-      <div className="mt-8 flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
-        {step > 0 && (
-           <button 
-             onClick={() => setStep(step - 1)}
-             className="text-slate-500 hover:text-slate-900 px-5 py-3 rounded-full font-bold text-sm transition-colors"
-           >
-             Atrás
-           </button>
-        )}
-        <button 
-          onClick={handleNext}
-          disabled={isNextDisabled}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-7 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500 disabled:active:scale-100"
-        >
-          {isSubmitting ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <>
-              {step < 3 ? 'Siguiente' : 'Finalizar'}
-              {step < 3 ? <ChevronRight size={18} /> : <Check size={18} />}
-            </>
+      {step < 4 && (
+        <div className="mt-8 flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
+          {step > 0 && (
+             <button 
+               onClick={() => setStep(step - 1)}
+               className="text-slate-500 hover:text-slate-900 px-5 py-3 rounded-full font-bold text-sm transition-colors"
+             >
+               Atrás
+             </button>
           )}
-        </button>
-      </div>
+          <button 
+            onClick={handleNext}
+            disabled={isNextDisabled}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-7 py-3 rounded-full font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-amber-500 disabled:active:scale-100"
+          >
+            {isSubmitting ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <>
+                {step < 3 ? 'Siguiente' : 'Finalizar'}
+                {step < 3 ? <ChevronRight size={18} /> : <Check size={18} />}
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </ResponsiveModal>
   );
 }

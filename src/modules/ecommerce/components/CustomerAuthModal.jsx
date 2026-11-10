@@ -251,7 +251,7 @@ export default function CustomerAuthModal({
 
     const rawIdentifier = emailOrDoc.trim();
     if (!rawIdentifier || !password) {
-      setErrorMessage('Por favor ingresa tu correo (o cédula) y contraseña.');
+      setErrorMessage('Por favor ingresa tu correo electrónico y contraseña.');
       return;
     }
 
@@ -330,7 +330,7 @@ export default function CustomerAuthModal({
       if (onClose) onClose();
     } catch (err) {
       console.error('Error de login:', err);
-      let msg = 'Credenciales inválidas. Revisa tu correo/cédula y contraseña.';
+      let msg = 'Correo electrónico o contraseña incorrectos. Revisa tus datos.';
       if (err.message && err.message.includes('Invalid login credentials')) {
         msg = 'Correo electrónico o contraseña incorrectos.';
       }
@@ -731,19 +731,19 @@ export default function CustomerAuthModal({
                 </div>
               )}
 
-              {/* Campo Email o Cédula */}
+              {/* Campo Email */}
               <div>
                 <label className="block text-xs font-bold text-zinc-700 mb-1.5">
-                  {authMode === 'login' ? 'Correo Electrónico o Cédula' : 'Correo Electrónico'}
+                  Correo Electrónico
                 </label>
                 <div className="relative rounded-xl border border-zinc-200 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all bg-white shadow-xs">
                   <Mail size={16} className="text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input 
-                    type={authMode === 'login' ? 'text' : 'email'} 
+                    type="email" 
                     required
                     value={emailOrDoc}
                     onChange={(e) => setEmailOrDoc(e.target.value)}
-                    placeholder={authMode === 'login' ? 'tu@correo.com o V-12345678' : 'tu@correo.com'}
+                    placeholder="tu@correo.com"
                     className="w-full pl-10 pr-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 rounded-xl outline-none font-normal"
                     autoFocus={authMode === 'login'}
                   />
