@@ -182,17 +182,17 @@ export default function MarketplaceDirectory() {
   const [tempWorkspace, setTempWorkspace] = useState(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [merchantTermsAccepted, setMerchantTermsAccepted] = useState(false);
-  const [merchantForm, setMerchantForm] = useState({ 
+  const [merchantForm, setMerchantForm] = useState({
     ownerName: '',
     contactPhone: '',
     contactEmail: '',
-    businessName: '', 
+    businessName: '',
     description: '',
     logoFile: null,
     logoPreview: '',
     coverFile: null,
     coverPreview: '',
-    email: '', 
+    email: '',
     password: '',
     category: 'Víveres',
     scheduleActive: true,
@@ -282,7 +282,7 @@ export default function MarketplaceDirectory() {
   // Typewriter State
   const [typedCount, setTypedCount] = useState(0);
   const fullText = "Descubre comercios locales sin intermediarios.";
-  
+
   // BCV Rate State
   const [bcvRate, setBcvRate] = useState('...');
 
@@ -341,7 +341,7 @@ export default function MarketplaceDirectory() {
   const loadGlobalCart = () => {
     try {
       setGlobalCart(JSON.parse(localStorage.getItem('ecommerce_global_cart') || '{}'));
-    } catch(e) {}
+    } catch (e) { }
   };
 
   useEffect(() => {
@@ -355,16 +355,16 @@ export default function MarketplaceDirectory() {
         try {
           setStores(JSON.parse(cached));
           setLoading(false);
-        } catch(e) {}
+        } catch (e) { }
       }
-      
-      
+
+
       // Also fetch if there is a logged-in merchant
       const wsId = localStorage.getItem('activeWorkspace');
       const storeSlug = localStorage.getItem('storeSlug');
       if (wsId) {
-        supabase.from('workspaces').select('name').eq('id', wsId).single().then(({data}) => {
-           if (data) setCurrentMerchant({ id: wsId, slug: storeSlug, name: data.name });
+        supabase.from('workspaces').select('name').eq('id', wsId).single().then(({ data }) => {
+          if (data) setCurrentMerchant({ id: wsId, slug: storeSlug, name: data.name });
         });
       }
 
@@ -419,7 +419,7 @@ export default function MarketplaceDirectory() {
       } else {
         const saved = localStorage.getItem('ecommerce_current_customer');
         if (saved) {
-          try { setCurrentCustomer(JSON.parse(saved)); } catch(err) {}
+          try { setCurrentCustomer(JSON.parse(saved)); } catch (err) { }
         }
       }
     };
@@ -472,9 +472,9 @@ export default function MarketplaceDirectory() {
     try {
       // Limpiar cualquier sesión expirada (JWT) que haya quedado en caché antes de registrar
       await supabase.auth.signOut();
-      
+
       const authData = await registerUser(authForm.email, authForm.password, { name: authForm.name });
-      
+
       if (authData?.user?.identities && authData.user.identities.length === 0) {
         alert("Este correo ya está registrado en nuestra plataforma. Por favor, inicia sesión.");
         setAuthMode('login');
@@ -515,20 +515,20 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      const user = { 
-        ...newCustomer, 
-        docId: newCustomer.doc_id, 
-        addresses: [], 
-        payment_profile: [], 
-        favorites: [], 
-        wishlist: [], 
-        orders: [] 
+      const user = {
+        ...newCustomer,
+        docId: newCustomer.doc_id,
+        addresses: [],
+        payment_profile: [],
+        favorites: [],
+        wishlist: [],
+        orders: []
       };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
-      
+
       if (!user.phone || !user.doc_id || !user.address || !user.name || user.name === user.email.split('@')[0] || user.name === user.email) {
         setIsWizardOpen(true);
       } else if (pendingStoreSlug) {
@@ -592,7 +592,7 @@ export default function MarketplaceDirectory() {
           throw authErr;
         }
       }
-      
+
       let { data: customerData } = await supabase
         .from('ecommerce_customers')
         .select('*')
@@ -625,7 +625,7 @@ export default function MarketplaceDirectory() {
           try {
             const p = JSON.parse(customerData.payment_profile);
             safePaymentProfiles = Array.isArray(p) ? p : [p];
-          } catch(e){}
+          } catch (e) { }
         }
       }
 
@@ -634,7 +634,7 @@ export default function MarketplaceDirectory() {
         if (Array.isArray(customerData.addresses)) {
           safeAddresses = customerData.addresses;
         } else if (typeof customerData.addresses === 'string') {
-          try { safeAddresses = JSON.parse(customerData.addresses); } catch(e){}
+          try { safeAddresses = JSON.parse(customerData.addresses); } catch (e) { }
         }
       }
 
@@ -643,7 +643,7 @@ export default function MarketplaceDirectory() {
         if (Array.isArray(customerData.favorites)) {
           safeFavorites = customerData.favorites;
         } else if (typeof customerData.favorites === 'string') {
-          try { safeFavorites = JSON.parse(customerData.favorites); } catch(e){}
+          try { safeFavorites = JSON.parse(customerData.favorites); } catch (e) { }
         }
       }
 
@@ -669,12 +669,12 @@ export default function MarketplaceDirectory() {
         wishlist: [],
         orders: []
       };
-      
+
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(user));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(user);
       setIsAuthModalOpen(false);
-      
+
       const cleanPhone = (user.phone || '').replace(/\D/g, '');
       const cleanDoc = (user.docId || user.doc_id || '').replace(/\D/g, '');
       if (!user.name || user.name === user.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !user.address) {
@@ -693,12 +693,12 @@ export default function MarketplaceDirectory() {
     try {
       const base64Url = credentialResponse.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       const payload = JSON.parse(jsonPayload);
       const { email, name, picture } = payload;
-      
+
       if (!email) {
         alert('No se pudo obtener el email de Google');
         return;
@@ -717,14 +717,14 @@ export default function MarketplaceDirectory() {
       } catch (authErr) {
         console.warn('Supabase signInWithIdToken omitido o no configurado:', authErr);
       }
-      
+
       // Buscar cliente existente por email (insensible a mayúsculas/minúsculas)
       let { data: user } = await supabase
         .from('ecommerce_customers')
         .select('*')
         .ilike('email', cleanEmail)
         .maybeSingle();
-      
+
       let isNewUser = false;
       if (!user) {
         // Auto-creación de cuenta sin bloqueos ni errores
@@ -762,7 +762,7 @@ export default function MarketplaceDirectory() {
           body: { email: user.email, name: user.name }
         }).catch(e => console.error('Error sending welcome email:', e));
       }
-      
+
       let safePaymentProfiles = [];
       if (user?.payment_profile) {
         if (Array.isArray(user.payment_profile)) {
@@ -773,7 +773,7 @@ export default function MarketplaceDirectory() {
           try {
             const p = JSON.parse(user.payment_profile);
             safePaymentProfiles = Array.isArray(p) ? p : [p];
-          } catch(e){}
+          } catch (e) { }
         }
       }
 
@@ -782,27 +782,27 @@ export default function MarketplaceDirectory() {
         if (Array.isArray(user.addresses)) {
           safeAddresses = user.addresses;
         } else if (typeof user.addresses === 'string') {
-          try { safeAddresses = JSON.parse(user.addresses); } catch(e){}
+          try { safeAddresses = JSON.parse(user.addresses); } catch (e) { }
         }
       }
 
-      const mappedUser = { 
-        ...user, 
+      const mappedUser = {
+        ...user,
         auth_provider: 'google',
         is_verified: true,
         status: 'Activo',
-        docId: user.doc_id || user.docId || '', 
+        docId: user.doc_id || user.docId || '',
         addresses: safeAddresses,
         payment_profile: safePaymentProfiles,
         favorites: Array.isArray(user.favorites) ? user.favorites : [],
         wishlist: Array.isArray(user.wishlist) ? user.wishlist : [],
-        orders: [] 
+        orders: []
       };
       localStorage.setItem('ecommerce_current_customer', JSON.stringify(mappedUser));
       localStorage.removeItem('activeWorkspace');
       setCurrentCustomer(mappedUser);
       setIsAuthModalOpen(false);
-      
+
       // Verificar si requiere completar perfil (teléfono 11 dígitos, cédula 6 dígitos)
       const cleanPhone = (mappedUser.phone || '').replace(/\D/g, '');
       const cleanDoc = (mappedUser.doc_id || mappedUser.docId || '').replace(/\D/g, '');
@@ -825,18 +825,18 @@ export default function MarketplaceDirectory() {
     setMerchantLoading(true);
     try {
       const authData = await loginUser(merchantForm.email, merchantForm.password);
-      
+
       const { data: wsData, error } = await supabase
         .from('workspaces')
         .select('*')
         .eq('id', authData.user.id)
         .single();
-        
+
       if (error) throw new Error('No se encontró una tienda asociada a esta cuenta');
-      
+
       localStorage.setItem('activeWorkspace', wsData.id);
       localStorage.setItem('storeSlug', wsData.store_slug || '');
-      
+
       setTimeout(() => {
         navigate('/dashboard');
       }, 500);
@@ -851,8 +851,8 @@ export default function MarketplaceDirectory() {
     try {
       const base64Url = credentialResponse.credential.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       const payload = JSON.parse(jsonPayload);
       if (payload.email) {
@@ -939,15 +939,15 @@ export default function MarketplaceDirectory() {
           .from('workspaces')
           .select('name')
           .ilike('name', merchantForm.businessName.trim());
-          
+
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
           alert('Este nombre de negocio ya está registrado por otro comerciante. Por favor, elige uno diferente.');
           setMerchantLoading(false);
           return;
         }
-        
+
         setMerchantRegStep(3);
       } catch (err) {
         console.error('Error verificando nombre del negocio:', err);
@@ -1003,16 +1003,16 @@ export default function MarketplaceDirectory() {
     try {
       // Limpiar cualquier sesión expirada (JWT) que haya quedado en caché antes de registrar
       await supabase.auth.signOut();
-      
+
       const authData = await registerUser(merchantForm.email, merchantForm.password, { name: merchantForm.businessName });
-      
+
       if (authData?.user?.identities && authData.user.identities.length === 0) {
         alert("Este correo ya está registrado. Por favor, inicia sesión en lugar de crear una nueva cuenta.");
         setMerchantAuthMode('login');
         setMerchantLoading(false);
         return;
       }
-      
+
       const generatedSlug = merchantForm.businessName
         .toLowerCase()
         .normalize('NFD')
@@ -1032,7 +1032,7 @@ export default function MarketplaceDirectory() {
       });
       setMerchantMfaSecret(secret.base32);
       setMerchantMfaUrl(totp.toString());
-      
+
       const resolvedAddress = merchantForm.addressLine || [merchantForm.addressCity, merchantForm.addressState].filter(v => v && v !== 'Por definir').join(', ') || 'Venezuela';
       const resolvedDescription = merchantForm.description?.trim() || `Bienvenido a ${merchantForm.businessName}. Especialistas en ${merchantForm.category}. Calidad y atención garantizada.`;
 
@@ -1161,8 +1161,8 @@ export default function MarketplaceDirectory() {
         return;
       }
 
-      setTempWorkspace({ 
-        id: newWorkspace.id, 
+      setTempWorkspace({
+        id: newWorkspace.id,
         slug: generatedSlug,
         logoUrl: uploadedLogoUrl,
         coverUrl: uploadedCoverUrl
@@ -1213,7 +1213,7 @@ export default function MarketplaceDirectory() {
         period: 30,
         secret: OTPAuth.Secret.fromBase32(merchantMfaSecret)
       });
-      
+
       const delta = totp.validate({ token: merchantMfaCode, window: 10 });
       if (delta === null) throw new Error('Código 2FA inválido');
 
@@ -1279,7 +1279,7 @@ export default function MarketplaceDirectory() {
 
       const { error } = await supabase
         .from('workspaces')
-        .update({ 
+        .update({
           config: configPayload,
           latitude: merchantForm.gpsCoords?.lat || null,
           longitude: merchantForm.gpsCoords?.lng || null,
@@ -1312,7 +1312,7 @@ export default function MarketplaceDirectory() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       if (error) throw error;
-      
+
       alert('Se ha enviado un código de recuperación a tu correo electrónico para restablecer tu contraseña.');
       if (type === 'customer') setAuthMode('reset');
       else setMerchantAuthMode('reset');
@@ -1324,19 +1324,19 @@ export default function MarketplaceDirectory() {
   const handleResetPassword = async (e, type) => {
     e.preventDefault();
     const email = type === 'customer' ? authForm.email : merchantForm.email;
-    
+
     if (!newPassword) {
       return alert('Por favor ingresa la nueva contraseña.');
     }
 
     const cleanToken = (recoveryCode || '').trim().replace(/\s+/g, '');
-    
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
         if (!cleanToken) return alert('Por favor ingresa el código de recuperación que enviamos a tu correo.');
-        
+
         // Paso 1: Verificar el código OTP (acepta 6 u 8 dígitos según lo enviado por Supabase)
         const { error: verifyError } = await supabase.auth.verifyOtp({
           email,
@@ -1358,7 +1358,7 @@ export default function MarketplaceDirectory() {
           console.error("Error sincronizando contraseña en ecommerce_customers:", e);
         }
       }
-      
+
       alert('Contraseña actualizada con éxito. Por favor inicia sesión con tu nueva clave.');
       setRecoveryCode('');
       setNewPassword('');
@@ -1389,17 +1389,17 @@ export default function MarketplaceDirectory() {
       setIsAuthModalOpen(true);
       return;
     }
-    
+
     let favorites = Array.isArray(currentCustomer.favorites) ? currentCustomer.favorites : (typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
-    
+
     const targetSlug = store.store_slug || store.slug;
-    
+
     if (favorites.some(f => f.slug === targetSlug)) {
       favorites = favorites.filter(f => f.slug !== targetSlug);
     } else {
       favorites.push({ slug: targetSlug, name: store.name });
     }
-    
+
     const updatedUser = { ...currentCustomer, favorites };
     setCurrentCustomer(updatedUser);
     localStorage.setItem('ecommerce_current_customer', JSON.stringify(updatedUser));
@@ -1442,7 +1442,7 @@ export default function MarketplaceDirectory() {
       ? cfg.marketplaceCategories
       : (Array.isArray(cfg.categories) ? cfg.categories : (cfg.categories ? [cfg.categories] : []));
     const storeCats = [...rawMarketCats];
-    
+
     if (cfg.category) storeCats.push(cfg.category);
     if (cfg.rubro) storeCats.push(cfg.rubro);
     if (cfg.business_type) storeCats.push(cfg.business_type);
@@ -1457,7 +1457,7 @@ export default function MarketplaceDirectory() {
     if (!matchesCategory) {
       const activeCatObj = categories.find(c => c.id === activeCategory);
       const normalize = (str) => String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-      
+
       const searchTerms = [
         normalize(activeCategory),
         normalize(activeCatObj?.name),
@@ -1466,9 +1466,9 @@ export default function MarketplaceDirectory() {
 
       matchesCategory = storeCats.some(cat => {
         const cNorm = normalize(cat);
-        return searchTerms.some(term => 
-          cNorm === term || 
-          cNorm.includes(term) || 
+        return searchTerms.some(term =>
+          cNorm === term ||
+          cNorm.includes(term) ||
           term.includes(cNorm)
         );
       });
@@ -1478,8 +1478,8 @@ export default function MarketplaceDirectory() {
     const storeName = (store.name || '').toLowerCase();
     const searchLower = searchTerm.toLowerCase().trim();
 
-    const matchesSearch = !searchLower || 
-      storeName.includes(searchLower) || 
+    const matchesSearch = !searchLower ||
+      storeName.includes(searchLower) ||
       storeDesc.includes(searchLower);
 
     return matchesCategory && matchesSearch;
@@ -1503,7 +1503,7 @@ export default function MarketplaceDirectory() {
       const fallbackCover = DEFAULT_STORY_COVERS[idx % DEFAULT_STORY_COVERS.length];
       const media = primaryNews?.image_url || store.config?.coverUrl || store.config?.storefront?.heroUrl || store.config?.bannerUrl;
       const logo = store.config?.logoUrl || store.config?.storefront?.logoUrl;
-      
+
       if (media || logo || store.name) {
         list.push({
           id: store.id || store.store_slug,
@@ -1628,12 +1628,12 @@ export default function MarketplaceDirectory() {
 
     // Filtros de descubrimiento dinámicos
     if (discoveryFilter === 'ofertas') {
-      combined = combined.filter(p => 
+      combined = combined.filter(p =>
         (p.content && /oferta|descuento|rebaja|remate|%/i.test(p.content)) ||
         p.type === 'news'
       );
     } else if (discoveryFilter === 'promociones') {
-      combined = combined.filter(p => 
+      combined = combined.filter(p =>
         (p.content && /promo|promoción|combo|2x1|gratis/i.test(p.content)) ||
         p.type === 'news'
       );
@@ -1671,7 +1671,7 @@ export default function MarketplaceDirectory() {
   // Reiniciar visibleFeedCount cuando cambie categoría, filtro o búsqueda
   useEffect(() => {
     const hasPendingReturn = Boolean(
-      sessionStorage.getItem('axon_feed_target_post_id') || 
+      sessionStorage.getItem('axon_feed_target_post_id') ||
       sessionStorage.getItem('axon_directory_scroll_top')
     );
     if (!hasPendingReturn) {
@@ -1764,7 +1764,7 @@ export default function MarketplaceDirectory() {
   // Estado para prevenir el flasheo de la primera publicación al restaurar scroll
   const [isRestoringScroll, setIsRestoringScroll] = useState(() => {
     return Boolean(
-      sessionStorage.getItem('axon_feed_target_post_id') || 
+      sessionStorage.getItem('axon_feed_target_post_id') ||
       sessionStorage.getItem('axon_directory_scroll_top')
     );
   });
@@ -1927,14 +1927,14 @@ export default function MarketplaceDirectory() {
     const handleGlobalWheel = (e) => {
       // Si hay algún modal, drawer o menú abierto, permitir scroll libre dentro del modal
       if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
+        activeCommentsPost ||
+        isAuthModalOpen ||
+        isMerchantModalOpen ||
+        isStatusViewerOpen ||
+        isWizardOpen ||
+        isAnalyticsOpen ||
+        isVipModalOpen ||
+        isMobileMenuOpen ||
         isCartOpen
       ) {
         return;
@@ -1975,14 +1975,14 @@ export default function MarketplaceDirectory() {
 
     const handleKeyDown = (e) => {
       if (
-        activeCommentsPost || 
-        isAuthModalOpen || 
-        isMerchantModalOpen || 
-        isStatusViewerOpen || 
-        isWizardOpen || 
-        isAnalyticsOpen || 
-        isVipModalOpen || 
-        isMobileMenuOpen || 
+        activeCommentsPost ||
+        isAuthModalOpen ||
+        isMerchantModalOpen ||
+        isStatusViewerOpen ||
+        isWizardOpen ||
+        isAnalyticsOpen ||
+        isVipModalOpen ||
+        isMobileMenuOpen ||
         isCartOpen
       ) {
         return;
@@ -2017,634 +2017,629 @@ export default function MarketplaceDirectory() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [
-    activeCommentsPost, 
-    isAuthModalOpen, 
-    isMerchantModalOpen, 
-    isStatusViewerOpen, 
-    isWizardOpen, 
-    isAnalyticsOpen, 
-    isVipModalOpen, 
-    isMobileMenuOpen, 
+    activeCommentsPost,
+    isAuthModalOpen,
+    isMerchantModalOpen,
+    isStatusViewerOpen,
+    isWizardOpen,
+    isAnalyticsOpen,
+    isVipModalOpen,
+    isMobileMenuOpen,
     isCartOpen,
     feedPosts.length
   ]);
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div 
+      <div
         className="marketplace-screen-container min-h-screen bg-black text-white font-sans selection:bg-amber-500/30 relative overflow-hidden flex flex-col items-center w-full"
         style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
       >
-      {/* PWA Install Banner */}
-      <PwaInstallBanner />
-      
-      {/* Background ambient light for Desktop view */}
-      <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-amber-500/10 blur-[140px] rounded-full"></div>
-        <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[140px] rounded-full"></div>
-      </div>
+        {/* PWA Install Banner */}
+        <PwaInstallBanner />
 
-      {/* Lateral Izquierdo: Branding Decorativo Profesional AxonMarket */}
-      <div className="hidden lg:flex fixed left-6 xl:left-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
-        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
-        <div className="flex flex-col items-center gap-4 py-2">
-          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
-            <ShoppingBag size={18} className="stroke-[2.5]" />
-          </div>
-          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
-            AXON<span className="text-amber-600">MARKET</span>
-          </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
-            MARKETPLACE LOCAL
-          </span>
+        {/* Background ambient light for Desktop view */}
+        <div className="hidden md:block fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-amber-500/10 blur-[140px] rounded-full"></div>
+          <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/10 blur-[140px] rounded-full"></div>
         </div>
-        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
-      </div>
 
-      {/* Lateral Derecho: Branding Decorativo Profesional AxonMarket */}
-      <div className="hidden lg:flex fixed right-6 xl:right-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
-        <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
-        <div className="flex flex-col items-center gap-4 py-2">
-          <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
-            <ShoppingBag size={18} className="stroke-[2.5]" />
-          </div>
-          <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
-            AXON<span className="text-amber-600">MARKET</span>
-          </span>
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
-            VENEZUELA
-          </span>
-        </div>
-        <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
-      </div>
-
-      {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable (Estilo TikTok Transparente de Borde a Borde) */}
-      <div 
-        className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out ${
-          !isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
-        }`}
-      >
-        <header className="bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-3 pb-6 px-4 md:px-6">
-          <div className="w-full flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setIsMobileMenuOpen(true)} 
-                className="text-white/85 hover:text-white transition-colors p-1.5 -ml-1 rounded-lg hover:bg-white/10" 
-                title="Menú de opciones"
-              >
-                <MoreVertical size={22} strokeWidth={2.2} />
-              </button>
-              <div 
-                className="flex items-center gap-2 select-none cursor-pointer" 
-                onClick={() => { 
-                  sessionStorage.removeItem('axon_directory_scroll_top');
-                  sessionStorage.removeItem('axon_directory_visible_count');
-                  sessionStorage.removeItem('axon_feed_target_post_id');
-                  sessionStorage.removeItem('axon_feed_target_index');
-                  setActiveCategory('Todas'); 
-                  setSearchTerm(''); 
-                  setDiscoveryFilter('all'); 
-                  mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' }); 
-                  window.scrollTo({ top: 0, behavior: 'instant' }); 
-                  navigate('/explorar'); 
-                }}
-              >
-                <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
-                  <ShoppingBag size={16} className="stroke-[2.5]"/>
-                </div>
-                <span className="font-black text-lg tracking-[0.2em] text-white drop-shadow-md">AXON<span className="text-amber-500 font-bold">MARKET</span></span>
-              </div>
+        {/* Lateral Izquierdo: Branding Decorativo Profesional AxonMarket */}
+        <div className="hidden lg:flex fixed left-6 xl:left-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+          <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+              <ShoppingBag size={18} className="stroke-[2.5]" />
             </div>
+            <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+              AXON<span className="text-amber-600">MARKET</span>
+            </span>
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+            <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+              MARKETPLACE LOCAL
+            </span>
+          </div>
+          <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+        </div>
 
-            <div className="flex items-center gap-2">
-              {Object.keys(globalCart).length > 0 && (
+        {/* Lateral Derecho: Branding Decorativo Profesional AxonMarket */}
+        <div className="hidden lg:flex fixed right-6 xl:right-14 top-1/2 -translate-y-1/2 flex-col items-center gap-6 pointer-events-none select-none z-0">
+          <div className="w-[1.5px] h-28 bg-gradient-to-b from-transparent via-amber-500/50 to-amber-500"></div>
+          <div className="flex flex-col items-center gap-4 py-2">
+            <div className="w-9 h-9 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 shadow-sm backdrop-blur-md">
+              <ShoppingBag size={18} className="stroke-[2.5]" />
+            </div>
+            <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-black tracking-[0.4em] text-zinc-600 uppercase">
+              AXON<span className="text-amber-600">MARKET</span>
+            </span>
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+            <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] font-bold tracking-[0.3em] text-zinc-400 uppercase">
+              VENEZUELA
+            </span>
+          </div>
+          <div className="w-[1.5px] h-28 bg-gradient-to-t from-transparent via-amber-500/50 to-amber-500"></div>
+        </div>
+
+        {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable (Estilo TikTok Transparente de Borde a Borde) */}
+        <div
+          className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out ${!isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
+            }`}
+        >
+          <header className="bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-3 pb-6 px-4 md:px-6">
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsCartOpen(true)}
-                  className="relative p-1.5 text-white/85 hover:text-white transition-colors rounded-lg hover:bg-white/10"
-                  title="Ver mis carritos de compra"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="text-white/85 hover:text-white transition-colors p-1.5 -ml-1 rounded-lg hover:bg-white/10"
+                  title="Menú de opciones"
                 >
-                  <ShoppingCart size={20} />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-black shadow">
-                    {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
-                  </span>
+                  <MoreVertical size={22} strokeWidth={2.2} />
                 </button>
-              )}
-
-              {/* Botón de Perfil o Login (Oculto si ya existe sesión de comerciante activa) */}
-              {!hasMerchantAccess && (
-                currentCustomer ? (
-                  <button 
-                    onClick={() => navigate('/profile')} 
-                    className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all focus:outline-none group"
-                    title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
-                  >
-                    {currentCustomer.profile_pic ? (
-                      <img 
-                        src={resolveImageUrl(currentCustomer.profile_pic)} 
-                        alt="Perfil" 
-                        className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform" 
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-md group-hover:scale-105 transition-transform">
-                        {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }} 
-                    className="text-white/85 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 flex items-center"
-                    title="Iniciar Sesión"
-                  >
-                    <User size={20} strokeWidth={2} />
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Indicador de Categoría Activa */}
-        {activeCategory !== 'Todas' && (
-          <div className="mx-4 mt-1 px-4 py-2 bg-zinc-950/95 border border-amber-500/30 rounded-xl flex items-center justify-between shadow-md">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-              <span className="text-xs font-bold text-white">
-                Categoría: <span className="text-amber-400 font-black">{activeCategory}</span>
-              </span>
-            </div>
-            <button
-              onClick={() => setActiveCategory('Todas')}
-              className="text-xs font-bold text-amber-400 hover:text-amber-300 underline"
-            >
-              Mostrar todas
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Centered Mobile-First App Shell (Wider for Desktop - Snap Nativo Ultra Fluido) */}
-      <div 
-        ref={mainContainerRef} 
-        onScroll={handleScroll}
-        className={`marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none transition-opacity duration-150 ${isRestoringScroll ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
-        style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none', overscrollBehaviorY: 'none' }}
-      >
-        {/* Feed Principal de Publicaciones (Carga Progresiva Uno a Uno sin Saturación) */}
-        <ActiveFeedMediaProvider>
-          <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
-            {visibleFeedPosts.length === 0 ? (
-              <div className="w-full min-h-[calc(100dvh-140px)] flex flex-col items-center justify-center px-6 py-12 text-center select-none animate-fadeIn">
-                {/* Glow & Circular Badge */}
-                <div className="relative mb-5">
-                  <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full" />
-                  <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-b from-zinc-800 to-zinc-900 border border-white/10 shadow-2xl flex items-center justify-center text-amber-400">
-                    <ShoppingBag size={36} className="stroke-[1.8] text-amber-400" />
+                <div
+                  className="flex items-center gap-2 select-none cursor-pointer"
+                  onClick={() => {
+                    sessionStorage.removeItem('axon_directory_scroll_top');
+                    sessionStorage.removeItem('axon_directory_visible_count');
+                    sessionStorage.removeItem('axon_feed_target_post_id');
+                    sessionStorage.removeItem('axon_feed_target_index');
+                    setActiveCategory('Todas');
+                    setSearchTerm('');
+                    setDiscoveryFilter('all');
+                    mainContainerRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                    navigate('/explorar');
+                  }}
+                >
+                  <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.4)]">
+                    <ShoppingBag size={16} className="stroke-[2.5]" />
                   </div>
+                  <span className="font-black text-lg tracking-[0.2em] text-white drop-shadow-md">AXON<span className="text-amber-500 font-bold">MARKET</span></span>
                 </div>
+              </div>
 
-                {/* Titular */}
-                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight mb-2">
-                  {activeCategory !== 'Todas' 
-                    ? `Sin publicaciones en "${activeCategory}"` 
-                    : 'No hay publicaciones disponibles'}
-                </h3>
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-6">
-                  {activeCategory !== 'Todas'
-                    ? 'Los comercios de esta categoría aún no han publicado en el feed. Puedes ver todos los comercios o cambiar de categoría.'
-                    : 'Pronto verás novedades, estados y promociones de tus tiendas favoritas aquí.'}
-                </p>
+              <div className="flex items-center gap-2">
+                {Object.keys(globalCart).length > 0 && (
+                  <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="relative p-1.5 text-white/85 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                    title="Ver mis carritos de compra"
+                  >
+                    <ShoppingCart size={20} />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[9px] font-black flex items-center justify-center border border-black shadow">
+                      {Object.values(globalCart).reduce((sum, s) => sum + Object.values(s.items || {}).reduce((iSum, it) => iSum + (it.quantity || 1), 0), 0)}
+                    </span>
+                  </button>
+                )}
 
-                {/* Botones de Acción */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
-                  {activeCategory !== 'Todas' && (
-                    <button 
-                      type="button"
-                      onClick={() => setActiveCategory('Todas')} 
-                      className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                {/* Botón de Perfil o Login (Oculto si ya existe sesión de comerciante activa) */}
+                {!hasMerchantAccess && (
+                  currentCustomer ? (
+                    <button
+                      onClick={() => navigate('/profile')}
+                      className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-all focus:outline-none group"
+                      title={`Perfil de ${currentCustomer.name || currentCustomer.email || 'Usuario'}`}
                     >
-                      <Store size={16} />
-                      <span>Ver todas las publicaciones</span>
+                      {currentCustomer.profile_pic ? (
+                        <img
+                          src={resolveImageUrl(currentCustomer.profile_pic)}
+                          alt="Perfil"
+                          className="w-8 h-8 rounded-full object-cover border-2 border-amber-500 shadow-md group-hover:scale-105 transition-transform"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border-2 border-amber-300 shadow-md group-hover:scale-105 transition-transform">
+                          {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoriesOpen(true)}
-                    className="w-full py-2.5 px-4 bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Menu size={15} />
-                    <span>Explorar otras categorías</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              visibleFeedPosts.map((post, postIndex) => (
-                <SocialFeedCard
-                  key={post.id}
-                  feedIndex={postIndex}
-                  post={post}
-                  currentCustomer={currentCustomer}
-                  currentMerchant={currentMerchant}
-                  onOpenComments={(target) => setActiveCommentsPost(target)}
-                  onRequireAuth={() => setIsAuthModalOpen(true)}
-                  onNavigateStore={(slug, pId, fIdx) => handleNavigateToStore(slug, pId || post.id, fIdx ?? postIndex)}
-                  onCardVisible={handleCardVisible}
-                />
-              ))
-            )}
-
-            {/* Indicador de carga hacia abajo sin saltar para arriba */}
-            {visibleFeedCount < feedPosts.length && (
-              <div 
-                ref={feedSentinelRef} 
-                className="w-full py-10 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs select-none" 
-              >
-                <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                <span className="font-semibold text-[11px] tracking-wide text-zinc-400">Cargando más publicaciones...</span>
-              </div>
-            )}
-
-            {/* Tarjeta de Fin de Feed: '¡Estás al día!' (Evita rebotes y da cierre profesional al feed) */}
-            {visibleFeedPosts.length > 0 && visibleFeedCount >= feedPosts.length && (
-              <div 
-                className="tiktok-feed-item relative w-full h-[100dvh] snap-start shrink-0 bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col items-center justify-center p-6 text-center select-none"
-                style={{ contain: 'content' }}
-              >
-                <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-5 shadow-lg shadow-amber-500/10">
-                  <CheckCircle2 size={40} className="stroke-[2]" />
-                </div>
-
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mb-2">
-                  ¡Estás al día!
-                </h3>
-                
-                <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-8">
-                  Has visto todas las novedades y vitrinas disponibles en este momento. Vuelve pronto para descubrir nuevos estados y promociones.
-                </p>
-
-                <div className="flex flex-col gap-3 w-full max-w-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const c = mainContainerRef.current;
-                      if (c) {
-                        c.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
-                    className="w-full py-3.5 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <span>Volver al inicio</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsCategoriesOpen(true)}
-                    className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Menu size={15} />
-                    <span>Explorar otras categorías</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </ActiveFeedMediaProvider>
-      </div>
-
-      {/* Botón flotante en esquina izquierda (Ultra ligero a 60-120 FPS, sin lag en capturas) */}
-      <button
-        onClick={() => {
-          isNavOpenRef.current = true;
-          setIsBottomNavOpen(true);
-        }}
-        className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-lg active:scale-90 hover:scale-105 transition-transform duration-150 ${
-          !isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-        }`}
-        style={{
-          background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-          border: '2px solid rgba(255, 255, 255, 0.85)',
-          boxShadow: '0 6px 20px rgba(234, 88, 12, 0.45)'
-        }}
-        title="Abrir menú"
-        aria-label="Abrir menú de navegación"
-      >
-        <ShoppingBag size={22} className="stroke-[2.5] text-white" />
-        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
-        </span>
-      </button>
-
-      {/* Bottom Navigation Bar - Sólido optimizado (Cero lag de GPU en screenshots, 60-120 FPS fluidos) */}
-      <div 
-        className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-transform duration-150 ease-out ${
-          isBottomNavOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backgroundColor: 'rgba(12, 12, 14, 0.96)',
-          border: '1px solid rgba(255, 255, 255, 0.16)',
-          boxShadow: '0 12px 35px rgba(0, 0, 0, 0.7)'
-        }}
-      >
-        <div className="flex justify-between items-center h-16 px-2 relative">
-          <button 
-            onClick={() => { 
-              sessionStorage.removeItem('axon_directory_scroll_top');
-              sessionStorage.removeItem('axon_directory_visible_count');
-              sessionStorage.removeItem('axon_feed_target_post_id');
-              sessionStorage.removeItem('axon_feed_target_index');
-              const c = mainContainerRef.current;
-              if (c) {
-                c.scrollTop = 0;
-                try {
-                  c.scrollTo({ top: 0, behavior: 'smooth' });
-                } catch (e) {}
-                const firstCard = c.querySelector('.tiktok-feed-item');
-                if (firstCard) {
-                  firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-              isNavOpenRef.current = true;
-              setIsBottomNavOpen(true); 
-            }}
-            className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
-          >
-            <Home size={22} fill="currentColor" />
-            <span className="text-[10px] font-bold text-amber-400">Inicio</span>
-          </button>
-          
-          <button onClick={() => {
-            setIsCategoriesOpen(true);
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
-            <Menu size={22} className="text-white group-hover:text-amber-400 transition-colors" />
-            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Categorías</span>
-          </button>
-
-          {/* Botón Central - Club VIP */}
-          <div className="flex-1 flex justify-center relative -top-6">
-            <div 
-              onClick={() => setIsVipModalOpen(true)} 
-              className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.45)] ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
-              title="Club VIP · Zona VIP Próximamente"
-            >
-              <ShoppingBag size={24} className="stroke-[2.5] text-white group-hover:scale-110 transition-transform" />
-              <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
-                VIP
-              </span>
-            </div>
-          </div>
-
-          {/* Botón de Favoritos (Para Clientes) o Panel Admin (Para Comerciantes) */}
-          {hasMerchantAccess ? (
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-orange-400 cursor-pointer group"
-              title="Panel Administrador"
-            >
-              <LayoutDashboard size={22} className="text-orange-500 group-hover:scale-110 transition-transform stroke-[2.2]" />
-              <span className="text-[10px] font-bold text-orange-400 transition-colors">Panel Admin</span>
-            </button>
-          ) : (
-            <button onClick={() => {
-              if (!currentCustomer) { 
-                setAuthMode('login'); 
-                setIsAuthModalOpen(true); 
-              } else {
-                navigate('/profile', { state: { tab: 'favoritas' } });
-              }
-            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
-              <Heart size={22} className="text-white group-hover:text-amber-400 transition-colors" />
-              <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Favoritos</span>
-            </button>
-          )}
-
-          <button onClick={() => {
-            navigate('/mapa');
-          }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
-            <MapPin size={22} className="text-white group-hover:text-amber-400 transition-colors" />
-            <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Mapa</span>
-          </button>
-
-          {/* Botón para cerrar la barra al instante y liberar pantalla */}
-          <button
-            onClick={() => setIsBottomNavOpen(false)}
-            className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-white hover:text-amber-400 transition-colors"
-            style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
-            title="Ocultar menú"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Modal Visor de Estados / Historias de Comerciantes estilo WhatsApp */}
-      <MerchantStatusViewerModal
-        isOpen={isStatusViewerOpen}
-        onClose={() => setIsStatusViewerOpen(false)}
-        statuses={merchantStatuses}
-        initialIndex={activeStatusIndex}
-        onNavigateStore={(slug) => handleNavigateToStore(slug)}
-      />
-
-      {/* Cart Slide-over */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <div className="fixed inset-0 z-[100] flex justify-end">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-              className="absolute inset-0 bg-black/90" onClick={() => setIsCartOpen(false)}
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-              className="bg-zinc-50 border-l border-zinc-200 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col"
-            >
-              <div className="p-6 border-b border-black/5 flex items-center justify-between bg-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100">
-                    <ShoppingCart className="text-amber-500" size={20} />
-                  </div>
-                  <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mis Carritos</h2>
-                </div>
-                <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-zinc-50">
-                {Object.keys(globalCart).length === 0 ? (
-                  <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
-                      <ShoppingBag size={48} className="text-zinc-700" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
-                    <p className="text-zinc-600 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
-                    <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-zinc-900 bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {Object.entries(globalCart).map(([storeSlug, storeData]) => (
-                      <div key={storeSlug} className="bg-white rounded-[24px] p-5 border border-black/5 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-center justify-between mb-5 border-b border-black/5 pb-4">
-                          <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-500">
-                              <Store size={16} />
-                            </div>
-                            {storeData.storeName}
-                          </h4>
-                          <button onClick={() => {
-                            const gc = {...globalCart};
-                            delete gc[storeSlug];
-                            setGlobalCart(gc);
-                            localStorage.setItem('ecommerce_global_cart', JSON.stringify(gc));
-                            window.dispatchEvent(new Event('cart_updated'));
-                          }} className="text-[10px] text-red-500 hover:text-red-600 font-bold tracking-[0.1em] uppercase transition-colors bg-red-50 px-3 py-1.5 rounded-full">Vaciar</button>
-                        </div>
-                        <div className="space-y-4">
-                          {Object.values(storeData.items).map(item => (
-                            <div key={item.id} className="flex gap-4">
-                              <div className="w-16 h-16 bg-zinc-50 rounded-2xl border border-black/5 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
-                                {item.imageUrl ? (
-                                  <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <Package size={20} className="text-zinc-500" />
-                                )}
-                              </div>
-                              <div className="flex-1 flex flex-col justify-center">
-                                <h5 className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{item.name}</h5>
-                                <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-600 font-medium ml-1">x {item.quantity}</span></div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <button onClick={() => handleNavigateToStore(storeSlug)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
-                          Completar Pedido <ArrowRight size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  ) : (
+                    <button
+                      onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }}
+                      className="text-white/85 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 flex items-center"
+                      title="Iniciar Sesión"
+                    >
+                      <User size={20} strokeWidth={2} />
+                    </button>
+                  )
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+          </header>
 
-      {/* Categories Slide-over / Modal (Responsive: Slide-over on Mobile, Centered Modal on Desktop) */}
-      <AnimatePresence>
-        {isCategoriesOpen && (
-          <div className="fixed inset-0 z-[100] flex justify-start md:items-center md:justify-center p-0 md:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
-              className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setIsCategoriesOpen(false)}
-            />
-            <motion.div 
-              initial={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: isMobile ? 1 : 0 }}
-              animate={{ x: 0, scale: 1, opacity: 1 }}
-              exit={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="bg-white border border-zinc-200 w-full max-w-[88%] md:max-w-3xl h-full md:h-auto md:max-h-[85vh] md:rounded-3xl relative z-10 shadow-2xl flex flex-col overflow-hidden"
-            >
-              <div className="p-5 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/70">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 text-amber-600">
-                    <Menu size={20} />
+          {/* Indicador de Categoría Activa */}
+          {activeCategory !== 'Todas' && (
+            <div className="mx-4 mt-1 px-4 py-2 bg-zinc-950/95 border border-amber-500/30 rounded-xl flex items-center justify-between shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span className="text-xs font-bold text-white">
+                  Categoría: <span className="text-amber-400 font-black">{activeCategory}</span>
+                </span>
+              </div>
+              <button
+                onClick={() => setActiveCategory('Todas')}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 underline"
+              >
+                Mostrar todas
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Centered Mobile-First App Shell (Wider for Desktop - Snap Nativo Ultra Fluido) */}
+        <div
+          ref={mainContainerRef}
+          onScroll={handleScroll}
+          className={`marketplace-app-shell w-full max-w-md md:max-w-2xl lg:max-w-[720px] h-[100dvh] bg-black flex flex-col relative z-10 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory touch-pan-y overscroll-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-none shadow-none transition-opacity duration-150 ${isRestoringScroll ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          style={{ border: 'none', borderColor: '#000000', outline: 'none', boxShadow: 'none', overscrollBehaviorY: 'none' }}
+        >
+          {/* Feed Principal de Publicaciones (Carga Progresiva Uno a Uno sin Saturación) */}
+          <ActiveFeedMediaProvider>
+            <div className="flex flex-col space-y-0 px-0 py-0 m-0 w-full bg-black overflow-x-hidden">
+              {visibleFeedPosts.length === 0 ? (
+                <div className="w-full min-h-[calc(100dvh-140px)] flex flex-col items-center justify-center px-6 py-12 text-center select-none animate-fadeIn">
+                  {/* Glow & Circular Badge */}
+                  <div className="relative mb-5">
+                    <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full" />
+                    <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-b from-zinc-800 to-zinc-900 border border-white/10 shadow-2xl flex items-center justify-center text-amber-400">
+                      <ShoppingBag size={36} className="stroke-[1.8] text-amber-400" />
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">Departamentos y Categorías</h2>
-                    <p className="text-xs text-zinc-500 hidden md:block">Selecciona un departamento para filtrar los comercios disponibles</p>
+
+                  {/* Titular */}
+                  <h3 className="text-lg sm:text-xl font-black text-white tracking-tight mb-2">
+                    {activeCategory !== 'Todas'
+                      ? `Sin publicaciones en "${activeCategory}"`
+                      : 'No hay publicaciones disponibles'}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-6">
+                    {activeCategory !== 'Todas'
+                      ? 'Los comercios de esta categoría aún no han publicado en el feed. Puedes ver todos los comercios o cambiar de categoría.'
+                      : 'Pronto verás novedades, estados y promociones de tus tiendas favoritas aquí.'}
+                  </p>
+
+                  {/* Botones de Acción */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
+                    {activeCategory !== 'Todas' && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategory('Todas')}
+                        className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Store size={16} />
+                        <span>Ver todas las publicaciones</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoriesOpen(true)}
+                      className="w-full py-2.5 px-4 bg-zinc-900/90 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Menu size={15} />
+                      <span>Explorar otras categorías</span>
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {activeCategory !== 'Todas' && (
-                    <button 
-                      onClick={() => { setActiveCategory('Todas'); setIsCategoriesOpen(false); }}
-                      className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors"
+              ) : (
+                visibleFeedPosts.map((post, postIndex) => (
+                  <SocialFeedCard
+                    key={post.id}
+                    feedIndex={postIndex}
+                    post={post}
+                    currentCustomer={currentCustomer}
+                    currentMerchant={currentMerchant}
+                    onOpenComments={(target) => setActiveCommentsPost(target)}
+                    onRequireAuth={() => setIsAuthModalOpen(true)}
+                    onNavigateStore={(slug, pId, fIdx) => handleNavigateToStore(slug, pId || post.id, fIdx ?? postIndex)}
+                    onCardVisible={handleCardVisible}
+                  />
+                ))
+              )}
+
+              {/* Indicador de carga hacia abajo sin saltar para arriba */}
+              {visibleFeedCount < feedPosts.length && (
+                <div
+                  ref={feedSentinelRef}
+                  className="w-full py-10 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs select-none"
+                >
+                  <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                  <span className="font-semibold text-[11px] tracking-wide text-zinc-400">Cargando más publicaciones...</span>
+                </div>
+              )}
+
+              {/* Tarjeta de Fin de Feed: '¡Estás al día!' (Evita rebotes y da cierre profesional al feed) */}
+              {visibleFeedPosts.length > 0 && visibleFeedCount >= feedPosts.length && (
+                <div
+                  className="tiktok-feed-item relative w-full h-[100dvh] snap-start shrink-0 bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col items-center justify-center p-6 text-center select-none"
+                  style={{ contain: 'content' }}
+                >
+                  <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-5 shadow-lg shadow-amber-500/10">
+                    <CheckCircle2 size={40} className="stroke-[2]" />
+                  </div>
+
+                  <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight mb-2">
+                    ¡Estás al día!
+                  </h3>
+
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-xs leading-relaxed mb-8">
+                    Has visto todas las novedades y vitrinas disponibles en este momento. Vuelve pronto para descubrir nuevos estados y promociones.
+                  </p>
+
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const c = mainContainerRef.current;
+                        if (c) {
+                          c.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className="w-full py-3.5 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-slate-950 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
                     >
-                      Limpiar filtro
+                      <span>Volver al inicio</span>
                     </button>
-                  )}
-                  <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full p-2 transition-all">
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoriesOpen(true)}
+                      className="w-full py-3 px-4 bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-white font-bold text-xs rounded-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Menu size={15} />
+                      <span>Explorar otras categorías</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </ActiveFeedMediaProvider>
+        </div>
+
+        {/* Botón flotante en esquina izquierda (Ultra ligero a 60-120 FPS, sin lag en capturas) */}
+        <button
+          onClick={() => {
+            isNavOpenRef.current = true;
+            setIsBottomNavOpen(true);
+          }}
+          className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-lg active:scale-90 hover:scale-105 transition-transform duration-150 ${!isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+            }`}
+          style={{
+            background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
+            border: '2px solid rgba(255, 255, 255, 0.85)',
+            boxShadow: '0 6px 20px rgba(234, 88, 12, 0.45)'
+          }}
+          title="Abrir menú"
+          aria-label="Abrir menú de navegación"
+        >
+          <ShoppingBag size={22} className="stroke-[2.5] text-white" />
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
+          </span>
+        </button>
+
+        {/* Bottom Navigation Bar - Sólido optimizado (Cero lag de GPU en screenshots, 60-120 FPS fluidos) */}
+        <div
+          className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-transform duration-150 ease-out ${isBottomNavOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
+            }`}
+          style={{
+            backgroundColor: 'rgba(12, 12, 14, 0.96)',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            boxShadow: '0 12px 35px rgba(0, 0, 0, 0.7)'
+          }}
+        >
+          <div className="flex justify-between items-center h-16 px-2 relative">
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('axon_directory_scroll_top');
+                sessionStorage.removeItem('axon_directory_visible_count');
+                sessionStorage.removeItem('axon_feed_target_post_id');
+                sessionStorage.removeItem('axon_feed_target_index');
+                const c = mainContainerRef.current;
+                if (c) {
+                  c.scrollTop = 0;
+                  try {
+                    c.scrollTo({ top: 0, behavior: 'smooth' });
+                  } catch (e) { }
+                  const firstCard = c.querySelector('.tiktok-feed-item');
+                  if (firstCard) {
+                    firstCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                isNavOpenRef.current = true;
+                setIsBottomNavOpen(true);
+              }}
+              className="flex-1 flex flex-col items-center gap-1 p-2 text-amber-400 cursor-pointer"
+            >
+              <Home size={22} fill="currentColor" />
+              <span className="text-[10px] font-bold text-amber-400">Inicio</span>
+            </button>
+
+            <button onClick={() => {
+              setIsCategoriesOpen(true);
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+              <Menu size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+              <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Categorías</span>
+            </button>
+
+            {/* Botón Central - Club VIP */}
+            <div className="flex-1 flex justify-center relative -top-6">
+              <div
+                onClick={() => setIsVipModalOpen(true)}
+                className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.45)] ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all group"
+                title="Club VIP · Zona VIP Próximamente"
+              >
+                <ShoppingBag size={24} className="stroke-[2.5] text-white group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
+                  VIP
+                </span>
+              </div>
+            </div>
+
+            {/* Botón de Favoritos (Para Clientes) o Panel Admin (Para Comerciantes) */}
+            {hasMerchantAccess ? (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-orange-400 cursor-pointer group"
+                title="Panel Administrador"
+              >
+                <LayoutDashboard size={22} className="text-orange-500 group-hover:scale-110 transition-transform stroke-[2.2]" />
+                <span className="text-[10px] font-bold text-orange-400 transition-colors">Panel Admin</span>
+              </button>
+            ) : (
+              <button onClick={() => {
+                if (!currentCustomer) {
+                  setAuthMode('login');
+                  setIsAuthModalOpen(true);
+                } else {
+                  navigate('/profile', { state: { tab: 'favoritas' } });
+                }
+              }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+                <Heart size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+                <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Favoritos</span>
+              </button>
+            )}
+
+            <button onClick={() => {
+              navigate('/mapa');
+            }} className="flex-1 flex flex-col items-center gap-1 p-2 text-white hover:text-amber-400 cursor-pointer group">
+              <MapPin size={22} className="text-white group-hover:text-amber-400 transition-colors" />
+              <span className="text-[10px] font-bold text-white group-hover:text-amber-400 transition-colors">Mapa</span>
+            </button>
+
+            {/* Botón para cerrar la barra al instante y liberar pantalla */}
+            <button
+              onClick={() => setIsBottomNavOpen(false)}
+              className="absolute -top-3 -right-2 w-7 h-7 rounded-full border border-white/25 flex items-center justify-center shadow-lg cursor-pointer text-white hover:text-amber-400 transition-colors"
+              style={{ backgroundColor: 'rgba(24, 24, 27, 0.95)' }}
+              title="Ocultar menú"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Visor de Estados / Historias de Comerciantes estilo WhatsApp */}
+        <MerchantStatusViewerModal
+          isOpen={isStatusViewerOpen}
+          onClose={() => setIsStatusViewerOpen(false)}
+          statuses={merchantStatuses}
+          initialIndex={activeStatusIndex}
+          onNavigateStore={(slug) => handleNavigateToStore(slug)}
+        />
+
+        {/* Cart Slide-over */}
+        <AnimatePresence>
+          {isCartOpen && (
+            <div className="fixed inset-0 z-[100] flex justify-end">
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
+                className="absolute inset-0 bg-black/90" onClick={() => setIsCartOpen(false)}
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 200 }}
+                className="bg-zinc-50 border-l border-zinc-200 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col"
+              >
+                <div className="p-6 border-b border-black/5 flex items-center justify-between bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100">
+                      <ShoppingCart className="text-amber-500" size={20} />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mis Carritos</h2>
+                  </div>
+                  <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
                     <X size={20} />
                   </button>
                 </div>
-              </div>
 
-              <div className="flex-1 overflow-y-auto p-5 md:p-6 scrollbar-hide">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4">
-                  {categories.map((cat) => {
-                    const isActive = activeCategory === cat.id;
-                    const IconComponent = cat.icon;
-                    return (
-                      <div 
-                        key={cat.id} 
-                        onClick={() => { 
-                          setActiveCategory(cat.id); 
-                          setIsCategoriesOpen(false); 
-                          window.scrollTo({ top: 0, behavior: 'smooth' }); 
-                        }} 
-                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all cursor-pointer text-center group ${
-                          isActive 
-                            ? 'bg-amber-500/10 border-amber-500 text-amber-600 shadow-sm' 
-                            : 'bg-zinc-50/80 border-zinc-200/80 hover:bg-amber-50/40 hover:border-amber-300 text-zinc-700'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${
-                          isActive ? 'bg-amber-500 text-black shadow-xs' : 'bg-white border border-zinc-200 text-zinc-600 group-hover:text-amber-600 shadow-2xs'
-                        }`}>
-                          <IconComponent size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-                        </div>
-                        <span className="text-xs font-bold leading-tight line-clamp-1">{cat.name}</span>
+                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-zinc-50">
+                  {Object.keys(globalCart).length === 0 ? (
+                    <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
+                      <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
+                        <ShoppingBag size={48} className="text-zinc-700" />
                       </div>
-                    );
-                  })}
+                      <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
+                      <p className="text-zinc-600 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
+                      <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-zinc-900 bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {Object.entries(globalCart).map(([storeSlug, storeData]) => (
+                        <div key={storeSlug} className="bg-white rounded-[24px] p-5 border border-black/5 shadow-sm hover:shadow-md transition-all">
+                          <div className="flex items-center justify-between mb-5 border-b border-black/5 pb-4">
+                            <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-500">
+                                <Store size={16} />
+                              </div>
+                              {storeData.storeName}
+                            </h4>
+                            <button onClick={() => {
+                              const gc = { ...globalCart };
+                              delete gc[storeSlug];
+                              setGlobalCart(gc);
+                              localStorage.setItem('ecommerce_global_cart', JSON.stringify(gc));
+                              window.dispatchEvent(new Event('cart_updated'));
+                            }} className="text-[10px] text-red-500 hover:text-red-600 font-bold tracking-[0.1em] uppercase transition-colors bg-red-50 px-3 py-1.5 rounded-full">Vaciar</button>
+                          </div>
+                          <div className="space-y-4">
+                            {Object.values(storeData.items).map(item => (
+                              <div key={item.id} className="flex gap-4">
+                                <div className="w-16 h-16 bg-zinc-50 rounded-2xl border border-black/5 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
+                                  {item.imageUrl ? (
+                                    <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Package size={20} className="text-zinc-500" />
+                                  )}
+                                </div>
+                                <div className="flex-1 flex flex-col justify-center">
+                                  <h5 className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{item.name}</h5>
+                                  <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-600 font-medium ml-1">x {item.quantity}</span></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <button onClick={() => handleNavigateToStore(storeSlug)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                            Completar Pedido <ArrowRight size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-      <CustomerAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        initialMode={authMode || 'login'}
-        onSuccess={(user) => {
-          setCurrentCustomer(user);
-          setIsAuthModalOpen(false);
-          const cleanPhone = (user.phone || '').replace(/\D/g, '');
-          const cleanDoc = (user.docId || user.doc_id || '').replace(/\D/g, '');
-          if (!user.name || user.name === user.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !user.address) {
-            setIsWizardOpen(true);
-          } else if (pendingStoreSlug) {
-            navigate(`/${pendingStoreSlug}`);
-            setPendingStoreSlug(null);
-          }
-        }}
-      />
+        {/* Categories Slide-over / Modal (Responsive: Slide-over on Mobile, Centered Modal on Desktop) */}
+        <AnimatePresence>
+          {isCategoriesOpen && (
+            <div className="fixed inset-0 z-[100] flex justify-start md:items-center md:justify-center p-0 md:p-6">
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+                className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setIsCategoriesOpen(false)}
+              />
+              <motion.div
+                initial={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: isMobile ? 1 : 0 }}
+                animate={{ x: 0, scale: 1, opacity: 1 }}
+                exit={{ x: isMobile ? '-100%' : 0, scale: isMobile ? 1 : 0.95, opacity: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                className="bg-white border border-zinc-200 w-full max-w-[88%] md:max-w-3xl h-full md:h-auto md:max-h-[85vh] md:rounded-3xl relative z-10 shadow-2xl flex flex-col overflow-hidden"
+              >
+                <div className="p-5 md:p-6 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/70">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center border border-amber-500/20 text-amber-600">
+                      <Menu size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg md:text-xl font-bold text-zinc-900 tracking-tight">Departamentos y Categorías</h2>
+                      <p className="text-xs text-zinc-500 hidden md:block">Selecciona un departamento para filtrar los comercios disponibles</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {activeCategory !== 'Todas' && (
+                      <button
+                        onClick={() => { setActiveCategory('Todas'); setIsCategoriesOpen(false); }}
+                        className="text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-xl transition-colors"
+                      >
+                        Limpiar filtro
+                      </button>
+                    )}
+                    <button onClick={() => setIsCategoriesOpen(false)} className="text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-full p-2 transition-all">
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
 
-      <VipZoneModal
-        isOpen={isVipModalOpen}
-        onClose={() => setIsVipModalOpen(false)}
-        currentCustomer={currentCustomer}
-      />
+                <div className="flex-1 overflow-y-auto p-5 md:p-6 scrollbar-hide">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 mb-4">
+                    {categories.map((cat) => {
+                      const isActive = activeCategory === cat.id;
+                      const IconComponent = cat.icon;
+                      return (
+                        <div
+                          key={cat.id}
+                          onClick={() => {
+                            setActiveCategory(cat.id);
+                            setIsCategoriesOpen(false);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }}
+                          className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border transition-all cursor-pointer text-center group ${isActive
+                              ? 'bg-amber-500/10 border-amber-500 text-amber-600 shadow-sm'
+                              : 'bg-zinc-50/80 border-zinc-200/80 hover:bg-amber-50/40 hover:border-amber-300 text-zinc-700'
+                            }`}
+                        >
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${isActive ? 'bg-amber-500 text-black shadow-xs' : 'bg-white border border-zinc-200 text-zinc-600 group-hover:text-amber-600 shadow-2xs'
+                            }`}>
+                            <IconComponent size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                          </div>
+                          <span className="text-xs font-bold leading-tight line-clamp-1">{cat.name}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
-      {isMerchantModalOpen && (merchantAuthMode === 'register' || merchantAuthMode === 'login') && merchantRegStep === 1 ? (
-        <MerchantTrialAuthModal 
-          isOpen={true} 
-          onClose={() => setIsMerchantModalOpen(false)} 
-          initialMode={merchantAuthMode} 
+        <CustomerAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          initialMode={authMode || 'login'}
+          onSuccess={(user) => {
+            setCurrentCustomer(user);
+            setIsAuthModalOpen(false);
+            const cleanPhone = (user.phone || '').replace(/\D/g, '');
+            const cleanDoc = (user.docId || user.doc_id || '').replace(/\D/g, '');
+            if (!user.name || user.name === user.email?.split('@')[0] || cleanPhone.length < 11 || cleanDoc.length < 6 || !user.address) {
+              setIsWizardOpen(true);
+            } else if (pendingStoreSlug) {
+              navigate(`/${pendingStoreSlug}`);
+              setPendingStoreSlug(null);
+            }
+          }}
         />
-      ) : isMerchantModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-slate-200 animate-in zoom-in-95 duration-150">
+
+        <VipZoneModal
+          isOpen={isVipModalOpen}
+          onClose={() => setIsVipModalOpen(false)}
+          currentCustomer={currentCustomer}
+        />
+
+        {isMerchantModalOpen && (merchantAuthMode === 'register' || merchantAuthMode === 'login') && merchantRegStep === 1 ? (
+          <MerchantTrialAuthModal
+            isOpen={true}
+            onClose={() => setIsMerchantModalOpen(false)}
+            initialMode={merchantAuthMode}
+          />
+        ) : isMerchantModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => !merchantLoading && setIsMerchantModalOpen(false)} />
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg relative z-10 overflow-y-auto max-h-[95vh] scrollbar-hide border border-slate-200 animate-in zoom-in-95 duration-150">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-400 to-amber-600"></div>
-              
+
               <div className="p-8 pb-6 flex items-center justify-between border-b border-slate-100">
                 <div>
                   <div className="flex items-center gap-4 mb-2">
@@ -2670,22 +2665,20 @@ export default function MarketplaceDirectory() {
                     <button
                       type="button"
                       onClick={() => setMerchantAuthMode('register')}
-                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
-                        merchantAuthMode === 'register'
+                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${merchantAuthMode === 'register'
                           ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                           : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       Crear Tienda
                     </button>
                     <button
                       type="button"
                       onClick={() => setMerchantAuthMode('login')}
-                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${
-                        (merchantAuthMode === 'login' || merchantAuthMode === 'recover' || merchantAuthMode === 'reset')
+                      className={`flex-1 py-3 rounded-full text-xs font-bold tracking-widest uppercase transition-all ${(merchantAuthMode === 'login' || merchantAuthMode === 'recover' || merchantAuthMode === 'reset')
                           ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                           : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       Iniciar Sesión
                     </button>
@@ -2697,7 +2690,7 @@ export default function MarketplaceDirectory() {
                 <form onSubmit={(e) => merchantAuthMode === 'recover' ? handleRecoverPassword(e, 'merchant') : handleResetPassword(e, 'merchant')} className="p-8 pt-4 space-y-5">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico Administrador</label>
-                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} disabled={merchantAuthMode === 'reset'} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
+                    <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({ ...merchantForm, email: e.target.value })} disabled={merchantAuthMode === 'reset'} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
                   </div>
                   {merchantAuthMode === 'reset' && (
                     <>
@@ -2708,17 +2701,17 @@ export default function MarketplaceDirectory() {
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nueva Contraseña</label>
                         <div className="relative">
-                          <input 
-                            type={showNewPassword ? "text" : "password"} 
-                            required 
-                            value={newPassword} 
-                            onChange={e => setNewPassword(e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" 
-                            placeholder="••••••••" 
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            required
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm"
+                            placeholder="••••••••"
                           />
-                          <button 
-                            type="button" 
-                            onClick={() => setShowNewPassword(!showNewPassword)} 
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors p-1"
                             title={showNewPassword ? "Ocultar contraseña" : "Ver contraseña"}
                           >
@@ -2739,18 +2732,18 @@ export default function MarketplaceDirectory() {
                 </form>
               ) : (
                 <form onSubmit={merchantAuthMode === 'register' ? (
-                  merchantRegStep === 1 ? handleMerchantRegisterStep1 : 
-                  merchantRegStep === 2 ? handleMerchantRegisterStep2 : 
-                  merchantRegStep === 3 ? handleMerchantRegisterStep3 : 
-                  merchantRegStep === 4 ? handleMerchantRegisterStep4 : 
-                  merchantRegStep === 5 ? handleMerchantRegisterStep5 : 
-                  handleMerchantVerify2FA
+                  merchantRegStep === 1 ? handleMerchantRegisterStep1 :
+                    merchantRegStep === 2 ? handleMerchantRegisterStep2 :
+                      merchantRegStep === 3 ? handleMerchantRegisterStep3 :
+                        merchantRegStep === 4 ? handleMerchantRegisterStep4 :
+                          merchantRegStep === 5 ? handleMerchantRegisterStep5 :
+                            handleMerchantVerify2FA
                 ) : handleMerchantLogin} className="p-8 pt-4 space-y-5">
                   {merchantAuthMode === 'register' ? (
                     merchantRegStep === 7 ? (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center space-y-6 py-12">
                         <Loader2 className="animate-spin text-amber-500" size={64} />
-                        <motion.h3 
+                        <motion.h3
                           key={loadingTextIndex}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -2761,63 +2754,63 @@ export default function MarketplaceDirectory() {
                         </motion.h3>
                       </motion.div>
                     ) : (
-                    <>
-                      {merchantRegStep === 1 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                            <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" autoFocus />
-                          </div>
-                          
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
-                            <div className="relative">
-                              <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
-                              <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
-                                {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
+                      <>
+                        {merchantRegStep === 1 && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
+                              <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({ ...merchantForm, email: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" autoFocus />
                             </div>
-                          </div>
 
-                          <PasswordStrengthBar password={merchantForm.password} />
-
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
-                            <div className="relative">
-                              <input type={showMerchantConfirmPassword ? "text" : "password"} required value={merchantConfirmPassword} onChange={e => setMerchantConfirmPassword(e.target.value)} className={`w-full bg-slate-50 border ${merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password ? 'border-red-500' : 'border-slate-200'} rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm`} placeholder="••••••••" />
-                              <button type="button" onClick={() => setShowMerchantConfirmPassword(!showMerchantConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
-                                {showMerchantConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
+                              <div className="relative">
+                                <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({ ...merchantForm, password: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
+                                <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
+                                  {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                              </div>
                             </div>
-                            {merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password && (
-                              <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
-                            )}
-                          </div>
 
-                          <div className="relative py-2">
-                            <div className="absolute inset-0 flex items-center">
-                              <div className="w-full border-t border-slate-200"></div>
-                            </div>
-                            <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                              <span className="bg-white px-2 text-slate-400">o continúa con</span>
-                            </div>
-                          </div>
+                            <PasswordStrengthBar password={merchantForm.password} />
 
-                          <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                            <input
-                              type="checkbox"
-                              id="merchant-terms-checkbox"
-                              checked={merchantTermsAccepted}
-                              onChange={e => setMerchantTermsAccepted(e.target.checked)}
-                              className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
-                            />
-                            <label htmlFor="merchant-terms-checkbox" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-                              He leído y acepto los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-600 hover:underline font-bold">Términos de Uso</button>
-                              {' '}y los{' '}
-                              <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/comerciantes'); }} className="text-amber-600 hover:underline font-bold">Términos para Comerciantes</button>.
-                            </label>
-                          </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Confirmar Contraseña</label>
+                              <div className="relative">
+                                <input type={showMerchantConfirmPassword ? "text" : "password"} required value={merchantConfirmPassword} onChange={e => setMerchantConfirmPassword(e.target.value)} className={`w-full bg-slate-50 border ${merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password ? 'border-red-500' : 'border-slate-200'} rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm`} placeholder="••••••••" />
+                                <button type="button" onClick={() => setShowMerchantConfirmPassword(!showMerchantConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
+                                  {showMerchantConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                              </div>
+                              {merchantConfirmPassword && merchantConfirmPassword !== merchantForm.password && (
+                                <p className="text-red-500 text-xs mt-2">Las contraseñas no coinciden.</p>
+                              )}
+                            </div>
+
+                            <div className="relative py-2">
+                              <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-200"></div>
+                              </div>
+                              <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
+                                <span className="bg-white px-2 text-slate-400">o continúa con</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                              <input
+                                type="checkbox"
+                                id="merchant-terms-checkbox"
+                                checked={merchantTermsAccepted}
+                                onChange={e => setMerchantTermsAccepted(e.target.checked)}
+                                className="mt-0.5 w-4 h-4 accent-amber-500 shrink-0 cursor-pointer"
+                              />
+                              <label htmlFor="merchant-terms-checkbox" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
+                                He leído y acepto los{' '}
+                                <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/terminos'); }} className="text-amber-600 hover:underline font-bold">Términos de Uso</button>
+                                {' '}y los{' '}
+                                <button type="button" onClick={() => { setIsMerchantModalOpen(false); navigate('/legal/comerciantes'); }} className="text-amber-600 hover:underline font-bold">Términos para Comerciantes</button>.
+                              </label>
+                            </div>
                             <GoogleLogin
                               onSuccess={handleGoogleMerchantSuccess}
                               onError={() => { console.log('Login Failed'); }}
@@ -2826,527 +2819,526 @@ export default function MarketplaceDirectory() {
                               size="large"
                               width="100%"
                             />
-                        </motion.div>
-                      )}
-                      
-                      {merchantRegStep === 2 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre Completo del Contacto</label>
-                            <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({...merchantForm, ownerName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Juan Pérez" autoFocus />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Teléfono de Contacto (11 dígitos)</label>
-                            <input 
-                              type="tel" 
-                              required 
-                              value={merchantForm.contactPhone} 
-                              onChange={e => {
-                                const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                                let formatted = digits;
-                                if (digits.length > 4) {
-                                  formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
-                                }
-                                setMerchantForm({...merchantForm, contactPhone: formatted});
-                              }} 
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm" 
-                              placeholder="Ej. 0414-1234567" 
-                            />
-                            <div className="flex justify-between items-center text-[11px] px-1 mt-1">
-                              <span className="text-slate-400">11 dígitos requeridos</span>
-                              <span className={(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
-                                {(merchantForm.contactPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
-                              </span>
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo de Contacto</label>
-                            <input type="email" required value={merchantForm.contactEmail} onChange={e => setMerchantForm({...merchantForm, contactEmail: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="contacto@empresa.com" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
-                            <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({...merchantForm, businessName: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Inversiones San José" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Categoría Principal</label>
-                            <select required value={merchantForm.category} onChange={e => setMerchantForm({...merchantForm, category: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium appearance-none shadow-sm">
-                              {categories.slice(1).map(cat => (
-                                <option key={cat.id} value={cat.id} className="bg-white text-slate-900">{cat.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Descripción / Acerca de tu Negocio (Opcional)</label>
-                            <textarea 
-                              rows="3"
-                              value={merchantForm.description} 
-                              onChange={e => setMerchantForm({...merchantForm, description: e.target.value})} 
-                              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none leading-relaxed min-h-[80px]" 
-                              placeholder={`Ej. Especialistas en ${merchantForm.category || 'productos'}, ofrecemos la mejor calidad y atención directa a nuestros clientes.`} 
-                            />
-                          </div>
+                          </motion.div>
+                        )}
 
-                          {/* IDENTIDAD VISUAL: LOGOTIPO Y PORTADA */}
-                          <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
-                            <div className="border-b border-slate-200/70 pb-3">
-                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Identidad Visual de tu Vitrina</h4>
-                              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sube el logotipo y la foto de portada para personalizar tu tienda pública</p>
-                            </div>
-
-                            <div className="space-y-3.5">
-                              {/* 1. LOGOTIPO CUADRADO (1:1) */}
-                              <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex items-center justify-between gap-3 transition-colors hover:border-slate-300">
-                                <div className="flex items-center gap-3.5 min-w-0">
-                                  <div 
-                                    onClick={() => merchantLogoInputRef.current?.click()}
-                                    className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden group/logo shrink-0 shadow-inner hover:border-amber-400 transition-all"
-                                    title="Haz clic para subir o cambiar el logotipo"
-                                  >
-                                    {merchantForm.logoPreview ? (
-                                      <>
-                                        <img 
-                                          src={merchantForm.logoPreview} 
-                                          alt="Logotipo" 
-                                          className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                          <Camera size={16} />
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex flex-col items-center justify-center text-slate-400 group-hover/logo:text-amber-500 transition-colors">
-                                        <Camera size={20} />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs sm:text-sm font-bold text-slate-900">Logotipo Cuadrado</span>
-                                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
-                                        1:1
-                                      </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                                      Mínimo 400×400 px, óptimo 512×512 px (PNG, JPG o WebP)
-                                    </p>
-                                    {merchantForm.logoPreview ? (
-                                      <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
-                                        <CheckCircle size={12} /> Logotipo cargado correctamente
-                                      </p>
-                                    ) : (
-                                      <p className="text-[10px] text-slate-400 mt-1">
-                                        Se mostrará en la cabecera y listados de tu tienda
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <button
-                                    type="button"
-                                    onClick={() => merchantLogoInputRef.current?.click()}
-                                    className="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition-colors shadow-xs"
-                                  >
-                                    {merchantForm.logoPreview ? 'Cambiar' : 'Subir Logo'}
-                                  </button>
-                                  {merchantForm.logoPreview && (
-                                    <button
-                                      type="button"
-                                      onClick={handleRemoveMerchantLogo}
-                                      className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
-                                      title="Quitar logotipo"
-                                    >
-                                      <Trash2 size={15} />
-                                    </button>
-                                  )}
-                                </div>
-
-                                <input 
-                                  ref={merchantLogoInputRef}
-                                  type="file" 
-                                  accept="image/png, image/jpeg, image/webp" 
-                                  className="hidden" 
-                                  onChange={handleMerchantLogoChange}
-                                />
-                              </div>
-
-                              {/* 2. FOTO DE PORTADA PANORÁMICA (16:9) */}
-                              <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs space-y-2.5 transition-colors hover:border-slate-300">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs sm:text-sm font-bold text-slate-900">Foto de Portada</span>
-                                    <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
-                                      16:9
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] text-slate-500 font-medium">
-                                    Óptimo 1920 × 600 px (Máx. 10 MB)
-                                  </span>
-                                </div>
-
-                                {merchantForm.coverPreview ? (
-                                  <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-slate-200 group/cover">
-                                    <img 
-                                      src={merchantForm.coverPreview} 
-                                      alt="Foto de Portada" 
-                                      className="w-full h-full object-cover"
-                                    />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
-                                      <button
-                                        type="button"
-                                        onClick={() => merchantCoverInputRef.current?.click()}
-                                        className="px-3.5 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold shadow hover:bg-slate-100 transition-colors flex items-center gap-1.5"
-                                      >
-                                        <Camera size={13} /> Cambiar Portada
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={handleRemoveMerchantCover}
-                                        className="px-3.5 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold shadow hover:bg-rose-700 transition-colors flex items-center gap-1.5"
-                                      >
-                                        <Trash2 size={13} /> Quitar
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div 
-                                    onClick={() => merchantCoverInputRef.current?.click()}
-                                    className="w-full py-5 px-4 border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-xl bg-slate-50/50 hover:bg-amber-50/20 transition-all flex flex-col items-center justify-center cursor-pointer group/drop text-center"
-                                  >
-                                    <div className="w-9 h-9 rounded-full bg-slate-100 group-hover/drop:bg-amber-100 flex items-center justify-center text-slate-400 group-hover/drop:text-amber-600 mb-2 transition-colors">
-                                      <UploadCloud size={18} />
-                                    </div>
-                                    <p className="text-xs font-bold text-slate-700 group-hover/drop:text-amber-600 transition-colors">
-                                      Haz clic para subir la foto de portada
-                                    </p>
-                                    <p className="text-[11px] text-slate-400 mt-0.5">
-                                      Formato horizontal panorámico para computadoras y móviles (JPG, PNG o WebP)
-                                    </p>
-                                  </div>
-                                )}
-
-                                <input 
-                                  ref={merchantCoverInputRef}
-                                  type="file" 
-                                  accept="image/png, image/jpeg, image/webp" 
-                                  className="hidden" 
-                                  onChange={handleMerchantCoverChange}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {merchantRegStep === 3 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        {merchantRegStep === 2 && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                             <div>
-                              <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Activar Restricción de Horario</p>
-                              <p className="text-[10px] text-slate-500 mt-1">Bloquea el carrito cuando estés cerrado.</p>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre Completo del Contacto</label>
+                              <input type="text" required value={merchantForm.ownerName} onChange={e => setMerchantForm({ ...merchantForm, ownerName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Juan Pérez" autoFocus />
                             </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input type="checkbox" className="sr-only peer" checked={merchantForm.scheduleActive} onChange={e => setMerchantForm({...merchantForm, scheduleActive: e.target.checked})} />
-                              <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                            </label>
-                          </div>
-                          
-                          {merchantForm.scheduleActive && (
-                            <div className="space-y-4 pt-2">
-                              <div className="flex gap-4">
-                                <div className="flex-1">
-                                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Apertura</label>
-                                  <input type="time" required value={merchantForm.scheduleOpen} onChange={e => setMerchantForm({...merchantForm, scheduleOpen: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
-                                </div>
-                                <div className="flex-1">
-                                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Cierre</label>
-                                  <input type="time" required value={merchantForm.scheduleClose} onChange={e => setMerchantForm({...merchantForm, scheduleClose: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Margen de Cierre (Amarillo)</label>
-                                <div className="flex items-center gap-3">
-                                  <input type="number" min="0" max="120" required value={merchantForm.closeWarningMinutes} onChange={e => setMerchantForm({...merchantForm, closeWarningMinutes: Number(e.target.value)})} className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
-                                  <span className="text-[10px] text-slate-500">minutos antes del cierre se bloquearán las compras.</span>
-                                </div>
-                              </div>
-
-                              <div className="p-4 rounded-xl border border-slate-200 flex flex-col gap-3 bg-slate-50">
-                                <div>
-                                  <p className="text-xs font-bold text-slate-900">Vista previa del semáforo actual:</p>
-                                  <p className="text-[10px] text-slate-500 mt-0.5">Así ve el estado el cliente en este momento exacto.</p>
-                                </div>
-                                <div className="self-start px-3 py-1.5 rounded-full flex items-center gap-2 font-bold text-xs bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                  <div className="w-2 h-2 rounded-full animate-pulse bg-emerald-600"></div>
-                                  Abierto (Cierra a las {merchantForm.scheduleClose})
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Días Laborables</label>
-                                <div className="flex flex-wrap gap-2">
-                                  {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(dia => (
-                                    <button 
-                                      key={dia}
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        setMerchantForm(prev => ({ 
-                                          ...prev, 
-                                          workingDays: { ...prev.workingDays, [dia]: !prev.workingDays[dia] } 
-                                        }));
-                                      }}
-                                      className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-colors uppercase tracking-wider ${
-                                        merchantForm.workingDays[dia] 
-                                        ? 'bg-amber-500/20 border-amber-500/60 text-amber-800' 
-                                        : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
-                                      }`}
-                                    >
-                                      {dia}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
-
-                      {merchantRegStep === 4 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">RIF (Jurídico o Personal, Mínimo 6 dígitos)</label>
-                            <div className="flex gap-2">
-                              <select 
-                                value={merchantForm.rifPrefix} 
-                                onChange={e => setMerchantForm({...merchantForm, rifPrefix: e.target.value})} 
-                                className="w-[80px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-slate-900 focus:outline-none focus:border-amber-500 font-bold appearance-none text-center shadow-sm"
-                              >
-                                <option value="V">V</option>
-                                <option value="J">J</option>
-                                <option value="E">E</option>
-                                <option value="G">G</option>
-                                <option value="P">P</option>
-                              </select>
-                              <input 
-                                type="text" 
-                                required 
-                                value={merchantForm.rifNumber} 
-                                onChange={e => setMerchantForm({...merchantForm, rifNumber: e.target.value.replace(/[^0-9-]/g, '').slice(0, 11)})} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm" 
-                                placeholder="12345678 o 12345678-9" 
-                              />
-                            </div>
-                            <div className="flex justify-between items-center text-[11px] px-1 mt-1">
-                              <span className="text-slate-400">Mínimo 6 dígitos</span>
-                              <span className={(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
-                                {(merchantForm.rifNumber || '').replace(/\D/g, '').length}/6 {(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
-                            <p className="text-xs text-amber-600 font-bold tracking-wider">DATOS PARA RECIBIR PAGO MÓVIL</p>
                             <div>
-                              <input 
-                                type="tel" 
-                                required 
-                                value={merchantForm.pagoMovilPhone} 
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Teléfono de Contacto (11 dígitos)</label>
+                              <input
+                                type="tel"
+                                required
+                                value={merchantForm.contactPhone}
                                 onChange={e => {
                                   const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
                                   let formatted = digits;
                                   if (digits.length > 4) {
                                     formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
                                   }
-                                  setMerchantForm({...merchantForm, pagoMovilPhone: formatted});
-                                }} 
-                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm" 
-                                placeholder="Teléfono Pago Móvil (Ej. 0414-1234567)" 
+                                  setMerchantForm({ ...merchantForm, contactPhone: formatted });
+                                }}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm"
+                                placeholder="Ej. 0414-1234567"
                               />
                               <div className="flex justify-between items-center text-[11px] px-1 mt-1">
                                 <span className="text-slate-400">11 dígitos requeridos</span>
-                                <span className={(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
-                                  {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
+                                <span className={(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                  {(merchantForm.contactPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.contactPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
                                 </span>
                               </div>
                             </div>
-                            <select 
-                              required 
-                              value={merchantForm.pagoMovilBank} 
-                              onChange={e => setMerchantForm({...merchantForm, pagoMovilBank: e.target.value})} 
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm appearance-none shadow-sm"
-                            >
-                              <option value="" className="text-slate-900 bg-white">Selecciona tu Banco</option>
-                              <option value="0156 - 100% Banco">0156 - 100% Banco</option>
-                              <option value="0172 - Bancamiga">0172 - Bancamiga</option>
-                              <option value="0171 - Banco Activo">0171 - Banco Activo</option>
-                              <option value="0166 - Banco Agrícola">0166 - Banco Agrícola</option>
-                              <option value="0175 - Banco Bicentenario">0175 - Banco Bicentenario</option>
-                              <option value="0128 - Banco Caroní">0128 - Banco Caroní</option>
-                              <option value="0164 - Banco de Desarrollo del Microempresario">0164 - Banco de Desarrollo del Microempresario</option>
-                              <option value="0102 - Banco de Venezuela">0102 - Banco de Venezuela</option>
-                              <option value="0114 - Bancaribe">0114 - Bancaribe</option>
-                              <option value="0149 - Banco del Pueblo Soberano">0149 - Banco del Pueblo Soberano</option>
-                              <option value="0163 - Banco del Tesoro">0163 - Banco del Tesoro</option>
-                              <option value="0115 - Banco Exterior">0115 - Banco Exterior</option>
-                              <option value="0003 - Banco Industrial de Venezuela">0003 - Banco Industrial de Venezuela</option>
-                              <option value="0173 - Banco Internacional de Desarrollo">0173 - Banco Internacional de Desarrollo</option>
-                              <option value="0105 - Banco Mercantil">0105 - Banco Mercantil</option>
-                              <option value="0191 - Banco Nacional de Crédito (BNC)">0191 - Banco Nacional de Crédito (BNC)</option>
-                              <option value="0116 - Banco Occidental de Descuento (BOD)">0116 - Banco Occidental de Descuento (BOD)</option>
-                              <option value="0138 - Banco Plaza">0138 - Banco Plaza</option>
-                              <option value="0108 - Banco Provincial">0108 - Banco Provincial</option>
-                              <option value="0134 - Banesco">0134 - Banesco</option>
-                              <option value="0177 - Banfanb">0177 - Banfanb</option>
-                              <option value="0146 - Bangente">0146 - Bangente</option>
-                              <option value="0174 - Banplus">0174 - Banplus</option>
-                              <option value="0190 - Citibank">0190 - Citibank</option>
-                              <option value="0121 - Corp Banca">0121 - Corp Banca</option>
-                              <option value="0151 - Fondo Común">0151 - Fondo Común</option>
-                              <option value="0169 - Mi Banco">0169 - Mi Banco</option>
-                              <option value="0137 - Sofitasa">0137 - Sofitasa</option>
-                            </select>
                             <div>
-                              <input 
-                                type="text" 
-                                required 
-                                value={merchantForm.pagoMovilId} 
-                                onChange={e => setMerchantForm({...merchantForm, pagoMovilId: e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12)})} 
-                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm" 
-                                placeholder="Cédula / RIF asociado (Mínimo 6 dígitos)" 
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo de Contacto</label>
+                              <input type="email" required value={merchantForm.contactEmail} onChange={e => setMerchantForm({ ...merchantForm, contactEmail: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="contacto@empresa.com" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Nombre del Negocio</label>
+                              <input type="text" required value={merchantForm.businessName} onChange={e => setMerchantForm({ ...merchantForm, businessName: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="Ej. Inversiones San José" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Categoría Principal</label>
+                              <select required value={merchantForm.category} onChange={e => setMerchantForm({ ...merchantForm, category: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium appearance-none shadow-sm">
+                                {categories.slice(1).map(cat => (
+                                  <option key={cat.id} value={cat.id} className="bg-white text-slate-900">{cat.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Descripción / Acerca de tu Negocio (Opcional)</label>
+                              <textarea
+                                rows="3"
+                                value={merchantForm.description}
+                                onChange={e => setMerchantForm({ ...merchantForm, description: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm text-sm resize-none leading-relaxed min-h-[80px]"
+                                placeholder={`Ej. Especialistas en ${merchantForm.category || 'productos'}, ofrecemos la mejor calidad y atención directa a nuestros clientes.`}
                               />
+                            </div>
+
+                            {/* IDENTIDAD VISUAL: LOGOTIPO Y PORTADA */}
+                            <div className="bg-slate-50/80 border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+                              <div className="border-b border-slate-200/70 pb-3">
+                                <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider">Identidad Visual de tu Vitrina</h4>
+                                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">Sube el logotipo y la foto de portada para personalizar tu tienda pública</p>
+                              </div>
+
+                              <div className="space-y-3.5">
+                                {/* 1. LOGOTIPO CUADRADO (1:1) */}
+                                <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs flex items-center justify-between gap-3 transition-colors hover:border-slate-300">
+                                  <div className="flex items-center gap-3.5 min-w-0">
+                                    <div
+                                      onClick={() => merchantLogoInputRef.current?.click()}
+                                      className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden group/logo shrink-0 shadow-inner hover:border-amber-400 transition-all"
+                                      title="Haz clic para subir o cambiar el logotipo"
+                                    >
+                                      {merchantForm.logoPreview ? (
+                                        <>
+                                          <img
+                                            src={merchantForm.logoPreview}
+                                            alt="Logotipo"
+                                            className="w-full h-full object-cover"
+                                          />
+                                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                            <Camera size={16} />
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="flex flex-col items-center justify-center text-slate-400 group-hover/logo:text-amber-500 transition-colors">
+                                          <Camera size={20} />
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs sm:text-sm font-bold text-slate-900">Logotipo Cuadrado</span>
+                                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                                          1:1
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                                        Mínimo 400×400 px, óptimo 512×512 px (PNG, JPG o WebP)
+                                      </p>
+                                      {merchantForm.logoPreview ? (
+                                        <p className="text-[10px] text-emerald-600 font-bold mt-1 flex items-center gap-1">
+                                          <CheckCircle size={12} /> Logotipo cargado correctamente
+                                        </p>
+                                      ) : (
+                                        <p className="text-[10px] text-slate-400 mt-1">
+                                          Se mostrará en la cabecera y listados de tu tienda
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => merchantLogoInputRef.current?.click()}
+                                      className="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition-colors shadow-xs"
+                                    >
+                                      {merchantForm.logoPreview ? 'Cambiar' : 'Subir Logo'}
+                                    </button>
+                                    {merchantForm.logoPreview && (
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveMerchantLogo}
+                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors"
+                                        title="Quitar logotipo"
+                                      >
+                                        <Trash2 size={15} />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <input
+                                    ref={merchantLogoInputRef}
+                                    type="file"
+                                    accept="image/png, image/jpeg, image/webp"
+                                    className="hidden"
+                                    onChange={handleMerchantLogoChange}
+                                  />
+                                </div>
+
+                                {/* 2. FOTO DE PORTADA PANORÁMICA (16:9) */}
+                                <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 shadow-xs space-y-2.5 transition-colors hover:border-slate-300">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs sm:text-sm font-bold text-slate-900">Foto de Portada</span>
+                                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200/60">
+                                        16:9
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 font-medium">
+                                      Óptimo 1920 × 600 px (Máx. 10 MB)
+                                    </span>
+                                  </div>
+
+                                  {merchantForm.coverPreview ? (
+                                    <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-slate-200 group/cover">
+                                      <img
+                                        src={merchantForm.coverPreview}
+                                        alt="Foto de Portada"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/cover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-xs">
+                                        <button
+                                          type="button"
+                                          onClick={() => merchantCoverInputRef.current?.click()}
+                                          className="px-3.5 py-1.5 bg-white text-slate-900 rounded-lg text-xs font-bold shadow hover:bg-slate-100 transition-colors flex items-center gap-1.5"
+                                        >
+                                          <Camera size={13} /> Cambiar Portada
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={handleRemoveMerchantCover}
+                                          className="px-3.5 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold shadow hover:bg-rose-700 transition-colors flex items-center gap-1.5"
+                                        >
+                                          <Trash2 size={13} /> Quitar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      onClick={() => merchantCoverInputRef.current?.click()}
+                                      className="w-full py-5 px-4 border-2 border-dashed border-slate-200 hover:border-amber-400 rounded-xl bg-slate-50/50 hover:bg-amber-50/20 transition-all flex flex-col items-center justify-center cursor-pointer group/drop text-center"
+                                    >
+                                      <div className="w-9 h-9 rounded-full bg-slate-100 group-hover/drop:bg-amber-100 flex items-center justify-center text-slate-400 group-hover/drop:text-amber-600 mb-2 transition-colors">
+                                        <UploadCloud size={18} />
+                                      </div>
+                                      <p className="text-xs font-bold text-slate-700 group-hover/drop:text-amber-600 transition-colors">
+                                        Haz clic para subir la foto de portada
+                                      </p>
+                                      <p className="text-[11px] text-slate-400 mt-0.5">
+                                        Formato horizontal panorámico para computadoras y móviles (JPG, PNG o WebP)
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  <input
+                                    ref={merchantCoverInputRef}
+                                    type="file"
+                                    accept="image/png, image/jpeg, image/webp"
+                                    className="hidden"
+                                    onChange={handleMerchantCoverChange}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {merchantRegStep === 3 && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                            <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+                              <div>
+                                <p className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Activar Restricción de Horario</p>
+                                <p className="text-[10px] text-slate-500 mt-1">Bloquea el carrito cuando estés cerrado.</p>
+                              </div>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={merchantForm.scheduleActive} onChange={e => setMerchantForm({ ...merchantForm, scheduleActive: e.target.checked })} />
+                                <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                              </label>
+                            </div>
+
+                            {merchantForm.scheduleActive && (
+                              <div className="space-y-4 pt-2">
+                                <div className="flex gap-4">
+                                  <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Apertura</label>
+                                    <input type="time" required value={merchantForm.scheduleOpen} onChange={e => setMerchantForm({ ...merchantForm, scheduleOpen: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Hora Cierre</label>
+                                    <input type="time" required value={merchantForm.scheduleClose} onChange={e => setMerchantForm({ ...merchantForm, scheduleClose: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Margen de Cierre (Amarillo)</label>
+                                  <div className="flex items-center gap-3">
+                                    <input type="number" min="0" max="120" required value={merchantForm.closeWarningMinutes} onChange={e => setMerchantForm({ ...merchantForm, closeWarningMinutes: Number(e.target.value) })} className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white" />
+                                    <span className="text-[10px] text-slate-500">minutos antes del cierre se bloquearán las compras.</span>
+                                  </div>
+                                </div>
+
+                                <div className="p-4 rounded-xl border border-slate-200 flex flex-col gap-3 bg-slate-50">
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-900">Vista previa del semáforo actual:</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">Así ve el estado el cliente en este momento exacto.</p>
+                                  </div>
+                                  <div className="self-start px-3 py-1.5 rounded-full flex items-center gap-2 font-bold text-xs bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <div className="w-2 h-2 rounded-full animate-pulse bg-emerald-600"></div>
+                                    Abierto (Cierra a las {merchantForm.scheduleClose})
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Días Laborables</label>
+                                  <div className="flex flex-wrap gap-2">
+                                    {['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'].map(dia => (
+                                      <button
+                                        key={dia}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          setMerchantForm(prev => ({
+                                            ...prev,
+                                            workingDays: { ...prev.workingDays, [dia]: !prev.workingDays[dia] }
+                                          }));
+                                        }}
+                                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition-colors uppercase tracking-wider ${merchantForm.workingDays[dia]
+                                            ? 'bg-amber-500/20 border-amber-500/60 text-amber-800'
+                                            : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                                          }`}
+                                      >
+                                        {dia}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+
+                        {merchantRegStep === 4 && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">RIF (Jurídico o Personal, Mínimo 6 dígitos)</label>
+                              <div className="flex gap-2">
+                                <select
+                                  value={merchantForm.rifPrefix}
+                                  onChange={e => setMerchantForm({ ...merchantForm, rifPrefix: e.target.value })}
+                                  className="w-[80px] bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 text-slate-900 focus:outline-none focus:border-amber-500 font-bold appearance-none text-center shadow-sm"
+                                >
+                                  <option value="V">V</option>
+                                  <option value="J">J</option>
+                                  <option value="E">E</option>
+                                  <option value="G">G</option>
+                                  <option value="P">P</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  required
+                                  value={merchantForm.rifNumber}
+                                  onChange={e => setMerchantForm({ ...merchantForm, rifNumber: e.target.value.replace(/[^0-9-]/g, '').slice(0, 11) })}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono placeholder-slate-400 shadow-sm"
+                                  placeholder="12345678 o 12345678-9"
+                                />
+                              </div>
                               <div className="flex justify-between items-center text-[11px] px-1 mt-1">
                                 <span className="text-slate-400">Mínimo 6 dígitos</span>
-                                <span className={(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
-                                  {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length}/6 {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
+                                <span className={(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                  {(merchantForm.rifNumber || '').replace(/\D/g, '').length}/6 {(merchantForm.rifNumber || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
                                 </span>
                               </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {merchantRegStep === 5 && (
-                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-                          <div className="bg-slate-50 p-5 rounded-2xl text-center space-y-3 mb-2 border border-slate-200">
-                            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto border border-amber-200 text-amber-500">
-                              <MapPin size={22} />
-                            </div>
-                            <h3 className="text-slate-900 font-bold text-base tracking-tight">Ubicación y Dirección de tu Negocio</h3>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                              Permite que tus clientes te ubiquen en el mapa interactivo y visiten tu tienda física.
-                            </p>
-                            
-                            <button 
-                              type="button" 
-                              onClick={handleDetectGPS} 
-                              className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md shadow-amber-500/10 text-xs uppercase tracking-wider"
-                            >
-                              <MapPin size={16} /> {merchantForm.gpsCoords ? 'Actualizar Coordenadas GPS' : 'Detectar mi ubicación por GPS'}
-                            </button>
-
-                            {merchantForm.gpsCoords ? (
-                              <div className="bg-emerald-50 text-emerald-700 py-2.5 px-3 rounded-xl border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5">
-                                <CheckCircle size={15} className="text-emerald-600 shrink-0" />
-                                <span>Punto GPS Fijado ({merchantForm.gpsCoords.lat.toFixed(4)}, {merchantForm.gpsCoords.lng.toFixed(4)})</span>
+                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
+                              <p className="text-xs text-amber-600 font-bold tracking-wider">DATOS PARA RECIBIR PAGO MÓVIL</p>
+                              <div>
+                                <input
+                                  type="tel"
+                                  required
+                                  value={merchantForm.pagoMovilPhone}
+                                  onChange={e => {
+                                    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                                    let formatted = digits;
+                                    if (digits.length > 4) {
+                                      formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+                                    }
+                                    setMerchantForm({ ...merchantForm, pagoMovilPhone: formatted });
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm"
+                                  placeholder="Teléfono Pago Móvil (Ej. 0414-1234567)"
+                                />
+                                <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                                  <span className="text-slate-400">11 dígitos requeridos</span>
+                                  <span className={(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                    {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length}/11 {(merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length >= 11 ? "✓ Completo" : ""}
+                                  </span>
+                                </div>
                               </div>
-                            ) : (
-                              <p className="text-[11px] text-slate-400 italic">Puedes fijar el GPS ahora o escribir tu dirección física abajo.</p>
-                            )}
-                          </div>
+                              <select
+                                required
+                                value={merchantForm.pagoMovilBank}
+                                onChange={e => setMerchantForm({ ...merchantForm, pagoMovilBank: e.target.value })}
+                                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm appearance-none shadow-sm"
+                              >
+                                <option value="" className="text-slate-900 bg-white">Selecciona tu Banco</option>
+                                <option value="0156 - 100% Banco">0156 - 100% Banco</option>
+                                <option value="0172 - Bancamiga">0172 - Bancamiga</option>
+                                <option value="0171 - Banco Activo">0171 - Banco Activo</option>
+                                <option value="0166 - Banco Agrícola">0166 - Banco Agrícola</option>
+                                <option value="0175 - Banco Bicentenario">0175 - Banco Bicentenario</option>
+                                <option value="0128 - Banco Caroní">0128 - Banco Caroní</option>
+                                <option value="0164 - Banco de Desarrollo del Microempresario">0164 - Banco de Desarrollo del Microempresario</option>
+                                <option value="0102 - Banco de Venezuela">0102 - Banco de Venezuela</option>
+                                <option value="0114 - Bancaribe">0114 - Bancaribe</option>
+                                <option value="0149 - Banco del Pueblo Soberano">0149 - Banco del Pueblo Soberano</option>
+                                <option value="0163 - Banco del Tesoro">0163 - Banco del Tesoro</option>
+                                <option value="0115 - Banco Exterior">0115 - Banco Exterior</option>
+                                <option value="0003 - Banco Industrial de Venezuela">0003 - Banco Industrial de Venezuela</option>
+                                <option value="0173 - Banco Internacional de Desarrollo">0173 - Banco Internacional de Desarrollo</option>
+                                <option value="0105 - Banco Mercantil">0105 - Banco Mercantil</option>
+                                <option value="0191 - Banco Nacional de Crédito (BNC)">0191 - Banco Nacional de Crédito (BNC)</option>
+                                <option value="0116 - Banco Occidental de Descuento (BOD)">0116 - Banco Occidental de Descuento (BOD)</option>
+                                <option value="0138 - Banco Plaza">0138 - Banco Plaza</option>
+                                <option value="0108 - Banco Provincial">0108 - Banco Provincial</option>
+                                <option value="0134 - Banesco">0134 - Banesco</option>
+                                <option value="0177 - Banfanb">0177 - Banfanb</option>
+                                <option value="0146 - Bangente">0146 - Bangente</option>
+                                <option value="0174 - Banplus">0174 - Banplus</option>
+                                <option value="0190 - Citibank">0190 - Citibank</option>
+                                <option value="0121 - Corp Banca">0121 - Corp Banca</option>
+                                <option value="0151 - Fondo Común">0151 - Fondo Común</option>
+                                <option value="0169 - Mi Banco">0169 - Mi Banco</option>
+                                <option value="0137 - Sofitasa">0137 - Sofitasa</option>
+                              </select>
+                              <div>
+                                <input
+                                  type="text"
+                                  required
+                                  value={merchantForm.pagoMovilId}
+                                  onChange={e => setMerchantForm({ ...merchantForm, pagoMovilId: e.target.value.toUpperCase().replace(/[^0-9VEJG-]/g, '').slice(0, 12) })}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-sm placeholder-slate-400 font-mono shadow-sm"
+                                  placeholder="Cédula / RIF asociado (Mínimo 6 dígitos)"
+                                />
+                                <div className="flex justify-between items-center text-[11px] px-1 mt-1">
+                                  <span className="text-slate-400">Mínimo 6 dígitos</span>
+                                  <span className={(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "text-emerald-600 font-bold" : "text-amber-600 font-medium"}>
+                                    {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length}/6 {(merchantForm.pagoMovilId || '').replace(/\D/g, '').length >= 6 ? "✓ Completo" : ""}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
 
-                          <div className="space-y-2 pt-1">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                              Dirección Escrita / Punto de Referencia {merchantForm.gpsCoords ? '(Opcional)' : '(Obligatoria sin GPS)'}
-                            </label>
-                            <div className="flex gap-2">
-                              <input 
-                                required={!merchantForm.gpsCoords} 
-                                type="text" 
-                                value={merchantForm.addressState} 
-                                onChange={e => setMerchantForm({...merchantForm, addressState: e.target.value})} 
-                                className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm" 
-                                placeholder="Estado (Ej. Aragua)" 
-                              />
-                              <input 
-                                required={!merchantForm.gpsCoords} 
-                                type="text" 
-                                value={merchantForm.addressCity} 
-                                onChange={e => setMerchantForm({...merchantForm, addressCity: e.target.value})} 
-                                className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm" 
-                                placeholder="Ciudad (Ej. Cagua)" 
+                        {merchantRegStep === 5 && (
+                          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+                            <div className="bg-slate-50 p-5 rounded-2xl text-center space-y-3 mb-2 border border-slate-200">
+                              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto border border-amber-200 text-amber-500">
+                                <MapPin size={22} />
+                              </div>
+                              <h3 className="text-slate-900 font-bold text-base tracking-tight">Ubicación y Dirección de tu Negocio</h3>
+                              <p className="text-xs text-slate-500 leading-relaxed">
+                                Permite que tus clientes te ubiquen en el mapa interactivo y visiten tu tienda física.
+                              </p>
+
+                              <button
+                                type="button"
+                                onClick={handleDetectGPS}
+                                className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md shadow-amber-500/10 text-xs uppercase tracking-wider"
+                              >
+                                <MapPin size={16} /> {merchantForm.gpsCoords ? 'Actualizar Coordenadas GPS' : 'Detectar mi ubicación por GPS'}
+                              </button>
+
+                              {merchantForm.gpsCoords ? (
+                                <div className="bg-emerald-50 text-emerald-700 py-2.5 px-3 rounded-xl border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5">
+                                  <CheckCircle size={15} className="text-emerald-600 shrink-0" />
+                                  <span>Punto GPS Fijado ({merchantForm.gpsCoords.lat.toFixed(4)}, {merchantForm.gpsCoords.lng.toFixed(4)})</span>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-400 italic">Puedes fijar el GPS ahora o escribir tu dirección física abajo.</p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2 pt-1">
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                Dirección Escrita / Punto de Referencia {merchantForm.gpsCoords ? '(Opcional)' : '(Obligatoria sin GPS)'}
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  required={!merchantForm.gpsCoords}
+                                  type="text"
+                                  value={merchantForm.addressState}
+                                  onChange={e => setMerchantForm({ ...merchantForm, addressState: e.target.value })}
+                                  className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm"
+                                  placeholder="Estado (Ej. Aragua)"
+                                />
+                                <input
+                                  required={!merchantForm.gpsCoords}
+                                  type="text"
+                                  value={merchantForm.addressCity}
+                                  onChange={e => setMerchantForm({ ...merchantForm, addressCity: e.target.value })}
+                                  className="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs placeholder-slate-400 shadow-sm"
+                                  placeholder="Ciudad (Ej. Cagua)"
+                                />
+                              </div>
+                              <textarea
+                                required={!merchantForm.gpsCoords}
+                                value={merchantForm.addressLine}
+                                onChange={e => setMerchantForm({ ...merchantForm, addressLine: e.target.value })}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs min-h-[70px] placeholder-slate-400 shadow-sm resize-none"
+                                placeholder="Calle, Centro Comercial, Local o Punto de referencia..."
                               />
                             </div>
-                            <textarea 
-                              required={!merchantForm.gpsCoords} 
-                              value={merchantForm.addressLine} 
-                              onChange={e => setMerchantForm({...merchantForm, addressLine: e.target.value})} 
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-amber-500 text-xs min-h-[70px] placeholder-slate-400 shadow-sm resize-none" 
-                              placeholder="Calle, Centro Comercial, Local o Punto de referencia..."
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {merchantRegStep === 6 && (
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center space-y-4">
-                          <p className="text-center text-sm text-slate-500">Escanea este código QR en tu app de Google Authenticator para asegurar tu cuenta de comercio.</p>
-                          <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200">
-                            <QRCodeSVG value={merchantMfaUrl} size={180} />
-                          </div>
-                          <p className="text-xs text-slate-500">Clave manual: <span className="font-mono text-amber-600 font-bold">{merchantMfaSecret}</span></p>
-                          
-                          <div className="w-full mt-4">
-                            <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest text-center">Código de 6 dígitos</label>
-                            <input type="text" required maxLength={6} value={merchantMfaCode} onChange={e => setMerchantMfaCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors font-mono text-center tracking-[0.5em] text-lg shadow-sm" placeholder="123456" autoFocus />
-                          </div>
-                        </motion.div>
-                      )}
-
-                      <div className="flex gap-3 items-center mt-6">
-                        {merchantRegStep > 1 && (
-                          <button 
-                            type="button" 
-                            onClick={() => setMerchantRegStep(prev => prev - 1)}
-                            className="py-4 px-6 text-slate-500 hover:text-slate-800 text-xs font-bold tracking-widest uppercase transition-colors"
-                          >
-                            Atrás
-                          </button>
+                          </motion.div>
                         )}
-                        <button 
-                          type="submit" 
-                          disabled={
-                            merchantLoading || 
-                            (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) || 
-                            (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactEmail || !merchantForm.category || (merchantForm.contactPhone || '').replace(/\D/g, '').length < 11)) || 
-                            (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) || 
-                            (merchantRegStep === 4 && (!merchantForm.pagoMovilBank || (merchantForm.rifNumber || '').replace(/\D/g, '').length < 6 || (merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length < 11 || (merchantForm.pagoMovilId || '').replace(/\D/g, '').length < 6)) ||
-                            (merchantRegStep === 5 && !merchantForm.gpsCoords && (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine)) ||
-                            (merchantRegStep === 6 && merchantMfaCode.length < 6)
-                          }
-                          className="flex-1 bg-amber-500 text-slate-950 rounded-full py-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                        >
-                          {merchantLoading ? (
-                            <><Loader2 className="animate-spin" size={18} /> Procesando...</>
-                          ) : (
-                            <>{merchantRegStep < 6 ? 'Continuar' : 'Verificar y Acceder'} <ArrowRight size={16} /></>
+
+                        {merchantRegStep === 6 && (
+                          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center space-y-4">
+                            <p className="text-center text-sm text-slate-500">Escanea este código QR en tu app de Google Authenticator para asegurar tu cuenta de comercio.</p>
+                            <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200">
+                              <QRCodeSVG value={merchantMfaUrl} size={180} />
+                            </div>
+                            <p className="text-xs text-slate-500">Clave manual: <span className="font-mono text-amber-600 font-bold">{merchantMfaSecret}</span></p>
+
+                            <div className="w-full mt-4">
+                              <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest text-center">Código de 6 dígitos</label>
+                              <input type="text" required maxLength={6} value={merchantMfaCode} onChange={e => setMerchantMfaCode(e.target.value.replace(/\D/g, ''))} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 transition-colors font-mono text-center tracking-[0.5em] text-lg shadow-sm" placeholder="123456" autoFocus />
+                            </div>
+                          </motion.div>
+                        )}
+
+                        <div className="flex gap-3 items-center mt-6">
+                          {merchantRegStep > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => setMerchantRegStep(prev => prev - 1)}
+                              className="py-4 px-6 text-slate-500 hover:text-slate-800 text-xs font-bold tracking-widest uppercase transition-colors"
+                            >
+                              Atrás
+                            </button>
                           )}
-                        </button>
-                      </div>
-                    </>
+                          <button
+                            type="submit"
+                            disabled={
+                              merchantLoading ||
+                              (merchantRegStep === 1 && (!merchantForm.email || !merchantForm.password || !merchantTermsAccepted)) ||
+                              (merchantRegStep === 2 && (!merchantForm.businessName || !merchantForm.ownerName || !merchantForm.contactEmail || !merchantForm.category || (merchantForm.contactPhone || '').replace(/\D/g, '').length < 11)) ||
+                              (merchantRegStep === 3 && merchantForm.scheduleActive && (!merchantForm.scheduleOpen || !merchantForm.scheduleClose)) ||
+                              (merchantRegStep === 4 && (!merchantForm.pagoMovilBank || (merchantForm.rifNumber || '').replace(/\D/g, '').length < 6 || (merchantForm.pagoMovilPhone || '').replace(/\D/g, '').length < 11 || (merchantForm.pagoMovilId || '').replace(/\D/g, '').length < 6)) ||
+                              (merchantRegStep === 5 && !merchantForm.gpsCoords && (!merchantForm.addressState || !merchantForm.addressCity || !merchantForm.addressLine)) ||
+                              (merchantRegStep === 6 && merchantMfaCode.length < 6)
+                            }
+                            className="flex-1 bg-amber-500 text-slate-950 rounded-full py-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                          >
+                            {merchantLoading ? (
+                              <><Loader2 className="animate-spin" size={18} /> Procesando...</>
+                            ) : (
+                              <>{merchantRegStep < 6 ? 'Continuar' : 'Verificar y Acceder'} <ArrowRight size={16} /></>
+                            )}
+                          </button>
+                        </div>
+                      </>
                     )
                   ) : (
                     <>
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Correo Electrónico</label>
-                        <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({...merchantForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
+                        <input type="email" required value={merchantForm.email} onChange={e => setMerchantForm({ ...merchantForm, email: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="admin@empresa.com" />
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Contraseña Administrativa</label>
                         <div className="relative">
-                          <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({...merchantForm, password: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
+                          <input type={showMerchantPassword ? "text" : "password"} required value={merchantForm.password} onChange={e => setMerchantForm({ ...merchantForm, password: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 pr-12 text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-medium placeholder-slate-400 shadow-sm" placeholder="••••••••" />
                           <button type="button" onClick={() => setShowMerchantPassword(!showMerchantPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-500 transition-colors">
                             {showMerchantPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
@@ -3359,8 +3351,8 @@ export default function MarketplaceDirectory() {
                         </button>
                       </div>
 
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         disabled={merchantLoading || !merchantForm.email}
                         className="w-full bg-amber-500 text-slate-950 rounded-full py-4 mt-4 font-bold text-xs tracking-[0.2em] uppercase transition-all shadow-lg shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                       >
@@ -3396,50 +3388,50 @@ export default function MarketplaceDirectory() {
           </div>
         )}
 
-      <ProfileWizardModal 
-        isOpen={isWizardOpen} 
-        onClose={() => setIsWizardOpen(false)} 
-        customer={currentCustomer}
-        canClose={true}
-        onComplete={(updatedCustomer) => {
-          const rawPay = updatedCustomer?.payment_profile;
-          let safePay = [];
-          if (Array.isArray(rawPay)) safePay = rawPay;
-          else if (rawPay && typeof rawPay === 'object' && Object.keys(rawPay).length > 0) safePay = [rawPay];
-          
-          const safeCust = {
-            ...updatedCustomer,
-            payment_profile: safePay,
-            addresses: Array.isArray(updatedCustomer?.addresses) ? updatedCustomer.addresses : []
-          };
-          localStorage.setItem('ecommerce_current_customer', JSON.stringify(safeCust));
-          setCurrentCustomer(safeCust);
-          setIsWizardOpen(false);
-          if (pendingStoreSlug) {
-            navigate(`/${pendingStoreSlug}`);
-            setPendingStoreSlug(null);
-          }
-        }} 
-      />
-      <CustomerAnalyticsModal 
-        isOpen={isAnalyticsOpen}
-        onClose={() => setIsAnalyticsOpen(false)}
-        currentCustomer={currentCustomer}
-      />
-    </div>
-    
+        <ProfileWizardModal
+          isOpen={isWizardOpen}
+          onClose={() => setIsWizardOpen(false)}
+          customer={currentCustomer}
+          canClose={true}
+          onComplete={(updatedCustomer) => {
+            const rawPay = updatedCustomer?.payment_profile;
+            let safePay = [];
+            if (Array.isArray(rawPay)) safePay = rawPay;
+            else if (rawPay && typeof rawPay === 'object' && Object.keys(rawPay).length > 0) safePay = [rawPay];
+
+            const safeCust = {
+              ...updatedCustomer,
+              payment_profile: safePay,
+              addresses: Array.isArray(updatedCustomer?.addresses) ? updatedCustomer.addresses : []
+            };
+            localStorage.setItem('ecommerce_current_customer', JSON.stringify(safeCust));
+            setCurrentCustomer(safeCust);
+            setIsWizardOpen(false);
+            if (pendingStoreSlug) {
+              navigate(`/${pendingStoreSlug}`);
+              setPendingStoreSlug(null);
+            }
+          }}
+        />
+        <CustomerAnalyticsModal
+          isOpen={isAnalyticsOpen}
+          onClose={() => setIsAnalyticsOpen(false)}
+          currentCustomer={currentCustomer}
+        />
+      </div>
+
       {/* Mobile Menu Drawer */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200]"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -3449,7 +3441,7 @@ export default function MarketplaceDirectory() {
               <div className="p-5 flex items-center justify-between border-b border-zinc-200 bg-white">
                 <div className="flex items-center gap-2 select-none">
                   <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-                    <ShoppingBag size={16} className="stroke-[2.5]"/>
+                    <ShoppingBag size={16} className="stroke-[2.5]" />
                   </div>
                   <span className="font-black text-lg tracking-[0.2em] text-zinc-900">AXON<span className="text-amber-600 font-bold">MARKET</span></span>
                 </div>
@@ -3457,7 +3449,7 @@ export default function MarketplaceDirectory() {
                   <X size={24} />
                 </button>
               </div>
-              
+
               <div className="flex-1 py-4 px-4 flex flex-col gap-6">
                 {/* Acceso para Comerciante Activo */}
                 {hasMerchantAccess && (
@@ -3529,7 +3521,7 @@ export default function MarketplaceDirectory() {
                 )}
 
                 {currentCustomer && (
-                  <div 
+                  <div
                     onClick={() => { setIsMobileMenuOpen(false); navigate('/profile'); }}
                     className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-center gap-3 cursor-pointer hover:bg-amber-100/50 transition-colors"
                   >
@@ -3547,10 +3539,10 @@ export default function MarketplaceDirectory() {
                     <ChevronRight size={16} className="text-amber-600 shrink-0" />
                   </div>
                 )}
-                
+
                 <div className="space-y-1">
                   <h3 className="text-[10px] font-black tracking-[0.2em] text-zinc-400 uppercase mb-3 ml-2">Legal y Políticas</h3>
-                  
+
                   <button onClick={() => { setIsMobileMenuOpen(false); navigate('/legal/terminos'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-zinc-100 group-hover:bg-amber-100 flex items-center justify-center text-zinc-500 group-hover:text-amber-600 transition-colors">
@@ -3665,7 +3657,7 @@ export default function MarketplaceDirectory() {
           </>
         )}
       </AnimatePresence>
-      
+
       {/* Comments Drawer (Instagram Style) */}
       <PostCommentsDrawer
         isOpen={Boolean(activeCommentsPost)}

@@ -1684,7 +1684,7 @@ export default function UnifiedPosPage() {
           {/* Columna Izquierda: Catálogo Oficial AxonPOS (Barra Jerárquica + Subcategory Sidebar + VisualProductCards) */}
           <div className={`${isCartOpen ? 'lg:col-span-8' : 'lg:col-span-12'} h-full flex flex-col min-h-0 overflow-hidden transition-all duration-300 gap-2.5`}>
             
-            {/* NIVEL 1: BARRA SUPERIOR DE CATEGORÍAS PRINCIPALES Y ORDENAMIENTO (IMAGE 2) */}
+            {/* NIVEL 1: BARRA SUPERIOR DE CATEGORÍAS PRINCIPALES */}
             <HierarchicalCategoryBar
               categories={mainCategories}
               selectedCategoryId={selectedMainCategory}
@@ -1692,11 +1692,8 @@ export default function UnifiedPosPage() {
                 setSelectedMainCategory(catId);
                 setSelectedSubcategory('ALL');
               }}
-              onCreateCategory={handleCreateCategoryInPos}
               productCounts={mainCategoryCounts}
               totalProductsCount={products.length}
-              sortBy={sortBy}
-              onSortChange={setSortBy}
             />
 
             {/* MÓVIL Y TABLET (lg:hidden): CINTA HORIZONTAL DE SUBCATEGORÍAS EN CHIPS */}
