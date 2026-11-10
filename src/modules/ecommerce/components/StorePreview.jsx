@@ -36,6 +36,18 @@ export default function StorePreview({
   const textColor = themeMode === 'dark' ? 'text-white' : 'text-slate-900';
   const mutedText = themeMode === 'dark' ? 'text-slate-400' : 'text-slate-500';
 
+  const renderFormattedText = (rawText) => {
+    if (!rawText) return null;
+    const parts = String(rawText).split(/(\*\*.*?\*\*|<b>.*?<\/b>)/g);
+    return parts.map((part, idx) => {
+      if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('<b>') && part.endsWith('</b>'))) {
+        const clean = part.replace(/^\*\*|^\<b\>|\*\*$|\<\/b\>$/g, '');
+        return <strong key={idx} className="font-black">{clean}</strong>;
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
   // Derivando datos reales de productos
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category || 'Sin Categoría'));
@@ -212,8 +224,8 @@ export default function StorePreview({
         {activePagePreview === 'offers' && (
           <div className={`flex-1 flex flex-col ${secondaryBg}`}>
             {offersBannerUrl && (
-              <div className="w-full px-4 pt-4">
-                <div className="w-full h-44 sm:h-56 rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+              <div className="w-full relative overflow-hidden bg-slate-900 border-b border-slate-200">
+                <div className="w-full h-44 sm:h-56">
                   <img src={offersBannerUrl} alt="Banner Ofertas" className="w-full h-full object-cover object-center" />
                 </div>
               </div>
@@ -226,10 +238,10 @@ export default function StorePreview({
                   </div>
                 )}
                 <h1 className={`${headingWeight} text-3xl md:text-4xl font-extrabold mb-1.5`} style={{ color: offersTitleColor }}>
-                  {texts.offersTitle || 'Ofertas Flash'}
+                  {renderFormattedText(texts.offersTitle || 'Ofertas Flash')}
                 </h1>
                 <p className="opacity-90 max-w-md mx-auto text-xs sm:text-sm leading-relaxed" style={{ color: offersSubtitleColor }}>
-                  {texts.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
+                  {renderFormattedText(texts.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.')}
                 </p>
               </div>
             </div>

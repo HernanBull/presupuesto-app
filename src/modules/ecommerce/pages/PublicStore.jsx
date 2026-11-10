@@ -220,6 +220,8 @@ export default function PublicStore() {
   const [isSavingOffers, setIsSavingOffers] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const offersBannerInputRef = useRef(null);
+  const titleInputRef = useRef(null);
+  const subtitleInputRef = useRef(null);
 
   useEffect(() => {
     if (workspaceId) {
@@ -2390,6 +2392,60 @@ export default function PublicStore() {
     }
   };
 
+  // Renderizador de texto con soporte para negrita (**palabra** o <b>palabra</b>)
+  const renderFormattedText = (rawText, defaultWeightClass = '') => {
+    if (!rawText) return null;
+    const parts = String(rawText).split(/(\*\*.*?\*\*|<b>.*?<\/b>)/g);
+    return parts.map((part, idx) => {
+      if ((part.startsWith('**') && part.endsWith('**')) || (part.startsWith('<b>') && part.endsWith('</b>'))) {
+        const clean = part.replace(/^\*\*|^\<b\>|\*\*$|\<\/b\>$/g, '');
+        return (
+          <strong key={idx} className="font-black">
+            {clean}
+          </strong>
+        );
+      }
+      return <span key={idx} className={defaultWeightClass}>{part}</span>;
+    });
+  };
+
+  // Función para aplicar/deshacer negrita en la selección de texto
+  const applyBoldFormatting = (inputRef, value, setValue) => {
+    const input = inputRef?.current;
+    if (!input) return;
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    if (start === undefined || end === undefined) return;
+    
+    const selected = value.substring(start, end);
+    let newValue = '';
+    if (selected.length > 0) {
+      if (selected.startsWith('**') && selected.endsWith('**')) {
+        newValue = value.substring(0, start) + selected.slice(2, -2) + value.substring(end);
+      } else {
+        newValue = value.substring(0, start) + `**${selected}**` + value.substring(end);
+      }
+    } else {
+      newValue = value.substring(0, start) + '**palabra**' + value.substring(end);
+    }
+    setValue(newValue);
+    setTimeout(() => {
+      input.focus();
+      if (selected.length > 0) {
+        input.setSelectionRange(start, start + selected.length + 4);
+      } else {
+        input.setSelectionRange(start + 2, start + 9);
+      }
+    }, 50);
+  };
+
+  const handleBoldKeyDown = (e, inputRef, value, setValue) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      applyBoldFormatting(inputRef, value, setValue);
+    }
+  };
+
   // Abrir editor in-situ de la sección de Ofertas
   const openOffersCustomizer = () => {
     setEditOffersTitle(texts?.offersTitle || 'Ofertas Flash');
@@ -3853,10 +3909,10 @@ export default function PublicStore() {
         {/* OFERTAS */}
         {currentPage === 'offers' && (
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-28 relative">
-            {/* 1. Imagen de Banner Limpia y Panorámica (sin textos superpuestos) */}
+            {/* 1. Imagen de Banner de Ancho Completo (Edge-to-Edge sin bordes blancos) */}
             {resolvedOffersBannerUrl && (
-              <div className="w-full px-3.5 sm:px-6 pt-3 sm:pt-4">
-                <div className="w-full h-64 sm:h-80 md:h-96 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-slate-200/90 bg-slate-100 relative group">
+              <div className="w-full relative overflow-hidden bg-slate-900 border-b border-slate-200/80">
+                <div className="w-full h-64 sm:h-80 md:h-96 relative group">
                   <img 
                     src={resolveImageUrl(resolvedOffersBannerUrl)} 
                     alt="Banner de Ofertas" 
@@ -3890,13 +3946,13 @@ export default function PublicStore() {
                    className={`${headingWeight} text-3xl md:text-5xl tracking-tight font-extrabold`}
                    style={{ color: resolvedOffersTitleColor }}
                  >
-                   {texts?.offersTitle || 'Ofertas Flash'}
+                   {renderFormattedText(texts?.offersTitle || 'Ofertas Flash')}
                  </h1>
                  <p 
                    className="text-sm md:text-base mt-1.5 max-w-2xl leading-relaxed font-medium"
                    style={{ color: resolvedOffersSubtitleColor }}
                  >
-                   {texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
+                   {renderFormattedText(texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.')}
                  </p>
                </div>
             </div>
@@ -6101,16 +6157,30 @@ export default function PublicStore() {
         <div className="py-4 space-y-5 max-h-[72vh] overflow-y-auto px-0.5">
           {/* 1. Título de la sección y Color */}
           <div className="space-y-2">
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
-              Título de Ofertas (Tamaño Grande)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
+                Título de Ofertas (Tamaño Grande)
+              </label>
+              <button
+                type="button"
+                onClick={() => applyBoldFormatting(titleInputRef, editOffersTitle, setEditOffersTitle)}
+                className="px-2.5 py-0.5 rounded text-[11px] font-black border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-zinc-700 flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                title="Selecciona texto y pulsa aquí (o Ctrl+B) para ponerlo en negrita"
+              >
+                <span className="font-black text-xs">B</span>
+                <span className="text-[10px]">Negrita</span>
+              </button>
+            </div>
             <input
+              ref={titleInputRef}
               type="text"
               value={editOffersTitle}
               onChange={(e) => setEditOffersTitle(e.target.value)}
-              placeholder="Ej: Ofertas Flash"
+              onKeyDown={(e) => handleBoldKeyDown(e, titleInputRef, editOffersTitle, setEditOffersTitle)}
+              placeholder="Ej: HUELE A **NAVIDAD**"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
+            <p className="text-[10px] text-slate-400">💡 Tip: Selecciona una palabra y pulsa <b>[ B Negrita ]</b> o <b>Ctrl+B</b> para destacarla.</p>
             
             {/* Paleta de Color del Título */}
             <div className="flex items-center gap-2 pt-1 flex-wrap">
@@ -6144,14 +6214,27 @@ export default function PublicStore() {
 
           {/* 2. Subtítulo / Preámbulo y Color */}
           <div className="space-y-2">
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
-              Subtítulo / Preámbulo de la Tienda
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
+                Subtítulo / Preámbulo de la Tienda
+              </label>
+              <button
+                type="button"
+                onClick={() => applyBoldFormatting(subtitleInputRef, editOffersSubtitle, setEditOffersSubtitle)}
+                className="px-2.5 py-0.5 rounded text-[11px] font-black border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-zinc-700 flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                title="Selecciona texto y pulsa aquí (o Ctrl+B) para ponerlo en negrita"
+              >
+                <span className="font-black text-xs">B</span>
+                <span className="text-[10px]">Negrita</span>
+              </button>
+            </div>
             <textarea
+              ref={subtitleInputRef}
               rows={2}
               value={editOffersSubtitle}
               onChange={(e) => setEditOffersSubtitle(e.target.value)}
-              placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda."
+              onKeyDown={(e) => handleBoldKeyDown(e, subtitleInputRef, editOffersSubtitle, setEditOffersSubtitle)}
+              placeholder="Ej: Comparte con tu familia los mejores **ASADOS** de Cagua"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-xs sm:text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed"
             />
 
@@ -6188,13 +6271,13 @@ export default function PublicStore() {
           {/* 3. Previsualización en Vivo de Textos y Colores */}
           <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
-              Vista Previa de Tipografía
+              Vista Previa de Tipografía (con Negritas y Colores)
             </span>
             <div className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ color: editOffersTitleColor }}>
-              {editOffersTitle || 'Ofertas Flash'}
+              {renderFormattedText(editOffersTitle || 'Ofertas Flash')}
             </div>
             <div className="text-xs sm:text-sm mt-0.5 leading-relaxed font-medium" style={{ color: editOffersSubtitleColor }}>
-              {editOffersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
+              {renderFormattedText(editOffersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.')}
             </div>
           </div>
 
