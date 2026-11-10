@@ -2688,20 +2688,16 @@ export default function PublicStore() {
   };
 
   // ═══ HANDLERS MÓDULO DE EMPLEOS Y CURRÍCULUMS ═══
-  const jobsConfig = useMemo(() => {
-    const j = config?.jobs || {};
-    const openings = Array.isArray(j.openings) ? j.openings : [
+  const currentJobsRaw = config?.jobs || {};
+  const jobsConfig = {
+    enabled: currentJobsRaw.enabled !== false,
+    openings: Array.isArray(currentJobsRaw.openings) ? currentJobsRaw.openings : [
       { id: '1', title: 'Personal de Atención y Ventas', active: true },
       { id: '2', title: 'Personal de Cocina y Preparación', active: true },
       { id: '3', title: 'Postulación Abierta / Varios Cargos', active: true }
-    ];
-    const applications = Array.isArray(j.applications) ? j.applications : [];
-    return {
-      enabled: j.enabled !== false,
-      openings,
-      applications
-    };
-  }, [config?.jobs]);
+    ],
+    applications: Array.isArray(currentJobsRaw.applications) ? currentJobsRaw.applications : []
+  };
 
   const handleSubmitApplication = async (e) => {
     e?.preventDefault();
