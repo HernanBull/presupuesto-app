@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -248,7 +248,31 @@ export default function PublicStore() {
   const [activeMainCategory, setActiveMainCategory] = useState('Todas');
   const [subCategories, setSubCategories] = useState(['Todos']);
   const [activeSubCategory, setActiveSubCategory] = useState('Todos');
+  const [storeCustomCategories, setStoreCustomCategories] = useState([]);
   const [bcvRate, setBcvRate] = useState(36.50);
+
+  // Estados para Edición Rápida de Información de la Tienda
+  const [storeInfoModalOpen, setStoreInfoModalOpen] = useState(false);
+  const [editStoreName, setEditStoreName] = useState('');
+  const [editStoreBio, setEditStoreBio] = useState('');
+  const [editStorePhone, setEditStorePhone] = useState('');
+  const [editStoreAddress, setEditStoreAddress] = useState('');
+  const [editStoreOpenTime, setEditStoreOpenTime] = useState('08:00');
+  const [editStoreCloseTime, setEditStoreCloseTime] = useState('18:00');
+  const [isSavingStoreInfo, setIsSavingStoreInfo] = useState(false);
+
+  // Estados para Módulo de Empleos y Recepción de CV
+  const [jobModalOpen, setJobModalOpen] = useState(false);
+  const [jobAdminModalOpen, setJobAdminModalOpen] = useState(false);
+  const [applicantName, setApplicantName] = useState('');
+  const [applicantPhone, setApplicantPhone] = useState('');
+  const [applicantPosition, setApplicantPosition] = useState('');
+  const [applicantNotes, setApplicantNotes] = useState('');
+  const [applicantCvFile, setApplicantCvFile] = useState(null);
+  const [isSubmittingJob, setIsSubmittingJob] = useState(false);
+  const [newOpeningTitle, setNewOpeningTitle] = useState('');
+  const [isSavingJobsConfig, setIsSavingJobsConfig] = useState(false);
+  const applicantCvInputRef = useRef(null);
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
@@ -2202,6 +2226,9 @@ export default function PublicStore() {
         saved.bcvRate = baseConf.bcvRate || saved.bcvRate || 36.50;
         saved.business_name = storeData.name;
 
+        const loadedCustomCats = baseConf.custom_categories || storeData.custom_categories || [];
+        setStoreCustomCategories(Array.isArray(loadedCustomCats) ? loadedCustomCats : []);
+
         setConfig(saved);
         trackEvent('visit', storeData.id);
 
@@ -2230,6 +2257,12 @@ export default function PublicStore() {
               });
             setProducts(finalPublished);
             const cats = new Set(finalPublished.map(p => p.category || 'Sin Categoría'));
+            if (Array.isArray(loadedCustomCats)) {
+              loadedCustomCats.forEach(c => {
+                const cName = typeof c === 'string' ? c : c?.name;
+                if (cName) cats.add(cName);
+              });
+            }
             finalCats = ['Todas', ...Array.from(cats)];
             setMainCategories(finalCats);
             const allSubCats = new Set(finalPublished.map(p => p.subcategory || 'General'));
@@ -2588,6 +2621,228 @@ export default function PublicStore() {
       alert('Error al guardar: ' + (err.message || 'Error de conexión'));
     } finally {
       setIsSavingOffers(false);
+    }
+  };
+
+  // ═══ HANDLERS EDICIÓN RÁPIDA DE TIENDA ═══
+  const handleOpenStoreInfoModal = () => {
+    setEditStoreName(config?.business_name || '');
+    setEditStoreBio(config?.description || '');
+    setEditStorePhone(config?.phone || config?.expediente?.whatsapp || '');
+    setEditStoreAddress(config?.address || '');
+    const sched = config?.scheduleProfile || config?.schedule || {};
+    setEditStoreOpenTime(sched.openTime || '08:00');
+    setEditStoreCloseTime(sched.closeTime || '18:00');
+    setStoreInfoModalOpen(true);
+  };
+
+  const handleSaveStoreInfo = async () => {
+    if (!isMerchantOwner || !workspaceId) return;
+    setIsSavingStoreInfo(true);
+    try {
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config, name').eq('id', workspaceId).single();
+      if (fetchErr) throw fetchErr;
+
+      const curConfig = ws?.config || {};
+      const newName = editStoreName.trim() || ws?.name || 'Mi Comercio';
+      const newBio = editStoreBio.trim();
+      const newPhone = editStorePhone.trim();
+      const newAddress = editStoreAddress.trim();
+
+      const updatedSchedule = {
+        ...(curConfig.scheduleProfile || curConfig.schedule || {}),
+        openTime: editStoreOpenTime || '08:00',
+        closeTime: editStoreCloseTime || '18:00'
+      };
+
+      const updatedConfig = {
+        ...curConfig,
+        business_name: newName,
+        description: newBio,
+        phone: newPhone,
+        address: newAddress,
+        scheduleProfile: updatedSchedule,
+        schedule: updatedSchedule
+      };
+
+      const { error: updErr } = await supabase
+        .from('workspaces')
+        .update({ name: newName, config: updatedConfig })
+        .eq('id', workspaceId);
+
+      if (updErr) throw updErr;
+
+      setConfig(prev => ({
+        ...prev,
+        ...updatedConfig
+      }));
+
+      alert('¡Información de la tienda actualizada con éxito!');
+      setStoreInfoModalOpen(false);
+    } catch (err) {
+      console.error('Error al guardar información de tienda:', err);
+      alert('Error al guardar: ' + (err.message || 'Error de conexión'));
+    } finally {
+      setIsSavingStoreInfo(false);
+    }
+  };
+
+  // ═══ HANDLERS MÓDULO DE EMPLEOS Y CURRÍCULUMS ═══
+  const jobsConfig = useMemo(() => {
+    const j = config?.jobs || {};
+    const openings = Array.isArray(j.openings) ? j.openings : [
+      { id: '1', title: 'Personal de Atención y Ventas', active: true },
+      { id: '2', title: 'Personal de Cocina y Preparación', active: true },
+      { id: '3', title: 'Postulación Abierta / Varios Cargos', active: true }
+    ];
+    const applications = Array.isArray(j.applications) ? j.applications : [];
+    return {
+      enabled: j.enabled !== false,
+      openings,
+      applications
+    };
+  }, [config?.jobs]);
+
+  const handleSubmitApplication = async (e) => {
+    e?.preventDefault();
+    if (!applicantName.trim() || !applicantPhone.trim()) {
+      alert('Por favor ingresa tu nombre completo y número telefónico.');
+      return;
+    }
+    if (!applicantCvFile) {
+      alert('Por favor adjunta tu currículum (PDF o imagen).');
+      return;
+    }
+
+    setIsSubmittingJob(true);
+    try {
+      let cvUrl = '';
+      try {
+        const fileExt = applicantCvFile.name ? applicantCvFile.name.split('.').pop() : 'pdf';
+        const fileName = `cv_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `resumes/${workspaceId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('ecommerce')
+          .upload(filePath, applicantCvFile, { upsert: true });
+
+        if (!uploadError) {
+          const { data: pubData } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+          cvUrl = pubData?.publicUrl || '';
+        }
+      } catch (_) {}
+
+      if (!cvUrl) {
+        cvUrl = await new Promise((res) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result);
+          reader.readAsDataURL(applicantCvFile);
+        });
+      }
+
+      const newApplication = {
+        id: `app_${Date.now()}`,
+        applicantName: applicantName.trim(),
+        phone: applicantPhone.trim(),
+        position: applicantPosition || 'Postulación Abierta',
+        notes: applicantNotes.trim(),
+        cvUrl,
+        createdAt: new Date().toISOString()
+      };
+
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const updatedApplications = [newApplication, ...(curJobs.applications || [])];
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          enabled: true,
+          applications: updatedApplications
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+
+      setConfig(prev => ({
+        ...prev,
+        jobs: updatedConfig.jobs
+      }));
+
+      alert('¡Tu currículum ha sido enviado al comercio con éxito! Nos pondremos en contacto contigo.');
+      setJobModalOpen(false);
+      setApplicantName('');
+      setApplicantPhone('');
+      setApplicantNotes('');
+      setApplicantCvFile(null);
+    } catch (err) {
+      console.error(err);
+      alert('Error al enviar postulación: ' + err.message);
+    } finally {
+      setIsSubmittingJob(false);
+    }
+  };
+
+  const handleToggleJobOpening = async (openingId) => {
+    if (!isMerchantOwner || !workspaceId) return;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const currentOpenings = jobsConfig.openings.map(op => 
+        op.id === openingId ? { ...op, active: !op.active } : op
+      );
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          openings: currentOpenings
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+    } catch (err) {
+      console.error(err);
+      alert('Error al actualizar vacante: ' + err.message);
+    }
+  };
+
+  const handleAddJobOpening = async (e) => {
+    e?.preventDefault();
+    if (!newOpeningTitle.trim() || !isMerchantOwner || !workspaceId) return;
+
+    try {
+      setIsSavingJobsConfig(true);
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const newOpening = {
+        id: `op_${Date.now()}`,
+        title: newOpeningTitle.trim(),
+        active: true
+      };
+      const currentOpenings = [newOpening, ...(jobsConfig.openings || [])];
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          openings: currentOpenings
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+      setNewOpeningTitle('');
+    } catch (err) {
+      console.error(err);
+      alert('Error al agregar vacante: ' + err.message);
+    } finally {
+      setIsSavingJobsConfig(false);
     }
   };
 
@@ -3529,10 +3784,22 @@ export default function PublicStore() {
                   <div className="space-y-4 pt-3 pb-8">
                     {/* Información */}
                     <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                      <h2 className="text-base font-black text-slate-900 mb-2 flex items-center gap-2">
-                        <Building2 size={18} style={{ color: primaryColor }} />
-                        <span>Información</span>
-                      </h2>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                          <Building2 size={18} style={{ color: primaryColor }} />
+                          <span>Información</span>
+                        </h2>
+                        {isMerchantOwner && (
+                          <button
+                            type="button"
+                            onClick={handleOpenStoreInfoModal}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-amber-500 hover:bg-amber-600 text-zinc-950 transition-all shadow-2xs active:scale-95 cursor-pointer"
+                          >
+                            <Edit2 size={13} />
+                            <span>Editar Información</span>
+                          </button>
+                        )}
+                      </div>
                       <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                         {config?.description || config?.expediente?.description || 'La mejor calidad para ti.'}
                       </div>
@@ -3720,6 +3987,69 @@ export default function PublicStore() {
                           />
                         )}
                       </div>
+                    </div>
+
+                    {/* Módulo de Empleo / Trabaja con Nosotros */}
+                    <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Briefcase size={18} style={{ color: primaryColor }} className="shrink-0" />
+                          <h2 className="text-base font-black text-slate-900">Trabaja con Nosotros</h2>
+                        </div>
+                        {isMerchantOwner && (
+                          <button
+                            type="button"
+                            onClick={() => setJobAdminModalOpen(true)}
+                            className="text-xs font-black px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <FileText size={12} />
+                            <span>Postulaciones ({jobsConfig.applications.length})</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-600 mb-3.5 leading-relaxed">
+                        ¿Quieres formar parte de nuestro equipo de trabajo? Revisa nuestras vacantes o envíanos tu currículum directamente.
+                      </p>
+
+                      {/* Lista de vacantes activas */}
+                      <div className="space-y-2 mb-4">
+                        {jobsConfig.openings.filter(o => o.active).map(op => (
+                          <div 
+                            key={op.id}
+                            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/60 hover:border-amber-400 transition-all"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              <span className="text-xs font-bold text-slate-800">{op.title}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setApplicantPosition(op.title);
+                                setJobModalOpen(true);
+                              }}
+                              className="text-[11px] font-black text-amber-600 hover:text-amber-700 hover:underline cursor-pointer"
+                            >
+                              Postularme →
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Botón principal de enviar CV */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setApplicantPosition('Postulación General');
+                          setJobModalOpen(true);
+                        }}
+                        style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                        className="w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <UploadCloud size={16} />
+                        <span>Enviar mi Currículum Vitae (CV)</span>
+                      </button>
                     </div>
                   </div>
                 )}
@@ -4092,56 +4422,214 @@ export default function PublicStore() {
           </div>
         )}
 
-        {/* PRODUCTOS */}
-        {currentPage === 'products' && (
-          <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
-            
-            {/* Barra superior de Categorías Principales */}
-            <div className="bg-white sticky top-[49px] md:top-[53px] z-30 border-b border-zinc-200 px-3 sm:px-6 py-2 flex gap-2 overflow-x-auto scrollbar-hide shadow-xs">
-               {mainCategories.map(mc => (
-                 <button 
-                   key={mc}
-                   onClick={() => setActiveMainCategory(mc)}
-                   style={{ 
-                     fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
-                     ...(activeMainCategory === mc ? { backgroundColor: primaryColor, color: primaryTextColor, borderColor: primaryColor } : {})
-                   }}
-                   className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all border ${activeMainCategory === mc ? 'shadow-xs' : 'bg-white text-zinc-600 border-zinc-200 hover:opacity-85'}`}
-                 >
-                   {mc}
-                 </button>
-               ))}
-            </div>
+        {/* PRODUCTOS - VISTA 2 COLUMNAS ESTILO POS KIOSCO Y APP MODERNA */}
+        {currentPage === 'products' && (() => {
+          // Categoría general personalizada activa
+          const activeCustomCat = storeCustomCategories.find(
+            c => (typeof c === 'string' ? c : c?.name) === activeMainCategory
+          );
 
+          // Subcategorías de la categoría general activa
+          const currentCategorySubCats = (() => {
+            if (activeMainCategory === 'Todas') return [];
+            const subMap = new Map();
+            if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
+              activeCustomCat.subcategories.forEach(sc => {
+                const sName = typeof sc === 'string' ? sc : sc?.name;
+                if (sName) {
+                  subMap.set(sName, {
+                    name: sName,
+                    imageUrl: typeof sc === 'object' ? sc.imageUrl || sc.image_url : null
+                  });
+                }
+              });
+            }
+            products
+              .filter(p => p.category === activeMainCategory && p.subcategory)
+              .forEach(p => {
+                if (!subMap.has(p.subcategory)) {
+                  subMap.set(p.subcategory, {
+                    name: p.subcategory,
+                    imageUrl: p.image_url || null
+                  });
+                }
+              });
+            return Array.from(subMap.values());
+          })();
 
-            <div className="max-w-[1600px] mx-auto w-full flex flex-col md:flex-row px-3 sm:px-6 md:px-8 py-3.5 md:py-5 gap-3.5 md:gap-6">
-               
-               {/* Barra Lateral Izquierda: Subcategorías (Desktop) */}
-                <div className="hidden md:block w-60 lg:w-64 flex-shrink-0">
-                   <div className="bg-white rounded-2xl shadow-xs border border-zinc-200/80 p-3.5 sticky top-24">
-                      <h3 className="font-bold text-sm uppercase tracking-wider mb-3 text-zinc-800 px-2 flex items-center justify-between">
-                        <span>Explorar</span>
-                        <span className="text-[10px] font-bold text-zinc-400 normal-case bg-zinc-100 px-2 py-0.5 rounded-full">{catalogProducts.length}</span>
-                      </h3>
-                      <div className="flex flex-col space-y-1">
-                        {subCategories.map(sc => (
-                          <button
-                            key={sc}
-                            onClick={() => setActiveSubCategory(sc)}
-                            style={activeSubCategory === sc ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
-                            className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${activeSubCategory === sc ? 'font-black shadow-xs' : 'text-zinc-600 hover:bg-zinc-50 font-semibold'}`}
-                          >
-                            <span className="flex-1 truncate">{sc}</span>
-                          </button>
-                        ))}
+          return (
+            <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
+              <div className="max-w-[1600px] mx-auto w-full flex px-2 sm:px-4 md:px-6 py-3 gap-2.5 sm:gap-4 items-start">
+                
+                {/* ═══ COLUMNA 1: SIDEBAR VERTICAL DE CATEGORÍAS (CUADRADOS REDONDEADOS) ═══ */}
+                <aside className="w-20 sm:w-24 shrink-0 sticky top-[53px] self-start py-1">
+                  <div className="flex flex-col items-center gap-3 bg-white/95 backdrop-blur-xs rounded-2xl p-2 sm:p-2.5 border border-slate-200/80 shadow-xs max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide">
+                    
+                    {/* Botón ALL (Todas) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMainCategory('Todas');
+                        setActiveSubCategory('Todos');
+                      }}
+                      className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
+                    >
+                      <div
+                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                          activeMainCategory === 'Todas'
+                            ? 'shadow-md scale-102 ring-2 ring-offset-2'
+                            : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
+                        }`}
+                        style={activeMainCategory === 'Todas' ? {
+                          backgroundColor: `${primaryColor}15`,
+                          color: primaryColor,
+                          ringColor: primaryColor
+                        } : {}}
+                      >
+                        <LayoutGrid size={22} className={activeMainCategory === 'Todas' ? 'stroke-[2.5]' : 'stroke-2'} />
+                        <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">All</span>
                       </div>
-                   </div>
-                </div>
+                      <span className={`text-[10px] font-black text-center truncate max-w-[70px] ${
+                        activeMainCategory === 'Todas' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
+                      }`}>
+                        Todas
+                      </span>
+                    </button>
 
-                {/* Contenedor Principal de Productos */}
+                    <div className="w-8 h-[1px] bg-slate-200 my-0.5"></div>
+
+                    {/* Categorías Generales con imágenes cuadradas redondeadas */}
+                    {mainCategories.filter(mc => mc !== 'Todas').map((mc) => {
+                      const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name) === mc);
+                      const catImg = (typeof customCat === 'object' ? customCat?.imageUrl : null) ||
+                        products.find(p => p.category === mc && p.image_url)?.image_url;
+                      const isActive = activeMainCategory === mc;
+
+                      return (
+                        <div key={mc} className="w-full flex flex-col items-center gap-2">
+                          {/* Botón de Categoría General */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (activeMainCategory === mc) {
+                                setActiveMainCategory('Todas');
+                                setActiveSubCategory('Todos');
+                              } else {
+                                setActiveMainCategory(mc);
+                                setActiveSubCategory('Todos');
+                              }
+                            }}
+                            className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
+                          >
+                            <div
+                              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden flex items-center justify-center relative transition-all ${
+                                isActive
+                                  ? 'shadow-md ring-2 ring-offset-2 scale-102'
+                                  : 'border border-slate-200/90 hover:border-slate-300 bg-white'
+                              }`}
+                              style={isActive ? { ringColor: primaryColor } : {}}
+                            >
+                              {catImg ? (
+                                <img
+                                  src={resolveImageUrl(catImg)}
+                                  alt={mc}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center font-black text-base uppercase"
+                                  style={{
+                                    backgroundColor: isActive ? `${primaryColor}20` : '#f1f5f9',
+                                    color: isActive ? primaryColor : '#64748b'
+                                  }}
+                                >
+                                  {mc.substring(0, 2)}
+                                </div>
+                              )}
+                            </div>
+                            <span
+                              className={`text-[10px] font-bold text-center leading-tight line-clamp-2 max-w-[72px] ${
+                                isActive ? 'text-slate-900 font-black' : 'text-slate-600'
+                              }`}
+                            >
+                              {mc}
+                            </span>
+                          </button>
+
+                          {/* Subcategorías Desplegadas Debajo */}
+                          {isActive && currentCategorySubCats.length > 0 && (
+                            <div className="w-full flex flex-col items-center gap-2 pt-1 pb-1 border-t border-b border-amber-200/60 bg-amber-50/40 rounded-xl p-1">
+                              <button
+                                type="button"
+                                onClick={() => setActiveSubCategory('Todos')}
+                                className={`w-full text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                  activeSubCategory === 'Todos'
+                                    ? 'bg-amber-500 text-zinc-950 shadow-2xs font-extrabold'
+                                    : 'text-slate-600 hover:bg-white/80'
+                                }`}
+                              >
+                                Todo
+                              </button>
+
+                              {currentCategorySubCats.map((sc) => {
+                                const isSubActive = activeSubCategory === sc.name;
+                                const subImg = sc.imageUrl || products.find(p => p.category === mc && p.subcategory === sc.name && p.image_url)?.image_url;
+
+                                return (
+                                  <button
+                                    key={sc.name}
+                                    type="button"
+                                    onClick={() => setActiveSubCategory(sc.name)}
+                                    className="group flex flex-col items-center gap-0.5 cursor-pointer w-full select-none"
+                                  >
+                                    <div
+                                      className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center transition-all ${
+                                        isSubActive
+                                          ? 'ring-2 ring-offset-1 shadow-xs scale-105'
+                                          : 'border border-slate-200 bg-white hover:border-slate-300'
+                                      }`}
+                                      style={isSubActive ? { ringColor: primaryColor } : {}}
+                                    >
+                                      {subImg ? (
+                                        <img
+                                          src={resolveImageUrl(subImg)}
+                                          alt={sc.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <div
+                                          className="w-full h-full flex items-center justify-center text-[11px] font-black uppercase"
+                                          style={{
+                                            backgroundColor: isSubActive ? `${primaryColor}25` : '#f8fafc',
+                                            color: isSubActive ? primaryColor : '#64748b'
+                                          }}
+                                        >
+                                          {sc.name.substring(0, 1)}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span
+                                      className={`text-[9px] font-bold text-center leading-tight line-clamp-1 max-w-[65px] ${
+                                        isSubActive ? 'text-amber-800 font-black' : 'text-slate-600'
+                                      }`}
+                                    >
+                                      {sc.name}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </aside>
+
+                {/* ═══ COLUMNA 2: BUSCADOR Y PRODUCTOS ═══ */}
                 <div className="flex-1 min-w-0">
                    
-                   {/* Barra Compacta de Búsqueda, Subcategorías y Ordenar */}
+                   {/* Barra Compacta de Búsqueda y Ordenar */}
                    <div className="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
                      <div className="relative flex-1">
                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
@@ -4167,23 +4655,6 @@ export default function PublicStore() {
                      </div>
 
                      <div className="flex items-center gap-2">
-                       {/* Selector de Subcategoría en Móvil */}
-                       {subCategories.length > 1 && (
-                         <div className="md:hidden flex-1 relative">
-                           <select 
-                             value={activeSubCategory}
-                             onChange={(e) => setActiveSubCategory(e.target.value)}
-                             aria-label="Filtrar por subcategoría"
-                             className="w-full appearance-none bg-zinc-50 border border-zinc-200 rounded-xl pl-3 pr-7 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                           >
-                             {subCategories.map(sc => <option key={sc} value={sc}>{sc}</option>)}
-                           </select>
-                           <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-zinc-400">
-                             <ChevronRight size={13} className="rotate-90" />
-                           </div>
-                         </div>
-                       )}
-
                        {/* Selector de Orden */}
                        <div className="relative flex-1 sm:flex-initial min-w-[130px]">
                          <select 
@@ -4394,7 +4865,7 @@ export default function PublicStore() {
                </div>
             </div>
           </div>
-        )}
+        ); })()}
       </div>
       <footer className="bg-white border-t border-zinc-200 mt-auto relative z-10 py-8 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-center gap-3 text-center">
@@ -6406,6 +6877,417 @@ export default function PublicStore() {
             {isSavingOffers ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
             <span>{isSavingOffers ? 'Guardando...' : 'Guardar Cambios'}</span>
           </button>
+        </div>
+      </ResponsiveModal>
+
+      {/* ═══ MODAL 1: EDICIÓN RÁPIDA DE INFORMACIÓN DE TIENDA ═══ */}
+      <ResponsiveModal
+        isOpen={storeInfoModalOpen}
+        onClose={() => setStoreInfoModalOpen(false)}
+        title="Editar Información de la Tienda"
+        disableAnimation={true}
+      >
+        <div className="space-y-4 text-left">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Nombre de la Tienda / Comercio
+            </label>
+            <input
+              type="text"
+              value={editStoreName}
+              onChange={(e) => setEditStoreName(e.target.value)}
+              placeholder="Ej: Los Mejores Asados"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Descripción corta / Biografía
+            </label>
+            <textarea
+              rows={2}
+              value={editStoreBio}
+              onChange={(e) => setEditStoreBio(e.target.value)}
+              placeholder="Ej: Hamburguesas a la parrilla, pepitos y cortes de primera..."
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Teléfono / WhatsApp
+              </label>
+              <input
+                type="text"
+                value={editStorePhone}
+                onChange={(e) => setEditStorePhone(e.target.value)}
+                placeholder="Ej: +58 412 1234567"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Dirección física
+              </label>
+              <input
+                type="text"
+                value={editStoreAddress}
+                onChange={(e) => setEditStoreAddress(e.target.value)}
+                placeholder="Ej: Av. Principal, Local 4B"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-zinc-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+            <span className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-2">
+              Horario de Atención
+            </span>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-500 dark:text-zinc-400 mb-1">
+                  Hora Apertura
+                </label>
+                <input
+                  type="time"
+                  value={editStoreOpenTime}
+                  onChange={(e) => setEditStoreOpenTime(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-slate-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-slate-500 dark:text-zinc-400 mb-1">
+                  Hora Cierre
+                </label>
+                <input
+                  type="time"
+                  value={editStoreCloseTime}
+                  onChange={(e) => setEditStoreCloseTime(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold text-slate-800 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={isSavingStoreInfo}
+              onClick={() => setStoreInfoModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              disabled={isSavingStoreInfo}
+              onClick={handleSaveStoreInfo}
+              style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+              className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+            >
+              {isSavingStoreInfo ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              <span>{isSavingStoreInfo ? 'Guardando...' : 'Guardar Información'}</span>
+            </button>
+          </div>
+        </div>
+      </ResponsiveModal>
+
+      {/* ═══ MODAL 2: POSTULACIÓN DE EMPLEO / ENVIAR CV ═══ */}
+      <ResponsiveModal
+        isOpen={jobModalOpen}
+        onClose={() => setJobModalOpen(false)}
+        title="Postularme / Enviar Currículum Vitae"
+        disableAnimation={true}
+      >
+        <form onSubmit={handleSubmitApplication} className="space-y-4 text-left">
+          <p className="text-xs text-slate-500 dark:text-zinc-400">
+            Adjunta tus datos y currículum vitae (CV) en formato PDF o foto para que el comercio evalúe tu perfil laboral.
+          </p>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Nombre Completo *
+            </label>
+            <input
+              type="text"
+              required
+              value={applicantName}
+              onChange={(e) => setApplicantName(e.target.value)}
+              placeholder="Ej: Carlos Pérez"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Teléfono / WhatsApp *
+              </label>
+              <input
+                type="tel"
+                required
+                value={applicantPhone}
+                onChange={(e) => setApplicantPhone(e.target.value)}
+                placeholder="Ej: 0414 1234567"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Cargo al que Postulas
+              </label>
+              <select
+                value={applicantPosition}
+                onChange={(e) => setApplicantPosition(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              >
+                <option value="Postulación General">Postulación Abierta / General</option>
+                {jobsConfig.openings.filter(o => o.active).map(op => (
+                  <option key={op.id} value={op.title}>{op.title}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Breve presentación o notas adicionales
+            </label>
+            <textarea
+              rows={2}
+              value={applicantNotes}
+              onChange={(e) => setApplicantNotes(e.target.value)}
+              placeholder="Cuéntanos un poco sobre tu experiencia laboral y disponibilidad..."
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 resize-none"
+            />
+          </div>
+
+          {/* Carga de Archivo CV */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Adjuntar Archivo de Currículum (PDF o Imagen) *
+            </label>
+            <input
+              type="file"
+              ref={applicantCvInputRef}
+              accept=".pdf,.doc,.docx,image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setApplicantCvFile(e.target.files[0]);
+                }
+              }}
+            />
+            <div
+              onClick={() => applicantCvInputRef.current?.click()}
+              className={`p-4 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all ${
+                applicantCvFile
+                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20'
+                  : 'border-slate-300 dark:border-zinc-800 hover:border-amber-500 bg-slate-50/70 dark:bg-zinc-900/50'
+              }`}
+            >
+              <div className="flex flex-col items-center justify-center gap-1.5">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  applicantCvFile ? 'bg-emerald-500 text-white' : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400'
+                }`}>
+                  <FileText size={20} />
+                </div>
+                {applicantCvFile ? (
+                  <>
+                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                      Archivo cargado: {applicantCvFile.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      {(applicantCvFile.size / 1024).toFixed(1)} KB — Toca para cambiar de archivo
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-xs font-black text-slate-800 dark:text-zinc-200">
+                      Toca aquí para seleccionar tu CV (PDF o Imagen)
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Formatos recomendados: PDF, JPG, PNG (máx. 10MB)
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              disabled={isSubmittingJob}
+              onClick={() => setJobModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingJob}
+              style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+              className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+            >
+              {isSubmittingJob ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
+              <span>{isSubmittingJob ? 'Enviando CV...' : 'Enviar mi Postulación'}</span>
+            </button>
+          </div>
+        </form>
+      </ResponsiveModal>
+
+      {/* ═══ MODAL 3: GESTIÓN DE EMPLEOS Y CURRÍCULUMS (PANEL COMERCIANTE) ═══ */}
+      <ResponsiveModal
+        isOpen={jobAdminModalOpen}
+        onClose={() => setJobAdminModalOpen(false)}
+        title="Gestión de Empleos y Currículums Recibidos"
+        disableAnimation={true}
+      >
+        <div className="space-y-5 text-left">
+          {/* Postulaciones recibidas */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText size={16} className="text-amber-500" />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-200">
+                  Currículums Recibidos ({jobsConfig.applications.length})
+                </h4>
+              </div>
+            </div>
+
+            {jobsConfig.applications.length === 0 ? (
+              <div className="p-6 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center bg-slate-50/50 dark:bg-zinc-900/40">
+                <Briefcase size={28} className="mx-auto text-slate-400 mb-2 stroke-[1.5]" />
+                <p className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                  Aún no has recibido postulaciones
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Cuando los clientes o postulantes envíen su CV desde la vitrina, aparecerán listados aquí con su contacto y enlace para descargarlo.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                {jobsConfig.applications.map((app) => (
+                  <div
+                    key={app.id || app.createdAt}
+                    className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs flex flex-col gap-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-900 dark:text-white">
+                            {app.applicantName}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            {app.position || 'Postulación Abierta'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
+                          <span>📞 {app.phone}</span>
+                          {app.createdAt && (
+                            <span>📅 {new Date(app.createdAt).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {app.cvUrl && (
+                        <a
+                          href={app.cvUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 shrink-0"
+                        >
+                          <Download size={12} />
+                          <span>Ver CV</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {app.notes && (
+                      <p className="text-[11px] bg-slate-50 dark:bg-zinc-800/60 p-2 rounded-lg text-slate-600 dark:text-zinc-300 italic">
+                        "{app.notes}"
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-zinc-800">
+                      <a
+                        href={`https://wa.me/${(app.phone || '').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                      >
+                        <MessageCircle size={12} />
+                        Contactar por WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Vacantes configuradas */}
+          <div className="pt-4 border-t border-slate-200 dark:border-zinc-800">
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-200 mb-2.5">
+              Vacantes Publicadas en Vitrina
+            </h4>
+
+            {/* Agregar nueva vacante */}
+            <form onSubmit={handleAddJobOpening} className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newOpeningTitle}
+                onChange={(e) => setNewOpeningTitle(e.target.value)}
+                placeholder="Nueva vacante (ej: Despachador / Motorizado)..."
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              <button
+                type="submit"
+                disabled={isSavingJobsConfig || !newOpeningTitle.trim()}
+                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 rounded-xl text-xs font-black flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+              >
+                <Plus size={14} />
+                <span>Agregar</span>
+              </button>
+            </form>
+
+            <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
+              {jobsConfig.openings.map((op) => (
+                <div
+                  key={op.id}
+                  className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-zinc-900/60 rounded-xl border border-slate-200 dark:border-zinc-800 text-xs"
+                >
+                  <span className={`font-semibold ${op.active ? 'text-slate-900 dark:text-white' : 'text-slate-400 line-through'}`}>
+                    {op.title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleJobOpening(op.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      op.active
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                        : 'bg-slate-200 dark:bg-zinc-800 text-slate-500'
+                    }`}
+                  >
+                    {op.active ? 'Activa' : 'Pausada'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setJobAdminModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </ResponsiveModal>
 

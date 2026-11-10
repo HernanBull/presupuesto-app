@@ -102,12 +102,12 @@ export const SubcategorySidebar = ({
           />
         )}
 
-        {/* Thumbnail Circular: Logo/Imagen de la Categoría General o Icono Boxes */}
+        {/* Thumbnail Cuadrado Redondeado: Logo/Imagen de la Categoría General o Icono Boxes */}
         <div
           style={{
             width: 54,
             height: 54,
-            borderRadius: '50%',
+            borderRadius: 14,
             overflow: 'hidden',
             backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFEDD5' : '#F1F5F9',
             display: 'flex',
@@ -226,12 +226,12 @@ export const SubcategorySidebar = ({
               />
             )}
 
-            {/* Thumbnail Circular con Imagen o Iniciales */}
+            {/* Thumbnail Cuadrado Redondeado con Imagen o Iniciales */}
             <div
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: '50%',
+                borderRadius: 14,
                 overflow: 'hidden',
                 backgroundColor: '#F8FAFC',
                 display: 'flex',
