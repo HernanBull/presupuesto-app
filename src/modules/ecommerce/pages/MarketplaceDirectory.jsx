@@ -1888,11 +1888,9 @@ export default function MarketplaceDirectory() {
   // Detección de publicación visible (IntersectionObserver de cada tarjeta)
   const handleCardVisible = useCallback((cardIndex) => {
     if (cardIndex >= 1) {
-      // Viendo la publicación de otro comerciante (2da en adelante) -> ocultar barras automáticamente
-      if (isNavOpenRef.current) {
-        isNavOpenRef.current = false;
-        setIsBottomNavOpen(false);
-      }
+      // Viendo la publicación de otro comerciante (2da en adelante) -> ocultar barras inmediatamente
+      isNavOpenRef.current = false;
+      setIsBottomNavOpen(false);
     }
     // Precarga automática en memoria y CacheStorage estilo TikTok para los siguientes medios
     preloadAdjacentPostsMedia(feedPosts, cardIndex, 3);
@@ -2318,9 +2316,9 @@ export default function MarketplaceDirectory() {
           </ActiveFeedMediaProvider>
         </div>
 
-        {/* Botón flotante de reapertura cuando las barras están ocultas */}
+        {/* Botón flotante circular azul con icono de tienda (Exacto a la captura del usuario) */}
         <div
-          className={`fixed bottom-6 left-4 z-50 transition-all duration-200 ${!isBottomNavOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+          className={`fixed bottom-6 left-5 z-50 transition-all duration-200 ${!isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'}`}
         >
           <button
             type="button"
@@ -2328,14 +2326,14 @@ export default function MarketplaceDirectory() {
               isNavOpenRef.current = true;
               setIsBottomNavOpen(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 shadow-2xl backdrop-blur-md active:scale-95 transition-transform cursor-pointer group"
-            title="Mostrar menú de navegación"
-            aria-label="Mostrar menú de navegación"
+            className="w-13 h-13 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center cursor-pointer shadow-2xl border-2 border-white/90 active:scale-90 transition-transform duration-150 backdrop-blur-xs"
+            title="Abrir menú"
+            aria-label="Abrir menú de navegación"
+            style={{
+              boxShadow: '0 8px 25px rgba(37, 99, 235, 0.55)'
+            }}
           >
-            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-xs">
-              <ShoppingBag size={13} className="stroke-[2.5]" />
-            </div>
-            <span className="text-xs font-black tracking-wide pr-1">Menú</span>
+            <Store size={22} className="text-white stroke-[2.2]" />
           </button>
         </div>
 

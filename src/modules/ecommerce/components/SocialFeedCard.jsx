@@ -98,6 +98,7 @@ export default function SocialFeedCard({
   const [isLiked, setIsLiked] = useState(() => isPostLikedLocally(postId, customerIdResolved));
   const [likesCount, setLikesCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(() => isStoreFollowedLocally(workspaceId, customerIdResolved || 'guest'));
+  const [showCategories, setShowCategories] = useState(false);
   const [isSaved, setIsSaved] = useState(() => {
     const custId = customerIdResolved || 'guest';
     if (!postId) return false;
@@ -760,25 +761,13 @@ export default function SocialFeedCard({
                 className="h-full relative shrink-0" 
                 style={{ width: `${100 / postImages.length}%` }}
               >
-                {/* Fondo difuminado para rellenar los bordes sin recortar */}
-                <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-none">
-                  <img 
-                    src={resolveImageUrl(imgUrl)} 
-                    alt="" 
-                    className="w-full h-full object-cover blur-2xl opacity-35 scale-110" 
-                    aria-hidden="true"
-                  />
-                </div>
-                {/* Imagen principal completa 100% visible estilo TikTok */}
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center p-0 select-none pointer-events-none z-0">
-                  <img 
-                    loading={feedIndex === 0 && i === 0 ? "eager" : "lazy"} 
-                    decoding="async"
-                    src={resolveImageUrl(imgUrl)} 
-                    alt={`${storeName} ${i + 1}`} 
-                    className="w-full h-full max-h-[88vh] object-contain select-none pointer-events-none drop-shadow-2xl" 
-                  />
-                </div>
+                <img 
+                  loading={feedIndex === 0 && i === 0 ? "eager" : "lazy"} 
+                  decoding="async"
+                  src={resolveImageUrl(imgUrl)} 
+                  alt={`${storeName} ${i + 1}`} 
+                  className="w-full h-full object-cover select-none pointer-events-none" 
+                />
               </div>
             ))}
           </div>
@@ -825,25 +814,13 @@ export default function SocialFeedCard({
           </div>
         </div>
       ) : storeCover ? (
-        <div className="absolute inset-0 w-full h-full bg-black z-0 pointer-events-none select-none overflow-hidden">
-          {/* Fondo difuminado inteligente que aprovecha los colores de la foto */}
-          <img 
-            src={resolveImageUrl(storeCover)} 
-            alt="" 
-            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 pointer-events-none select-none" 
-            aria-hidden="true"
-          />
-          {/* Imagen completa en su dimensión original sin recortar textos ni promociones estilo TikTok */}
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center p-0 z-0">
-            <img 
-              loading={feedIndex === 0 ? "eager" : "lazy"} 
-              decoding="async"
-              src={resolveImageUrl(storeCover)} 
-              alt={storeName} 
-              className="w-full h-full max-h-[88vh] object-contain pointer-events-none select-none drop-shadow-2xl" 
-            />
-          </div>
-        </div>
+        <img 
+          loading={feedIndex === 0 ? "eager" : "lazy"} 
+          decoding="async"
+          src={resolveImageUrl(storeCover)} 
+          alt={storeName} 
+          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
+        />
       ) : (
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
           <Store size={56} className="text-amber-500/80" />
@@ -1030,7 +1007,7 @@ export default function SocialFeedCard({
           </button>
         </div>
 
-        {/* Merchant Categories Badges */}
+        {/* Merchant Categories Badges (Estilo TikTok: colapsable con un toque) */}
         {(() => {
           const rawCats = Array.isArray(post.categories) && post.categories.length > 0
             ? post.categories
@@ -1038,24 +1015,40 @@ export default function SocialFeedCard({
           const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
           const validCats = rawCats.filter(c => !isInvalid(c));
 
-          return validCats.length > 0 ? (
+          if (validCats.length === 0) return null;
+
+          return (
             <div className="flex flex-wrap items-center gap-1.5 py-0.5">
-              {validCats.slice(0, 3).map((catName, idx) => (
-                <span 
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 text-[10.5px] font-extrabold text-white bg-white/20 hover:bg-white/30 border border-white/35 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] transition-colors"
-                >
-                  <Tag size={9.5} className="shrink-0 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" />
-                  <span className="tracking-tight">{catName}</span>
-                </span>
-              ))}
-              {validCats.length > 3 && (
-                <span className="text-[9.5px] font-extrabold text-white bg-white/20 border border-white/35 px-2 py-0.5 rounded-full backdrop-blur-md drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] shadow-sm">
-                  +{validCats.length - 3}
-                </span>
+              {/* Botón interactivo para ver / ocultar rubros */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowCategories(prev => !prev);
+                }}
+                className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-black/55 hover:bg-black/75 border border-white/30 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm transition-all active:scale-95 cursor-pointer"
+                title={showCategories ? 'Ocultar categorías' : 'Ver categorías de este comercio'}
+              >
+                <Tag size={9.5} className="text-amber-400" />
+                <span>{showCategories ? 'Menos ▲' : `+ ${validCats[0]} (${validCats.length}) ▼`}</span>
+              </button>
+
+              {/* Si está expandido, aparecen todas las categorías */}
+              {showCategories && (
+                <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
+                  {validCats.map((catName, idx) => (
+                    <span 
+                      key={idx}
+                      className="inline-flex items-center gap-1 text-[10px] font-extrabold text-white bg-white/20 border border-white/35 px-2 py-0.5 rounded-full backdrop-blur-md shadow-sm"
+                    >
+                      <Tag size={8.5} className="shrink-0 text-white/80" />
+                      <span>{catName}</span>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
-          ) : null;
+          );
         })()}
 
         {/* Caption / Description */}
