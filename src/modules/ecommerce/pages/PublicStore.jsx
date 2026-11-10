@@ -3304,17 +3304,18 @@ export default function PublicStore() {
         className="z-40 transition-all duration-300 px-4 md:px-8 py-2.5 sticky top-0 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
       >
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentPage('home')}>
+          <div className="flex items-center gap-2">
             <button 
               type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentPage('home'); }} 
-              className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 hover:text-black flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/60"
+              onClick={() => setCurrentPage('home')} 
+              className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 hover:text-black flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/60 shrink-0"
               title="Volver al inicio"
             >
               <ChevronLeft size={18} className="stroke-[2.5]" />
             </button>
             <span 
-              className="text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5"
+              onClick={() => setCurrentPage('home')}
+              className="text-base sm:text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5 cursor-pointer truncate max-w-[150px] sm:max-w-[240px] md:max-w-none"
               style={{ 
                 fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
                 letterSpacing: '-0.025em'
@@ -3322,11 +3323,57 @@ export default function PublicStore() {
             >
               {config.business_name || 'MI TIENDA'}
               {config.is_verified && (
-                <div title="Comercio Verificado" className="inline-flex mt-0.5">
+                <div title="Comercio Verificado" className="inline-flex mt-0.5 shrink-0">
                   <ShieldCheck size={18} className="text-amber-500 fill-amber-500/20" />
                 </div>
               )}
             </span>
+
+            {/* 🔍 Lupita de Búsqueda Interactiva al lado del nombre de la vitrina */}
+            <div className="flex items-center ml-1">
+              {!isSearchOpen && !searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchOpen(true);
+                    if (currentPage !== 'products') setCurrentPage('products');
+                  }}
+                  className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-amber-100 text-zinc-700 hover:text-amber-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/80"
+                  title="Buscar en el catálogo"
+                  aria-label="Buscar en el catálogo"
+                >
+                  <Search size={15} className="stroke-[2.5]" />
+                </button>
+              ) : (
+                <div className="relative flex items-center w-36 sm:w-52 md:w-64 transition-all">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
+                    <Search size={13} />
+                  </div>
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Buscar producto..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (currentPage !== 'products') setCurrentPage('products');
+                    }}
+                    className="w-full pl-7 pr-6 py-1 text-xs bg-white border border-amber-400 rounded-full text-zinc-800 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setIsSearchOpen(false);
+                    }}
+                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                    title="Cerrar búsqueda"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           
 
@@ -4769,31 +4816,34 @@ export default function PublicStore() {
                 
                 {/* ═══ COLUMNA 1: SIDEBAR VERTICAL DE SUBCATEGORÍAS (CUADRADOS REDONDEADOS) ═══ */}
                 <aside className="w-20 sm:w-24 shrink-0 sticky top-[53px] self-start py-1">
-                  <div className="flex flex-col items-center gap-3 bg-white/95 backdrop-blur-xs rounded-2xl p-2 sm:p-2.5 border border-slate-200/80 shadow-xs max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide">
+                  <div className="flex flex-col items-center gap-3 bg-white/95 backdrop-blur-xs rounded-2xl p-2 sm:p-2.5 border border-slate-200/80 shadow-xs max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide no-scrollbar">
                     
-                    {/* Botón ALL (Todas las subcategorías) */}
+                    {/* Botón Maestro ALL (Todas las categorías y subcategorías) */}
                     <button
                       type="button"
-                      onClick={() => setActiveSubCategory('Todos')}
+                      onClick={() => {
+                        setActiveMainCategory('Todas');
+                        setActiveSubCategory('Todos');
+                      }}
                       className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
                     >
                       <div
                         className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                          activeSubCategory === 'Todos'
+                          activeMainCategory === 'Todas' && activeSubCategory === 'Todos'
                             ? 'shadow-md scale-102 ring-2 ring-offset-2'
                             : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
                         }`}
-                        style={activeSubCategory === 'Todos' ? {
+                        style={activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? {
                           backgroundColor: `${primaryColor}15`,
                           color: primaryColor,
                           ringColor: primaryColor
                         } : {}}
                       >
-                        <LayoutGrid size={22} className={activeSubCategory === 'Todos' ? 'stroke-[2.5]' : 'stroke-2'} />
+                        <LayoutGrid size={22} className={activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? 'stroke-[2.5]' : 'stroke-2'} />
                         <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">All</span>
                       </div>
                       <span className={`text-[10px] font-black text-center truncate max-w-[70px] ${
-                        activeSubCategory === 'Todos' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
+                        activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
                       }`}>
                         Todas
                       </span>
@@ -4803,7 +4853,7 @@ export default function PublicStore() {
                       <div className="w-8 h-[1px] bg-slate-200 my-0.5"></div>
                     )}
 
-                    {/* Subcategorías de la categoría activa con imágenes cuadradas redondeadas */}
+                    {/* Subcategorías de la categoría activa con imágenes a cuadro completo */}
                     {currentCategorySubCats.map((sc) => {
                       const isSubActive = (activeSubCategory || '').trim().toLowerCase() === sc.name.trim().toLowerCase();
                       const subImg = sc.imageUrl || products.find(p => 
@@ -4867,80 +4917,17 @@ export default function PublicStore() {
                 {/* ═══ COLUMNA 2: CATEGORÍAS GENERALES HORIZONTALES Y PRODUCTOS ═══ */}
                 <div className="flex-1 min-w-0">
                    
-                   {/* Barra Horizontal Superior de Categorías Generales (Hacia la derecha) con Lupita Compacta */}
-                   <div className="bg-white p-2 sm:p-2.5 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 flex items-center gap-2">
-                     
-                     {/* Botón Lupita de Búsqueda Compacta */}
-                     <div className="shrink-0 flex items-center">
-                       {!isSearchOpen && !searchQuery ? (
-                         <button
-                           type="button"
-                           onClick={() => setIsSearchOpen(true)}
-                           className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-zinc-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs border border-zinc-200/70"
-                           title="Buscar en el catálogo"
-                           aria-label="Abrir buscador"
-                         >
-                           <Search size={18} className="stroke-[2.2]" />
-                         </button>
-                       ) : (
-                         <div className="relative flex items-center w-44 sm:w-56 transition-all">
-                           <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
-                             <Search size={15} />
-                           </div>
-                           <input
-                             type="text"
-                             autoFocus
-                             placeholder="Buscar..."
-                             value={searchQuery}
-                             onChange={(e) => setSearchQuery(e.target.value)}
-                             className="w-full pl-8 pr-7 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
-                           />
-                           <button
-                             type="button"
-                             onClick={() => {
-                               setSearchQuery('');
-                               setIsSearchOpen(false);
-                             }}
-                             className="absolute inset-y-0 right-0 pr-2 flex items-center text-zinc-400 hover:text-zinc-600 cursor-pointer"
-                             title="Cerrar búsqueda"
-                           >
-                             <X size={14} />
-                           </button>
-                         </div>
-                       )}
-                     </div>
-
-                     <div className="w-[1px] h-7 bg-zinc-200 shrink-0 mx-0.5"></div>
-
-                     {/* Hilera Horizontal de Categorías Generales (Despliegue hacia la derecha) */}
-                     <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
-                       
-                       {/* Botón ALL (Todas las categorías principales) */}
-                       <button
-                         type="button"
-                         onClick={() => {
-                           setActiveMainCategory('Todas');
-                           setActiveSubCategory('Todos');
-                         }}
-                         className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all cursor-pointer select-none ${
-                           activeMainCategory === 'Todas'
-                             ? 'shadow-xs scale-102 ring-2 ring-offset-1'
-                             : 'bg-white hover:bg-slate-50 text-slate-700 border-zinc-200/90'
-                         }`}
-                         style={activeMainCategory === 'Todas' ? {
-                           backgroundColor: `${primaryColor}15`,
-                           borderColor: primaryColor,
-                           color: primaryColor,
-                           ringColor: primaryColor
-                         } : {}}
-                       >
-                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 shrink-0">
-                           <LayoutGrid size={16} className="stroke-[2.5]" />
-                         </div>
-                         <span className="font-extrabold tracking-wide uppercase text-[11px] whitespace-nowrap">Todas</span>
-                       </button>
-
-                       {/* Categorías Generales con Foto Cuadrada Redondeada y Nombre */}
+                   {/* Barra Horizontal Superior de Categorías Generales (Hacia la derecha, sin barra fea) */}
+                   <div className="bg-white p-2 sm:p-2.5 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 relative overflow-hidden">
+                     <div 
+                       className="flex items-center gap-2.5 overflow-x-auto scrollbar-hide no-scrollbar py-1 scroll-smooth"
+                       onWheel={(e) => {
+                         if (e.deltaY !== 0) {
+                           e.currentTarget.scrollLeft += e.deltaY;
+                         }
+                       }}
+                     >
+                       {/* Categorías Generales con Foto Cuadrada Redondeada y Nombre (Sin duplicar botón Todas) */}
                        {(() => {
                          const allCatNames = new Set();
                          storeCustomCategories.forEach(c => {
@@ -4963,7 +4950,7 @@ export default function PublicStore() {
                              key={mc}
                              type="button"
                              onClick={() => {
-                               if (activeMainCategory === mc) {
+                               if (activeMainCategory.trim().toLowerCase() === mc.trim().toLowerCase()) {
                                  setActiveMainCategory('Todas');
                                  setActiveSubCategory('Todos');
                                } else {
@@ -4971,7 +4958,7 @@ export default function PublicStore() {
                                  setActiveSubCategory('Todos');
                                }
                              }}
-                             className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all cursor-pointer select-none ${
+                             className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all cursor-pointer select-none ${
                                isActive
                                  ? 'shadow-xs scale-102 ring-2 ring-offset-1'
                                  : 'bg-white hover:bg-slate-50 text-slate-700 border-zinc-200/90'
@@ -4983,24 +4970,23 @@ export default function PublicStore() {
                                ringColor: primaryColor
                              } : {}}
                            >
-                             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-slate-100 border border-slate-200">
+                             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-slate-100 border border-slate-200/80 shadow-2xs">
                                {catImg ? (
                                  <img
                                    src={resolveImageUrl(catImg)}
                                    alt={mc}
-                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                  />
                                ) : (
-                                 <span className="text-[11px] font-black uppercase text-slate-600">
+                                 <span className="text-xs font-black uppercase text-slate-600">
                                    {mc.substring(0, 2)}
                                  </span>
                                )}
                              </div>
-                             <span className="font-extrabold whitespace-nowrap text-[12px]">{mc}</span>
+                             <span className="font-extrabold whitespace-nowrap text-xs md:text-sm">{mc}</span>
                            </button>
                          );
                        })}
-
                      </div>
                    </div>
 
