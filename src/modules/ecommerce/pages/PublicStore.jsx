@@ -2298,12 +2298,19 @@ export default function PublicStore() {
                 return 0;
               });
             setProducts(finalPublished);
-            const cats = new Set(finalPublished.map(p => p.category || 'Sin Categoría'));
-            if (Array.isArray(loadedCustomCats)) {
-              loadedCustomCats.forEach(c => {
-                const cName = typeof c === 'string' ? c : c?.name;
+            const cats = new Set();
+            if (Array.isArray(normalizedCustomCats)) {
+              normalizedCustomCats.forEach(c => {
+                const cName = (typeof c === 'string' ? c : c?.name || '').trim();
                 if (cName) cats.add(cName);
               });
+            }
+            finalPublished.forEach(p => {
+              const pCat = (p.category || '').trim();
+              if (pCat) cats.add(pCat);
+            });
+            if (cats.size === 0) {
+              cats.add('General');
             }
             finalCats = ['Todas', ...Array.from(cats)];
             setMainCategories(finalCats);
@@ -3079,10 +3086,10 @@ export default function PublicStore() {
   });
   let catalogProducts = [...products];
   if (activeMainCategory !== 'Todas') {
-    catalogProducts = catalogProducts.filter(p => p.category === activeMainCategory);
+    catalogProducts = catalogProducts.filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase());
   }
   if (activeSubCategory !== 'Todos') {
-    catalogProducts = catalogProducts.filter(p => (p.subcategory || 'General') === activeSubCategory);
+    catalogProducts = catalogProducts.filter(p => (p.subcategory || 'General').trim().toLowerCase() === activeSubCategory.trim().toLowerCase());
   }
 
   if (searchQuery) {
@@ -4711,7 +4718,7 @@ export default function PublicStore() {
               });
             }
             products
-              .filter(p => (p.category || '').toLowerCase() === activeMainCategory.toLowerCase() && p.subcategory)
+              .filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase() && p.subcategory)
               .forEach(p => {
                 const sName = (p.subcategory || '').trim();
                 const sKey = sName.toLowerCase();
@@ -4767,7 +4774,18 @@ export default function PublicStore() {
                     <div className="w-8 h-[1px] bg-slate-200 my-0.5"></div>
 
                     {/* Categorías Generales con imágenes cuadradas redondeadas */}
-                    {mainCategories.filter(mc => mc !== 'Todas').map((mc) => {
+                    {(() => {
+                      const allCatNames = new Set();
+                      storeCustomCategories.forEach(c => {
+                        const n = (typeof c === 'string' ? c : c?.name || '').trim();
+                        if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
+                      });
+                      mainCategories.forEach(mc => {
+                        const n = (typeof mc === 'string' ? mc : '').trim();
+                        if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
+                      });
+                      return Array.from(allCatNames);
+                    })().map((mc) => {
                       const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === mc.trim().toLowerCase());
                       const catImg = (typeof customCat === 'object' ? (customCat?.imageUrl || customCat?.image_url) : null) ||
                         products.find(p => (p.category || '').trim().toLowerCase() === mc.trim().toLowerCase() && p.image_url)?.image_url;
@@ -4970,13 +4988,13 @@ export default function PublicStore() {
                             </div>
                           )}
 
-                          {/* Image */}
-                          <div className="w-full aspect-square bg-white relative p-4 flex items-center justify-center border-b border-zinc-100">
+                          {/* Image con encuadre total sin margen blanco */}
+                          <div className="w-full aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-zinc-100">
                             {p.image_url ? (
-                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-300">
-                                <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                              <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-slate-50">
+                                <Package size={36} className="stroke-[1.5]" />
                               </div>
                             )}
 
@@ -5001,19 +5019,28 @@ export default function PublicStore() {
                             )}
                             <div className="flex items-center justify-between gap-1 mb-2.5">
                               <p className="text-xs text-zinc-500 font-medium">{p.step_size || 1} {p.unit || 'unidad'}</p>
-                              {(p.stock_vitrina || 0) > 0 ? (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                  (p.stock_vitrina || 0) <= 5 
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                }`}>
-                                  {(p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200">
-                                  Agotado
-                                </span>
-                              )}
+                              {(() => {
+                                const qty = Number(p.stock_vitrina) || 0;
+                                if (qty > 5) {
+                                  return (
+                                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title={`Disponible: ${qty}`}>
+                                      {qty}
+                                    </span>
+                                  );
+                                }
+                                if (qty > 0) {
+                                  return (
+                                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs animate-pulse" title={`Pocas unidades: ${qty}`}>
+                                      {qty}
+                                    </span>
+                                  );
+                                }
+                                return (
+                                  <span className="text-xs font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs" title="Agotado">
+                                    0
+                                  </span>
+                                );
+                              })()}
                             </div>
                             
                             <div className="mt-auto pt-2 flex items-center justify-between gap-1 w-full min-w-0">
