@@ -247,19 +247,88 @@ export default function AgencySuperuserManager() {
         </button>
       </div>
 
-      {/* Nota Explicativa */}
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 text-xs sm:text-sm text-amber-200">
-        <HelpCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-1.5">
-          <span className="font-bold">¿Cómo obtiene el repartidor o dueño su Telegram ID?</span>
-          <p className="text-zinc-300 text-xs leading-relaxed">
-            • <b>En el Grupo de Cagua:</b> Escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/id</code> o <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono font-bold">/mi_id</code>. El bot responderá citando al usuario con su ID para copiarlo con un solo toque.<br/>
-            • <b>En el Bot Privado:</b> Abre <b className="text-white">@DeliveryAxonbot</b> y presiona el botón interactivo <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">🆔 Mi ID</code> o escribe <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">/start</code>.
-          </p>
-          <div className="pt-1 border-t border-amber-500/15 text-xs text-amber-300/90 flex items-center gap-1.5">
-            <span>📅</span>
-            <span><b>Auditoría por Fechas:</b> Los directivos pueden auditar fechas anteriores tocando <b>«📅 Reporte por Fecha»</b> en el bot, o escribiendo <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">/ayer</code>, <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">/antier</code> o cualquier fecha como <code className="bg-zinc-950 px-1 py-0.5 rounded text-white font-mono">01/11/2026</code>.</span>
+      {/* Guía Operativa Desglosada: Bot de Telegram de Delivery (@DeliveryAxonbot) */}
+      <div className="bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 border border-amber-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🤖</span>
+            <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+              Guía de Operaciones & Comandos del Bot de Telegram (@DeliveryAxonbot)
+            </h3>
           </div>
+          <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            EnMinutos / EM
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          {/* Bloque 1: Repartidores / Drivers */}
+          <div className="bg-black/50 border border-white/5 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-amber-400 font-black uppercase tracking-wider text-[11px]">
+              <span>🛵</span>
+              <span>1. Repartidores (Registro y Guardia)</span>
+            </div>
+            <ul className="space-y-2 text-zinc-300 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/start</code>
+                <span>Inicia el bot privado, abre el teclado con botones interactivos y muestra el estatus.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-amber-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/id</code>
+                <span>Muestra su ID numérico de Telegram para ser añadido a la flota desde este panel.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/disponible</code>
+                <span>Se pone en servicio activo para recibir alertas inmediatas de nuevos pedidos.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-rose-400 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/descanso</code>
+                <span>Pausa su turno para que el sistema no le asigne viajes temporalmente.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-400 font-bold shrink-0">📍 GPS:</span>
+                <span>Tocar <b>«Enviar Ubicación»</b> para que el despachador asigne carreras por cercanía real.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-yellow-400 font-bold shrink-0">📦 Carreras:</span>
+                <span>En cada aviso presiona: <b>«🛵 Aceptar»</b> ➔ <b>«📦 Retirado»</b> ➔ <b>«🏁 Entregado»</b>.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Bloque 2: Directores y Dueños */}
+          <div className="bg-black/50 border border-white/5 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-400 font-black uppercase tracking-wider text-[11px]">
+              <span>👑</span>
+              <span>2. Directivos & Dueños (Auditoría Gerencial)</span>
+            </div>
+            <ul className="space-y-2 text-zinc-300 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-emerald-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/reporte</code>
+                <span>Balance total del día: pedidos despachados, comisiones cobradas y viajes por conductor.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-blue-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/ayer</code>
+                <span>Auditoría financiera consolidada de todos los viajes del día anterior.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-purple-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0">/antier</code>
+                <span>Auditoría de 2 días atrás.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <code className="bg-zinc-800 text-white px-1.5 py-0.5 rounded font-mono font-bold shrink-0">DD/MM/AAAA</code>
+                <span>Escribir cualquier fecha (Ej: <b className="text-amber-300">10/11/2026</b>) para consultar su historial completo.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-red-400 font-bold shrink-0">🚨 Alertas:</span>
+                <span>Notificación automática en caso de viaje retrasado (&gt;45 min) o reporte de accidente.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between text-xs text-amber-200">
+          <span>💡 <b>Tip de Registro Rápido:</b> Pídele al nuevo repartidor que envíe un mensaje a <b className="text-white">@DeliveryAxonbot</b> y presione <code className="bg-zinc-950 px-1.5 py-0.5 rounded text-amber-300 font-mono">🆔 Mi ID</code>. Luego anota ese número en el formulario de abajo.</span>
         </div>
       </div>
 

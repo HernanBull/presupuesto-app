@@ -277,6 +277,7 @@ export default function PublicStore() {
   // Estados para Edición Rápida de Información de la Tienda
   const [storeInfoModalOpen, setStoreInfoModalOpen] = useState(false);
   const [editStoreName, setEditStoreName] = useState('');
+  const [editStoreSlogan, setEditStoreSlogan] = useState('');
   const [editStoreBio, setEditStoreBio] = useState('');
   const [editStorePhone, setEditStorePhone] = useState('');
   const [editStoreAddress, setEditStoreAddress] = useState('');
@@ -2654,6 +2655,7 @@ export default function PublicStore() {
   // ═══ HANDLERS EDICIÓN RÁPIDA DE TIENDA ═══
   const handleOpenStoreInfoModal = () => {
     setEditStoreName(config?.business_name || '');
+    setEditStoreSlogan(config?.storeSlogan || '');
     setEditStoreBio(config?.description || '');
     setEditStorePhone(config?.phone || config?.expediente?.whatsapp || '');
     setEditStoreAddress(config?.address || '');
@@ -2672,6 +2674,7 @@ export default function PublicStore() {
 
       const curConfig = ws?.config || {};
       const newName = editStoreName.trim() || ws?.name || 'Mi Comercio';
+      const newSlogan = editStoreSlogan.trim();
       const newBio = editStoreBio.trim();
       const newPhone = editStorePhone.trim();
       const newAddress = editStoreAddress.trim();
@@ -2685,6 +2688,7 @@ export default function PublicStore() {
       const updatedConfig = {
         ...curConfig,
         business_name: newName,
+        storeSlogan: newSlogan,
         description: newBio,
         phone: newPhone,
         address: newAddress,
@@ -3562,12 +3566,35 @@ export default function PublicStore() {
                     </div>
                   )}
 
-                  {/* Descripción / Bio */}
-                  {(config?.description || config?.expediente?.description) && (
-                    <p className="text-xs sm:text-sm text-slate-700 mt-2 leading-relaxed whitespace-pre-line">
-                      {config?.description || config?.expediente?.description}
-                    </p>
-                  )}
+                  {/* Slogan Destacado Comercial (Separado de la Información de la tienda) */}
+                  {config?.storeSlogan ? (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <p className="text-xs sm:text-sm font-semibold text-slate-800 italic leading-relaxed">
+                        "{config.storeSlogan}"
+                      </p>
+                      {isMerchantOwner && (
+                        <button
+                          type="button"
+                          onClick={handleOpenStoreInfoModal}
+                          className="text-slate-400 hover:text-amber-600 transition-colors cursor-pointer p-1"
+                          title="Editar frase destacada / slogan"
+                        >
+                          <Edit2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ) : isMerchantOwner ? (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={handleOpenStoreInfoModal}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 px-2.5 py-1 rounded-lg transition-all cursor-pointer border border-amber-500/20"
+                      >
+                        <Edit2 size={12} />
+                        <span>+ Agregar frase destacada / slogan</span>
+                      </button>
+                    </div>
+                  ) : null}
 
                   {/* Categorías / Rubros oficiales del comercio (descarta 'almacén' y no duplica la dirección del mapa) */}
                   {(() => {
@@ -4288,8 +4315,15 @@ export default function PublicStore() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (!currentCustomer) {
+                                    toast.error('Debes iniciar sesión o registrarte como cliente en Axon Market para postularte a esta vacante.');
+                                    setShowAuthModal(true);
+                                    return;
+                                  }
                                   setSelectedJobOpening(op);
                                   setApplicantPosition(op.title);
+                                  if (currentCustomer.name) setApplicantName(currentCustomer.name);
+                                  if (currentCustomer.phone) setApplicantPhone(currentCustomer.phone);
                                   setJobModalOpen(true);
                                 }}
                                 style={{ backgroundColor: primaryColor, color: primaryTextColor }}
@@ -4307,8 +4341,15 @@ export default function PublicStore() {
                       <button
                         type="button"
                         onClick={() => {
+                          if (!currentCustomer) {
+                            toast.error('Debes iniciar sesión o registrarte como cliente en Axon Market para enviar tu currículum vitae.');
+                            setShowAuthModal(true);
+                            return;
+                          }
                           setSelectedJobOpening(null);
                           setApplicantPosition('Postulación General');
+                          if (currentCustomer.name) setApplicantName(currentCustomer.name);
+                          if (currentCustomer.phone) setApplicantPhone(currentCustomer.phone);
                           setJobModalOpen(true);
                         }}
                         className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
@@ -5078,12 +5119,11 @@ export default function PublicStore() {
                                   <button 
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
-                                    className="bg-white border font-black px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-[11px] tracking-wider shadow-2xs transition-all hover:opacity-90 active:scale-95 cursor-pointer shrink-0 inline-flex items-center gap-1"
+                                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg border flex items-center justify-center shadow-2xs transition-all hover:scale-105 active:scale-90 cursor-pointer shrink-0 bg-white"
                                     style={{ borderColor: hexToRgba(primaryColor, 0.4), color: primaryColor }}
                                     title="Añadir al carrito"
                                   >
-                                    <span>ADD</span>
-                                    <Plus size={10} className="stroke-[3]" />
+                                    <Plus size={14} className="stroke-[3]" />
                                   </button>
                                 )
                               )}
@@ -7198,7 +7238,23 @@ export default function PublicStore() {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-              Descripción corta / Biografía
+              Frase Destacada / Slogan Corto (Aparece bajo el logo)
+            </label>
+            <input
+              type="text"
+              value={editStoreSlogan}
+              onChange={(e) => setEditStoreSlogan(e.target.value)}
+              placeholder="Ej: ¡El mejor sabor a la parrilla de Cagua!"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">
+              Esta frase se mostrará en la cabecera debajo de tu nombre comercial y evitará duplicar la información larga.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Descripción completa / Información
             </label>
             <textarea
               rows={2}

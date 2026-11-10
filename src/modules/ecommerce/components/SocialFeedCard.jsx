@@ -760,13 +760,25 @@ export default function SocialFeedCard({
                 className="h-full relative shrink-0" 
                 style={{ width: `${100 / postImages.length}%` }}
               >
-                <img 
-                  loading={feedIndex === 0 && i === 0 ? "eager" : "lazy"} 
-                  decoding="async"
-                  src={resolveImageUrl(imgUrl)} 
-                  alt={`${storeName} ${i + 1}`} 
-                  className="w-full h-full object-cover select-none pointer-events-none" 
-                />
+                {/* Fondo difuminado para rellenar los bordes sin recortar */}
+                <div className="absolute inset-0 w-full h-full overflow-hidden select-none pointer-events-none">
+                  <img 
+                    src={resolveImageUrl(imgUrl)} 
+                    alt="" 
+                    className="w-full h-full object-cover blur-2xl opacity-35 scale-110" 
+                    aria-hidden="true"
+                  />
+                </div>
+                {/* Imagen principal completa 100% visible estilo TikTok */}
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center p-0 select-none pointer-events-none z-0">
+                  <img 
+                    loading={feedIndex === 0 && i === 0 ? "eager" : "lazy"} 
+                    decoding="async"
+                    src={resolveImageUrl(imgUrl)} 
+                    alt={`${storeName} ${i + 1}`} 
+                    className="w-full h-full max-h-[88vh] object-contain select-none pointer-events-none drop-shadow-2xl" 
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -813,13 +825,25 @@ export default function SocialFeedCard({
           </div>
         </div>
       ) : storeCover ? (
-        <img 
-          loading={feedIndex === 0 ? "eager" : "lazy"} 
-          decoding="async"
-          src={resolveImageUrl(storeCover)} 
-          alt={storeName} 
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
-        />
+        <div className="absolute inset-0 w-full h-full bg-black z-0 pointer-events-none select-none overflow-hidden">
+          {/* Fondo difuminado inteligente que aprovecha los colores de la foto */}
+          <img 
+            src={resolveImageUrl(storeCover)} 
+            alt="" 
+            className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-40 scale-110 pointer-events-none select-none" 
+            aria-hidden="true"
+          />
+          {/* Imagen completa en su dimensión original sin recortar textos ni promociones estilo TikTok */}
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center p-0 z-0">
+            <img 
+              loading={feedIndex === 0 ? "eager" : "lazy"} 
+              decoding="async"
+              src={resolveImageUrl(storeCover)} 
+              alt={storeName} 
+              className="w-full h-full max-h-[88vh] object-contain pointer-events-none select-none drop-shadow-2xl" 
+            />
+          </div>
+        </div>
       ) : (
         <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
           <Store size={56} className="text-amber-500/80" />

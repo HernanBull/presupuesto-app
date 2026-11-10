@@ -78,6 +78,7 @@ export default function StoreProfileManager() {
   const [rif, setRif] = useState('');
   const [address, setAddress] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [storeSlogan, setStoreSlogan] = useState('');
   const [description, setDescription] = useState('');
   const [adminPin, setAdminPin] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
@@ -264,6 +265,7 @@ export default function StoreProfileManager() {
             const currentPass = cfg.generatedPassword || cfg.adminPassword || cfg.adminPin || '';
             if (currentPass) setGeneratedPassword(currentPass);
             if (cfg.currency) setCurrency(cfg.currency);
+            if (cfg.storeSlogan) setStoreSlogan(cfg.storeSlogan);
             if (cfg.description) setDescription(cfg.description);
             if (cfg.adminPin) setAdminPin(cfg.adminPin);
             if (cfg.logoUrl) setLogoUrl(cfg.logoUrl);
@@ -552,6 +554,7 @@ export default function StoreProfileManager() {
         category: primaryCat,
         business_type: primaryCat,
         currency,
+        storeSlogan: storeSlogan.trim(),
         description,
         adminPin,
         ...(effectiveAdminEmail ? { adminEmail: effectiveAdminEmail } : {}),
@@ -1028,7 +1031,12 @@ export default function StoreProfileManager() {
               </select>
             </div>
             <div className="space-y-2 md:col-span-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descripción Breve</label>
+              <label className="text-sm font-bold text-slate-800 dark:text-slate-200">Frase Destacada / Slogan Corto (Bajo el nombre en vitrina)</label>
+              <input type="text" value={storeSlogan} onChange={e => setStoreSlogan(e.target.value)} placeholder="Ej. ¡Las mejores hamburguesas y cortes a la parrilla de Cagua!" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50" />
+              <p className="text-xs text-slate-500">Aparece en la cabecera debajo de tu nombre comercial. Te permite tener un slogan corto y dejar la descripción completa en la sección Información.</p>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Descripción Completa / Información</label>
               <textarea rows="3" value={description} onChange={e => setDescription(e.target.value)} placeholder="Ej. Vendemos los mejores productos del mercado..." className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"></textarea>
             </div>
 
