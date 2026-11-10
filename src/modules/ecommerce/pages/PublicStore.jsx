@@ -6176,18 +6176,6 @@ export default function PublicStore() {
                 )}
               </div>
             )}
-
-            {/* Alternativa URL directa */}
-            <div className="mt-2.5">
-              <label className="text-[10px] font-bold text-slate-400 block mb-1">O escribe un enlace directo a la imagen:</label>
-              <input
-                type="url"
-                value={editOffersBannerUrl}
-                onChange={(e) => setEditOffersBannerUrl(e.target.value)}
-                placeholder="https://ejemplo.com/banner-ofertas.jpg"
-                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-xs text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-            </div>
           </div>
         </div>
 
