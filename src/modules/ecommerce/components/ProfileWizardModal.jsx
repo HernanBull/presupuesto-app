@@ -296,11 +296,14 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           }
         }
 
+        const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
         const paymentProfile = {
           bank: formData.payment_bank,
           phone: formData.payment_phone,
           cedula: formData.payment_cedula,
-          titular: formData.payment_titular
+          titular: formData.payment_titular,
+          app_installed: isStandalone || Boolean(activeCustomer?.payment_profile?.[0]?.app_installed),
+          last_active_at: new Date().toISOString()
         };
 
         const finalAddressText = formData.addressSector ? `${formData.addressSector}, ${formData.addressDetail}` : formData.addressDetail;
@@ -469,6 +472,18 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
       const choice = await promptEvent.userChoice;
       if (choice && choice.outcome === 'accepted') {
         setIsAppInstalled(true);
+        if (activeCustomer?.id) {
+          try {
+            const rawPay = activeCustomer.payment_profile;
+            const pProfile = (Array.isArray(rawPay) ? rawPay[0] : rawPay) || {};
+            pProfile.app_installed = true;
+            pProfile.installed_at = new Date().toISOString();
+            pProfile.last_active_at = new Date().toISOString();
+            await supabase.from('ecommerce_customers').update({
+              payment_profile: [pProfile]
+            }).eq('id', activeCustomer.id);
+          } catch(e){}
+        }
       }
     } else {
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;

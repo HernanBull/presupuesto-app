@@ -5,6 +5,7 @@ import {
   BarChart3, Search, ShoppingBag, EyeOff, Eye, Download, Radio, Key, QrCode, 
   ArrowRight, Truck, ShieldCheck, ShieldBan, Save, Check, Clock, CreditCard, 
   Calendar, MessageCircle, CheckCircle2, XCircle, AlertTriangle, Copy, ExternalLink, RefreshCw, Crown, PhoneCall,
+  Smartphone, Wifi, Globe, MapPin, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -41,6 +42,49 @@ export default function SuperAdminDashboard({ superKey }) {
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [copiedRef, setCopiedRef] = useState(null);
   const [previewReceiptUrl, setPreviewReceiptUrl] = useState(null);
+
+  // Estados del Monitor Superior de Tráfico & Adopción
+  const [onlineUsersCount, setOnlineUsersCount] = useState(1);
+  const [appInstalledCount, setAppInstalledCount] = useState(0);
+  const [todayCustomersCount, setTodayCustomersCount] = useState(0);
+  const [recentTrafficUsers, setRecentTrafficUsers] = useState([]);
+  const [isActivityExpanded, setIsActivityExpanded] = useState(false);
+
+  // Monitoreo en Vivo de Usuarios Conectados (Supabase Presence)
+  useEffect(() => {
+    try {
+      const trafficChannel = supabase.channel('axon-live-traffic');
+      trafficChannel
+        .on('presence', { event: 'sync' }, () => {
+          const state = trafficChannel.presenceState();
+          const count = Object.keys(state).length;
+          setOnlineUsersCount(count > 0 ? count : 1);
+        })
+        .on('presence', { event: 'join' }, () => {
+          const state = trafficChannel.presenceState();
+          setOnlineUsersCount(Math.max(Object.keys(state).length, 1));
+        })
+        .on('presence', { event: 'leave' }, () => {
+          const state = trafficChannel.presenceState();
+          setOnlineUsersCount(Math.max(Object.keys(state).length, 1));
+        })
+        .subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            await trafficChannel.track({
+              user: 'Super Admin',
+              role: 'admin',
+              onlineAt: new Date().toISOString()
+            });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(trafficChannel);
+      };
+    } catch (err) {
+      console.warn("Traffic monitor channel error:", err);
+    }
+  }, []);
   
   // Auto-refresco de lista VIP y eventos
   useEffect(() => {
@@ -253,8 +297,56 @@ export default function SuperAdminDashboard({ superKey }) {
         setCustomers(data || []);
       } else if (activeTab === 'dashboard') {
         const { count: totalMerchants } = await supabase.from('workspaces').select('*', { count: 'exact', head: true });
-        const { count: totalCustomers } = await supabase.from('ecommerce_customers').select('*', { count: 'exact', head: true });
+        const { data: allCustomers, count: totalCustomers } = await supabase.from('ecommerce_customers').select('*', { count: 'exact' }).order('join_date', { ascending: false });
         const { count: totalProducts } = await supabase.from('ecommerce_products').select('*', { count: 'exact', head: true });
+
+        // Telemetría de adopción de la app y actividad de clientes
+        let appInstalls = 0;
+        let todayUsers = 0;
+        const now = new Date();
+        const todayStr = now.toISOString().substring(0, 10);
+
+        const parsedRecentUsers = (allCustomers || []).map(cust => {
+          let paymentProfile = {};
+          if (Array.isArray(cust.payment_profile) && cust.payment_profile.length > 0) {
+            paymentProfile = cust.payment_profile[0];
+          } else if (typeof cust.payment_profile === 'object' && cust.payment_profile !== null) {
+            paymentProfile = cust.payment_profile;
+          }
+
+          const hasAppInstalled = Boolean(cust.app_installed || paymentProfile.app_installed || cust.pwa_installed);
+          if (hasAppInstalled) appInstalls++;
+
+          const joinDate = cust.join_date ? new Date(cust.join_date) : null;
+          const joinStr = joinDate ? joinDate.toISOString().substring(0, 10) : '';
+          if (joinStr === todayStr) todayUsers++;
+
+          let addressText = cust.address || '';
+          let hasGps = false;
+          if (Array.isArray(cust.addresses) && cust.addresses.length > 0) {
+            const addr0 = cust.addresses[0];
+            if (addr0.lat && addr0.lng) hasGps = true;
+            if (!addressText && addr0.address) addressText = addr0.address;
+          }
+
+          return {
+            id: cust.id,
+            name: cust.name || 'Cliente sin nombre',
+            email: cust.email || '',
+            phone: cust.phone || '',
+            avatar: cust.profile_pic || cust.profile_picture || null,
+            join_date: cust.join_date,
+            hasAppInstalled,
+            hasGps,
+            address: addressText,
+            isVerified: Boolean(cust.status === 'Activo' && (cust.phone || cust.doc_id)),
+            lastActive: paymentProfile.last_active_at || cust.join_date
+          };
+        });
+
+        setAppInstalledCount(appInstalls);
+        setTodayCustomersCount(todayUsers);
+        setRecentTrafficUsers(parsedRecentUsers.slice(0, 12));
 
         const { data: ordersData } = await supabase.from('ecommerce_orders_v2').select('total, status, paymentmethod, date, workspace_id, items');
         
@@ -1330,6 +1422,212 @@ export default function SuperAdminDashboard({ superKey }) {
             </div>
           ) : activeTab === 'dashboard' && stats ? (
             <div className="space-y-8">
+              {/* ══════════════════════════════════════════════════════════════════════════════════
+                  PANEL SUPERIOR DE MONITOREO DE TRÁFICO Y ADOPCIÓN EN VIVO (APP & CLIENTES)
+              ══════════════════════════════════════════════════════════════════════════════════ */}
+              <div className="bg-gradient-to-br from-slate-950 via-zinc-900 to-slate-900 text-white rounded-3xl p-5 sm:p-7 border border-slate-800 shadow-xl relative overflow-hidden">
+                {/* Fondo con brillo sutil */}
+                <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+                <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20"></div>
+
+                {/* Encabezado del Panel */}
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-zinc-800/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                      <Radio size={24} className="animate-pulse text-red-500" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                          En Vivo
+                        </span>
+                        <h2 className="text-base sm:text-lg font-black tracking-tight text-white uppercase">
+                          Monitoreo de Tráfico y Adopción de la App
+                        </h2>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Supervisa en tiempo real cuántos usuarios navegan, quiénes instalaron la app en su teléfono y la actividad de clientes.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsActivityExpanded(!isActivityExpanded)}
+                      className="px-3.5 py-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-200 hover:text-white rounded-xl text-xs font-bold transition-all border border-zinc-700/80 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <Users size={14} className="text-amber-400" />
+                      <span>{isActivityExpanded ? 'Ocultar Actividad' : 'Ver Clientes en Vivo'}</span>
+                      {isActivityExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={fetchData}
+                      className="p-2 bg-zinc-800/90 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl transition-all border border-zinc-700/80 cursor-pointer shadow-xs"
+                      title="Actualizar monitoreo"
+                    >
+                      <RefreshCw size={15} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Métricas Clave de Adopción */}
+                <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
+                  
+                  {/* 1. Usuarios en Línea Ahora */}
+                  <div className="bg-zinc-900/80 border border-zinc-800/90 rounded-2xl p-4 flex flex-col justify-between hover:border-emerald-500/40 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">En Línea Ahora</span>
+                      <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                        <Wifi size={15} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black font-mono text-emerald-400">
+                        {onlineUsersCount}
+                      </span>
+                      <span className="text-[11px] text-emerald-500/80 font-bold">activos</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">Conectados en tiempo real</p>
+                  </div>
+
+                  {/* 2. Apps Instaladas */}
+                  <div className="bg-zinc-900/80 border border-zinc-800/90 rounded-2xl p-4 flex flex-col justify-between hover:border-amber-500/40 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Apps en Teléfonos</span>
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                        <Smartphone size={15} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black font-mono text-amber-400">
+                        {appInstalledCount}
+                      </span>
+                      <span className="text-[11px] text-amber-500/80 font-bold">instalaciones PWA</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">En pantalla de inicio móvil</p>
+                  </div>
+
+                  {/* 3. Clientes Registrados */}
+                  <div className="bg-zinc-900/80 border border-zinc-800/90 rounded-2xl p-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Total Clientes</span>
+                      <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                        <Users size={15} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black font-mono text-blue-400">
+                        {stats.totalCustomers || 0}
+                      </span>
+                      <span className="text-[11px] text-blue-400/80 font-bold">
+                        {todayCustomersCount > 0 ? `+${todayCustomersCount} hoy` : 'registrados'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">Cuentas creadas en la red</p>
+                  </div>
+
+                  {/* 4. Tasa de Adopción */}
+                  <div className="bg-zinc-900/80 border border-zinc-800/90 rounded-2xl p-4 flex flex-col justify-between hover:border-purple-500/40 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Adopción de App</span>
+                      <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+                        <Activity size={15} />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black font-mono text-purple-400">
+                        {stats.totalCustomers > 0 ? Math.round((appInstalledCount / stats.totalCustomers) * 100) : 0}%
+                      </span>
+                      <span className="text-[11px] text-purple-400/80 font-bold">conversión</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">De clientes que usan la App</p>
+                  </div>
+
+                </div>
+
+                {/* Visor Desplegable de Actividad Reciente de Clientes */}
+                <AnimatePresence>
+                  {isActivityExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="relative z-10 mt-6 pt-5 border-t border-zinc-800/80 overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                          Últimos Clientes con Actividad y Registros
+                        </h3>
+                        <span className="text-[11px] text-zinc-500">Mostrando los más recientes</span>
+                      </div>
+
+                      {recentTrafficUsers.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {recentTrafficUsers.map((user) => (
+                            <div 
+                              key={user.id} 
+                              className="bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-xl p-3 flex items-center gap-3 transition-colors shadow-xs"
+                            >
+                              {/* Avatar */}
+                              <div className="w-10 h-10 rounded-xl bg-zinc-800 text-amber-400 flex items-center justify-center font-black text-sm shrink-0 overflow-hidden border border-zinc-700/70">
+                                {user.avatar ? (
+                                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <span>{user.name.substring(0, 2).toUpperCase()}</span>
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                  <h4 className="text-xs font-bold text-white truncate">{user.name}</h4>
+                                  {user.hasAppInstalled ? (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
+                                      <Smartphone size={10} /> App
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-zinc-800 text-zinc-400 shrink-0">
+                                      <Globe size={10} /> Web
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="text-[11px] text-zinc-400 truncate mt-0.5">{user.email || user.phone || 'Sin correo'}</p>
+
+                                <div className="flex items-center justify-between gap-1 mt-1 text-[10px]">
+                                  <span className="text-zinc-500 flex items-center gap-1 truncate">
+                                    {user.address ? (
+                                      <>
+                                        <MapPin size={10} className={user.hasGps ? "text-emerald-400 shrink-0" : "text-zinc-500 shrink-0"} />
+                                        <span className="truncate">{user.address}</span>
+                                      </>
+                                    ) : (
+                                      <span className="italic text-zinc-600">Sin dirección</span>
+                                    )}
+                                  </span>
+                                  <span className="text-zinc-500 shrink-0">
+                                    {user.join_date ? new Date(user.join_date).toLocaleDateString() : 'Reciente'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-6 text-center text-xs text-zinc-500">
+                          No se han registrado visitas o clientes aún.
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Cabecera y Acción de Depuración */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
                 <div>

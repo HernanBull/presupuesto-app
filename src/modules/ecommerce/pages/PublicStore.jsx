@@ -237,6 +237,30 @@ export default function PublicStore() {
     }
   }, [workspaceId, currentCustomer?.id, slug]);
 
+  // Telemetría de Tráfico en Vivo al Super Admin (Presencia Realtime)
+  useEffect(() => {
+    try {
+      const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+      const trafficChannel = supabase.channel('axon-live-traffic');
+      trafficChannel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await trafficChannel.track({
+            user: currentCustomer?.name || 'Visitante',
+            email: currentCustomer?.email || null,
+            isApp: isStandalone,
+            store: config?.business_name || slug || 'Vitrina',
+            onlineAt: new Date().toISOString()
+          });
+        }
+      });
+      return () => {
+        supabase.removeChannel(trafficChannel);
+      };
+    } catch (e) {
+      console.warn("Traffic presence error:", e);
+    }
+  }, [currentCustomer?.id, config?.business_name, slug]);
+
   const [currentPage, setCurrentPage] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     let pageParam = params.get('page');
