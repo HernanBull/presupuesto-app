@@ -25,6 +25,32 @@ export async function optimizeStoreImage(file, type = 'logo') {
             return;
           }
 
+          if (type === 'category') {
+            // Lienzo cuadrado 512x512 exacto a cuadro completo (Edge-to-Edge) sin margen ni fondo blanco
+            canvas.width = 512;
+            canvas.height = 512;
+
+            const scale = Math.max(512 / img.width, 512 / img.height);
+            const drawW = img.width * scale;
+            const drawH = img.height * scale;
+            const drawX = (512 - drawW) / 2;
+            const drawY = (512 - drawH) / 2;
+
+            ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const optimizedFile = new File([blob], `optimized_${file.name.replace(/\.[^.]+$/, '')}.webp`, {
+                  type: 'image/webp'
+                });
+                resolve(optimizedFile);
+              } else {
+                resolve(file);
+              }
+            }, 'image/webp', 0.92);
+            return;
+          }
+
           if (type === 'logo') {
             // Lienzo cuadrado 512x512
             canvas.width = 512;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -193,14 +194,12 @@ export default function PublicStore() {
 
   // Modo Administrador y Comerciante Visitante (Exploración B2B)
   const activeMerchantWs = localStorage.getItem('activeWorkspace') || localStorage.getItem('workspace_id');
-  const activeMerchantSlug = localStorage.getItem('storeSlug');
   const isAnyMerchantLoggedIn = Boolean(
-    (activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== 'null' && activeMerchantWs !== 'undefined' && activeMerchantWs.trim() !== '') ||
-    (activeMerchantSlug && activeMerchantSlug !== 'null' && activeMerchantSlug !== 'undefined' && activeMerchantSlug.trim() !== '')
+    activeMerchantWs && activeMerchantWs !== 'default_workspace' && activeMerchantWs !== 'null' && activeMerchantWs !== 'undefined' && activeMerchantWs.trim() !== ''
   );
+  // Solo es Merchant Owner si NO es cliente y el workspaceId autenticado coincide exactamente
   const isMerchantOwner = Boolean(
-    (activeMerchantWs && workspaceId && activeMerchantWs === workspaceId) ||
-    (activeMerchantSlug && slug && activeMerchantSlug.toLowerCase() === slug.toLowerCase())
+    !currentCustomer && activeMerchantWs && workspaceId && activeMerchantWs === workspaceId
   );
   const isVisitingMerchant = Boolean(isAnyMerchantLoggedIn && !isMerchantOwner && !currentCustomer);
 
@@ -4822,7 +4821,7 @@ export default function PublicStore() {
                               <img
                                 src={resolveImageUrl(subImg)}
                                 alt={sc.name}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-cover scale-115 group-hover:scale-120 transition-transform duration-200"
                               />
                             ) : (
                               <div
@@ -4910,7 +4909,7 @@ export default function PublicStore() {
                                  <img
                                    src={resolveImageUrl(catImg)}
                                    alt={mc}
-                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                   className="w-full h-full object-cover scale-115 group-hover:scale-120 transition-transform duration-200"
                                  />
                                ) : (
                                  <span className="text-xs font-black uppercase text-slate-600">
@@ -4952,8 +4951,17 @@ export default function PublicStore() {
                             </div>
                           )}
 
-                          {/* Image con encuadre total sin margen blanco */}
-                          <div className="w-full aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-zinc-100">
+                          {/* Image con encuadre total sin margen blanco y toque para zoom */}
+                          <div 
+                            className="w-full aspect-square bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-zinc-100 cursor-zoom-in"
+                            onClick={(e) => {
+                              if (p.image_url) {
+                                e.stopPropagation();
+                                setExpandedImage(resolveImageUrl(p.image_url));
+                              }
+                            }}
+                            title="Toca para ampliar foto"
+                          >
                             {p.image_url ? (
                               <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                             ) : (
@@ -5149,6 +5157,7 @@ export default function PublicStore() {
       <ResponsiveModal
         isOpen={!!selectedProduct}
         onClose={() => setSelectedProduct(null)}
+        disableAnimation={true}
         className="md:max-w-3xl !bg-white bg-white text-slate-900 border border-slate-200 shadow-2xl rounded-t-3xl md:rounded-3xl overflow-hidden"
         contentClassName="p-0 flex flex-col md:flex-row max-h-[88vh] md:max-h-[80vh] overflow-hidden !bg-white bg-white text-slate-900"
       >
@@ -5181,10 +5190,7 @@ export default function PublicStore() {
                           alt={selectedProduct.name} 
                           className="w-full h-full object-contain max-h-52 md:max-h-64 transition-transform duration-200 group-hover:scale-105" 
                         />
-                        <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-xs text-white px-2 py-1 rounded-lg opacity-80 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-bold shadow-sm pointer-events-none">
-                          <Maximize2 size={12} />
-                          <span>Ampliar</span>
-                        </div>
+
                       </>
                     ) : (
                       <div className="w-24 h-24 rounded-2xl bg-orange-100/60 flex items-center justify-center text-orange-400">
@@ -5436,33 +5442,37 @@ export default function PublicStore() {
         )}
       </ResponsiveModal>
 
-      {/* Visor Lightbox Pantalla Completa para Imagen Expandida */}
-      {expandedImage && (
+      {/* Visor Lightbox Pantalla Completa para Imagen Expandida (Portal encima de todos los modales) */}
+      {expandedImage && typeof document !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 select-none animate-in fade-in duration-200"
+          className="fixed inset-0 z-[999999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 select-none"
           onClick={() => setExpandedImage(null)}
         >
           <button
             type="button"
-            onClick={() => setExpandedImage(null)}
-            className="absolute top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm shadow-xl active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedImage(null);
+            }}
+            className="absolute top-4 right-4 z-[1000000] w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-md shadow-2xl active:scale-95"
             title="Cerrar vista ampliada"
           >
-            <X size={24} className="stroke-[2.5]" />
+            <X size={26} className="stroke-[2.5]" />
           </button>
           
           <div 
-            className="max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center"
+            className="max-w-5xl max-h-[88vh] w-full h-full flex items-center justify-center p-2"
             onClick={(e) => e.stopPropagation()}
           >
             <img 
               src={resolveImageUrl(expandedImage)} 
               alt="Producto ampliado" 
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-transform duration-200" 
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl pointer-events-auto" 
             />
           </div>
-          <p className="text-white/60 text-xs mt-3 font-medium tracking-wide">Toca fuera o la X para cerrar</p>
-        </div>
+          <p className="text-white/70 text-xs mt-3 font-semibold tracking-wide">Toca fuera o la X para cerrar</p>
+        </div>,
+        document.body
       )}
 
       {/* Cart Slide-over Premium (Glassmorphism Dark) */}

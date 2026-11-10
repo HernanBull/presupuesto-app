@@ -581,7 +581,7 @@ export default function ProductsManager() {
       let finalUrl = '';
 
       try {
-        const optimized = await optimizeStoreImage(file, 'logo');
+        const optimized = await optimizeStoreImage(file, 'category');
         const fileExt = file.name ? file.name.split('.').pop() : 'webp';
         const fileName = `${uploadTarget.type}_${Date.now()}.${fileExt}`;
         const filePath = `category_assets/${workspaceId}/${fileName}`;

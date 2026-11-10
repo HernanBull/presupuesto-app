@@ -11,7 +11,7 @@ import {
   FileSpreadsheet, Database, TrendingUp, UserCheck, MessageSquare,
   HelpCircle, ChevronRight, Calculator, PlayCircle, Home, ClipboardList,
   Clock, RefreshCw, ShieldCheck, Wallet, Flame, BarChart2,
-  Volume2, VolumeX, MessageCircle
+  Volume2, VolumeX, MessageCircle, Briefcase, FileText, Download, Trash2
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,6 +19,7 @@ import { supabase } from '../../supabaseClient';
 import SubscriptionPaymentModal from './components/SubscriptionPaymentModal';
 import UserManagementModal from './components/admin/UserManagementModal';
 import BackupManagerModal from './components/admin/BackupManagerModal';
+import ResponsiveModal from './components/ResponsiveModal';
 import { playNewOrderPlinPlin, startOrderAlarmLoop, stopOrderAlarmLoop, isOrderAlarmPlaying } from './utils/posAudioService';
 import { buildWhatsAppUrl } from './utils/whatsappHelper';
 
@@ -36,6 +37,8 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   const [showMoreDrawer, setShowMoreDrawer] = useState(false);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
+  const [isJobApplicationsModalOpen, setIsJobApplicationsModalOpen] = useState(false);
+  const [jobApplicationsList, setJobApplicationsList] = useState([]);
   const [isPaidSubscription, setIsPaidSubscription] = useState(false);
   const [expirationDateStr, setExpirationDateStr] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -390,6 +393,11 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
               localStorage.setItem('merchant_store_logo', rawLogo);
             }
 
+            // Postulaciones de empleo recibidas en vitrina
+            if (Array.isArray(cfg.jobs?.applications)) {
+              setJobApplicationsList(cfg.jobs.applications);
+            }
+
             // Lógica de Vencimiento de Plan Profesional & Prueba Gratuita
             const subEndsAtStr = cfg.subscriptionEndsAt;
             const trialEndsAtStr = cfg.trialEndsAt;
@@ -535,6 +543,24 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
   }, [searchQuery, menuSections]);
 
   // Enlaces secundarios inferiores
+  const handleDeleteApplication = async (appId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta postulación?')) return;
+    const wsId = localStorage.getItem('activeWorkspace');
+    if (!wsId) return;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const updated = (curJobs.applications || []).filter(a => a.id !== appId);
+      await supabase.from('workspaces').update({
+        config: { ...curConfig, jobs: { ...curJobs, applications: updated } }
+      }).eq('id', wsId);
+      setJobApplicationsList(updated);
+    } catch(e) {
+      alert('Error eliminando postulación');
+    }
+  };
+
   const bottomUtilityItems = [
     { name: 'Sucursales', path: '/location', icon: Building2 },
     { name: 'Notificaciones', path: '/notifications', icon: Bell },
@@ -544,6 +570,12 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
       icon: Users, 
       onClick: () => setIsUserManagementModalOpen(true),
       badge: 'Maestro'
+    },
+    { 
+      name: 'Postulaciones & CV', 
+      icon: Briefcase, 
+      onClick: () => setIsJobApplicationsModalOpen(true),
+      badge: jobApplicationsList.length > 0 ? `${jobApplicationsList.length}` : undefined
     },
     { 
       name: 'Centro de Respaldos', 
@@ -1693,6 +1725,114 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           isOpen={isBackupModalOpen}
           onClose={() => setIsBackupModalOpen(false)}
         />
+      )}
+
+      {/* Modal Gerencial: Postulaciones y CVs Recibidos */}
+      {isJobApplicationsModalOpen && (
+        <ResponsiveModal
+          isOpen={isJobApplicationsModalOpen}
+          onClose={() => setIsJobApplicationsModalOpen(false)}
+          title="Gestión de Postulaciones y Currículos (CV)"
+          className="max-w-2xl"
+          contentClassName="p-4 sm:p-6"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                  <Briefcase size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white">Postulaciones Recibidas</h4>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400">Currículos enviados por candidatos desde tu vitrina.</p>
+                </div>
+              </div>
+              <span className="text-xs font-black px-2.5 py-1 rounded-full bg-amber-500 text-slate-950">
+                {jobApplicationsList.length} Total
+              </span>
+            </div>
+
+            {jobApplicationsList.length === 0 ? (
+              <div className="text-center py-12 px-4 bg-slate-50 dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800">
+                <FileText size={40} className="mx-auto text-slate-400 mb-2 stroke-[1.5]" />
+                <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200">No hay postulaciones registradas aún</h4>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                  Cuando las personas se postulen a tus ofertas de trabajo o envíen su CV espontáneo desde la vitrina, aparecerán listadas aquí para revisarlas y contactarlas.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                {jobApplicationsList.map((app) => (
+                  <div
+                    key={app.id || app.createdAt}
+                    className="p-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                            {app.applicantName}
+                          </h4>
+                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            {app.position || 'Postulación General'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2.5 mt-1.5 text-xs text-slate-500 dark:text-zinc-400">
+                          {app.age && <span>🎂 {app.age} años</span>}
+                          {app.location && <span>📍 {app.location}</span>}
+                          {app.education && <span>🎓 {app.education}</span>}
+                          {app.createdAt && <span>📅 {new Date(app.createdAt).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {app.cvUrl && (
+                          <a
+                            href={app.cvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                            title="Descargar o Ver Documento PDF del CV"
+                          >
+                            <Download size={13} />
+                            <span>Ver CV</span>
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteApplication(app.id)}
+                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                          title="Eliminar postulación"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {app.notes && (
+                      <p className="text-xs bg-slate-50 dark:bg-zinc-800/60 p-2.5 rounded-xl text-slate-600 dark:text-zinc-300 italic border border-slate-100 dark:border-zinc-800">
+                        "{app.notes}"
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-zinc-800">
+                      <span className="text-xs text-slate-500">Teléfono: <strong>{app.phone}</strong></span>
+                      <a
+                        href={`https://wa.me/${(app.phone || '').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                      >
+                        <MessageCircle size={13} />
+                        Contactar WhatsApp
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ResponsiveModal>
       )}
 
     </div>
