@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Plus, Search, Edit2, Trash2, X, Image as ImageIcon, 
   CheckCircle, Clock, Package, FolderTree, Tag, Layers, 
   ArrowRight, ExternalLink, Sparkles, CheckCircle2, AlertCircle,
-  PackageSearch
+  PackageSearch, Camera, Upload, CheckSquare, Square, CornerDownRight
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import ComboBuilderModal from '../components/ComboBuilderModal';
 import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
+import { optimizeStoreImage } from '../utils/imageOptimizer';
 
 const MARKETPLACE_DEPT_NAMES = new Set(
   MARKETPLACE_CATEGORIES.flatMap(c => [
@@ -62,13 +63,37 @@ export default function ProductsManager() {
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
-      // Cargar categorías personalizadas del catálogo interno (aisladas de las categorías del Marketplace)
+      // Cargar categorías personalizadas del catálogo interno (con soporte completo de subcategorías e imágenes)
       const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
       const rawCustom = Array.isArray(ws?.config?.customCategories) ? ws.config.customCategories : [];
-      const validCats = rawCustom
-        .map(c => typeof c === 'string' ? c.trim() : (c?.name || '').trim())
-        .filter(Boolean);
-      setCustomCategories(validCats);
+      const parsedCategories = rawCustom.map(item => {
+        if (typeof item === 'string') {
+          const clean = item.trim();
+          return clean ? { name: clean, color: '#EA580C', imageUrl: '', subcategories: [] } : null;
+        }
+        if (item && typeof item === 'object') {
+          const name = (item.name || '').trim();
+          const color = item.color || '#EA580C';
+          const imageUrl = item.imageUrl || '';
+          const rawSubs = Array.isArray(item.subcategories) ? item.subcategories : [];
+          const subcategories = rawSubs.map(s => {
+            if (typeof s === 'string') {
+              const cleanSub = s.trim();
+              return cleanSub ? { name: cleanSub, imageUrl: '' } : null;
+            }
+            if (s && typeof s === 'object') {
+              const sName = (s.name || '').trim();
+              return sName ? { name: sName, imageUrl: s.imageUrl || '' } : null;
+            }
+            return null;
+          }).filter(Boolean);
+
+          return name ? { name, color, imageUrl, subcategories } : null;
+        }
+        return null;
+      }).filter(Boolean);
+
+      setCustomCategories(parsedCategories);
 
       if (!error && data) {
         const mapped = data.map(p => {
@@ -79,6 +104,7 @@ export default function ProductsManager() {
           return {
             ...p,
             category: p.category || 'General',
+            subcategory: p.subcategory || '',
             publishStatus: p.publish_status || 'Borrador',
             imageUrl: p.image_url || (metadata?.images && metadata.images.length > 0 ? metadata.images[0] : '')
           };
@@ -162,25 +188,51 @@ export default function ProductsManager() {
   const [newCatName, setNewCatName] = useState('');
   const [savingCategory, setSavingCategory] = useState(false);
 
-  // Extracción unificada de categorías (combinando categorías creadas por el usuario y productos)
+  // Extracción unificada de categorías (con subcategorías e imágenes)
   const categoriesList = useMemo(() => {
     const map = new Map();
 
-    // 1. Agregar primero las categorías configuradas por el comerciante
-    // (Omitiendo rubros de Marketplace que tengan 0 productos para evitar categorías fantasma)
     const productCategoriesLower = new Set(
       products.map(p => (p.category || 'General').trim().toLowerCase())
     );
 
-    customCategories.forEach(catName => {
-      const clean = String(catName).trim();
-      const cleanLower = clean.toLowerCase();
+    // Mapeo de conteo de subcategorías en inventario
+    const subcatCountMap = new Map();
+    products.forEach(p => {
+      const c = (p.category || 'General').trim().toLowerCase();
+      const s = (p.subcategory || '').trim().toLowerCase();
+      if (s) {
+        const key = `${c}:::${s}`;
+        subcatCountMap.set(key, (subcatCountMap.get(key) || 0) + 1);
+      }
+    });
+
+    customCategories.forEach(catItem => {
+      const cleanName = (typeof catItem === 'string' ? catItem : catItem.name || '').trim();
+      if (!cleanName) return;
+      const cleanLower = cleanName.toLowerCase();
       if (MARKETPLACE_DEPT_NAMES.has(cleanLower) && !productCategoriesLower.has(cleanLower)) {
         return;
       }
-      if (clean && !map.has(clean)) {
-        map.set(clean, {
-          name: clean,
+
+      const rawSubs = Array.isArray(catItem.subcategories) ? catItem.subcategories : [];
+      const subcategories = rawSubs.map(sub => {
+        const sName = (typeof sub === 'string' ? sub : sub.name || '').trim();
+        const sImg = typeof sub === 'object' ? (sub.imageUrl || '') : '';
+        const sKey = `${cleanLower}:::${sName.toLowerCase()}`;
+        return {
+          name: sName,
+          imageUrl: sImg,
+          count: subcatCountMap.get(sKey) || 0
+        };
+      }).filter(s => s.name);
+
+      if (!map.has(cleanName)) {
+        map.set(cleanName, {
+          name: cleanName,
+          color: catItem.color || '#EA580C',
+          imageUrl: catItem.imageUrl || '',
+          subcategories,
           count: 0,
           totalStock: 0,
           combosCount: 0,
@@ -190,12 +242,15 @@ export default function ProductsManager() {
       }
     });
 
-    // 2. Extraer y contabilizar a partir de los productos en inventario
+    // Extraer y contabilizar a partir de los productos en inventario
     products.forEach(p => {
       const cat = (p.category || 'General').trim();
       if (!map.has(cat)) {
         map.set(cat, {
           name: cat,
+          color: '#EA580C',
+          imageUrl: '',
+          subcategories: [],
           count: 0,
           totalStock: 0,
           combosCount: 0,
@@ -223,6 +278,23 @@ export default function ProductsManager() {
     return categoriesList.filter(c => c.name.toLowerCase().includes(q));
   }, [categoriesList, categorySearch]);
 
+  // Persistir cambios en workspaces.config.customCategories
+  const saveCustomCategories = async (updatedList) => {
+    setCustomCategories(updatedList);
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    if (!workspaceId) return;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const currentConfig = ws?.config || {};
+      await supabase.from('workspaces').update({
+        config: { ...currentConfig, customCategories: updatedList }
+      }).eq('id', workspaceId);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al guardar cambios: ' + err.message);
+    }
+  };
+
   const handleCreateCategory = async (e) => {
     e.preventDefault();
     const cleanName = newCatName.trim();
@@ -237,19 +309,14 @@ export default function ProductsManager() {
 
     try {
       setSavingCategory(true);
-      const workspaceId = localStorage.getItem('activeWorkspace');
-      
-      // Actualización optimista local
-      setCustomCategories(prev => [...prev, cleanName]);
-
-      // Guardar en la configuración del workspace como categoría registrada
-      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const currentConfig = ws?.config || {};
-      const customCats = Array.isArray(currentConfig.customCategories) ? [...currentConfig.customCategories] : [];
-      if (!customCats.includes(cleanName)) {
-        customCats.push(cleanName);
-      }
-      await supabase.from('workspaces').update({ config: { ...currentConfig, customCategories: customCats } }).eq('id', workspaceId);
+      const newCategoryObj = {
+        name: cleanName,
+        color: '#EA580C',
+        imageUrl: '',
+        subcategories: []
+      };
+      const updatedList = [...customCategories, newCategoryObj];
+      await saveCustomCategories(updatedList);
 
       toast.success(`Categoría "${cleanName}" registrada exitosamente`);
       setNewCatName('');
@@ -271,14 +338,17 @@ export default function ProductsManager() {
       const clean = newName.trim();
       const workspaceId = localStorage.getItem('activeWorkspace');
 
-      // Actualizar en customCategories
-      setCustomCategories(prev => prev.map(c => c === oldName ? clean : c));
+      const updatedList = customCategories.map(c => {
+        const cName = typeof c === 'string' ? c : c.name;
+        if (cName.toLowerCase() === oldName.toLowerCase()) {
+          return typeof c === 'string' 
+            ? { name: clean, color: '#EA580C', imageUrl: '', subcategories: [] } 
+            : { ...c, name: clean };
+        }
+        return c;
+      });
 
-      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const currentConfig = ws?.config || {};
-      const customCats = (Array.isArray(currentConfig.customCategories) ? currentConfig.customCategories : [])
-        .map(c => (typeof c === 'string' ? c : c.name) === oldName ? clean : c);
-      await supabase.from('workspaces').update({ config: { ...currentConfig, customCategories: customCats } }).eq('id', workspaceId);
+      await saveCustomCategories(updatedList);
 
       const { error } = await supabase
         .from('ecommerce_products')
@@ -304,18 +374,12 @@ export default function ProductsManager() {
       try {
         const workspaceId = localStorage.getItem('activeWorkspace');
 
-        // Actualizar customCategories en estado y en base de datos
-        setCustomCategories(prev => prev.filter(c => c !== catName));
-
-        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-        const currentConfig = ws?.config || {};
-        const customCats = (Array.isArray(currentConfig.customCategories) ? currentConfig.customCategories : [])
-          .filter(c => (typeof c === 'string' ? c : c.name) !== catName);
-        await supabase.from('workspaces').update({ config: { ...currentConfig, customCategories: customCats } }).eq('id', workspaceId);
+        const updatedList = customCategories.filter(c => (typeof c === 'string' ? c : c.name).toLowerCase() !== catName.toLowerCase());
+        await saveCustomCategories(updatedList);
 
         const { error } = await supabase
           .from('ecommerce_products')
-          .update({ category: 'General' })
+          .update({ category: 'General', subcategory: null })
           .eq('workspace_id', workspaceId)
           .eq('category', catName);
 
@@ -326,6 +390,246 @@ export default function ProductsManager() {
         console.error(err);
         toast.error('Error al eliminar categoría: ' + err.message);
       }
+    }
+  };
+
+  // ==========================================
+  // GESTIÓN DE SUBCATEGORÍAS
+  // ==========================================
+  const [subcatModal, setSubcatModal] = useState({ isOpen: false, categoryName: '', subcatName: '' });
+
+  const handleOpenAddSubcat = (categoryName) => {
+    setSubcatModal({ isOpen: true, categoryName, subcatName: '' });
+  };
+
+  const handleCreateSubcategory = async (e) => {
+    e?.preventDefault();
+    const { categoryName, subcatName } = subcatModal;
+    const cleanSub = subcatName.trim();
+    if (!cleanSub) return toast.error('Escribe el nombre de la subcategoría');
+
+    const catIndex = customCategories.findIndex(c => (typeof c === 'string' ? c : c.name).toLowerCase() === categoryName.toLowerCase());
+    let updatedList = [...customCategories];
+
+    if (catIndex >= 0) {
+      const currentCat = typeof updatedList[catIndex] === 'object' ? updatedList[catIndex] : { name: updatedList[catIndex], subcategories: [] };
+      const currentSubs = Array.isArray(currentCat.subcategories) ? [...currentCat.subcategories] : [];
+      if (currentSubs.some(s => (typeof s === 'string' ? s : s.name).toLowerCase() === cleanSub.toLowerCase())) {
+        return toast.error('Esta subcategoría ya existe en esta categoría');
+      }
+      currentSubs.push({ name: cleanSub, imageUrl: '' });
+      updatedList[catIndex] = { ...currentCat, subcategories: currentSubs };
+    } else {
+      updatedList.push({
+        name: categoryName,
+        color: '#EA580C',
+        imageUrl: '',
+        subcategories: [{ name: cleanSub, imageUrl: '' }]
+      });
+    }
+
+    await saveCustomCategories(updatedList);
+    toast.success(`Subcategoría "${cleanSub}" creada en "${categoryName}"`);
+    setSubcatModal({ isOpen: false, categoryName: '', subcatName: '' });
+    fetchProducts();
+  };
+
+  const handleDeleteSubcategory = async (categoryName, subcatName) => {
+    if (!window.confirm(`¿Seguro que deseas eliminar la subcategoría "${subcatName}"?`)) return;
+    const catIndex = customCategories.findIndex(c => (typeof c === 'string' ? c : c.name).toLowerCase() === categoryName.toLowerCase());
+    if (catIndex < 0) return;
+
+    let updatedList = [...customCategories];
+    const currentCat = typeof updatedList[catIndex] === 'object' ? updatedList[catIndex] : { name: updatedList[catIndex], subcategories: [] };
+    const currentSubs = (Array.isArray(currentCat.subcategories) ? currentCat.subcategories : [])
+      .filter(s => (typeof s === 'string' ? s : s.name).toLowerCase() !== subcatName.toLowerCase());
+    updatedList[catIndex] = { ...currentCat, subcategories: currentSubs };
+
+    await saveCustomCategories(updatedList);
+
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    if (workspaceId) {
+      await supabase
+        .from('ecommerce_products')
+        .update({ subcategory: null })
+        .eq('workspace_id', workspaceId)
+        .eq('category', categoryName)
+        .eq('subcategory', subcatName);
+    }
+
+    toast.success(`Subcategoría "${subcatName}" eliminada`);
+    fetchProducts();
+  };
+
+  // ==========================================
+  // ASIGNACIÓN DE PRODUCTOS A SUBCATEGORÍA
+  // ==========================================
+  const [assignModal, setAssignModal] = useState({
+    isOpen: false,
+    categoryName: '',
+    subcategoryName: '',
+    selectedProductIds: new Set(),
+    searchQuery: '',
+    saving: false
+  });
+
+  const handleOpenAssignModal = (categoryName, subcategoryName) => {
+    const preSelected = new Set(
+      products
+        .filter(p => (p.category || 'General').toLowerCase() === categoryName.toLowerCase() && (p.subcategory || '').toLowerCase() === subcategoryName.toLowerCase())
+        .map(p => p.id)
+    );
+    setAssignModal({
+      isOpen: true,
+      categoryName,
+      subcategoryName,
+      selectedProductIds: preSelected,
+      searchQuery: '',
+      saving: false
+    });
+  };
+
+  const handleToggleProductInSubcat = (prodId) => {
+    setAssignModal(prev => {
+      const next = new Set(prev.selectedProductIds);
+      if (next.has(prodId)) next.delete(prodId);
+      else next.add(prodId);
+      return { ...prev, selectedProductIds: next };
+    });
+  };
+
+  const handleSaveProductAssignment = async () => {
+    const { categoryName, subcategoryName, selectedProductIds } = assignModal;
+    const workspaceId = localStorage.getItem('activeWorkspace');
+    if (!workspaceId) return;
+
+    try {
+      setAssignModal(prev => ({ ...prev, saving: true }));
+
+      const catProducts = products.filter(p => (p.category || 'General').toLowerCase() === categoryName.toLowerCase());
+      
+      const toAssign = [];
+      const toUnassign = [];
+
+      catProducts.forEach(p => {
+        const isSelected = selectedProductIds.has(p.id);
+        const currentSub = (p.subcategory || '').toLowerCase();
+        const targetSub = subcategoryName.toLowerCase();
+
+        if (isSelected && currentSub !== targetSub) {
+          toAssign.push(p.id);
+        } else if (!isSelected && currentSub === targetSub) {
+          toUnassign.push(p.id);
+        }
+      });
+
+      if (toAssign.length > 0) {
+        await supabase
+          .from('ecommerce_products')
+          .update({ subcategory: subcategoryName })
+          .in('id', toAssign);
+      }
+
+      if (toUnassign.length > 0) {
+        await supabase
+          .from('ecommerce_products')
+          .update({ subcategory: null })
+          .in('id', toUnassign);
+      }
+
+      toast.success(`Productos asignados a "${subcategoryName}" exitosamente`);
+      setAssignModal({ isOpen: false, categoryName: '', subcategoryName: '', selectedProductIds: new Set(), searchQuery: '', saving: false });
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al guardar asignación: ' + err.message);
+    } finally {
+      setAssignModal(prev => ({ ...prev, saving: false }));
+    }
+  };
+
+  // ==========================================
+  // CARGA DE IMÁGENES CON BOTÓN (+)
+  // ==========================================
+  const fileInputRef = useRef(null);
+  const [uploadTarget, setUploadTarget] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleTriggerUpload = (type, categoryName, subcategoryName = '') => {
+    setUploadTarget({ type, categoryName, subcategoryName });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTarget) return;
+
+    try {
+      setIsUploadingImage(true);
+      const workspaceId = localStorage.getItem('activeWorkspace');
+      let finalUrl = '';
+
+      try {
+        const optimized = await optimizeStoreImage(file, 'logo');
+        const fileExt = file.name ? file.name.split('.').pop() : 'webp';
+        const fileName = `${uploadTarget.type}_${Date.now()}.${fileExt}`;
+        const filePath = `category_assets/${workspaceId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, optimized, {
+          contentType: 'image/webp',
+          upsert: true
+        });
+
+        if (!uploadError) {
+          const { data: pubData } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+          finalUrl = pubData?.publicUrl || '';
+        }
+      } catch (_) {}
+
+      if (!finalUrl) {
+        finalUrl = await new Promise((res) => {
+          const reader = new FileReader();
+          reader.onload = () => res(reader.result);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const catIndex = customCategories.findIndex(c => (typeof c === 'string' ? c : c.name).toLowerCase() === uploadTarget.categoryName.toLowerCase());
+      let updatedList = [...customCategories];
+
+      if (uploadTarget.type === 'category') {
+        if (catIndex >= 0) {
+          const cat = typeof updatedList[catIndex] === 'object' ? updatedList[catIndex] : { name: updatedList[catIndex], subcategories: [] };
+          updatedList[catIndex] = { ...cat, imageUrl: finalUrl };
+        } else {
+          updatedList.push({ name: uploadTarget.categoryName, color: '#EA580C', imageUrl: finalUrl, subcategories: [] });
+        }
+      } else if (uploadTarget.type === 'subcategory') {
+        if (catIndex >= 0) {
+          const cat = typeof updatedList[catIndex] === 'object' ? updatedList[catIndex] : { name: updatedList[catIndex], subcategories: [] };
+          const subs = (Array.isArray(cat.subcategories) ? cat.subcategories : []).map(s => {
+            const sName = typeof s === 'string' ? s : s.name;
+            if (sName.toLowerCase() === uploadTarget.subcategoryName.toLowerCase()) {
+              return { name: sName, imageUrl: finalUrl };
+            }
+            return typeof s === 'string' ? { name: s, imageUrl: '' } : s;
+          });
+          updatedList[catIndex] = { ...cat, subcategories: subs };
+        }
+      }
+
+      await saveCustomCategories(updatedList);
+      toast.success('Imagen actualizada exitosamente');
+      fetchProducts();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al subir imagen: ' + err.message);
+    } finally {
+      setIsUploadingImage(false);
+      setUploadTarget(null);
     }
   };
 
@@ -674,11 +978,28 @@ export default function ProductsManager() {
                       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col justify-between group"
                     >
                       <div>
+                        {/* Cabecera de Categoría */}
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black">
-                              <Tag size={18} />
+                            {/* Avatar con botón (+) para imagen */}
+                            <div className="relative group/avatar shrink-0">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black overflow-hidden shadow-inner">
+                                {cat.imageUrl ? (
+                                  <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Tag size={20} />
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleTriggerUpload('category', cat.name)}
+                                title={cat.imageUrl ? "Cambiar foto de categoría" : "Agregar foto a categoría"}
+                                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center hover:bg-amber-400 shadow-md transition-transform hover:scale-110 cursor-pointer"
+                              >
+                                <Plus size={12} strokeWidth={3} />
+                              </button>
                             </div>
+
                             <div>
                               <h3 className="font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                                 {cat.name}
@@ -709,6 +1030,89 @@ export default function ProductsManager() {
                           </div>
                         </div>
 
+                        {/* Bloque de Subcategorías */}
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                              <CornerDownRight size={13} className="text-amber-500" />
+                              Subcategorías ({cat.subcategories?.length || 0})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAddSubcat(cat.name)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-700 dark:text-amber-300 hover:text-slate-950 text-[11px] font-black transition-colors cursor-pointer border border-amber-500/30"
+                              title="Agregar subcategoría"
+                            >
+                              <Plus size={12} strokeWidth={3} />
+                              <span>Subcategoría</span>
+                            </button>
+                          </div>
+
+                          {(!cat.subcategories || cat.subcategories.length === 0) ? (
+                            <p className="text-[11px] text-slate-400 italic py-1.5">
+                              Sin subcategorías aún. Pulsa "+ Subcategoría" para agregar.
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5 my-2 max-h-48 overflow-y-auto pr-1">
+                              {cat.subcategories.map((sub) => (
+                                <div 
+                                  key={sub.name} 
+                                  className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 hover:border-amber-500/40 transition-colors"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {/* Avatar subcategoría con botón (+) */}
+                                    <div className="relative shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 flex items-center justify-center overflow-hidden">
+                                        {sub.imageUrl ? (
+                                          <img src={sub.imageUrl} alt={sub.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                          <FolderTree size={13} />
+                                        )}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleTriggerUpload('subcategory', cat.name, sub.name)}
+                                        title="Subir foto a subcategoría"
+                                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center hover:bg-amber-400 shadow cursor-pointer text-[9px]"
+                                      >
+                                        <Plus size={8} strokeWidth={3} />
+                                      </button>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                        {sub.name}
+                                      </p>
+                                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                        {sub.count} {sub.count === 1 ? 'producto' : 'productos'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenAssignModal(cat.name, sub.name)}
+                                      title="Asignar productos a esta subcategoría"
+                                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-200/80 hover:bg-amber-500 dark:bg-slate-800 dark:hover:bg-amber-500 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-950 text-[10px] font-black transition-colors cursor-pointer"
+                                    >
+                                      <Package size={11} />
+                                      <span>Asignar</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteSubcategory(cat.name, sub.name)}
+                                      title="Eliminar subcategoría"
+                                      className="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
                         {/* Muestra de productos de esta categoría */}
                         {cat.sampleProducts.length > 0 && (
                           <div className="bg-slate-50 dark:bg-slate-950/70 rounded-xl p-2.5 my-3 border border-slate-100 dark:border-slate-800/80">
@@ -730,7 +1134,7 @@ export default function ProductsManager() {
                       {/* Botón Ver Productos en Inventario */}
                       <button
                         onClick={() => navigate(`/inventory?category=${encodeURIComponent(cat.name)}`)}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-amber-950/40 text-slate-700 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-400 font-bold text-xs rounded-xl transition-all cursor-pointer border border-transparent hover:border-amber-500/30"
+                        className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-amber-950/40 text-slate-700 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-400 font-bold text-xs rounded-xl transition-all cursor-pointer border border-transparent hover:border-amber-500/30"
                       >
                         <PackageSearch size={14} />
                         <span>Ver productos en Inventario</span>
@@ -804,6 +1208,221 @@ export default function ProductsManager() {
           </div>
         </div>
       )}
+
+      {/* Input invisible para subida de imagen de categoría o subcategoría */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+
+      {/* Modal para Crear Nueva Subcategoría */}
+      {subcatModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center">
+                  <CornerDownRight size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white">Nueva Subcategoría</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Dentro de: <span className="font-bold text-amber-600 dark:text-amber-400">{subcatModal.categoryName}</span></p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSubcatModal({ isOpen: false, categoryName: '', subcatName: '' })}
+                className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubcategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+                  Nombre de la subcategoría
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="Ej. Refrescos, Jugos, Lácteos, Harinas..." 
+                  value={subcatModal.subcatName}
+                  onChange={(e) => setSubcatModal(prev => ({ ...prev, subcatName: e.target.value }))}
+                  autoFocus
+                  required
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white font-medium"
+                />
+              </div>
+
+              <div className="p-3 bg-amber-50/60 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                💡 Al crearla podrás asignarle una foto representativa con el botón (+) y colocar qué productos de "{subcatModal.categoryName}" pertenecen a ella.
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSubcatModal({ isOpen: false, categoryName: '', subcatName: '' })}
+                  className="px-4 py-2.5 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!subcatModal.subcatName.trim()}
+                  className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs shadow-md shadow-amber-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  Crear Subcategoría
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Asignar Productos a Subcategoría */}
+      {assignModal.isOpen && (() => {
+        const catProducts = products.filter(p => 
+          (p.category || 'General').toLowerCase() === assignModal.categoryName.toLowerCase()
+        );
+        const filteredProds = catProducts.filter(p => 
+          p.name.toLowerCase().includes(assignModal.searchQuery.toLowerCase()) ||
+          (p.sku && p.sku.toLowerCase().includes(assignModal.searchQuery.toLowerCase()))
+        );
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase">
+                      {assignModal.categoryName}
+                    </span>
+                    <ArrowRight size={13} className="text-slate-400" />
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                      Subcategoría
+                    </span>
+                  </div>
+                  <h3 className="font-black text-lg text-slate-900 dark:text-white mt-1">
+                    Asignar productos a "{assignModal.subcategoryName}"
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setAssignModal(prev => ({ ...prev, isOpen: false }))}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Barra de búsqueda dentro del modal */}
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-between gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input
+                    type="text"
+                    placeholder="Buscar producto por nombre o SKU..."
+                    value={assignModal.searchQuery}
+                    onChange={(e) => setAssignModal(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
+                  />
+                </div>
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                  {assignModal.selectedProductIds.size} seleccionados
+                </span>
+              </div>
+
+              {/* Lista de productos para seleccionar */}
+              <div className="p-4 overflow-y-auto flex-1 space-y-2">
+                {catProducts.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    No hay productos registrados en la categoría "{assignModal.categoryName}".
+                  </div>
+                ) : filteredProds.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    No se encontraron productos coincidentes con "{assignModal.searchQuery}".
+                  </div>
+                ) : (
+                  filteredProds.map((product) => {
+                    const isChecked = assignModal.selectedProductIds.has(product.id);
+                    const currentOtherSub = product.subcategory && product.subcategory.toLowerCase() !== assignModal.subcategoryName.toLowerCase() ? product.subcategory : null;
+
+                    return (
+                      <div
+                        key={product.id}
+                        onClick={() => handleToggleProductInSubcat(product.id)}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                          isChecked
+                            ? 'bg-amber-500/10 border-amber-500/40 dark:bg-amber-500/15'
+                            : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            className="shrink-0 text-amber-600 dark:text-amber-400"
+                          >
+                            {isChecked ? <CheckSquare size={18} /> : <Square size={18} className="text-slate-400" />}
+                          </button>
+
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt={product.name} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                              <Package size={16} />
+                            </div>
+                          )}
+
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {product.name}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                ${Number(product.price || 0).toFixed(2)}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                · Stock: {product.stock ?? 0}
+                              </span>
+                              {currentOtherSub && (
+                                <span className="text-[10px] text-orange-600 dark:text-orange-400 italic">
+                                  (actualmente en: {currentOtherSub})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer con acciones */}
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setAssignModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveProductAssignment}
+                  disabled={assignModal.saving}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 shadow-md shadow-amber-500/25 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {assignModal.saving ? 'Guardando...' : `Guardar Asignación (${assignModal.selectedProductIds.size})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal Creador y Editor de Combos Promocionales */}
       <ComboBuilderModal

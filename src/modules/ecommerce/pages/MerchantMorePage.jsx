@@ -6,7 +6,7 @@ import {
   DollarSign, Receipt, Settings, HelpCircle, LogOut, 
   ExternalLink, Check, Sparkles, X, Globe, Layers,
   ShieldCheck, CreditCard, ShoppingBag, Zap, Package,
-  Database, Wallet, Bell, Clock, MessageSquare, Flame
+  Database, Wallet, Bell, Clock, MessageSquare, Flame, FolderTree
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
@@ -190,6 +190,17 @@ export default function MerchantMorePage() {
       bg: 'bg-orange-50 dark:bg-orange-500/10',
       badge: 'ACTIVO',
       keywords: ['caja', 'turnos', 'arqueo', 'dinero', 'dolares', 'bolivares', 'gaveta', 'cierres']
+    },
+    {
+      id: 'categorias',
+      name: 'Categorías del Catálogo',
+      desc: 'Crea y organiza departamentos, subcategorías y fotos de tu tienda',
+      path: '/categories',
+      icon: FolderTree,
+      color: 'text-amber-500',
+      bg: 'bg-amber-50 dark:bg-amber-500/10',
+      badge: 'CATÁLOGO',
+      keywords: ['categorias', 'catalogo', 'subcategorias', 'departamentos', 'rubros', 'fotos', 'organizar']
     },
     {
       id: 'ofertas',

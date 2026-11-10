@@ -204,3 +204,4 @@ export default function HardwareSettingsModal({ isOpen, onClose }) {
     </div>
   );
 }
+
