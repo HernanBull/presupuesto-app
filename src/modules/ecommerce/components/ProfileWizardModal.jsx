@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation, Smartphone, Download, AlertCircle, CheckCircle2, RefreshCw, Compass } from 'lucide-react';
+import { Phone, MapPin, CreditCard, ChevronRight, Check, X, Loader2, User, Banknote, Image as ImageIcon, Navigation, Smartphone, Download, AlertCircle, CheckCircle2, RefreshCw, Compass, Sparkles } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import ResponsiveModal from './ResponsiveModal';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -89,6 +89,9 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
   const [gpsErrorMsg, setGpsErrorMsg] = useState('');
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
+  const [isInstallingApp, setIsInstallingApp] = useState(false);
+  const [installProgress, setInstallProgress] = useState(0);
+  const [installPhaseText, setInstallPhaseText] = useState('Iniciando instalación...');
   const [showIosGuide, setShowIosGuide] = useState(false);
   const [savedCustomerData, setSavedCustomerData] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -465,32 +468,71 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
     );
   };
 
+  const startInstallAnimationAndRedirect = () => {
+    setIsInstallingApp(true);
+    setInstallProgress(15);
+    setInstallPhaseText('Descargando paquete de Axon Market...');
+
+    const durationMs = 3800;
+    const intervalMs = 100;
+    const stepIncrement = 100 / (durationMs / intervalMs);
+    let current = 15;
+
+    const interval = setInterval(() => {
+      current += stepIncrement;
+      if (current >= 100) {
+        current = 100;
+        clearInterval(interval);
+        setInstallProgress(100);
+        setInstallPhaseText('¡Instalación completada! Abriendo Axon Market...');
+
+        // Finalizar perfil y transferir a la aplicación en standalone
+        setTimeout(() => {
+          if (onComplete && savedCustomerData) onComplete(savedCustomerData);
+          if (onClose) onClose();
+          // Redirigir a la app sin quedarse en el navegador
+          window.location.replace('/?installed=true');
+        }, 800);
+      } else {
+        setInstallProgress(Math.floor(current));
+        if (current > 75) {
+          setInstallPhaseText('Optimizando acceso directo y finalizando...');
+        } else if (current > 40) {
+          setInstallPhaseText('Creando icono en tu pantalla de inicio...');
+        }
+      }
+    }, intervalMs);
+  };
+
   const handleInstallPWA = async () => {
     const promptEvent = installPrompt || window.deferredPwaPrompt;
     if (promptEvent) {
       promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      if (choice && choice.outcome === 'accepted') {
-        setIsAppInstalled(true);
-        if (activeCustomer?.id) {
-          try {
-            const rawPay = activeCustomer.payment_profile;
-            const pProfile = (Array.isArray(rawPay) ? rawPay[0] : rawPay) || {};
-            pProfile.app_installed = true;
-            pProfile.installed_at = new Date().toISOString();
-            pProfile.last_active_at = new Date().toISOString();
-            await supabase.from('ecommerce_customers').update({
-              payment_profile: [pProfile]
-            }).eq('id', activeCustomer.id);
-          } catch(e){}
+      try {
+        const choice = await promptEvent.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          setIsAppInstalled(true);
+          if (activeCustomer?.id) {
+            try {
+              const rawPay = activeCustomer.payment_profile;
+              const pProfile = (Array.isArray(rawPay) ? rawPay[0] : rawPay) || {};
+              pProfile.app_installed = true;
+              pProfile.installed_at = new Date().toISOString();
+              pProfile.last_active_at = new Date().toISOString();
+              await supabase.from('ecommerce_customers').update({
+                payment_profile: [pProfile]
+              }).eq('id', activeCustomer.id);
+            } catch(e){}
+          }
         }
-      }
+      } catch(e) {}
+      startInstallAnimationAndRedirect();
     } else {
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       if (isIos) {
         setShowIosGuide(true);
       } else {
-        alert("Para instalar la aplicación:\n1. Toca el menú de 3 puntos (⋮) de tu navegador.\n2. Selecciona 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+        startInstallAnimationAndRedirect();
       }
     }
   };
@@ -855,55 +897,114 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
 
           {step === 4 && (
             <motion.div key="step4" initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-2">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center mb-3 border border-emerald-200 shadow-sm">
-                <Check size={32} className="stroke-[2.5]" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1">¡Tu perfil está completado! 🎉</h3>
-              <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed mb-5">
-                Hemos registrado tus datos para tus pedidos y pagos móviles en Axon Market.
-              </p>
+              {isInstallingApp ? (
+                /* Pantalla de Instalación en Progreso con Animación de 4 Segundos */
+                <div className="py-6 px-4 bg-gradient-to-b from-amber-500/10 via-white to-amber-500/5 rounded-3xl border-2 border-amber-400/80 shadow-lg text-center">
+                  {/* Logo palpitante de Axon Market */}
+                  <div className="relative w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-2xl bg-amber-500/20 animate-ping"></div>
+                    <img 
+                      src="/axonmarket-logo-icon.png" 
+                      alt="Axon Market" 
+                      className="w-20 h-20 rounded-2xl shadow-md border-2 border-amber-400 relative z-10 object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  </div>
 
-              {/* Tarjeta de Descarga de App Móvil (Opcional) */}
-              <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border-2 border-amber-300/80 rounded-2xl p-4 text-left shadow-xs">
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="w-11 h-11 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
-                    <Smartphone size={22} className="stroke-[2.2]" />
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight mb-1 flex items-center justify-center gap-1.5">
+                    <Sparkles size={18} className="text-amber-500" />
+                    <span>Instalando Axon Market</span>
+                  </h3>
+                  <p className="text-xs text-slate-600 font-medium max-w-xs mx-auto mb-5 min-h-[32px]">
+                    {installPhaseText}
+                  </p>
+
+                  {/* Barra de Progreso Dinámica */}
+                  <div className="w-full bg-slate-100 rounded-full h-3.5 p-0.5 border border-slate-200 overflow-hidden mb-2 relative">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 h-full rounded-full transition-all duration-150 ease-out flex items-center justify-end pr-1"
+                      style={{ width: `${installProgress}%` }}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-white shadow-xs"></div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Descarga la App en tu Teléfono</h4>
-                    <p className="text-[11px] text-slate-600 leading-snug mt-0.5">
-                      Instala Axon Market en tu pantalla de inicio para acceder en 1 toque y seguir tus pedidos en tiempo real.
-                    </p>
+                  <div className="flex justify-between items-center text-[11px] font-black text-amber-700 px-1">
+                    <span>Configurando PWA</span>
+                    <span>{installProgress}%</span>
                   </div>
+
+                  <p className="text-[11px] text-slate-400 mt-4 italic">
+                    Te estamos transfiriendo a la aplicación automáticamente...
+                  </p>
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                  <button
-                    type="button"
-                    onClick={handleInstallPWA}
-                    className="flex-1 bg-slate-900 hover:bg-black text-amber-400 font-bold py-2.5 px-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Download size={15} />
-                    <span>Instalar App (Opcional)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onComplete && savedCustomerData) onComplete(savedCustomerData);
-                      if (onClose) onClose();
-                    }}
-                    className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 font-bold rounded-xl text-xs border border-slate-200 transition-colors cursor-pointer"
-                  >
-                    Continuar al Mercado
-                  </button>
-                </div>
-
-                {showIosGuide && (
-                  <div className="mt-3 p-2.5 bg-white/90 rounded-xl border border-amber-200 text-[11px] text-slate-700 leading-tight">
-                    📲 <strong>En iPhone/iPad:</strong> Toca el botón <strong>Compartir</strong> <span className="font-mono">[↑]</span> en Safari y selecciona <strong>"Agregar a pantalla de inicio"</strong>.
+              ) : (
+                /* Pantalla de Perfil Completado + Botón de Instalación Premium con Logo */
+                <>
+                  <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center mb-3 border border-emerald-200 shadow-sm">
+                    <Check size={32} className="stroke-[2.5]" />
                   </div>
-                )}
-              </div>
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight mb-1">¡Tu perfil está completado! 🎉</h3>
+                  <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed mb-5">
+                    Hemos registrado tus datos para tus pedidos y compras en Axon Market.
+                  </p>
+
+                  {/* Tarjeta de Descarga de App Móvil Premium */}
+                  <div className="bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-amber-500/10 border-2 border-amber-400/90 rounded-3xl p-4 text-left shadow-md relative overflow-hidden">
+                    <div className="flex items-center gap-3.5 mb-3">
+                      <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-amber-300 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                        <img 
+                          src="/axonmarket-logo-icon.png" 
+                          alt="Logo Axon Market" 
+                          className="w-full h-full object-cover rounded-xl"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500 text-slate-950">
+                            App Oficial
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            ✓ Verificada
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900 truncate">Axon Market Móvil</h4>
+                        <p className="text-[11px] text-slate-600 leading-tight mt-0.5">
+                          Acceso rápido en 1 toque, seguimiento de pedidos y ofertas exclusivas.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mt-4">
+                      <button
+                        type="button"
+                        onClick={handleInstallPWA}
+                        className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black py-3 px-4 rounded-2xl text-xs md:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-orange-500/30 active:scale-98 transition-all cursor-pointer border border-amber-400/50"
+                      >
+                        <Download size={18} className="stroke-[2.5]" />
+                        <span>Instalar Axon Market en mi Teléfono</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onComplete && savedCustomerData) onComplete(savedCustomerData);
+                          if (onClose) onClose();
+                        }}
+                        className="w-full py-2.5 bg-white/80 hover:bg-white text-slate-700 hover:text-slate-900 font-bold rounded-xl text-xs border border-slate-200/90 transition-colors cursor-pointer text-center"
+                      >
+                        Continuar en el Navegador
+                      </button>
+                    </div>
+
+                    {showIosGuide && (
+                      <div className="mt-3 p-2.5 bg-white/95 rounded-xl border border-amber-200 text-[11px] text-slate-700 leading-tight">
+                        📲 <strong>En iPhone/iPad:</strong> Toca el botón <strong>Compartir</strong> <span className="font-mono">[↑]</span> en Safari y selecciona <strong>"Agregar a pantalla de inicio"</strong>.
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
