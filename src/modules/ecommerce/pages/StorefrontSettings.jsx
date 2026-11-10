@@ -42,9 +42,11 @@ export default function StorefrontSettings() {
     sectionTitle: 'Novedades',
     catalogTitle: 'Todo nuestro catálogo',
     offersTitle: 'Ofertas Flash',
+    offersSubtitle: 'Aprovecha los mejores precios y promociones exclusivas de la tienda.',
     footerText: '© 2026 Todos los derechos reservados.'
   });
 
+  const [offersBannerUrl, setOffersBannerUrl] = useState(savedConfig.offersBannerUrl || '');
   const [socials, setSocials] = useState(savedConfig.socials || { instagram: true, whatsapp: true, facebook: false });
 
   // UI State interno (No se guarda en config de cliente)
@@ -66,6 +68,7 @@ export default function StorefrontSettings() {
 
   const logoInputRef = useRef(null);
   const heroInputRef = useRef(null);
+  const offersBannerInputRef = useRef(null);
 
   const handleFileUpload = (e, setUrl) => {
     const file = e.target.files[0];
@@ -84,7 +87,7 @@ export default function StorefrontSettings() {
     setIsSaving(true);
     const configToSave = {
       themeMode, primaryColor, typography, baseFontSize, headingWeight,
-      logoUrl, headerStyle, showBanner, heroUrl, heroLayout,
+      logoUrl, headerStyle, showBanner, heroUrl, heroLayout, offersBannerUrl,
       buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts, socials
     };
     localStorage.setItem('storefrontConfig', JSON.stringify(configToSave));
@@ -225,10 +228,30 @@ export default function StorefrontSettings() {
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Títulos de Páginas</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400">Títulos y Preámbulos</label>
                   <div className="space-y-3">
                     <input type="text" value={texts.catalogTitle} onChange={(e) => handleTextChange('catalogTitle', e.target.value)} placeholder="Ej: Catálogo Completo" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
-                    <input type="text" value={texts.offersTitle} onChange={(e) => handleTextChange('offersTitle', e.target.value)} placeholder="Ej: Ofertas Flash" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Título de Ofertas (Letra Grande)</label>
+                      <input type="text" value={texts.offersTitle} onChange={(e) => handleTextChange('offersTitle', e.target.value)} placeholder="Ej: Ofertas Flash" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Subtítulo / Preámbulo de Ofertas</label>
+                      <input type="text" value={texts.offersSubtitle || ''} onChange={(e) => handleTextChange('offersSubtitle', e.target.value)} placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda." className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400">Banner de Ofertas</label>
+                    <input type="file" ref={offersBannerInputRef} onChange={(e) => handleFileUpload(e, setOffersBannerUrl)} accept="image/*" className="hidden" />
+                    <button onClick={() => offersBannerInputRef.current?.click()} className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-violet-500 rounded-xl flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-950 text-slate-600 transition-colors text-xs font-bold cursor-pointer">
+                      {offersBannerUrl ? 'Cambiar Banner de Ofertas' : 'Subir Banner de Ofertas'}
+                    </button>
+                    {offersBannerUrl && (
+                      <button onClick={() => setOffersBannerUrl('')} className="text-[10px] text-red-500 hover:underline block text-right w-full cursor-pointer">
+                        Eliminar banner de ofertas
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -324,7 +347,7 @@ export default function StorefrontSettings() {
 
           {/* Canvas Wrapper (Extracted to StorePreview) */}
           <StorePreview 
-            config={{ themeMode, primaryColor, typography, baseFontSize, headingWeight, logoUrl, headerStyle, showBanner, heroUrl, heroLayout, buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts }}
+            config={{ themeMode, primaryColor, typography, baseFontSize, headingWeight, logoUrl, headerStyle, showBanner, heroUrl, heroLayout, offersBannerUrl, buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts }}
             products={products}
             activePagePreview={activePagePreview}
             previewMode={previewMode}

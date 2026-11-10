@@ -210,6 +210,15 @@ export default function PublicStore() {
   const [isSavingColor, setIsSavingColor] = useState(false);
   const [customHexInput, setCustomHexInput] = useState('');
 
+  // Personalización del Cuadro de Ofertas en vivo (exclusivo para el comerciante en su vitrina)
+  const [offersCustomizerOpen, setOffersCustomizerOpen] = useState(false);
+  const [editOffersTitle, setEditOffersTitle] = useState('');
+  const [editOffersSubtitle, setEditOffersSubtitle] = useState('');
+  const [editOffersBannerUrl, setEditOffersBannerUrl] = useState('');
+  const [isSavingOffers, setIsSavingOffers] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const offersBannerInputRef = useRef(null);
+
   useEffect(() => {
     if (workspaceId) {
       getStoreFollowState(workspaceId, currentCustomer?.id).then(res => {
@@ -2045,7 +2054,9 @@ export default function PublicStore() {
       const defaultTexts = {
         banner: '¡Envíos gratis en compras mayores a $100!', nav1: 'Inicio', nav2: 'Catálogo', nav3: 'Ofertas',
         heroTitle: 'Descubre la nueva colección', heroSub: 'Productos exclusivos diseñados para ti.', heroBtn: 'Comprar Ahora',
-        sectionTitle: 'Novedades', catalogTitle: 'Catálogo de Productos', offersTitle: 'Ofertas Flash', footerText: '© 2026 Todos los derechos reservados.',
+        sectionTitle: 'Novedades', catalogTitle: 'Catálogo de Productos', offersTitle: 'Ofertas Flash',
+        offersSubtitle: 'Aprovecha los mejores precios y promociones exclusivas de la tienda.',
+        footerText: '© 2026 Todos los derechos reservados.',
         newsletterTitle: 'Únete a nuestro boletín', newsletterSub: 'Recibe ofertas exclusivas en tu correo.', testimonialsTitle: 'Lo que dicen nuestros clientes'
       };
 
@@ -2302,6 +2313,7 @@ export default function PublicStore() {
 
   const resolvedCoverUrl = heroUrl || config?.coverUrl || config?.storefront?.heroUrl || config?.storefront?.coverUrl || config?.bannerUrl || null;
   const resolvedLogoUrl = logoUrl || config?.storefront?.logoUrl || config?.avatarUrl || config?.logo || null;
+  const resolvedOffersBannerUrl = config?.offersBannerUrl || config?.storefront?.offersBannerUrl || texts?.offersBannerUrl || null;
 
   // Color de marca dinámico de la vitrina (exclusivo para este comercio)
   const primaryColor = liveBrandColor || config?.primaryColor || config?.storefront?.primaryColor || config?.themeColor || DEFAULT_STOREFRONT_COLOR;
@@ -2371,6 +2383,131 @@ export default function PublicStore() {
       alert('Error al guardar el color de marca: ' + (err.message || 'Error de conexión'));
     } finally {
       setIsSavingColor(false);
+    }
+  };
+
+  // Abrir editor in-situ de la sección de Ofertas
+  const openOffersCustomizer = () => {
+    setEditOffersTitle(texts?.offersTitle || 'Ofertas Flash');
+    setEditOffersSubtitle(texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.');
+    setEditOffersBannerUrl(resolvedOffersBannerUrl || '');
+    setOffersCustomizerOpen(true);
+  };
+
+  // Subir imagen para banner de ofertas
+  const handleBannerFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingBanner(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `offers-banner-${Date.now()}.${ext}`;
+      const filePath = `storefront/${workspaceId || 'common'}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage.from('ecommerce').upload(filePath, file, { upsert: true });
+      if (!uploadError) {
+        const { data } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+        if (data?.publicUrl) {
+          setEditOffersBannerUrl(data.publicUrl);
+          setIsUploadingBanner(false);
+          return;
+        }
+      }
+      // Fallback base64
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setEditOffersBannerUrl(loadEvent.target.result);
+        setIsUploadingBanner(false);
+      };
+      reader.onerror = () => setIsUploadingBanner(false);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.warn("Storage upload fallback to DataURL:", err);
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        setEditOffersBannerUrl(loadEvent.target.result);
+        setIsUploadingBanner(false);
+      };
+      reader.onerror = () => setIsUploadingBanner(false);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Guardar configuración de Ofertas en Supabase
+  const handleSaveOffersConfig = async () => {
+    if (!isMerchantOwner || !workspaceId) return;
+    setIsSavingOffers(true);
+    try {
+      const { data: ws, error: fetchErr } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      if (fetchErr) throw fetchErr;
+
+      const currentConfig = ws?.config || {};
+      const newTitle = editOffersTitle.trim() || 'Ofertas Flash';
+      const newSubtitle = editOffersSubtitle.trim() || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.';
+      const newBanner = editOffersBannerUrl.trim() || null;
+
+      const updatedTexts = {
+        ...(currentConfig.texts || {}),
+        ...(currentConfig.storefront?.texts || {}),
+        offersTitle: newTitle,
+        offersSubtitle: newSubtitle
+      };
+
+      const updatedConfig = {
+        ...currentConfig,
+        offersBannerUrl: newBanner,
+        texts: updatedTexts,
+        storefront: {
+          ...(currentConfig.storefront || {}),
+          offersBannerUrl: newBanner,
+          texts: updatedTexts
+        }
+      };
+
+      const { error: updErr } = await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      if (updErr) throw updErr;
+
+      setConfig(prev => ({
+        ...prev,
+        offersBannerUrl: newBanner,
+        texts: {
+          ...(prev?.texts || {}),
+          offersTitle: newTitle,
+          offersSubtitle: newSubtitle
+        },
+        storefront: {
+          ...(prev?.storefront || {}),
+          offersBannerUrl: newBanner,
+          texts: updatedTexts
+        }
+      }));
+
+      const cacheKey = `axon_storefront_cache_${slug}`;
+      try {
+        const cachedRaw = localStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cachedObj = JSON.parse(cachedRaw);
+          cachedObj.config = {
+            ...cachedObj.config,
+            offersBannerUrl: newBanner,
+            texts: updatedTexts,
+            storefront: {
+              ...(cachedObj.config?.storefront || {}),
+              offersBannerUrl: newBanner,
+              texts: updatedTexts
+            }
+          };
+          localStorage.setItem(cacheKey, JSON.stringify(cachedObj));
+        }
+      } catch (e) {}
+
+      alert('¡Configuración de la sección de ofertas guardada exitosamente!');
+      setOffersCustomizerOpen(false);
+    } catch (err) {
+      console.error('Error al guardar configuración de ofertas:', err);
+      alert('Error al guardar: ' + (err.message || 'Error de conexión'));
+    } finally {
+      setIsSavingOffers(false);
     }
   };
 
@@ -2530,7 +2667,7 @@ export default function PublicStore() {
           style={{ background: themeStyles.bannerGradient }}
         >
           <div className="flex items-center gap-2">
-            <Zap size={14} className="animate-pulse" />
+            <Store size={14} className="shrink-0" />
             <span>Modo Administrador Activo - Estás viendo tu tienda</span>
           </div>
           <div className="flex items-center gap-2">
@@ -3692,17 +3829,48 @@ export default function PublicStore() {
         {/* OFERTAS */}
         {currentPage === 'offers' && (
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-28 relative">
-            <div className="py-8 md:py-12 px-4 sm:px-8 border-b border-slate-200/80 bg-white relative overflow-hidden shadow-xs">
-               <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center">
-                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-bold w-max mb-2">
-                   <Zap size={14} className="fill-amber-500 text-amber-500" />
-                   <span>Promociones y Descuentos</span>
+            <div className={`relative overflow-hidden border-b border-slate-200/80 shadow-xs transition-all ${
+              resolvedOffersBannerUrl 
+                ? 'py-10 md:py-14 px-4 sm:px-8 text-white min-h-[190px] sm:min-h-[230px] flex flex-col justify-center' 
+                : 'py-8 md:py-12 px-4 sm:px-8 bg-white'
+            }`}>
+              {resolvedOffersBannerUrl && (
+                <>
+                  <img 
+                    src={resolveImageUrl(resolvedOffersBannerUrl)} 
+                    alt="Banner de Ofertas" 
+                    className="absolute inset-0 w-full h-full object-cover z-0" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/35 z-[1]" />
+                </>
+              )}
+               <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center w-full">
+                 <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-max ${
+                     resolvedOffersBannerUrl 
+                       ? 'bg-white/20 backdrop-blur-md text-amber-300 border border-white/20 shadow-xs' 
+                       : 'bg-amber-500/10 text-amber-700'
+                   }`}>
+                     <Tag size={12} className={resolvedOffersBannerUrl ? 'text-amber-300' : 'text-amber-600'} />
+                     <span>Promociones y Descuentos</span>
+                   </div>
+                   {isMerchantOwner && (
+                     <button
+                       type="button"
+                       onClick={openOffersCustomizer}
+                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-white hover:bg-slate-50 text-slate-900 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-200/80"
+                       title="Editar Título, Subtítulo e Imagen de Ofertas"
+                     >
+                       <Pen size={12} style={{ color: primaryColor }} />
+                       <span>Editar Sección</span>
+                     </button>
+                   )}
                  </div>
-                 <h1 className={`${headingWeight} text-3xl md:text-5xl text-slate-900 tracking-tight font-extrabold`}>
-                   {texts.offersTitle || 'Ofertas Flash'}
+                 <h1 className={`${headingWeight} text-3xl md:text-5xl tracking-tight font-extrabold ${resolvedOffersBannerUrl ? 'text-white drop-shadow-md' : 'text-slate-900'}`}>
+                   {texts?.offersTitle || 'Ofertas Flash'}
                  </h1>
-                 <p className="text-slate-500 text-sm md:text-base mt-1">
-                   Aprovecha los mejores precios y promociones exclusivas de la tienda.
+                 <p className={`text-sm md:text-base mt-1.5 max-w-2xl leading-relaxed ${resolvedOffersBannerUrl ? 'text-slate-200 drop-shadow' : 'text-slate-500'}`}>
+                   {texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
                  </p>
                </div>
             </div>
@@ -3776,7 +3944,7 @@ export default function PublicStore() {
                       )}
                       
                       <div className="absolute top-1 left-1 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                        <Zap size={8} fill="currentColor" className="animate-pulse" /> OFERTA
+                        <Tag size={8} className="fill-current" /> OFERTA
                       </div>
                       
                       {(p.stock_vitrina || 0) <= 0 && (
@@ -5868,6 +6036,179 @@ export default function PublicStore() {
           >
             {isSavingColor ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             <span>{isSavingColor ? 'Guardando...' : 'Guardar en Vitrina'}</span>
+          </button>
+        </div>
+      </ResponsiveModal>
+
+      {/* Modal de Personalización de Cuadro de Ofertas (Exclusivo Dueño en su Vitrina) */}
+      <ResponsiveModal
+        isOpen={offersCustomizerOpen}
+        onClose={() => {
+          if (!isSavingOffers) setOffersCustomizerOpen(false);
+        }}
+        className="md:max-w-xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-white/10"
+        contentClassName="p-5 sm:p-6"
+      >
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+              <Tag size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Personalizar Sección de Ofertas</h3>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                Ajusta el título, subtítulo explicativo y la imagen de portada de tus promociones.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isSavingOffers) setOffersCustomizerOpen(false);
+            }}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Título de la sección */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
+              Título de Ofertas (Tamaño Grande)
+            </label>
+            <input
+              type="text"
+              value={editOffersTitle}
+              onChange={(e) => setEditOffersTitle(e.target.value)}
+              placeholder="Ej: Ofertas Flash"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">Título principal que los clientes verán en tamaño de letra grande.</p>
+          </div>
+
+          {/* Subtítulo / Preámbulo */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
+              Subtítulo / Preámbulo de la Tienda
+            </label>
+            <textarea
+              rows={2}
+              value={editOffersSubtitle}
+              onChange={(e) => setEditOffersSubtitle(e.target.value)}
+              placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda."
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-xs sm:text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed"
+            />
+            <p className="text-[11px] text-slate-400 mt-1">Preámbulo o mensaje de introducción para dar contexto a los clientes.</p>
+          </div>
+
+          {/* Imagen de Portada / Banner */}
+          <div>
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
+              Imagen de Portada / Banner del Cuadro
+            </label>
+
+            <input 
+              type="file" 
+              ref={offersBannerInputRef} 
+              onChange={handleBannerFileSelect} 
+              accept="image/*" 
+              className="hidden" 
+            />
+
+            {editOffersBannerUrl ? (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 group shadow-sm">
+                <img 
+                  src={resolveImageUrl(editOffersBannerUrl)} 
+                  alt="Vista previa de banner" 
+                  className="w-full h-36 object-cover" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-3">
+                  <div className="text-white">
+                    <p className="text-xs font-bold truncate">{editOffersTitle || 'Ofertas Flash'}</p>
+                    <p className="text-[10px] text-slate-200 line-clamp-1">{editOffersSubtitle || 'Aprovecha los mejores precios...'}</p>
+                  </div>
+                </div>
+                <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => offersBannerInputRef.current?.click()}
+                    disabled={isUploadingBanner}
+                    className="p-1.5 rounded-lg bg-black/60 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer backdrop-blur-xs"
+                    title="Cambiar imagen"
+                  >
+                    <UploadCloud size={13} />
+                    <span className="text-[10px]">Cambiar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditOffersBannerUrl('')}
+                    className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-all cursor-pointer backdrop-blur-xs"
+                    title="Quitar imagen"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div 
+                onClick={() => offersBannerInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-amber-500 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-slate-50/70 dark:bg-zinc-900/50 group"
+              >
+                {isUploadingBanner ? (
+                  <div className="flex flex-col items-center justify-center py-2">
+                    <Loader2 size={24} className="animate-spin text-amber-500 mb-1" />
+                    <span className="text-xs font-bold text-slate-600 dark:text-zinc-400">Subiendo imagen...</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-1">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                      <ImageIcon size={20} />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                      Toca aquí para subir una imagen de portada
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-0.5">
+                      Recomendado: imagen panorámica horizontal (JPG, PNG, WEBP)
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Alternativa URL directa */}
+            <div className="mt-2.5">
+              <label className="text-[10px] font-bold text-slate-400 block mb-1">O escribe un enlace directo a la imagen:</label>
+              <input
+                type="url"
+                value={editOffersBannerUrl}
+                onChange={(e) => setEditOffersBannerUrl(e.target.value)}
+                placeholder="https://ejemplo.com/banner-ofertas.jpg"
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-xs text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={isSavingOffers}
+            onClick={() => setOffersCustomizerOpen(false)}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={isSavingOffers || isUploadingBanner}
+            onClick={handleSaveOffersConfig}
+            style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+            className="px-5 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          >
+            {isSavingOffers ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            <span>{isSavingOffers ? 'Guardando...' : 'Guardar Cambios'}</span>
           </button>
         </div>
       </ResponsiveModal>

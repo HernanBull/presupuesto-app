@@ -17,6 +17,7 @@ export default function StorePreview({
     headerStyle = 'solid',
     heroUrl,
     heroLayout = 'centered',
+    offersBannerUrl,
     buttonStyle = 'rounded-full',
     cardStyle = 'elevated',
     catalogFilterStyle = 'sidebar',
@@ -45,19 +46,19 @@ export default function StorePreview({
   const ProductCard = ({ product, showDiscount = false }) => {
     return (
       <div className={`flex flex-col group relative ${cardStyle === 'elevated' ? `shadow-md ${cardBg} p-2 rounded-xl` : cardStyle === 'outlined' ? `border ${cardBg} p-2 rounded-xl` : 'p-1'}`}>
-        
+
         {/* Status Badges para Admin Preview */}
         {product.publish_status !== 'Publicado' && (
-           <div className="absolute top-2 left-2 z-20 bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm opacity-90 border border-white/20">
-             BORRADOR
-           </div>
+          <div className="absolute top-2 left-2 z-20 bg-slate-800 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm opacity-90 border border-white/20">
+            BORRADOR
+          </div>
         )}
         {product.stock <= 0 && (
-           <div className="absolute top-2 right-2 z-20 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm opacity-90 border border-white/20">
-             AGOTADO
-           </div>
+          <div className="absolute top-2 right-2 z-20 bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm opacity-90 border border-white/20">
+            AGOTADO
+          </div>
         )}
-        
+
         {/* Etiqueta de Descuento (Solo en Ofertas) */}
         {showDiscount && product.is_offer && (
           <div className="absolute top-4 right-4 z-10 px-2 py-1 text-[10px] font-black text-white rounded-md shadow-sm" style={{ backgroundColor: discountBadgeColor }}>
@@ -73,7 +74,7 @@ export default function StorePreview({
           )}
         </div>
         <p className={`font-bold line-clamp-1 ${textColor} text-xs mt-1`}>{product.name}</p>
-        
+
         {showDiscount && product.is_offer && product.discount_price ? (
           <div className="flex items-center gap-2 mt-1 mb-2">
             <p className={`${headingWeight} text-sm`} style={{ color: discountBadgeColor }}>${Number(product.discount_price).toFixed(2)}</p>
@@ -82,7 +83,7 @@ export default function StorePreview({
         ) : (
           <p className={`${headingWeight} text-sm mt-1 mb-2`} style={{ color: primaryColor }}>${Number(product.price).toFixed(2)}</p>
         )}
-        
+
         {/* Fast Grid Controls (Víveres) */}
         <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1">
@@ -99,16 +100,14 @@ export default function StorePreview({
   };
 
   return (
-    <div className={`transition-all duration-500 ease-out mt-16 shadow-2xl relative overflow-hidden flex flex-col ${
-      previewMode === 'mobile' ? 'w-[340px] h-[640px] rounded-[3rem] border-[10px] border-slate-800 mx-auto' : 'w-full h-full rounded-xl border border-slate-200'
-    } ${baseBg}`}>
-      
+    <div className={`transition-all duration-500 ease-out mt-16 shadow-2xl relative overflow-hidden flex flex-col ${previewMode === 'mobile' ? 'w-[340px] h-[640px] rounded-[3rem] border-[10px] border-slate-800 mx-auto' : 'w-full h-full rounded-xl border border-slate-200'
+      } ${baseBg}`}>
+
       <div className={`h-full w-full overflow-y-auto hide-scrollbar flex flex-col ${typoClass} ${baseFontSize} ${baseBg}`}>
-        
+
         {/* Navbar Dinámica */}
-        <div className={`flex items-center justify-between z-40 transition-all flex-shrink-0 ${
-          headerStyle === 'transparent' && activePagePreview === 'home' ? 'absolute top-0 w-full bg-gradient-to-b from-black/50 to-transparent border-none' : 'relative border-b'
-        } ${headerStyle === 'solid' || activePagePreview !== 'home' ? (themeMode === 'dark' ? 'border-slate-800' : 'border-slate-100') : ''} ${previewMode === 'mobile' ? 'p-4' : 'px-8 py-5'}`}>
+        <div className={`flex items-center justify-between z-40 transition-all flex-shrink-0 ${headerStyle === 'transparent' && activePagePreview === 'home' ? 'absolute top-0 w-full bg-gradient-to-b from-black/50 to-transparent border-none' : 'relative border-b'
+          } ${headerStyle === 'solid' || activePagePreview !== 'home' ? (themeMode === 'dark' ? 'border-slate-800' : 'border-slate-100') : ''} ${previewMode === 'mobile' ? 'p-4' : 'px-8 py-5'}`}>
           {logoUrl ? (
             <img src={logoUrl} alt="Logo" className={`${previewMode === 'mobile' ? 'h-6' : 'h-8'} object-contain`} />
           ) : (
@@ -124,7 +123,7 @@ export default function StorePreview({
         </div>
 
         {/* CONTENIDO DINÁMICO POR PÁGINA */}
-        
+
         {/* 1. INICIO (HOME) */}
         {activePagePreview === 'home' && (
           <>
@@ -152,7 +151,7 @@ export default function StorePreview({
                 </div>
               ) : (
                 <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 opacity-50">
-                   <p className="text-sm font-bold">No hay productos publicados aún</p>
+                  <p className="text-sm font-bold">No hay productos publicados aún</p>
                 </div>
               )}
             </div>
@@ -163,46 +162,46 @@ export default function StorePreview({
         {activePagePreview === 'catalog' && (
           <div className={`flex-1 flex flex-col ${secondaryBg}`}>
             <div className={`${baseBg} border-b ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'} py-6 px-6 text-center flex-shrink-0`}>
-               <h1 className={`${headingWeight} text-2xl md:text-3xl`}>{texts.catalogTitle}</h1>
+              <h1 className={`${headingWeight} text-2xl md:text-3xl`}>{texts.catalogTitle}</h1>
             </div>
             <div className={`flex flex-1 ${catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? 'flex-row' : 'flex-col'} px-4 md:px-8 py-6 gap-6`}>
-               
-               {/* Filtros */}
-               <div className={`${catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? 'w-48 border-r pr-6' : 'w-full flex gap-2 overflow-x-auto pb-2 hide-scrollbar'} ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'} flex-shrink-0`}>
-                  {catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="font-bold mb-3">Categorías</h3>
-                        <ul className="space-y-2 text-sm text-slate-500">
-                          {categories.map((c, idx) => (
-                             <li key={c} className={idx === 0 ? "font-bold text-slate-900 dark:text-white" : ""}>{c}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {categories.map((c, idx) => (
-                        <span key={c} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${idx === 0 ? 'bg-slate-200 dark:bg-slate-800' : 'border border-slate-200 dark:border-slate-800 text-slate-500'}`}>
-                          {c}
-                        </span>
-                      ))}
-                    </>
-                  )}
-               </div>
 
-               {/* Grid */}
-               <div className="flex-1">
-                  {products.length > 0 ? (
-                    <div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                      {products.map(p => <ProductCard key={p.id} product={p} />)}
+              {/* Filtros */}
+              <div className={`${catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? 'w-48 border-r pr-6' : 'w-full flex gap-2 overflow-x-auto pb-2 hide-scrollbar'} ${themeMode === 'dark' ? 'border-slate-800' : 'border-slate-200'} flex-shrink-0`}>
+                {catalogFilterStyle === 'sidebar' && previewMode === 'desktop' ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-bold mb-3">Categorías</h3>
+                      <ul className="space-y-2 text-sm text-slate-500">
+                        {categories.map((c, idx) => (
+                          <li key={c} className={idx === 0 ? "font-bold text-slate-900 dark:text-white" : ""}>{c}</li>
+                        ))}
+                      </ul>
                     </div>
-                  ) : (
-                    <div className="h-48 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 opacity-50">
-                       <p className="text-sm font-bold">Sin productos en el catálogo</p>
-                    </div>
-                  )}
-               </div>
+                  </div>
+                ) : (
+                  <>
+                    {categories.map((c, idx) => (
+                      <span key={c} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${idx === 0 ? 'bg-slate-200 dark:bg-slate-800' : 'border border-slate-200 dark:border-slate-800 text-slate-500'}`}>
+                        {c}
+                      </span>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Grid */}
+              <div className="flex-1">
+                {products.length > 0 ? (
+                  <div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                    {products.map(p => <ProductCard key={p.id} product={p} />)}
+                  </div>
+                ) : (
+                  <div className="h-48 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 opacity-50">
+                    <p className="text-sm font-bold">Sin productos en el catálogo</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -210,28 +209,38 @@ export default function StorePreview({
         {/* 3. OFERTAS */}
         {activePagePreview === 'offers' && (
           <div className={`flex-1 flex flex-col ${secondaryBg}`}>
-            <div className="bg-slate-900 text-white py-10 px-6 text-center relative overflow-hidden flex-shrink-0">
-               {offersCountdown && (
-                 <div className="absolute top-0 right-0 p-4">
-                   <div className="bg-rose-500 px-3 py-1.5 rounded-lg font-mono text-xs font-bold animate-pulse shadow-lg flex items-center gap-1">
-                     ⏳ Termina en 05:42:10
-                   </div>
-                 </div>
-               )}
-               <h1 className={`${headingWeight} text-4xl md:text-5xl drop-shadow-md text-amber-300 italic mb-2`}>{texts.offersTitle}</h1>
-               <p className="opacity-90 max-w-md mx-auto text-sm">Productos con descuento. Cantidades limitadas.</p>
+            <div className={`text-white py-10 px-6 text-center relative overflow-hidden flex-shrink-0 ${offersBannerUrl ? 'bg-black min-h-[160px]' : 'bg-slate-900'}`}>
+              {offersBannerUrl && (
+                <>
+                  <img src={offersBannerUrl} alt="Banner Ofertas" className="absolute inset-0 w-full h-full object-cover z-0" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 z-[1]" />
+                </>
+              )}
+              <div className="relative z-10 max-w-xl mx-auto">
+                {offersCountdown && (
+                  <div className="inline-flex items-center gap-1 bg-rose-500 px-3 py-1 rounded-lg font-mono text-xs font-bold shadow-md mb-2">
+                    ⏳ Termina en 05:42:10
+                  </div>
+                )}
+                <h1 className={`${headingWeight} text-3xl md:text-4xl drop-shadow-md text-amber-300 font-extrabold mb-1.5`}>
+                  {texts.offersTitle || 'Ofertas Flash'}
+                </h1>
+                <p className="opacity-90 max-w-md mx-auto text-xs sm:text-sm leading-relaxed text-slate-200 drop-shadow">
+                  {texts.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
+                </p>
+              </div>
             </div>
-            
+
             <div className="flex-1 px-4 md:px-8 py-8">
-               {offerProducts.length > 0 ? (
-                 <div className={`grid gap-5 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-4'}`}>
-                    {offerProducts.map(p => <ProductCard key={p.id} product={p} showDiscount={true} />)}
-                 </div>
-               ) : (
-                 <div className="h-48 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 opacity-50">
-                    <p className="text-sm font-bold">No hay productos en oferta actualmente</p>
-                 </div>
-               )}
+              {offerProducts.length > 0 ? (
+                <div className={`grid gap-5 ${previewMode === 'mobile' ? 'grid-cols-2' : 'grid-cols-4'}`}>
+                  {offerProducts.map(p => <ProductCard key={p.id} product={p} showDiscount={true} />)}
+                </div>
+              ) : (
+                <div className="h-48 flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 opacity-50">
+                  <p className="text-sm font-bold">No hay productos en oferta actualmente</p>
+                </div>
+              )}
             </div>
           </div>
         )}
