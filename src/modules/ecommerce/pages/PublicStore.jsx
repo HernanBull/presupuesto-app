@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -264,15 +264,32 @@ export default function PublicStore() {
   // Estados para Módulo de Empleos y Recepción de CV
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [jobAdminModalOpen, setJobAdminModalOpen] = useState(false);
+  const [jobAdminTab, setJobAdminTab] = useState('openings'); // 'openings' | 'applications'
+  const [selectedJobOpening, setSelectedJobOpening] = useState(null);
+
+  // Formulario del postulante
   const [applicantName, setApplicantName] = useState('');
   const [applicantPhone, setApplicantPhone] = useState('');
+  const [applicantAge, setApplicantAge] = useState('');
+  const [applicantLocation, setApplicantLocation] = useState('');
+  const [applicantEducation, setApplicantEducation] = useState('Bachiller');
+  const [applicantHasDocuments, setApplicantHasDocuments] = useState(true);
   const [applicantPosition, setApplicantPosition] = useState('');
   const [applicantNotes, setApplicantNotes] = useState('');
   const [applicantCvFile, setApplicantCvFile] = useState(null);
   const [isSubmittingJob, setIsSubmittingJob] = useState(false);
-  const [newOpeningTitle, setNewOpeningTitle] = useState('');
-  const [isSavingJobsConfig, setIsSavingJobsConfig] = useState(false);
   const applicantCvInputRef = useRef(null);
+
+  // Formulario del comerciante para crear / editar vacante
+  const [editingOpeningId, setEditingOpeningId] = useState(null);
+  const [openingTitle, setOpeningTitle] = useState('');
+  const [openingDescription, setOpeningDescription] = useState('');
+  const [openingAgeRange, setOpeningAgeRange] = useState('');
+  const [openingLocation, setOpeningLocation] = useState('');
+  const [openingEducation, setOpeningEducation] = useState('');
+  const [openingDocs, setOpeningDocs] = useState('');
+  const [openingRequirements, setOpeningRequirements] = useState('');
+  const [isSavingJobsConfig, setIsSavingJobsConfig] = useState(false);
   const [cart, setCart] = useState({});
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isBottomNavOpen, setIsBottomNavOpen] = useState(true);
@@ -2226,8 +2243,33 @@ export default function PublicStore() {
         saved.bcvRate = baseConf.bcvRate || saved.bcvRate || 36.50;
         saved.business_name = storeData.name;
 
-        const loadedCustomCats = baseConf.custom_categories || storeData.custom_categories || [];
-        setStoreCustomCategories(Array.isArray(loadedCustomCats) ? loadedCustomCats : []);
+        const rawCustomList = baseConf.customCategories || baseConf.custom_categories || storeData.customCategories || storeData.custom_categories || [];
+        const normalizedCustomCats = Array.isArray(rawCustomList) ? rawCustomList.map(item => {
+          if (typeof item === 'string') {
+            const clean = item.trim();
+            return clean ? { name: clean, imageUrl: '', subcategories: [] } : null;
+          }
+          if (item && typeof item === 'object') {
+            const name = (item.name || '').trim();
+            const imageUrl = item.imageUrl || item.image_url || '';
+            const rawSubs = Array.isArray(item.subcategories) ? item.subcategories : [];
+            const subcategories = rawSubs.map(s => {
+              if (typeof s === 'string') {
+                const sClean = s.trim();
+                return sClean ? { name: sClean, imageUrl: '' } : null;
+              }
+              if (s && typeof s === 'object') {
+                const sName = (s.name || '').trim();
+                return sName ? { name: sName, imageUrl: s.imageUrl || s.image_url || '' } : null;
+              }
+              return null;
+            }).filter(Boolean);
+            return name ? { ...item, name, imageUrl, subcategories } : null;
+          }
+          return null;
+        }).filter(Boolean) : [];
+
+        setStoreCustomCategories(normalizedCustomCats);
 
         setConfig(saved);
         trackEvent('visit', storeData.id);
@@ -2692,11 +2734,214 @@ export default function PublicStore() {
   const jobsConfig = {
     enabled: currentJobsRaw.enabled !== false,
     openings: Array.isArray(currentJobsRaw.openings) ? currentJobsRaw.openings : [
-      { id: '1', title: 'Personal de Atención y Ventas', active: true },
-      { id: '2', title: 'Personal de Cocina y Preparación', active: true },
-      { id: '3', title: 'Postulación Abierta / Varios Cargos', active: true }
+      {
+        id: '1',
+        title: 'Personal de Atención y Ventas',
+        description: 'Atención al cliente, toma de pedidos en mostrador y despacho de productos.',
+        ageRange: '20 a 35 años',
+        locationRequired: 'Residenciado en zonas cercanas al establecimiento',
+        educationLevel: 'Bachiller',
+        requiredDocs: 'Cédula de identidad, RIF vigente, Certificado de manipulación de alimentos',
+        requirements: 'Buena presencia, dinamismo y orientación al cliente',
+        active: true,
+        createdAt: '2026-11-10'
+      },
+      {
+        id: '2',
+        title: 'Personal de Cocina y Preparación',
+        description: 'Preparación de alimentos a la parrilla, ensamble y apoyo en inventario.',
+        ageRange: '20 a 40 años',
+        locationRequired: 'Disponibilidad para turnos vespertinos y nocturnos',
+        educationLevel: 'Bachiller o TSU',
+        requiredDocs: 'Cédula, RIF, Curso de manipulación de alimentos vigente',
+        requirements: 'Mínimo 6 meses de experiencia en comida rápida o plancha',
+        active: true,
+        createdAt: '2026-11-10'
+      }
     ],
     applications: Array.isArray(currentJobsRaw.applications) ? currentJobsRaw.applications : []
+  };
+
+  const handleOpenCreateOpening = () => {
+    setEditingOpeningId(null);
+    setOpeningTitle('');
+    setOpeningDescription('');
+    setOpeningAgeRange('20 a 35 años');
+    setOpeningLocation('Residenciado en zonas cercanas');
+    setOpeningEducation('Bachiller');
+    setOpeningDocs('Cédula de identidad, RIF vigente, Manipulación de alimentos');
+    setOpeningRequirements('Puntualidad, ganas de trabajar y buena actitud');
+  };
+
+  const handleOpenEditOpening = (op) => {
+    setEditingOpeningId(op.id);
+    setOpeningTitle(op.title || '');
+    setOpeningDescription(op.description || '');
+    setOpeningAgeRange(op.ageRange || '');
+    setOpeningLocation(op.locationRequired || '');
+    setOpeningEducation(op.educationLevel || '');
+    setOpeningDocs(op.requiredDocs || '');
+    setOpeningRequirements(op.requirements || '');
+  };
+
+  const handleSaveJobOpening = async (e) => {
+    e?.preventDefault();
+    if (!openingTitle.trim() || !isMerchantOwner || !workspaceId) {
+      alert('Por favor ingresa al menos el título del cargo.');
+      return;
+    }
+
+    try {
+      setIsSavingJobsConfig(true);
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const curOpenings = Array.isArray(curJobs.openings) ? curJobs.openings : [...jobsConfig.openings];
+
+      let updatedOpenings;
+      if (editingOpeningId) {
+        // Actualizar vacante existente
+        updatedOpenings = curOpenings.map(op => {
+          if (op.id === editingOpeningId) {
+            return {
+              ...op,
+              title: openingTitle.trim(),
+              description: openingDescription.trim(),
+              ageRange: openingAgeRange.trim(),
+              locationRequired: openingLocation.trim(),
+              educationLevel: openingEducation.trim(),
+              requiredDocs: openingDocs.trim(),
+              requirements: openingRequirements.trim(),
+              updatedAt: new Date().toISOString()
+            };
+          }
+          return op;
+        });
+      } else {
+        // Crear nueva vacante
+        const newOpening = {
+          id: `op_${Date.now()}`,
+          title: openingTitle.trim(),
+          description: openingDescription.trim(),
+          ageRange: openingAgeRange.trim(),
+          locationRequired: openingLocation.trim(),
+          educationLevel: openingEducation.trim(),
+          requiredDocs: openingDocs.trim(),
+          requirements: openingRequirements.trim(),
+          active: true,
+          createdAt: new Date().toISOString()
+        };
+        updatedOpenings = [newOpening, ...curOpenings];
+      }
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          enabled: true,
+          openings: updatedOpenings
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+      alert(editingOpeningId ? '¡Oferta de trabajo actualizada con éxito!' : '¡Nueva oferta de trabajo agregada!');
+      handleOpenCreateOpening();
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar vacante: ' + err.message);
+    } finally {
+      setIsSavingJobsConfig(false);
+    }
+  };
+
+  const handleDeleteJobOpening = async (openingId) => {
+    if (!isMerchantOwner || !workspaceId) return;
+    if (!window.confirm('¿Seguro que deseas eliminar esta oferta de trabajo? Ya no aparecerá en tu vitrina.')) return;
+
+    try {
+      setIsSavingJobsConfig(true);
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const curOpenings = Array.isArray(curJobs.openings) ? curJobs.openings : [...jobsConfig.openings];
+      const updatedOpenings = curOpenings.filter(op => op.id !== openingId);
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          openings: updatedOpenings
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+      if (editingOpeningId === openingId) {
+        handleOpenCreateOpening();
+      }
+      alert('Oferta de trabajo eliminada exitosamente.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al eliminar vacante: ' + err.message);
+    } finally {
+      setIsSavingJobsConfig(false);
+    }
+  };
+
+  const handleToggleJobOpening = async (openingId) => {
+    if (!isMerchantOwner || !workspaceId) return;
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const curOpenings = Array.isArray(curJobs.openings) ? curJobs.openings : [...jobsConfig.openings];
+      const currentOpenings = curOpenings.map(op => 
+        op.id === openingId ? { ...op, active: !op.active } : op
+      );
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          openings: currentOpenings
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+    } catch (err) {
+      console.error(err);
+      alert('Error al actualizar estado de la vacante: ' + err.message);
+    }
+  };
+
+  const handleDeleteApplication = async (applicationId) => {
+    if (!isMerchantOwner || !workspaceId) return;
+    if (!window.confirm('¿Deseas descartar o eliminar esta postulación?')) return;
+
+    try {
+      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
+      const curConfig = ws?.config || {};
+      const curJobs = curConfig.jobs || {};
+      const curApps = Array.isArray(curJobs.applications) ? curJobs.applications : [];
+      const updatedApps = curApps.filter(app => app.id !== applicationId);
+
+      const updatedConfig = {
+        ...curConfig,
+        jobs: {
+          ...curJobs,
+          applications: updatedApps
+        }
+      };
+
+      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
+      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
+      alert('Postulación descartada.');
+    } catch (err) {
+      console.error(err);
+      alert('Error al eliminar postulación: ' + err.message);
+    }
   };
 
   const handleSubmitApplication = async (e) => {
@@ -2706,7 +2951,7 @@ export default function PublicStore() {
       return;
     }
     if (!applicantCvFile) {
-      alert('Por favor adjunta tu currículum (PDF o imagen).');
+      alert('Por favor adjunta tu currículum vitae (PDF o imagen).');
       return;
     }
 
@@ -2740,7 +2985,11 @@ export default function PublicStore() {
         id: `app_${Date.now()}`,
         applicantName: applicantName.trim(),
         phone: applicantPhone.trim(),
-        position: applicantPosition || 'Postulación Abierta',
+        age: applicantAge.trim(),
+        location: applicantLocation.trim(),
+        education: applicantEducation || 'Bachiller',
+        hasDocuments: Boolean(applicantHasDocuments),
+        position: applicantPosition || selectedJobOpening?.title || 'Postulación Abierta',
         notes: applicantNotes.trim(),
         cvUrl,
         createdAt: new Date().toISOString()
@@ -2767,78 +3016,20 @@ export default function PublicStore() {
         jobs: updatedConfig.jobs
       }));
 
-      alert('¡Tu currículum ha sido enviado al comercio con éxito! Nos pondremos en contacto contigo.');
+      alert('¡Tu postulación y currículum han sido enviados al comercio con éxito! Pronto te contactarán.');
       setJobModalOpen(false);
       setApplicantName('');
       setApplicantPhone('');
+      setApplicantAge('');
+      setApplicantLocation('');
       setApplicantNotes('');
       setApplicantCvFile(null);
+      setSelectedJobOpening(null);
     } catch (err) {
       console.error(err);
       alert('Error al enviar postulación: ' + err.message);
     } finally {
       setIsSubmittingJob(false);
-    }
-  };
-
-  const handleToggleJobOpening = async (openingId) => {
-    if (!isMerchantOwner || !workspaceId) return;
-    try {
-      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const curConfig = ws?.config || {};
-      const curJobs = curConfig.jobs || {};
-      const currentOpenings = jobsConfig.openings.map(op => 
-        op.id === openingId ? { ...op, active: !op.active } : op
-      );
-
-      const updatedConfig = {
-        ...curConfig,
-        jobs: {
-          ...curJobs,
-          openings: currentOpenings
-        }
-      };
-
-      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
-      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
-    } catch (err) {
-      console.error(err);
-      alert('Error al actualizar vacante: ' + err.message);
-    }
-  };
-
-  const handleAddJobOpening = async (e) => {
-    e?.preventDefault();
-    if (!newOpeningTitle.trim() || !isMerchantOwner || !workspaceId) return;
-
-    try {
-      setIsSavingJobsConfig(true);
-      const { data: ws } = await supabase.from('workspaces').select('config').eq('id', workspaceId).single();
-      const curConfig = ws?.config || {};
-      const curJobs = curConfig.jobs || {};
-      const newOpening = {
-        id: `op_${Date.now()}`,
-        title: newOpeningTitle.trim(),
-        active: true
-      };
-      const currentOpenings = [newOpening, ...(jobsConfig.openings || [])];
-
-      const updatedConfig = {
-        ...curConfig,
-        jobs: {
-          ...curJobs,
-          openings: currentOpenings
-        }
-      };
-
-      await supabase.from('workspaces').update({ config: updatedConfig }).eq('id', workspaceId);
-      setConfig(prev => ({ ...prev, jobs: updatedConfig.jobs }));
-      setNewOpeningTitle('');
-    } catch (err) {
-      console.error(err);
-      alert('Error al agregar vacante: ' + err.message);
-    } finally {
-      setIsSavingJobsConfig(false);
     }
   };
 
@@ -4005,30 +4196,108 @@ export default function PublicStore() {
                       </div>
 
                       <p className="text-xs text-slate-600 mb-3.5 leading-relaxed">
-                        ¿Quieres formar parte de nuestro equipo de trabajo? Revisa nuestras vacantes o envíanos tu currículum directamente.
+                        Conoce nuestras vacantes activas y sus requisitos o postúlate directamente enviando tus datos y currículum vitae (CV).
                       </p>
 
-                      {/* Lista de vacantes activas */}
-                      <div className="space-y-2 mb-4">
+                      {/* Lista de vacantes activas con requisitos detallados */}
+                      <div className="space-y-3 mb-4">
                         {jobsConfig.openings.filter(o => o.active).map(op => (
                           <div 
                             key={op.id}
-                            className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/60 hover:border-amber-400 transition-all"
+                            className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 hover:border-amber-400 transition-all flex flex-col gap-2.5"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                              <span className="text-xs font-bold text-slate-800">{op.title}</span>
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                  <h3 className="text-xs sm:text-sm font-black text-slate-900">{op.title}</h3>
+                                </div>
+                                {op.description && (
+                                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    {op.description}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                Activa
+                              </span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setApplicantPosition(op.title);
-                                setJobModalOpen(true);
-                              }}
-                              className="text-[11px] font-black text-amber-600 hover:text-amber-700 hover:underline cursor-pointer"
-                            >
-                              Postularme →
-                            </button>
+
+                            {/* Ficha de Requisitos Clave */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200/60">
+                              {op.ageRange && (
+                                <div className="flex items-center gap-1.5 text-slate-700">
+                                  <span className="font-bold text-amber-600">🎂 Edad:</span>
+                                  <span>{op.ageRange}</span>
+                                </div>
+                              )}
+                              {op.locationRequired && (
+                                <div className="flex items-center gap-1.5 text-slate-700">
+                                  <span className="font-bold text-amber-600">📍 Zona:</span>
+                                  <span className="truncate">{op.locationRequired}</span>
+                                </div>
+                              )}
+                              {op.educationLevel && (
+                                <div className="flex items-center gap-1.5 text-slate-700">
+                                  <span className="font-bold text-amber-600">🎓 Nivel:</span>
+                                  <span>{op.educationLevel}</span>
+                                </div>
+                              )}
+                              {op.requiredDocs && (
+                                <div className="flex items-center gap-1.5 text-slate-700 sm:col-span-2">
+                                  <span className="font-bold text-amber-600">📄 Documentos:</span>
+                                  <span className="truncate">{op.requiredDocs}</span>
+                                </div>
+                              )}
+                              {op.requirements && (
+                                <div className="flex items-center gap-1.5 text-slate-700 sm:col-span-2">
+                                  <span className="font-bold text-amber-600">⚡ Requisitos:</span>
+                                  <span>{op.requirements}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Acciones de la Vacante */}
+                            <div className="flex items-center justify-between pt-1 border-t border-slate-200/50">
+                              {isMerchantOwner ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleOpenEditOpening(op);
+                                      setJobAdminTab('openings');
+                                      setJobAdminModalOpen(true);
+                                    }}
+                                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Edit2 size={12} />
+                                    <span>Editar</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteJobOpening(op.id)}
+                                    className="text-[11px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 cursor-pointer ml-1"
+                                  >
+                                    <Trash2 size={12} />
+                                    <span>Eliminar</span>
+                                  </button>
+                                </div>
+                              ) : <div></div>}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedJobOpening(op);
+                                  setApplicantPosition(op.title);
+                                  setJobModalOpen(true);
+                                }}
+                                style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                                className="px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-xs hover:shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer ml-auto"
+                              >
+                                <span>Postularme</span>
+                                <ChevronRight size={14} className="stroke-[2.5]" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -4037,14 +4306,14 @@ export default function PublicStore() {
                       <button
                         type="button"
                         onClick={() => {
+                          setSelectedJobOpening(null);
                           setApplicantPosition('Postulación General');
                           setJobModalOpen(true);
                         }}
-                        style={{ backgroundColor: primaryColor, color: primaryTextColor }}
-                        className="w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer border border-slate-200"
                       >
-                        <UploadCloud size={16} />
-                        <span>Enviar mi Currículum Vitae (CV)</span>
+                        <UploadCloud size={15} />
+                        <span>Enviar CV Abierto / Espontáneo</span>
                       </button>
                     </div>
                   </div>
@@ -4422,35 +4691,38 @@ export default function PublicStore() {
         {currentPage === 'products' && (() => {
           // Categoría general personalizada activa
           const activeCustomCat = storeCustomCategories.find(
-            c => (typeof c === 'string' ? c : c?.name) === activeMainCategory
+            c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === (activeMainCategory || '').trim().toLowerCase()
           );
 
           // Subcategorías de la categoría general activa
           const currentCategorySubCats = (() => {
             if (activeMainCategory === 'Todas') return [];
-            const subMap = new Map();
+            const subMap = {};
             if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
               activeCustomCat.subcategories.forEach(sc => {
-                const sName = typeof sc === 'string' ? sc : sc?.name;
+                const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
                 if (sName) {
-                  subMap.set(sName, {
+                  const sKey = sName.toLowerCase();
+                  subMap[sKey] = {
                     name: sName,
-                    imageUrl: typeof sc === 'object' ? sc.imageUrl || sc.image_url : null
-                  });
+                    imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
+                  };
                 }
               });
             }
             products
-              .filter(p => p.category === activeMainCategory && p.subcategory)
+              .filter(p => (p.category || '').toLowerCase() === activeMainCategory.toLowerCase() && p.subcategory)
               .forEach(p => {
-                if (!subMap.has(p.subcategory)) {
-                  subMap.set(p.subcategory, {
-                    name: p.subcategory,
-                    imageUrl: p.image_url || null
-                  });
+                const sName = (p.subcategory || '').trim();
+                const sKey = sName.toLowerCase();
+                if (sName && !subMap[sKey]) {
+                  subMap[sKey] = {
+                    name: sName,
+                    imageUrl: p.image_url || ''
+                  };
                 }
               });
-            return Array.from(subMap.values());
+            return Object.values(subMap);
           })();
 
           return (
@@ -4496,10 +4768,10 @@ export default function PublicStore() {
 
                     {/* Categorías Generales con imágenes cuadradas redondeadas */}
                     {mainCategories.filter(mc => mc !== 'Todas').map((mc) => {
-                      const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name) === mc);
-                      const catImg = (typeof customCat === 'object' ? customCat?.imageUrl : null) ||
-                        products.find(p => p.category === mc && p.image_url)?.image_url;
-                      const isActive = activeMainCategory === mc;
+                      const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === mc.trim().toLowerCase());
+                      const catImg = (typeof customCat === 'object' ? (customCat?.imageUrl || customCat?.image_url) : null) ||
+                        products.find(p => (p.category || '').trim().toLowerCase() === mc.trim().toLowerCase() && p.image_url)?.image_url;
+                      const isActive = (activeMainCategory || '').trim().toLowerCase() === mc.trim().toLowerCase();
 
                       return (
                         <div key={mc} className="w-full flex flex-col items-center gap-2">
@@ -4568,8 +4840,8 @@ export default function PublicStore() {
                               </button>
 
                               {currentCategorySubCats.map((sc) => {
-                                const isSubActive = activeSubCategory === sc.name;
-                                const subImg = sc.imageUrl || products.find(p => p.category === mc && p.subcategory === sc.name && p.image_url)?.image_url;
+                                const isSubActive = (activeSubCategory || '').toLowerCase() === sc.name.toLowerCase();
+                                const subImg = sc.imageUrl || products.find(p => (p.category || '').toLowerCase() === mc.toLowerCase() && (p.subcategory || '').toLowerCase() === sc.name.toLowerCase() && p.image_url)?.image_url;
 
                                 return (
                                   <button
@@ -6342,7 +6614,7 @@ export default function PublicStore() {
             onClick={() => { setIsToolsModalOpen(false); navigate('/explorar'); }}
             className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-400 rounded-xl font-bold transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
-            <Map size={18} /> Explorar más tiendas
+            <MapIcon size={18} /> Explorar más tiendas
           </button>
         </div>
       </ResponsiveModal>
@@ -6993,30 +7265,59 @@ export default function PublicStore() {
       {/* ═══ MODAL 2: POSTULACIÓN DE EMPLEO / ENVIAR CV ═══ */}
       <ResponsiveModal
         isOpen={jobModalOpen}
-        onClose={() => setJobModalOpen(false)}
-        title="Postularme / Enviar Currículum Vitae"
+        onClose={() => {
+          setJobModalOpen(false);
+          setSelectedJobOpening(null);
+        }}
+        title="Postularme a Vacante / Enviar CV"
         disableAnimation={true}
       >
         <form onSubmit={handleSubmitApplication} className="space-y-4 text-left">
-          <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Adjunta tus datos y currículum vitae (CV) en formato PDF o foto para que el comercio evalúe tu perfil laboral.
-          </p>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-              Nombre Completo *
-            </label>
-            <input
-              type="text"
-              required
-              value={applicantName}
-              onChange={(e) => setApplicantName(e.target.value)}
-              placeholder="Ej: Carlos Pérez"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-            />
-          </div>
+          {/* Ficha informativa de la vacante seleccionada */}
+          {selectedJobOpening && (
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="text-xs font-black text-amber-900 dark:text-amber-300">
+                  Vacante: {selectedJobOpening.title}
+                </span>
+              </div>
+              {selectedJobOpening.description && (
+                <p className="text-[11px] text-slate-600 dark:text-zinc-300 mb-2 leading-relaxed">
+                  {selectedJobOpening.description}
+                </p>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] text-slate-700 dark:text-zinc-300 bg-white/70 dark:bg-zinc-900/60 p-2 rounded-xl">
+                {selectedJobOpening.ageRange && (
+                  <div><span className="font-bold text-amber-700">🎂 Edad:</span> {selectedJobOpening.ageRange}</div>
+                )}
+                {selectedJobOpening.locationRequired && (
+                  <div><span className="font-bold text-amber-700">📍 Zona:</span> {selectedJobOpening.locationRequired}</div>
+                )}
+                {selectedJobOpening.educationLevel && (
+                  <div><span className="font-bold text-amber-700">🎓 Estudios:</span> {selectedJobOpening.educationLevel}</div>
+                )}
+                {selectedJobOpening.requiredDocs && (
+                  <div className="sm:col-span-2"><span className="font-bold text-amber-700">📄 Docs requeridos:</span> {selectedJobOpening.requiredDocs}</div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Nombre y Apellido *
+              </label>
+              <input
+                type="text"
+                required
+                value={applicantName}
+                onChange={(e) => setApplicantName(e.target.value)}
+                placeholder="Ej: Carlos Pérez"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
                 Teléfono / WhatsApp *
@@ -7027,35 +7328,93 @@ export default function PublicStore() {
                 value={applicantPhone}
                 onChange={(e) => setApplicantPhone(e.target.value)}
                 placeholder="Ej: 0414 1234567"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Tu Edad *
+              </label>
+              <input
+                type="number"
+                min="16"
+                max="75"
+                required
+                value={applicantAge}
+                onChange={(e) => setApplicantAge(e.target.value)}
+                placeholder="Ej: 24"
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
               />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-                Cargo al que Postulas
+                Zona donde vives *
+              </label>
+              <input
+                type="text"
+                required
+                value={applicantLocation}
+                onChange={(e) => setApplicantLocation(e.target.value)}
+                placeholder="Ej: Centro / Los Guayos"
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+                Nivel Académico
               </label>
               <select
-                value={applicantPosition}
-                onChange={(e) => setApplicantPosition(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                value={applicantEducation}
+                onChange={(e) => setApplicantEducation(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
               >
-                <option value="Postulación General">Postulación Abierta / General</option>
-                {jobsConfig.openings.filter(o => o.active).map(op => (
-                  <option key={op.id} value={op.title}>{op.title}</option>
-                ))}
+                <option value="Bachiller">Bachiller</option>
+                <option value="Estudiante Universitario">Estudiante Universitario</option>
+                <option value="TSU">TSU</option>
+                <option value="Universitario / Licenciado">Universitario / Licenciado</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-              Breve presentación o notas adicionales
+              Cargo de Interés
+            </label>
+            <input
+              type="text"
+              value={applicantPosition}
+              onChange={(e) => setApplicantPosition(e.target.value)}
+              placeholder="Ej: Personal de Cocina, Despachador..."
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+            />
+          </div>
+
+          {/* Confirmación de Documentos */}
+          <label className="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={applicantHasDocuments}
+              onChange={(e) => setApplicantHasDocuments(e.target.checked)}
+              className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+            />
+            <span className="text-xs text-slate-700 dark:text-zinc-300 font-medium">
+              Dispongo de mis documentos de identidad y requisitos en regla
+            </span>
+          </label>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
+              Experiencia previa o notas adicionales
             </label>
             <textarea
               rows={2}
               value={applicantNotes}
               onChange={(e) => setApplicantNotes(e.target.value)}
-              placeholder="Cuéntanos un poco sobre tu experiencia laboral y disponibilidad..."
+              placeholder="Cuéntanos sobre tus trabajos anteriores o disponibilidad horaria..."
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40 resize-none"
             />
           </div>
@@ -7063,7 +7422,7 @@ export default function PublicStore() {
           {/* Carga de Archivo CV */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1">
-              Adjuntar Archivo de Currículum (PDF o Imagen) *
+              Adjuntar Currículum Vitae (PDF o Imagen) *
             </label>
             <input
               type="file"
@@ -7105,7 +7464,7 @@ export default function PublicStore() {
                       Toca aquí para seleccionar tu CV (PDF o Imagen)
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      Formatos recomendados: PDF, JPG, PNG (máx. 10MB)
+                      Formatos compatibles: PDF, JPG, PNG (hasta 10 MB)
                     </span>
                   </>
                 )}
@@ -7117,7 +7476,10 @@ export default function PublicStore() {
             <button
               type="button"
               disabled={isSubmittingJob}
-              onClick={() => setJobModalOpen(false)}
+              onClick={() => {
+                setJobModalOpen(false);
+                setSelectedJobOpening(null);
+              }}
               className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
             >
               Cancelar
@@ -7129,7 +7491,7 @@ export default function PublicStore() {
               className="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               {isSubmittingJob ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-              <span>{isSubmittingJob ? 'Enviando CV...' : 'Enviar mi Postulación'}</span>
+              <span>{isSubmittingJob ? 'Enviando Postulación...' : 'Enviar Postulación'}</span>
             </button>
           </div>
         </form>
@@ -7139,141 +7501,301 @@ export default function PublicStore() {
       <ResponsiveModal
         isOpen={jobAdminModalOpen}
         onClose={() => setJobAdminModalOpen(false)}
-        title="Gestión de Empleos y Currículums Recibidos"
+        title="Gestión de Empleos y Vacantes de la Tienda"
         disableAnimation={true}
       >
-        <div className="space-y-5 text-left">
-          {/* Postulaciones recibidas */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FileText size={16} className="text-amber-500" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-200">
-                  Currículums Recibidos ({jobsConfig.applications.length})
-                </h4>
-              </div>
-            </div>
+        <div className="space-y-4 text-left">
+          {/* Selector de Pestañas del Modal */}
+          <div className="flex border-b border-slate-200 dark:border-zinc-800 gap-1 pb-1">
+            <button
+              type="button"
+              onClick={() => setJobAdminTab('openings')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                jobAdminTab === 'openings'
+                  ? 'bg-amber-500 text-zinc-950 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              Vacantes ({jobsConfig.openings.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setJobAdminTab('applications')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                jobAdminTab === 'applications'
+                  ? 'bg-amber-500 text-zinc-950 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+              }`}
+            >
+              Postulaciones Recibidas ({jobsConfig.applications.length})
+            </button>
+          </div>
 
-            {jobsConfig.applications.length === 0 ? (
-              <div className="p-6 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center bg-slate-50/50 dark:bg-zinc-900/40">
-                <Briefcase size={28} className="mx-auto text-slate-400 mb-2 stroke-[1.5]" />
-                <p className="text-xs font-bold text-slate-700 dark:text-zinc-300">
-                  Aún no has recibido postulaciones
-                </p>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Cuando los clientes o postulantes envíen su CV desde la vitrina, aparecerán listados aquí con su contacto y enlace para descargarlo.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
-                {jobsConfig.applications.map((app) => (
+          {/* PESTAÑA 1: GESTIÓN DE VACANTES (CREAR, EDITAR, ELIMINAR) */}
+          {jobAdminTab === 'openings' && (
+            <div className="space-y-4">
+              {/* Formulario de Crear / Editar Vacante */}
+              <form onSubmit={handleSaveJobOpening} className="p-3.5 bg-slate-50 dark:bg-zinc-900/60 rounded-2xl border border-slate-200 dark:border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-200">
+                    {editingOpeningId ? '✏️ Editar Oferta de Trabajo' : '➕ Publicar Nueva Oferta de Trabajo'}
+                  </h4>
+                  {editingOpeningId && (
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateOpening}
+                      className="text-[11px] font-bold text-slate-500 hover:underline cursor-pointer"
+                    >
+                      Cancelar Edición
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Título del Cargo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={openingTitle}
+                      onChange={(e) => setOpeningTitle(e.target.value)}
+                      placeholder="Ej: Cocinero de Hamburguesas / Parrillero"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Rango de Edad
+                    </label>
+                    <input
+                      type="text"
+                      value={openingAgeRange}
+                      onChange={(e) => setOpeningAgeRange(e.target.value)}
+                      placeholder="Ej: 20 a 35 años / Indiferente"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Zona de Residencia Requerida
+                    </label>
+                    <input
+                      type="text"
+                      value={openingLocation}
+                      onChange={(e) => setOpeningLocation(e.target.value)}
+                      placeholder="Ej: Vivir en zona céntrica / norte"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Nivel Académico / Título
+                    </label>
+                    <input
+                      type="text"
+                      value={openingEducation}
+                      onChange={(e) => setOpeningEducation(e.target.value)}
+                      placeholder="Ej: Bachiller / TSU / Indiferente"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Documentos Necesarios
+                    </label>
+                    <input
+                      type="text"
+                      value={openingDocs}
+                      onChange={(e) => setOpeningDocs(e.target.value)}
+                      placeholder="Ej: Cédula, RIF, Manipulación de alimentos"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Requisitos y Experiencia
+                    </label>
+                    <input
+                      type="text"
+                      value={openingRequirements}
+                      onChange={(e) => setOpeningRequirements(e.target.value)}
+                      placeholder="Ej: Mínimo 6 meses de experiencia en comida rápida"
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 dark:text-zinc-400 mb-0.5">
+                      Descripción de Funciones
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={openingDescription}
+                      onChange={(e) => setOpeningDescription(e.target.value)}
+                      placeholder="Ej: Elaboración de hamburguesas a la parrilla y preparación de insumos..."
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingJobsConfig || !openingTitle.trim()}
+                  className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow-xs"
+                >
+                  {isSavingJobsConfig ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>{editingOpeningId ? 'Guardar Cambios de Vacante' : 'Publicar Vacante en Vitrina'}</span>
+                </button>
+              </form>
+
+              {/* Lista de vacantes existentes */}
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                <h5 className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                  Vacantes Existentes ({jobsConfig.openings.length})
+                </h5>
+                {jobsConfig.openings.map((op) => (
                   <div
-                    key={app.id || app.createdAt}
-                    className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs flex flex-col gap-2"
+                    key={op.id}
+                    className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 flex flex-col gap-1.5"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-slate-900 dark:text-white">
-                            {app.applicantName}
-                          </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                            {app.position || 'Postulación Abierta'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
-                          <span>📞 {app.phone}</span>
-                          {app.createdAt && (
-                            <span>📅 {new Date(app.createdAt).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {app.cvUrl && (
-                        <a
-                          href={app.cvUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 shrink-0"
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-xs font-black ${op.active ? 'text-slate-900 dark:text-white' : 'text-slate-400 line-through'}`}>
+                        {op.title}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleJobOpening(op.id)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase transition-all cursor-pointer ${
+                            op.active
+                              ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                              : 'bg-slate-200 text-slate-500'
+                          }`}
                         >
-                          <Download size={12} />
-                          <span>Ver CV</span>
-                        </a>
-                      )}
+                          {op.active ? 'Activa' : 'Pausada'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditOpening(op)}
+                          className="p-1 rounded-lg hover:bg-blue-50 text-blue-600 cursor-pointer"
+                          title="Editar vacante"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteJobOpening(op.id)}
+                          className="p-1 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer"
+                          title="Eliminar vacante"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
 
-                    {app.notes && (
-                      <p className="text-[11px] bg-slate-50 dark:bg-zinc-800/60 p-2 rounded-lg text-slate-600 dark:text-zinc-300 italic">
-                        "{app.notes}"
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-zinc-800">
-                      <a
-                        href={`https://wa.me/${(app.phone || '').replace(/[^0-9]/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                      >
-                        <MessageCircle size={12} />
-                        Contactar por WhatsApp
-                      </a>
+                    <div className="text-[10px] text-slate-500 flex flex-wrap gap-2">
+                      {op.ageRange && <span>🎂 {op.ageRange}</span>}
+                      {op.locationRequired && <span>📍 {op.locationRequired}</span>}
+                      {op.educationLevel && <span>🎓 {op.educationLevel}</span>}
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Vacantes configuradas */}
-          <div className="pt-4 border-t border-slate-200 dark:border-zinc-800">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-zinc-200 mb-2.5">
-              Vacantes Publicadas en Vitrina
-            </h4>
-
-            {/* Agregar nueva vacante */}
-            <form onSubmit={handleAddJobOpening} className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newOpeningTitle}
-                onChange={(e) => setNewOpeningTitle(e.target.value)}
-                placeholder="Nueva vacante (ej: Despachador / Motorizado)..."
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
-              />
-              <button
-                type="submit"
-                disabled={isSavingJobsConfig || !newOpeningTitle.trim()}
-                className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 rounded-xl text-xs font-black flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
-              >
-                <Plus size={14} />
-                <span>Agregar</span>
-              </button>
-            </form>
-
-            <div className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
-              {jobsConfig.openings.map((op) => (
-                <div
-                  key={op.id}
-                  className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-zinc-900/60 rounded-xl border border-slate-200 dark:border-zinc-800 text-xs"
-                >
-                  <span className={`font-semibold ${op.active ? 'text-slate-900 dark:text-white' : 'text-slate-400 line-through'}`}>
-                    {op.title}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleJobOpening(op.id)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                      op.active
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                        : 'bg-slate-200 dark:bg-zinc-800 text-slate-500'
-                    }`}
-                  >
-                    {op.active ? 'Activa' : 'Pausada'}
-                  </button>
-                </div>
-              ))}
             </div>
-          </div>
+          )}
+
+          {/* PESTAÑA 2: POSTULACIONES RECIBIDAS */}
+          {jobAdminTab === 'applications' && (
+            <div>
+              {jobsConfig.applications.length === 0 ? (
+                <div className="p-6 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center bg-slate-50/50 dark:bg-zinc-900/40">
+                  <Briefcase size={28} className="mx-auto text-slate-400 mb-2 stroke-[1.5]" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                    Aún no has recibido currículums
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Cuando los candidatos se postulen desde tu vitrina, aparecerán listados aquí con todos sus datos y su documento descargable.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+                  {jobsConfig.applications.map((app) => (
+                    <div
+                      key={app.id || app.createdAt}
+                      className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs flex flex-col gap-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black text-slate-900 dark:text-white">
+                              {app.applicantName}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                              {app.position || 'Postulación General'}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-zinc-400">
+                            {app.age && <span>🎂 {app.age} años</span>}
+                            {app.location && <span>📍 {app.location}</span>}
+                            {app.education && <span>🎓 {app.education}</span>}
+                            {app.createdAt && (
+                              <span>📅 {new Date(app.createdAt).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {app.cvUrl && (
+                          <a
+                            href={app.cvUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 shrink-0"
+                          >
+                            <Download size={12} />
+                            <span>Ver CV</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {app.notes && (
+                        <p className="text-[11px] bg-slate-50 dark:bg-zinc-800/60 p-2 rounded-lg text-slate-600 dark:text-zinc-300 italic">
+                          "{app.notes}"
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-zinc-800">
+                        <a
+                          href={`https://wa.me/${(app.phone || '').replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                        >
+                          <MessageCircle size={12} />
+                          Contactar: {app.phone}
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteApplication(app.id)}
+                          className="text-[10px] text-red-500 hover:text-red-700 font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 size={11} />
+                          <span>Descartar</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex justify-end">
             <button

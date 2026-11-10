@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield, Palette, CheckCircle2, RotateCcw, MapPin, FileText } from 'lucide-react';
+import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Clock, DollarSign, Building2, RefreshCw, Lock, User, Mail, MailWarning, ShieldCheck, Image as ImageIcon, Zap, Link, Eye, EyeOff, Users, UserPlus, Trash2, KeyRound, Check, Database, Shield, Palette, CheckCircle2, RotateCcw, MapPin, FileText, Settings } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
