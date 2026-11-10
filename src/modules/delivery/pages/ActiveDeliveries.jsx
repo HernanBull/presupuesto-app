@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PackageCheck, Loader2, ArrowLeft, Truck, Clock, Lock, User, IdCard } from 'lucide-react';
+import { PackageCheck, Loader2, ArrowLeft, Truck, Clock, Lock, User, IdCard, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { globalListeners } from '../utils/telegramService';
+import { supabase } from '../../../supabaseClient';
 
 export default function ActiveDeliveries({ session, theme, toggleTheme }) {
   const [activeOrders, setActiveOrders] = useState([]);
@@ -74,8 +75,23 @@ export default function ActiveDeliveries({ session, theme, toggleTheme }) {
               </span>
               <span className="text-sm font-medium text-slate-500 hidden sm:inline">Sincronizado con Telegram</span>
             </div>
-            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800">
+            <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="Cambiar tema">
               {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('¿Deseas cerrar la sesión de delivery?')) {
+                  await supabase.auth.signOut();
+                  localStorage.removeItem('supabase.auth.token');
+                  window.location.href = '/login';
+                }
+              }}
+              className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-1.5 text-xs font-bold ml-1 cursor-pointer"
+              title="Cerrar Sesión"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </div>

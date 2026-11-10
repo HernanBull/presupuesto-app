@@ -24,7 +24,8 @@ const SUPERUSER_KEYBOARD = {
     [{ text: "📍 Rutas y Sectores" }, { text: "🛵 Flota en Vivo" }],
     [{ text: "🏬 Comercios Activos" }, { text: "⏱️ Tiempos de Entrega" }],
     [{ text: "🚨 Novedades / Alertas" }, { text: "📁 Importar Excel/Word" }],
-    [{ text: "🔍 Buscar Pedido" }, { text: "❓ Ayuda Gerencial" }]
+    [{ text: "🔍 Buscar Pedido" }, { text: "❓ Ayuda Gerencial" }],
+    [{ text: "🔒 Cerrar Sesión" }]
   ],
   resize_keyboard: true,
   is_persistent: true
@@ -586,6 +587,10 @@ async function handleTelegramUpdate(update, supabase) {
     if (text === "❓ Ayuda Gerencial" || cleanCmd === "/gerencia_ayuda" || cleanCmd === "/ayuda") {
       const helpMsg = `👔 <b>CONSOLA GERENCIAL ${agencySuperuser.agency_name || 'ENMINUTOS'}</b> 📋\n\nTienes acceso autorizado como <b>${agencySuperuser.role === 'owner' ? 'Dueño General' : 'Supervisor'}</b>.\nUsa los botones directos del teclado inferior o escribe:\n\n📊 <b>Balance Hoy</b>: Resumen de fletes, entregas y pedidos de hoy.\n⏮️ <b>Ayer</b>: Balance del día anterior.\n📈 <b>Esta Semana</b>: Auditoría acumulada de los últimos 7 días.\n🗓️ <b>Mes en Curso</b>: Despachos y fletes del mes actual.\n📍 <b>Rutas y Sectores</b>: Tabulación de destinos y enlaces GPS a Google Maps para cálculo de tarifas.\n🛵 <b>Flota en Vivo</b>: Monitoreo en vivo de repartidores (en ruta, libres, descansando).\n🏬 <b>Comercios Activos</b>: Ranking de comercios por volumen de despachos.\n⏱️ <b>Tiempos de Entrega</b>: Desempeño y velocidad de despacho.\n🚨 <b>Novedades / Alertas</b>: Historial de abortos de viaje e incidencias.\n🔍 <b>/buscar [ID]</b>: Ficha en vivo de una orden (ej. <code>/buscar 702892</code>).\n🗓️ <b>[Fecha]</b>: Escribe cualquier fecha como <code>05/11/2026</code> o <code>05/11</code> para auditar ese día.\n\n<i>🚨 Como Superusuario recibirás alertas push automáticas en este chat si un chofer se accidenta o cancela un viaje.</i>`;
       await sendMessageToChat(chatId, helpMsg, SUPERUSER_KEYBOARD);
+      return new Response("OK", { headers: corsHeaders });
+    }
+    if (text === "🔒 Cerrar Sesión" || cleanCmd === "/salir" || cleanCmd === "/logout" || cleanCmd === "/cerrar_sesion") {
+      await sendMessageToChat(chatId, `🔒 <b>Sesión Gerencial Finalizada</b>\n\nHas cerrado la sesión de la consola de Superadmin/Directiva en este chat.\n\nPara reactivar tu acceso o vincularte de nuevo, gestiona tu usuario desde el panel web de Super Admin.`, { remove_keyboard: true });
       return new Response("OK", { headers: corsHeaders });
     }
   }

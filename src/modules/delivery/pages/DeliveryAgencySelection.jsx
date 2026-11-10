@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, MapPin, Package, User, Phone, ShoppingBag, Send, CheckCircle2, Loader2, Navigation } from 'lucide-react';
+import { Truck, MapPin, Package, User, Phone, ShoppingBag, Send, CheckCircle2, Loader2, Navigation, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { sendDeliveryRequest, globalListeners } from '../utils/telegramService';
+import { supabase } from '../../../supabaseClient';
 
 export default function DeliveryAgencySelection({ session, theme, toggleTheme }) {
   const [loading, setLoading] = useState(false);
@@ -174,8 +175,24 @@ export default function DeliveryAgencySelection({ session, theme, toggleTheme })
             <button 
               onClick={toggleTheme}
               className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Cambiar tema"
             >
               {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('¿Deseas cerrar la sesión de delivery?')) {
+                  await supabase.auth.signOut();
+                  localStorage.removeItem('supabase.auth.token');
+                  window.location.href = '/login';
+                }
+              }}
+              className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-1.5 text-xs font-bold ml-1 cursor-pointer"
+              title="Cerrar Sesión"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </button>
           </div>
         </div>

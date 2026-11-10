@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
 import { 
   Truck, Activity, Users, ShieldAlert, CheckCircle2, 
-  XCircle, Clock, Search, AlertTriangle, ShieldBan, X
+  XCircle, Clock, Search, AlertTriangle, ShieldBan, X, Trash2
 } from 'lucide-react';
 import AgencySuperuserManager from './AgencySuperuserManager';
 
@@ -81,6 +81,18 @@ export default function DeliveryFleetDashboard() {
       fetchData();
     } catch (e) {
       alert('Error abortando viaje');
+    }
+  };
+
+  const handleDeleteDriver = async (driverId, driverName) => {
+    if (!window.confirm(`¿Estás seguro de eliminar al repartidor "${driverName || 'seleccionado'}" de la flota? Esta acción no se puede deshacer.`)) return;
+    try {
+      const { error } = await supabase.from('delivery_drivers').delete().eq('id', driverId);
+      if (error) throw error;
+      setDrivers(prev => prev.filter(d => d.id !== driverId));
+    } catch (e) {
+      console.error('Error eliminando repartidor:', e);
+      alert('Error eliminando repartidor');
     }
   };
 
@@ -175,13 +187,23 @@ export default function DeliveryFleetDashboard() {
             {filteredDrivers.map(driver => (
               <div key={driver.id} className={`bg-zinc-950 border border-white/5 rounded-2xl p-4 flex flex-col gap-3 ${driver.banned ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-white border border-white/10 shrink-0">
-                    {(driver.name || '?').charAt(0)}
+                  <div className="relative group/avatar">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-white border border-white/10 shrink-0">
+                      {(driver.name || '?').charAt(0)}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-white text-sm">{driver.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-white text-sm truncate">{driver.name}</p>
                     <p className="text-xs text-zinc-500 font-mono">{driver.driver_code}</p>
                   </div>
+                  <button 
+                    type="button"
+                    onClick={() => handleDeleteDriver(driver.id, driver.name)}
+                    className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all cursor-pointer shrink-0"
+                    title="Eliminar repartidor"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-1">
                   <div>
@@ -232,8 +254,18 @@ export default function DeliveryFleetDashboard() {
                   <tr key={driver.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${driver.banned ? 'opacity-50' : ''}`}>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-white border border-white/10">
-                          {(driver.name || '?').charAt(0)}
+                        <div className="relative group/avatar">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-white border border-white/10 shrink-0">
+                            {(driver.name || '?').charAt(0)}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDriver(driver.id, driver.name)}
+                            className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity shadow-md cursor-pointer"
+                            title="Eliminar repartidor"
+                          >
+                            <Trash2 size={11} />
+                          </button>
                         </div>
                         <div>
                           <p className="font-bold text-white text-sm">{driver.name}</p>
@@ -252,16 +284,26 @@ export default function DeliveryFleetDashboard() {
                       </span>
                     </td>
                     <td className="py-4 px-4 text-right">
-                      <select 
-                        value={driver.status || 'descansando'}
-                        onChange={(e) => handleChangeStatus(driver.id, e.target.value)}
-                        className="bg-zinc-950 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-white/20"
-                      >
-                        <option value="disponible">Disponible</option>
-                        <option value="ocupado">Ocupado</option>
-                        <option value="accidentado">Accidentado</option>
-                        <option value="descansando">Descansando</option>
-                      </select>
+                      <div className="flex items-center justify-end gap-2">
+                        <select 
+                          value={driver.status || 'descansando'}
+                          onChange={(e) => handleChangeStatus(driver.id, e.target.value)}
+                          className="bg-zinc-950 border border-white/10 text-white text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-white/20"
+                        >
+                          <option value="disponible">Disponible</option>
+                          <option value="ocupado">Ocupado</option>
+                          <option value="accidentado">Accidentado</option>
+                          <option value="descansando">Descansando</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDriver(driver.id, driver.name)}
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 transition-all cursor-pointer"
+                          title="Eliminar repartidor de la flota"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

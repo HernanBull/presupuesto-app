@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -472,6 +472,7 @@ export default function PublicStore() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', docId: '', phone: '', address: '' });
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [expandedImage, setExpandedImage] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [modalQty, setModalQty] = useState(1);
   const [authLoading, setAuthLoading] = useState(false);
@@ -1902,57 +1903,12 @@ export default function PublicStore() {
       return newCart;
     });
     trackEvent('add_to_cart');
-    
-    triggerFlyingAnimation(productId, `product-img-${productId}`);
+    triggerFlyingAnimation();
   };
 
-  const triggerFlyingAnimation = (productId, primarySourceId) => {
-    if (!cartIconRef.current) {
-      setCartBounce(true);
-      setTimeout(() => setCartBounce(false), 300);
-      return;
-    }
-    
-    let sourceEl = document.getElementById(primarySourceId);
-    if (!sourceEl) {
-      sourceEl = document.getElementById(`product-card-${productId}`);
-    }
-    
-    if (!sourceEl) {
-      setCartBounce(true);
-      setTimeout(() => setCartBounce(false), 300);
-      return;
-    }
-    
-    const sourceRect = sourceEl.getBoundingClientRect();
-    const targetRect = cartIconRef.current.getBoundingClientRect();
-    const imgUrl = sourceEl.src || null;
-    
-    if (!imgUrl) {
-      setCartBounce(true);
-      setTimeout(() => setCartBounce(false), 300);
-      return;
-    }
-    
-    const newItem = {
-      id: Date.now() + Math.random(),
-      productId,
-      imgUrl,
-      startX: sourceRect.left,
-      startY: sourceRect.top,
-      startWidth: sourceRect.width,
-      startHeight: sourceRect.height,
-      endX: targetRect.left + (targetRect.width / 2) - 15,
-      endY: targetRect.top + (targetRect.height / 2) - 15,
-    };
-    
-    setFlyingItems(prev => [...prev, newItem]);
-    
-    setTimeout(() => {
-      setFlyingItems(prev => prev.filter(item => item.id !== newItem.id));
-      setCartBounce(true);
-      setTimeout(() => setCartBounce(false), 300);
-    }, 800);
+  const triggerFlyingAnimation = () => {
+    setCartBounce(true);
+    setTimeout(() => setCartBounce(false), 250);
   };
 
   const fetchProductReviews = async (productId, currentWorkspace) => {
@@ -2045,9 +2001,7 @@ export default function PublicStore() {
       return newCart;
     });
     trackEvent('add_to_cart');
-    
-    triggerFlyingAnimation(selectedProduct.id, `modal-img-${selectedProduct.id}`);
-    
+    triggerFlyingAnimation();
     setSelectedProduct(null);
   };
 
@@ -3284,37 +3238,6 @@ export default function PublicStore() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Animación Flying Cart (Premium) */}
-      {flyingItems.map(item => (
-        <motion.img
-          key={item.id}
-          src={item.imgUrl}
-          className="fixed z-[9999] rounded-2xl object-cover shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-none border border-white/10"
-          initial={{
-            top: item.startY,
-            left: item.startX,
-            width: item.startWidth,
-            height: item.startHeight,
-            opacity: 1,
-            scale: 1,
-            rotate: 0
-          }}
-          animate={{
-            top: item.endY,
-            left: item.endX,
-            width: 30,
-            height: 30,
-            opacity: 0.2,
-            scale: 0.3,
-            rotate: 15
-          }}
-          transition={{
-            duration: 0.8,
-            ease: [0.32, 0, 0.67, 0] // Curva para efecto parábola
-          }}
-        />
-      ))}
 
       {showBanner && (
         <div className="w-full text-center text-black font-bold py-2 text-xs uppercase tracking-wider z-50 relative shadow-[0_0_15px_rgba(0,0,0,0.5)]" style={{ backgroundColor: primaryColor }}>
@@ -4714,16 +4637,16 @@ export default function PublicStore() {
                       <div className="absolute bottom-[-1px] right-[-1px] z-20">
                         {isUserAllowedToSeePrices && cart[p.id] > 0 ? (
                           <div className="flex items-center gap-1 bg-white border-t border-l border-slate-200 rounded-tl-xl p-1 shadow-sm" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => removeFromCart(p.id, p.step_size)} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-700 transition-colors"><Minus size={12}/></button>
+                            <button onClick={(e) => { e.stopPropagation(); removeFromCart(p.id, p.step_size); }} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"><Minus size={12}/></button>
                             <span className="text-xs font-bold text-slate-900 min-w-[16px] text-center">{cart[p.id]}</span>
-                            <button onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size) }} style={!storeClosed ? { backgroundColor: primaryColor, color: primaryTextColor } : {}} className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${storeClosed ? 'cursor-not-allowed bg-slate-300' : 'hover:scale-110'}`}><Plus size={12}/></button>
+                            <button onClick={(e) => { e.stopPropagation(); if(!storeClosed) addToCart(p.id, p.step_size); }} style={!storeClosed ? { backgroundColor: primaryColor, color: primaryTextColor } : {}} className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${storeClosed ? 'cursor-not-allowed bg-slate-300' : 'hover:scale-110'}`}><Plus size={12}/></button>
                           </div>
                         ) : (
                           isUserAllowedToSeePrices && (p.stock_vitrina || 0) > 0 && (
                             <button 
                               onClick={(e) => { e.stopPropagation(); if(storeClosed) return; addToCart(p.id, p.step_size || 1); }}
                               style={{ backgroundColor: primaryColor, color: primaryTextColor }}
-                              className="w-8 h-8 rounded-tl-xl border-t border-l flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                              className="w-8 h-8 rounded-tl-xl border-t border-l flex items-center justify-center transition-all active:scale-95 shadow-sm cursor-pointer"
                             >
                               <Plus size={16} />
                             </button>
@@ -4731,17 +4654,6 @@ export default function PublicStore() {
                         )}
                       </div>
                     </div>
-                    
-                    {isMerchantOwner && (
-                      <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm rounded-xl">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }}
-                          className="bg-amber-500 text-black font-black uppercase tracking-widest text-[10px] px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:scale-110 transition-transform"
-                        >
-                          <Pen size={14} /> Editar
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )) : (
                   <div className="col-span-full py-20 md:py-28 flex flex-col items-center justify-center text-center px-4">
@@ -4842,7 +4754,7 @@ export default function PublicStore() {
                 <aside className="w-20 sm:w-24 shrink-0 sticky top-[53px] self-start py-1">
                   <div className="flex flex-col items-center gap-3 bg-white/95 backdrop-blur-xs rounded-2xl p-2 sm:p-2.5 border border-slate-200/80 shadow-xs max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide no-scrollbar">
                     
-                    {/* Botón Maestro ALL (Todas las categorías y subcategorías) */}
+                    {/* Botón Maestro General (Todas las categorías y subcategorías) */}
                     <button
                       type="button"
                       onClick={() => {
@@ -4852,7 +4764,7 @@ export default function PublicStore() {
                       className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
                     >
                       <div
-                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all ${
                           activeMainCategory === 'Todas' && activeSubCategory === 'Todos'
                             ? 'shadow-md scale-102 ring-2 ring-offset-2'
                             : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
@@ -4863,13 +4775,12 @@ export default function PublicStore() {
                           ringColor: primaryColor
                         } : {}}
                       >
-                        <LayoutGrid size={22} className={activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? 'stroke-[2.5]' : 'stroke-2'} />
-                        <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">All</span>
+                        <Boxes size={26} className={activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? 'stroke-[2.5]' : 'stroke-2'} />
                       </div>
                       <span className={`text-[10px] font-black text-center truncate max-w-[70px] ${
                         activeMainCategory === 'Todas' && activeSubCategory === 'Todos' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
                       }`}>
-                        Todas
+                        General
                       </span>
                     </button>
 
@@ -5133,7 +5044,7 @@ export default function PublicStore() {
                                   >
                                     <button 
                                       type="button"
-                                      onClick={() => removeFromCart(p.id, p.step_size)} 
+                                      onClick={(e) => { e.stopPropagation(); removeFromCart(p.id, p.step_size); }} 
                                       className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-white border border-slate-200/90 flex items-center justify-center shadow-xs text-slate-700 active:scale-90 transition-transform cursor-pointer" 
                                       style={{ color: primaryColor }}
                                       title="Disminuir"
@@ -5147,7 +5058,7 @@ export default function PublicStore() {
                                     
                                     <button 
                                       type="button"
-                                      onClick={() => { if(!storeClosed) addToCart(p.id, p.step_size); }} 
+                                      onClick={(e) => { e.stopPropagation(); if(!storeClosed) addToCart(p.id, p.step_size); }} 
                                       style={{ backgroundColor: primaryColor, color: primaryTextColor }} 
                                       className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer ${storeClosed ? 'opacity-50 cursor-not-allowed' : ''}`}
                                       title="Aumentar"
@@ -5170,19 +5081,6 @@ export default function PublicStore() {
                               )}
                             </div>
                           </div>
-                          
-                          {/* Edit Button for Merchant */}
-                          {isMerchantOwner && (
-                            <div className="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm rounded-2xl">
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); navigate('/inventory'); }}
-                                style={{ backgroundColor: primaryColor, color: primaryTextColor }}
-                                className="font-black uppercase tracking-widest text-xs px-6 py-3 rounded-full flex items-center gap-2 shadow-xl hover:scale-105 transition-transform"
-                              >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg> Editar
-                              </button>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -5268,16 +5166,26 @@ export default function PublicStore() {
 
               return (
                 <div className="md:w-5/12 bg-orange-50/40 relative flex flex-col items-center justify-between p-4 md:p-6 shrink-0 border-b md:border-b-0 md:border-r border-slate-100 min-h-[260px] md:min-h-[380px] select-none">
-                  {/* Visor Principal con flechas de navegación si hay múltiples imágenes */}
-                  <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden min-h-[190px]">
+                  {/* Visor Principal con flechas de navegación si hay múltiples imágenes y botón para expandir */}
+                  <div 
+                    onClick={() => { if (currentImgUrl) setExpandedImage(currentImgUrl); }}
+                    className="relative w-full flex-1 flex items-center justify-center overflow-hidden min-h-[190px] cursor-zoom-in group"
+                    title="Toca para ampliar foto"
+                  >
                     {currentImgUrl ? (
-                      <img 
-                        id={`modal-img-${selectedProduct.id}`} 
-                        key={currentImgUrl}
-                        src={resolveImageUrl(currentImgUrl)} 
-                        alt={selectedProduct.name} 
-                        className="w-full h-full object-contain max-h-52 md:max-h-64 transition-all duration-300 animate-in fade-in zoom-in-95" 
-                      />
+                      <>
+                        <img 
+                          id={`modal-img-${selectedProduct.id}`} 
+                          key={currentImgUrl}
+                          src={resolveImageUrl(currentImgUrl)} 
+                          alt={selectedProduct.name} 
+                          className="w-full h-full object-contain max-h-52 md:max-h-64 transition-transform duration-200 group-hover:scale-105" 
+                        />
+                        <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-xs text-white px-2 py-1 rounded-lg opacity-80 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-bold shadow-sm pointer-events-none">
+                          <Maximize2 size={12} />
+                          <span>Ampliar</span>
+                        </div>
+                      </>
                     ) : (
                       <div className="w-24 h-24 rounded-2xl bg-orange-100/60 flex items-center justify-center text-orange-400">
                         <ImageIcon size={40} />
@@ -5527,6 +5435,35 @@ export default function PublicStore() {
           </>
         )}
       </ResponsiveModal>
+
+      {/* Visor Lightbox Pantalla Completa para Imagen Expandida */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 select-none animate-in fade-in duration-200"
+          onClick={() => setExpandedImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setExpandedImage(null)}
+            className="absolute top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all cursor-pointer backdrop-blur-sm shadow-xl active:scale-95"
+            title="Cerrar vista ampliada"
+          >
+            <X size={24} className="stroke-[2.5]" />
+          </button>
+          
+          <div 
+            className="max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={resolveImageUrl(expandedImage)} 
+              alt="Producto ampliado" 
+              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-transform duration-200" 
+            />
+          </div>
+          <p className="text-white/60 text-xs mt-3 font-medium tracking-wide">Toca fuera o la X para cerrar</p>
+        </div>
+      )}
 
       {/* Cart Slide-over Premium (Glassmorphism Dark) */}
       {isCartOpen && (
