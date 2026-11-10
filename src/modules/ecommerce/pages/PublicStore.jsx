@@ -214,6 +214,8 @@ export default function PublicStore() {
   const [offersCustomizerOpen, setOffersCustomizerOpen] = useState(false);
   const [editOffersTitle, setEditOffersTitle] = useState('');
   const [editOffersSubtitle, setEditOffersSubtitle] = useState('');
+  const [editOffersTitleColor, setEditOffersTitleColor] = useState('#0f172a');
+  const [editOffersSubtitleColor, setEditOffersSubtitleColor] = useState('#64748b');
   const [editOffersBannerUrl, setEditOffersBannerUrl] = useState('');
   const [isSavingOffers, setIsSavingOffers] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
@@ -2314,6 +2316,8 @@ export default function PublicStore() {
   const resolvedCoverUrl = heroUrl || config?.coverUrl || config?.storefront?.heroUrl || config?.storefront?.coverUrl || config?.bannerUrl || null;
   const resolvedLogoUrl = logoUrl || config?.storefront?.logoUrl || config?.avatarUrl || config?.logo || null;
   const resolvedOffersBannerUrl = config?.offersBannerUrl || config?.storefront?.offersBannerUrl || texts?.offersBannerUrl || null;
+  const resolvedOffersTitleColor = config?.offersTitleColor || config?.storefront?.offersTitleColor || texts?.offersTitleColor || '#0f172a';
+  const resolvedOffersSubtitleColor = config?.offersSubtitleColor || config?.storefront?.offersSubtitleColor || texts?.offersSubtitleColor || '#64748b';
 
   // Color de marca dinámico de la vitrina (exclusivo para este comercio)
   const primaryColor = liveBrandColor || config?.primaryColor || config?.storefront?.primaryColor || config?.themeColor || DEFAULT_STOREFRONT_COLOR;
@@ -2390,6 +2394,8 @@ export default function PublicStore() {
   const openOffersCustomizer = () => {
     setEditOffersTitle(texts?.offersTitle || 'Ofertas Flash');
     setEditOffersSubtitle(texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.');
+    setEditOffersTitleColor(resolvedOffersTitleColor);
+    setEditOffersSubtitleColor(resolvedOffersSubtitleColor);
     setEditOffersBannerUrl(resolvedOffersBannerUrl || '');
     setOffersCustomizerOpen(true);
   };
@@ -2445,21 +2451,29 @@ export default function PublicStore() {
       const newTitle = editOffersTitle.trim() || 'Ofertas Flash';
       const newSubtitle = editOffersSubtitle.trim() || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.';
       const newBanner = editOffersBannerUrl.trim() || null;
+      const newTitleColor = editOffersTitleColor || '#0f172a';
+      const newSubtitleColor = editOffersSubtitleColor || '#64748b';
 
       const updatedTexts = {
         ...(currentConfig.texts || {}),
         ...(currentConfig.storefront?.texts || {}),
         offersTitle: newTitle,
-        offersSubtitle: newSubtitle
+        offersSubtitle: newSubtitle,
+        offersTitleColor: newTitleColor,
+        offersSubtitleColor: newSubtitleColor
       };
 
       const updatedConfig = {
         ...currentConfig,
         offersBannerUrl: newBanner,
+        offersTitleColor: newTitleColor,
+        offersSubtitleColor: newSubtitleColor,
         texts: updatedTexts,
         storefront: {
           ...(currentConfig.storefront || {}),
           offersBannerUrl: newBanner,
+          offersTitleColor: newTitleColor,
+          offersSubtitleColor: newSubtitleColor,
           texts: updatedTexts
         }
       };
@@ -2470,14 +2484,20 @@ export default function PublicStore() {
       setConfig(prev => ({
         ...prev,
         offersBannerUrl: newBanner,
+        offersTitleColor: newTitleColor,
+        offersSubtitleColor: newSubtitleColor,
         texts: {
           ...(prev?.texts || {}),
           offersTitle: newTitle,
-          offersSubtitle: newSubtitle
+          offersSubtitle: newSubtitle,
+          offersTitleColor: newTitleColor,
+          offersSubtitleColor: newSubtitleColor
         },
         storefront: {
           ...(prev?.storefront || {}),
           offersBannerUrl: newBanner,
+          offersTitleColor: newTitleColor,
+          offersSubtitleColor: newSubtitleColor,
           texts: updatedTexts
         }
       }));
@@ -2490,10 +2510,14 @@ export default function PublicStore() {
           cachedObj.config = {
             ...cachedObj.config,
             offersBannerUrl: newBanner,
+            offersTitleColor: newTitleColor,
+            offersSubtitleColor: newSubtitleColor,
             texts: updatedTexts,
             storefront: {
               ...(cachedObj.config?.storefront || {}),
               offersBannerUrl: newBanner,
+              offersTitleColor: newTitleColor,
+              offersSubtitleColor: newSubtitleColor,
               texts: updatedTexts
             }
           };
@@ -3829,47 +3853,49 @@ export default function PublicStore() {
         {/* OFERTAS */}
         {currentPage === 'offers' && (
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-28 relative">
-            <div className={`relative overflow-hidden border-b border-slate-200/80 shadow-xs transition-all ${
-              resolvedOffersBannerUrl 
-                ? 'py-10 md:py-14 px-4 sm:px-8 text-white min-h-[190px] sm:min-h-[230px] flex flex-col justify-center' 
-                : 'py-8 md:py-12 px-4 sm:px-8 bg-white'
-            }`}>
-              {resolvedOffersBannerUrl && (
-                <>
+            {/* 1. Imagen de Banner Limpia y Panorámica (sin textos superpuestos) */}
+            {resolvedOffersBannerUrl && (
+              <div className="w-full px-3.5 sm:px-6 pt-3 sm:pt-4">
+                <div className="w-full h-64 sm:h-80 md:h-96 rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border border-slate-200/90 bg-slate-100 relative group">
                   <img 
                     src={resolveImageUrl(resolvedOffersBannerUrl)} 
                     alt="Banner de Ofertas" 
-                    className="absolute inset-0 w-full h-full object-cover z-0" 
+                    className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.02]" 
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/60 to-black/35 z-[1]" />
-                </>
-              )}
-               <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col justify-center w-full">
-                 <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
-                   <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-max ${
-                     resolvedOffersBannerUrl 
-                       ? 'bg-white/20 backdrop-blur-md text-amber-300 border border-white/20 shadow-xs' 
-                       : 'bg-amber-500/10 text-amber-700'
-                   }`}>
-                     <Tag size={12} className={resolvedOffersBannerUrl ? 'text-amber-300' : 'text-amber-600'} />
+                </div>
+              </div>
+            )}
+
+            {/* 2. Bloque de Textos, Ticket y Botón de Edición (Debajo de la Imagen) */}
+            <div className="py-5 sm:py-7 px-4 sm:px-6 border-b border-slate-200/80 bg-white shadow-2xs">
+               <div className="w-full max-w-[1400px] mx-auto flex flex-col justify-center">
+                 <div className="flex items-center justify-between gap-3 mb-2.5 flex-wrap">
+                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-max bg-amber-500/10 text-amber-700 border border-amber-500/20 shadow-2xs">
+                     <Tag size={12} className="text-amber-600" />
                      <span>Promociones y Descuentos</span>
                    </div>
                    {isMerchantOwner && (
                      <button
                        type="button"
                        onClick={openOffersCustomizer}
-                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-white hover:bg-slate-50 text-slate-900 shadow-md hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-200/80"
-                       title="Editar Título, Subtítulo e Imagen de Ofertas"
+                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-white hover:bg-slate-50 text-slate-900 shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer border border-slate-200"
+                       title="Editar Título, Subtítulo, Colores e Imagen de Ofertas"
                      >
                        <Pen size={12} style={{ color: primaryColor }} />
                        <span>Editar Sección</span>
                      </button>
                    )}
                  </div>
-                 <h1 className={`${headingWeight} text-3xl md:text-5xl tracking-tight font-extrabold ${resolvedOffersBannerUrl ? 'text-white drop-shadow-md' : 'text-slate-900'}`}>
+                 <h1 
+                   className={`${headingWeight} text-3xl md:text-5xl tracking-tight font-extrabold`}
+                   style={{ color: resolvedOffersTitleColor }}
+                 >
                    {texts?.offersTitle || 'Ofertas Flash'}
                  </h1>
-                 <p className={`text-sm md:text-base mt-1.5 max-w-2xl leading-relaxed ${resolvedOffersBannerUrl ? 'text-slate-200 drop-shadow' : 'text-slate-500'}`}>
+                 <p 
+                   className="text-sm md:text-base mt-1.5 max-w-2xl leading-relaxed font-medium"
+                   style={{ color: resolvedOffersSubtitleColor }}
+                 >
                    {texts?.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
                  </p>
                </div>
@@ -6072,10 +6098,10 @@ export default function PublicStore() {
           </button>
         </div>
 
-        <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Título de la sección */}
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
+        <div className="py-4 space-y-5 max-h-[72vh] overflow-y-auto px-0.5">
+          {/* 1. Título de la sección y Color */}
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
               Título de Ofertas (Tamaño Grande)
             </label>
             <input
@@ -6085,12 +6111,40 @@ export default function PublicStore() {
               placeholder="Ej: Ofertas Flash"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
-            <p className="text-[11px] text-slate-400 mt-1">Título principal que los clientes verán en tamaño de letra grande.</p>
+            
+            {/* Paleta de Color del Título */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">Color del Título:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {['#0f172a', '#ea580c', '#dc2626', '#d97706', '#059669', '#2563eb', '#7c3aed', '#ffffff'].map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setEditOffersTitleColor(c)}
+                    className={`w-5 h-5 rounded-full border transition-transform ${editOffersTitleColor === c ? 'scale-125 ring-2 ring-amber-500 ring-offset-1' : 'hover:scale-110'} ${c === '#ffffff' ? 'border-slate-300' : 'border-black/20'}`}
+                    style={{ backgroundColor: c }}
+                    title={c}
+                  />
+                ))}
+                <label className="relative flex items-center cursor-pointer ml-1" title="Color personalizado">
+                  <input
+                    type="color"
+                    value={editOffersTitleColor.startsWith('#') && editOffersTitleColor.length === 7 ? editOffersTitleColor : '#0f172a'}
+                    onChange={(e) => setEditOffersTitleColor(e.target.value)}
+                    className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0"
+                  />
+                  <div className="w-6 h-6 rounded-full border border-slate-300 bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 flex items-center justify-center text-[10px] text-white font-bold shadow-2xs">
+                    +
+                  </div>
+                </label>
+                <span className="text-[10px] font-mono text-slate-400 ml-1">{editOffersTitleColor}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Subtítulo / Preámbulo */}
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
+          {/* 2. Subtítulo / Preámbulo y Color */}
+          <div className="space-y-2">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
               Subtítulo / Preámbulo de la Tienda
             </label>
             <textarea
@@ -6100,14 +6154,64 @@ export default function PublicStore() {
               placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda."
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-xs sm:text-sm font-medium text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed"
             />
-            <p className="text-[11px] text-slate-400 mt-1">Preámbulo o mensaje de introducción para dar contexto a los clientes.</p>
+
+            {/* Paleta de Color del Subtítulo */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">Color del Subtítulo:</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {['#334155', '#64748b', '#94a3b8', '#b45309', '#c2410c', '#047857', '#1d4ed8', '#ffffff'].map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setEditOffersSubtitleColor(c)}
+                    className={`w-5 h-5 rounded-full border transition-transform ${editOffersSubtitleColor === c ? 'scale-125 ring-2 ring-amber-500 ring-offset-1' : 'hover:scale-110'} ${c === '#ffffff' ? 'border-slate-300' : 'border-black/20'}`}
+                    style={{ backgroundColor: c }}
+                    title={c}
+                  />
+                ))}
+                <label className="relative flex items-center cursor-pointer ml-1" title="Color personalizado">
+                  <input
+                    type="color"
+                    value={editOffersSubtitleColor.startsWith('#') && editOffersSubtitleColor.length === 7 ? editOffersSubtitleColor : '#64748b'}
+                    onChange={(e) => setEditOffersSubtitleColor(e.target.value)}
+                    className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0"
+                  />
+                  <div className="w-6 h-6 rounded-full border border-slate-300 bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 flex items-center justify-center text-[10px] text-white font-bold shadow-2xs">
+                    +
+                  </div>
+                </label>
+                <span className="text-[10px] font-mono text-slate-400 ml-1">{editOffersSubtitleColor}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Imagen de Portada / Banner */}
+          {/* 3. Previsualización en Vivo de Textos y Colores */}
+          <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+              Vista Previa de Tipografía
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold tracking-tight" style={{ color: editOffersTitleColor }}>
+              {editOffersTitle || 'Ofertas Flash'}
+            </div>
+            <div className="text-xs sm:text-sm mt-0.5 leading-relaxed font-medium" style={{ color: editOffersSubtitleColor }}>
+              {editOffersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
+            </div>
+          </div>
+
+          {/* 4. Imagen de Portada / Banner y Recuadro de Encuadre */}
           <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300 mb-1.5">
-              Imagen de Portada / Banner del Cuadro
-            </label>
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-zinc-300">
+                Imagen de Portada / Banner
+              </label>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                📐 1200 x 600 px (2:1 o 16:9)
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mb-2">
+              Se mostrará en la parte superior con encuadre panorámico completo sin textos que la tapen.
+            </p>
 
             <input 
               type="file" 
@@ -6118,59 +6222,78 @@ export default function PublicStore() {
             />
 
             {editOffersBannerUrl ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-zinc-800 group shadow-sm">
-                <img 
-                  src={resolveImageUrl(editOffersBannerUrl)} 
-                  alt="Vista previa de banner" 
-                  className="w-full h-36 object-cover" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-3">
-                  <div className="text-white">
-                    <p className="text-xs font-bold truncate">{editOffersTitle || 'Ofertas Flash'}</p>
-                    <p className="text-[10px] text-slate-200 line-clamp-1">{editOffersSubtitle || 'Aprovecha los mejores precios...'}</p>
+              <div className="space-y-2">
+                {/* Recuadro de Encuadre Visual con guías de marco */}
+                <div className="relative aspect-[2/1] w-full rounded-2xl overflow-hidden border-2 border-amber-500/50 shadow-md bg-slate-950 group">
+                  <img 
+                    src={resolveImageUrl(editOffersBannerUrl)} 
+                    alt="Vista previa de banner" 
+                    className="w-full h-full object-cover object-center" 
+                  />
+                  
+                  {/* Guías visuales de encuadre de marco en las 4 esquinas */}
+                  <div className="absolute inset-2 pointer-events-none border border-white/30 rounded-xl">
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-amber-400"></div>
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-amber-400"></div>
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-amber-400"></div>
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-amber-400"></div>
+                  </div>
+
+                  {/* Indicador de Marco de Visión */}
+                  <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-sm">
+                    <span>Área visible en Vitrina</span>
+                  </div>
+
+                  {/* Botones de acción sobre la imagen */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                    <button
+                      type="button"
+                      onClick={() => offersBannerInputRef.current?.click()}
+                      disabled={isUploadingBanner}
+                      className="px-2.5 py-1 rounded-lg bg-black/75 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer backdrop-blur-xs shadow-sm"
+                      title="Cambiar imagen"
+                    >
+                      <UploadCloud size={13} />
+                      <span className="text-[10px]">Cambiar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditOffersBannerUrl('')}
+                      className="p-1.5 rounded-lg bg-red-600/85 hover:bg-red-600 text-white transition-all cursor-pointer backdrop-blur-xs shadow-sm"
+                      title="Quitar imagen"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
-                <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => offersBannerInputRef.current?.click()}
-                    disabled={isUploadingBanner}
-                    className="p-1.5 rounded-lg bg-black/60 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer backdrop-blur-xs"
-                    title="Cambiar imagen"
-                  >
-                    <UploadCloud size={13} />
-                    <span className="text-[10px]">Cambiar</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditOffersBannerUrl('')}
-                    className="p-1.5 rounded-lg bg-red-600/80 hover:bg-red-600 text-white transition-all cursor-pointer backdrop-blur-xs"
-                    title="Quitar imagen"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+
+                <p className="text-[10px] text-slate-400 text-center">
+                  💡 Este recuadro delimita exactamente el rango de visión que verán tus clientes.
+                </p>
               </div>
             ) : (
               <div 
                 onClick={() => offersBannerInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-amber-500 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-slate-50/70 dark:bg-zinc-900/50 group"
+                className="border-2 border-dashed border-slate-300 dark:border-zinc-800 hover:border-amber-500 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/70 dark:bg-zinc-900/50 group"
               >
                 {isUploadingBanner ? (
-                  <div className="flex flex-col items-center justify-center py-2">
-                    <Loader2 size={24} className="animate-spin text-amber-500 mb-1" />
-                    <span className="text-xs font-bold text-slate-600 dark:text-zinc-400">Subiendo imagen...</span>
+                  <div className="flex flex-col items-center justify-center py-3">
+                    <Loader2 size={26} className="animate-spin text-amber-500 mb-1.5" />
+                    <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">Subiendo imagen al marco...</span>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-1">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                      <ImageIcon size={20} />
+                  <div className="flex flex-col items-center justify-center py-2">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform shadow-2xs">
+                      <ImageIcon size={24} />
                     </div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
-                      Toca aquí para subir una imagen de portada
+                    <span className="text-xs font-black text-slate-800 dark:text-zinc-200">
+                      Toca para seleccionar tu imagen de portada
+                    </span>
+                    <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-1">
+                      Medidas ideales: 1200 x 600 px (panorámica 2:1)
                     </span>
                     <span className="text-[10px] text-slate-400 mt-0.5">
-                      Recomendado: imagen panorámica horizontal (JPG, PNG, WEBP)
+                      Formatos compatibles: JPG, PNG, WEBP (hasta 5 MB)
                     </span>
                   </div>
                 )}

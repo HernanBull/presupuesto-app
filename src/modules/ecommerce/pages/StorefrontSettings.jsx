@@ -8,28 +8,28 @@ export default function StorefrontSettings() {
   // 1. Colores y Tema
   const [themeMode, setThemeMode] = useState(savedConfig.themeMode || 'light');
   const [primaryColor, setPrimaryColor] = useState(savedConfig.primaryColor || '#7c3aed');
-  
+
   // 2. Textos y Tipografía
   const [typography, setTypography] = useState(savedConfig.typography || 'font-sans');
-  const [baseFontSize, setBaseFontSize] = useState(savedConfig.baseFontSize || 'text-base'); 
-  const [headingWeight, setHeadingWeight] = useState(savedConfig.headingWeight || 'font-black'); 
-  
+  const [baseFontSize, setBaseFontSize] = useState(savedConfig.baseFontSize || 'text-base');
+  const [headingWeight, setHeadingWeight] = useState(savedConfig.headingWeight || 'font-black');
+
   // 3. Cabecera
   const [logoUrl, setLogoUrl] = useState(savedConfig.logoUrl || null);
-  const [headerStyle, setHeaderStyle] = useState(savedConfig.headerStyle || 'solid'); 
+  const [headerStyle, setHeaderStyle] = useState(savedConfig.headerStyle || 'solid');
   const [showBanner, setShowBanner] = useState(savedConfig.showBanner !== undefined ? savedConfig.showBanner : true);
-  
+
   // 4. Estructuras (Hero, Catálogo, Ofertas)
   const [heroUrl, setHeroUrl] = useState(savedConfig.heroUrl || null);
-  const [heroLayout, setHeroLayout] = useState(savedConfig.heroLayout || 'centered'); 
-  const [buttonStyle, setButtonStyle] = useState(savedConfig.buttonStyle || 'rounded-full'); 
-  const [cardStyle, setCardStyle] = useState(savedConfig.cardStyle || 'elevated'); 
-  
+  const [heroLayout, setHeroLayout] = useState(savedConfig.heroLayout || 'centered');
+  const [buttonStyle, setButtonStyle] = useState(savedConfig.buttonStyle || 'rounded-full');
+  const [cardStyle, setCardStyle] = useState(savedConfig.cardStyle || 'elevated');
+
   // Novedades para Catálogo y Ofertas
   const [catalogFilterStyle, setCatalogFilterStyle] = useState(savedConfig.catalogFilterStyle || 'sidebar'); // sidebar, top
   const [offersCountdown, setOffersCountdown] = useState(savedConfig.offersCountdown !== undefined ? savedConfig.offersCountdown : true);
   const [discountBadgeColor, setDiscountBadgeColor] = useState(savedConfig.discountBadgeColor || '#ef4444'); // Rojo por defecto
-  
+
   // 5. Contenido Textual
   const [texts, setTexts] = useState(savedConfig.texts || {
     banner: '¡Envíos gratis en compras mayores a $100!',
@@ -47,10 +47,12 @@ export default function StorefrontSettings() {
   });
 
   const [offersBannerUrl, setOffersBannerUrl] = useState(savedConfig.offersBannerUrl || '');
+  const [offersTitleColor, setOffersTitleColor] = useState(savedConfig.offersTitleColor || '#0f172a');
+  const [offersSubtitleColor, setOffersSubtitleColor] = useState(savedConfig.offersSubtitleColor || '#64748b');
   const [socials, setSocials] = useState(savedConfig.socials || { instagram: true, whatsapp: true, facebook: false });
 
   // UI State interno (No se guarda en config de cliente)
-  const [previewMode, setPreviewMode] = useState('desktop'); 
+  const [previewMode, setPreviewMode] = useState('desktop');
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('pages'); // pages (nueva), typography, content, theme, header
   const [activePagePreview, setActivePagePreview] = useState('home'); // home, catalog, offers
@@ -88,6 +90,7 @@ export default function StorefrontSettings() {
     const configToSave = {
       themeMode, primaryColor, typography, baseFontSize, headingWeight,
       logoUrl, headerStyle, showBanner, heroUrl, heroLayout, offersBannerUrl,
+      offersTitleColor, offersSubtitleColor,
       buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts, socials
     };
     localStorage.setItem('storefrontConfig', JSON.stringify(configToSave));
@@ -117,10 +120,10 @@ export default function StorefrontSettings() {
         </div>
         <div className="flex gap-3">
           <button onClick={() => {
-              const slug = localStorage.getItem('storeSlug');
-              if (slug) window.open(`/${slug}`, '_blank');
-              else window.open('/', '_blank');
-            }} className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+            const slug = localStorage.getItem('storeSlug');
+            if (slug) window.open(`/${slug}`, '_blank');
+            else window.open('/', '_blank');
+          }} className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
             <Globe size={18} />
             Visitar Tienda
           </button>
@@ -133,7 +136,7 @@ export default function StorefrontSettings() {
       <div className="flex flex-col xl:flex-row gap-6 h-[800px]">
         {/* PANEL IZQUIERDO: CONTROLES */}
         <div className="w-full xl:w-[450px] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0">
-          
+
           <div className="flex overflow-x-auto hide-scrollbar border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex-shrink-0">
             <button onClick={() => setActiveTab('pages')} className={`flex items-center gap-2 px-4 py-4 text-xs font-bold whitespace-nowrap transition-colors ${activeTab === 'pages' ? 'text-violet-600 border-b-2 border-violet-600' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}>
               <LayoutGrid size={14} /> Páginas
@@ -150,7 +153,7 @@ export default function StorefrontSettings() {
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-            
+
             {/* TABS CONTENIDO: PÁGINAS Y ESTRUCTURA */}
             {activeTab === 'pages' && (
               <div className="space-y-8 animate-in fade-in duration-300">
@@ -232,12 +235,24 @@ export default function StorefrontSettings() {
                   <div className="space-y-3">
                     <input type="text" value={texts.catalogTitle} onChange={(e) => handleTextChange('catalogTitle', e.target.value)} placeholder="Ej: Catálogo Completo" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Título de Ofertas (Letra Grande)</label>
-                      <input type="text" value={texts.offersTitle} onChange={(e) => handleTextChange('offersTitle', e.target.value)} placeholder="Ej: Ofertas Flash" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold text-slate-400">Título de Ofertas (Letra Grande)</label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-400">Color:</span>
+                          <input type="color" value={offersTitleColor} onChange={(e) => setOffersTitleColor(e.target.value)} className="w-4 h-4 rounded cursor-pointer border-0 p-0" />
+                        </div>
+                      </div>
+                      <input type="text" value={texts.offersTitle} onChange={(e) => handleTextChange('offersTitle', e.target.value)} placeholder="Ej: Ofertas Flash" className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" style={{ color: offersTitleColor }} />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 block mb-1">Subtítulo / Preámbulo de Ofertas</label>
-                      <input type="text" value={texts.offersSubtitle || ''} onChange={(e) => handleTextChange('offersSubtitle', e.target.value)} placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda." className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-bold text-slate-400">Subtítulo / Preámbulo de Ofertas</label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-slate-400">Color:</span>
+                          <input type="color" value={offersSubtitleColor} onChange={(e) => setOffersSubtitleColor(e.target.value)} className="w-4 h-4 rounded cursor-pointer border-0 p-0" />
+                        </div>
+                      </div>
+                      <input type="text" value={texts.offersSubtitle || ''} onChange={(e) => handleTextChange('offersSubtitle', e.target.value)} placeholder="Ej: Aprovecha los mejores precios y promociones exclusivas de la tienda." className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold dark:text-white" style={{ color: offersSubtitleColor }} />
                     </div>
                   </div>
 
@@ -296,7 +311,7 @@ export default function StorefrontSettings() {
             {/* COLORES Y LOGO */}
             {activeTab === 'theme' && (
               <div className="space-y-8 animate-in fade-in duration-300">
-                 <div className="space-y-4">
+                <div className="space-y-4">
                   <label className="text-xs font-black uppercase tracking-widest text-slate-400">Modo de Color Base</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => setThemeMode('light')} className={`p-4 border-2 rounded-xl flex flex-col items-center gap-2 transition-all ${themeMode === 'light' ? 'border-violet-500 bg-violet-50' : 'border-slate-200'}`}>
@@ -328,7 +343,7 @@ export default function StorefrontSettings() {
 
         {/* PANEL DERECHO: VISTA PREVIA MULTI-PÁGINA */}
         <div className="flex-1 bg-slate-100 dark:bg-slate-950 rounded-2xl p-4 flex flex-col items-center justify-start border border-slate-200 dark:border-slate-800 relative overflow-hidden h-full">
-          
+
           {/* Top Controls: Page Selector & Device Toggle */}
           <div className="absolute top-4 inset-x-0 z-50 flex justify-between px-8">
             {/* Page Navigator */}
@@ -346,8 +361,8 @@ export default function StorefrontSettings() {
           </div>
 
           {/* Canvas Wrapper (Extracted to StorePreview) */}
-          <StorePreview 
-            config={{ themeMode, primaryColor, typography, baseFontSize, headingWeight, logoUrl, headerStyle, showBanner, heroUrl, heroLayout, offersBannerUrl, buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts }}
+          <StorePreview
+            config={{ themeMode, primaryColor, typography, baseFontSize, headingWeight, logoUrl, headerStyle, showBanner, heroUrl, heroLayout, offersBannerUrl, offersTitleColor, offersSubtitleColor, buttonStyle, cardStyle, catalogFilterStyle, offersCountdown, discountBadgeColor, texts }}
             products={products}
             activePagePreview={activePagePreview}
             previewMode={previewMode}

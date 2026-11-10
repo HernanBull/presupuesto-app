@@ -18,6 +18,8 @@ export default function StorePreview({
     heroUrl,
     heroLayout = 'centered',
     offersBannerUrl,
+    offersTitleColor = '#0f172a',
+    offersSubtitleColor = '#64748b',
     buttonStyle = 'rounded-full',
     cardStyle = 'elevated',
     catalogFilterStyle = 'sidebar',
@@ -209,23 +211,24 @@ export default function StorePreview({
         {/* 3. OFERTAS */}
         {activePagePreview === 'offers' && (
           <div className={`flex-1 flex flex-col ${secondaryBg}`}>
-            <div className={`text-white py-10 px-6 text-center relative overflow-hidden flex-shrink-0 ${offersBannerUrl ? 'bg-black min-h-[160px]' : 'bg-slate-900'}`}>
-              {offersBannerUrl && (
-                <>
-                  <img src={offersBannerUrl} alt="Banner Ofertas" className="absolute inset-0 w-full h-full object-cover z-0" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 z-[1]" />
-                </>
-              )}
-              <div className="relative z-10 max-w-xl mx-auto">
+            {offersBannerUrl && (
+              <div className="w-full px-4 pt-4">
+                <div className="w-full h-44 sm:h-56 rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+                  <img src={offersBannerUrl} alt="Banner Ofertas" className="w-full h-full object-cover object-center" />
+                </div>
+              </div>
+            )}
+            <div className="py-6 px-6 text-center border-b border-slate-200 bg-white">
+              <div className="max-w-xl mx-auto">
                 {offersCountdown && (
-                  <div className="inline-flex items-center gap-1 bg-rose-500 px-3 py-1 rounded-lg font-mono text-xs font-bold shadow-md mb-2">
+                  <div className="inline-flex items-center gap-1 bg-rose-500 text-white px-3 py-1 rounded-lg font-mono text-xs font-bold shadow-md mb-2">
                     ⏳ Termina en 05:42:10
                   </div>
                 )}
-                <h1 className={`${headingWeight} text-3xl md:text-4xl drop-shadow-md text-amber-300 font-extrabold mb-1.5`}>
+                <h1 className={`${headingWeight} text-3xl md:text-4xl font-extrabold mb-1.5`} style={{ color: offersTitleColor }}>
                   {texts.offersTitle || 'Ofertas Flash'}
                 </h1>
-                <p className="opacity-90 max-w-md mx-auto text-xs sm:text-sm leading-relaxed text-slate-200 drop-shadow">
+                <p className="opacity-90 max-w-md mx-auto text-xs sm:text-sm leading-relaxed" style={{ color: offersSubtitleColor }}>
                   {texts.offersSubtitle || 'Aprovecha los mejores precios y promociones exclusivas de la tienda.'}
                 </p>
               </div>
