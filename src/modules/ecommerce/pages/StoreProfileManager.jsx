@@ -3,6 +3,7 @@ import { Save, Store, Calculator, CreditCard, Smartphone as PhoneIcon, Truck, Cl
 import { supabase } from '../../../supabaseClient';
 import BackupManagerModal from '../components/admin/BackupManagerModal';
 import UserManagementModal from '../components/admin/UserManagementModal';
+import HardwareSettingsModal from '../components/admin/HardwareSettingsModal';
 import { optimizeStoreImage } from '../utils/imageOptimizer';
 import { offlineDb } from '../services/offlineSyncService';
 import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
@@ -22,6 +23,7 @@ export default function StoreProfileManager() {
   // Modales de Administración (AxonPOS ➔ AxonMarket)
   const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isUserManagementModalOpen, setIsUserManagementModalOpen] = useState(false);
+  const [isHardwareModalOpen, setIsHardwareModalOpen] = useState(false);
   
   // Auth User Info
   const [adminEmail, setAdminEmail] = useState('');
@@ -747,6 +749,35 @@ export default function StoreProfileManager() {
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 self-start sm:self-auto cursor-pointer"
             >
               <Database size={15} /> Abrir Respaldos (.axonbak)
+            </button>
+          </div>
+        </section>
+
+        {/* Hardware y Periféricos de Mostrador */}
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-200/60 dark:border-orange-900/30">
+                <Settings size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">Hardware de Mostrador</h3>
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300">
+                    ESC/POS & RS-232
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Configura tu balanza electrónica, formato de ticket (80mm/58mm), apertura automática de gaveta y cola offline Dexie.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsHardwareModalOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+            >
+              <Settings size={15} /> Configurar Hardware
             </button>
           </div>
         </section>
@@ -1782,6 +1813,11 @@ export default function StoreProfileManager() {
       <UserManagementModal 
         isOpen={isUserManagementModalOpen}
         onClose={() => setIsUserManagementModalOpen(false)}
+      />
+
+      <HardwareSettingsModal 
+        isOpen={isHardwareModalOpen}
+        onClose={() => setIsHardwareModalOpen(false)}
       />
 
     </div>

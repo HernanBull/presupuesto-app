@@ -1637,39 +1637,6 @@ export default function UnifiedPosPage() {
                 <span className="sm:hidden">Salir</span>
               </button>
             )}
-
-            {/* Configuración de Hardware (Solo visible en Desktop) */}
-            <button 
-              onClick={() => setIsHardwareModalOpen(true)}
-              className="hidden lg:flex p-2 rounded-xl text-slate-500 hover:text-orange-600 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 transition-colors cursor-pointer shadow-2xs shrink-0"
-              title="Hardware de mostrador"
-            >
-              <Settings size={15} />
-            </button>
-
-            {/* Centro de Control Maestro: Equipo & Cajas Registradoras (Solo visible para Dueño/Admin) */}
-            {!isCashier && (
-              <button 
-                onClick={() => setIsUserManagementModalOpen(true)}
-                className="flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-                title="Equipo, Permisos y Cajas Registradoras (QR y PIN)"
-              >
-                <Users size={14} className="text-orange-500 shrink-0" />
-                <span className="hidden sm:inline">Equipo & Cajas</span>
-              </button>
-            )}
-
-            {/* Centro de Respaldos ACID .axonbak (Solo visible para Dueño/Admin) */}
-            {!isCashier && (
-              <button 
-                onClick={() => setIsBackupModalOpen(true)}
-                className="hidden md:flex items-center gap-1.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 hover:border-orange-400 px-2.5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-orange-600 transition-all cursor-pointer shadow-2xs shrink-0"
-                title="Centro de Respaldos & Disaster Recovery (.axonbak)"
-              >
-                <Database size={14} className="text-emerald-500 shrink-0" />
-                <span className="hidden 2xl:inline">Respaldo</span>
-              </button>
-            )}
           </div>
 
         </div>

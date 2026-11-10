@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutGrid, ChevronDown, Sparkles, Search, X, Check, FolderTree } from 'lucide-react';
+import { LayoutGrid, ChevronDown, Sparkles, Search, X, Check, FolderTree, Pin } from 'lucide-react';
 
 export const HierarchicalCategoryBar = ({
   categories = [],
@@ -11,6 +11,53 @@ export const HierarchicalCategoryBar = ({
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Categorías ancladas con pincito (📌) guardadas en localStorage
+  const [pinnedCategoryIds, setPinnedCategoryIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('axon_pos_pinned_categories');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return ['General'];
+  });
+
+  const togglePinCategory = (catId, catName) => {
+    setPinnedCategoryIds(prev => {
+      const idToToggle = catId || catName;
+      const cleanId = String(idToToggle).trim();
+      let updated;
+      if (prev.some(id => String(id).trim().toLowerCase() === cleanId.toLowerCase())) {
+        updated = prev.filter(id => String(id).trim().toLowerCase() !== cleanId.toLowerCase());
+      } else {
+        updated = [...prev, cleanId];
+      }
+      try {
+        localStorage.setItem('axon_pos_pinned_categories', JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+  };
+
+  // Resolver objetos completos de categorías ancladas
+  const pinnedCategoriesList = useMemo(() => {
+    const list = [];
+    pinnedCategoryIds.forEach(id => {
+      const cleanId = String(id).trim().toLowerCase();
+      const found = categories.find(c => 
+        String(c.id).trim().toLowerCase() === cleanId ||
+        String(c.name).trim().toLowerCase() === cleanId
+      );
+      if (found && !list.some(item => item.id === found.id)) {
+        list.push(found);
+      } else if (!found && cleanId === 'general') {
+        list.push({ id: 'General', name: 'General', color: '#EA580C' });
+      }
+    });
+    return list;
+  }, [categories, pinnedCategoryIds]);
 
   // Encontrar la categoría actualmente seleccionada
   const selectedCategory = useMemo(() => {
@@ -47,9 +94,9 @@ export const HierarchicalCategoryBar = ({
 
   return (
     <>
-      {/* BARRA PRINCIPAL COMPACTA Y MODERNA */}
-      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2 sm:p-2.5 w-full shadow-2xs gap-2 shrink-0">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      {/* BARRA PRINCIPAL COMPACTA Y MODERNA (DEBAJO DEL BUSCADOR DE PRODUCTOS / ESCÁNER) */}
+      <div className="flex items-center justify-between bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-white/10 rounded-2xl p-2 sm:p-2.5 w-full shadow-2xs gap-2 shrink-0 overflow-x-auto [scrollbar-width:none]">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
           {/* BOTÓN PRINCIPAL PARA ABRIR EL CUADRO DE CATEGORÍAS */}
           <button
             type="button"
@@ -65,9 +112,33 @@ export const HierarchicalCategoryBar = ({
             <ChevronDown size={14} className="text-orange-600 shrink-0" />
           </button>
 
-          {/* Categoría Seleccionada Pill (si no es ALL) */}
-          {selectedCategory && (
-            <div className="hidden sm:flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-bold truncate">
+          {/* CHIPS DE ACCESO RÁPIDO CON PINCITO (📌) */}
+          {pinnedCategoriesList.map(cat => {
+            const isCatActive = selectedCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onSelectCategory && onSelectCategory(isCatActive ? 'ALL' : cat.id)}
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs ${
+                  isCatActive
+                    ? 'bg-orange-600 text-white shadow-orange-500/25 ring-2 ring-orange-500/30'
+                    : 'bg-orange-50/90 hover:bg-orange-100/80 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-800 dark:text-slate-200 border border-orange-200/80 dark:border-white/10'
+                }`}
+                title={`Categoría anclada con pincito: ${cat.name}`}
+              >
+                <Pin size={12} className={isCatActive ? 'fill-current text-white -rotate-45' : 'text-orange-600 fill-orange-600 -rotate-45'} />
+                <span>{cat.name}</span>
+                {isCatActive && (
+                  <span className="ml-0.5 opacity-80 hover:opacity-100 text-[10px]">✕</span>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Categoría Seleccionada Pill (si no es ALL y no está en las ancladas) */}
+          {selectedCategory && !pinnedCategoriesList.some(p => p.id === selectedCategory.id) && (
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-bold truncate shrink-0">
               <span className="truncate">{selectedCategory.name}</span>
               <button
                 type="button"
@@ -255,10 +326,14 @@ export const HierarchicalCategoryBar = ({
               {filteredCategories.map((cat) => {
                 const isSelected = selectedCategoryId === cat.id;
                 const count = productCounts[cat.id] ?? 0;
+                const isPinned = pinnedCategoryIds.some(
+                  id => String(id).trim().toLowerCase() === String(cat.id).trim().toLowerCase() ||
+                        String(id).trim().toLowerCase() === String(cat.name).trim().toLowerCase()
+                );
+
                 return (
-                  <button
+                  <div
                     key={cat.id}
-                    type="button"
                     onClick={() => handleSelect(cat.id)}
                     style={{
                       padding: '12px 14px',
@@ -268,32 +343,63 @@ export const HierarchicalCategoryBar = ({
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       gap: 10,
-                      textAlign: 'left'
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    <div
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: '50%',
+                          backgroundColor: cat.color ? `${cat.color}20` : '#F1F5F9',
+                          color: cat.color || '#EA580C',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: 14,
+                          flexShrink: 0
+                        }}
+                      >
+                        {cat.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {cat.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#64748B' }}>{count} productos</div>
+                      </div>
+                    </div>
+
+                    {/* BOTÓN PINCITO (📌) PARA FIJAR / ANCLAR COMO ACCESO RÁPIDO */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePinCategory(cat.id, cat.name);
+                      }}
+                      title={isPinned ? 'Desanclar categoría de la barra rápida' : 'Fijar con pincito para tenerla predeterminada abajo del buscador'}
                       style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        backgroundColor: cat.color ? `${cat.color}20` : '#F1F5F9',
-                        color: cat.color || '#EA580C',
+                        padding: 7,
+                        borderRadius: 8,
+                        backgroundColor: isPinned ? '#EA580C' : '#F8FAFC',
+                        color: isPinned ? '#FFFFFF' : '#94A3B8',
+                        border: isPinned ? '1px solid #EA580C' : '1px solid #E2E8F0',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: 14,
-                        flexShrink: 0
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease'
                       }}
                     >
-                      {cat.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{cat.name}</div>
-                      <div style={{ fontSize: 11, color: '#64748B' }}>{count} productos</div>
-                    </div>
-                  </button>
+                      <Pin size={14} style={{ transform: 'rotate(-45deg)', fill: isPinned ? '#FFFFFF' : 'none' }} />
+                    </button>
+                  </div>
                 );
               })}
 
