@@ -827,6 +827,7 @@ export default function PublicStore() {
 
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [sortBy, setSortBy] = useState('newest');
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
@@ -4701,34 +4702,64 @@ export default function PublicStore() {
             c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === (activeMainCategory || '').trim().toLowerCase()
           );
 
-          // Subcategorías de la categoría general activa
+          // Subcategorías de la categoría general activa (o de la tienda si es 'Todas')
           const currentCategorySubCats = (() => {
-            if (activeMainCategory === 'Todas') return [];
             const subMap = {};
-            if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
-              activeCustomCat.subcategories.forEach(sc => {
-                const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
+            if (activeMainCategory === 'Todas') {
+              storeCustomCategories.forEach(cat => {
+                if (Array.isArray(cat?.subcategories)) {
+                  cat.subcategories.forEach(sc => {
+                    const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
+                    if (sName) {
+                      const sKey = sName.toLowerCase();
+                      if (!subMap[sKey]) {
+                        subMap[sKey] = {
+                          name: sName,
+                          imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
+                        };
+                      }
+                    }
+                  });
+                }
+              });
+              products.forEach(p => {
+                const sName = (p.subcategory || '').trim();
                 if (sName) {
                   const sKey = sName.toLowerCase();
-                  subMap[sKey] = {
-                    name: sName,
-                    imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
-                  };
+                  if (!subMap[sKey]) {
+                    subMap[sKey] = {
+                      name: sName,
+                      imageUrl: p.image_url || ''
+                    };
+                  }
                 }
               });
+            } else {
+              if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
+                activeCustomCat.subcategories.forEach(sc => {
+                  const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
+                  if (sName) {
+                    const sKey = sName.toLowerCase();
+                    subMap[sKey] = {
+                      name: sName,
+                      imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
+                    };
+                  }
+                });
+              }
+              products
+                .filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase() && p.subcategory)
+                .forEach(p => {
+                  const sName = (p.subcategory || '').trim();
+                  const sKey = sName.toLowerCase();
+                  if (sName && !subMap[sKey]) {
+                    subMap[sKey] = {
+                      name: sName,
+                      imageUrl: p.image_url || ''
+                    };
+                  }
+                });
             }
-            products
-              .filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase() && p.subcategory)
-              .forEach(p => {
-                const sName = (p.subcategory || '').trim();
-                const sKey = sName.toLowerCase();
-                if (sName && !subMap[sKey]) {
-                  subMap[sKey] = {
-                    name: sName,
-                    imageUrl: p.image_url || ''
-                  };
-                }
-              });
             return Object.values(subMap);
           })();
 
@@ -4736,228 +4767,240 @@ export default function PublicStore() {
             <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
               <div className="max-w-[1600px] mx-auto w-full flex px-2 sm:px-4 md:px-6 py-3 gap-2.5 sm:gap-4 items-start">
                 
-                {/* ═══ COLUMNA 1: SIDEBAR VERTICAL DE CATEGORÍAS (CUADRADOS REDONDEADOS) ═══ */}
+                {/* ═══ COLUMNA 1: SIDEBAR VERTICAL DE SUBCATEGORÍAS (CUADRADOS REDONDEADOS) ═══ */}
                 <aside className="w-20 sm:w-24 shrink-0 sticky top-[53px] self-start py-1">
                   <div className="flex flex-col items-center gap-3 bg-white/95 backdrop-blur-xs rounded-2xl p-2 sm:p-2.5 border border-slate-200/80 shadow-xs max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide">
                     
-                    {/* Botón ALL (Todas) */}
+                    {/* Botón ALL (Todas las subcategorías) */}
                     <button
                       type="button"
-                      onClick={() => {
-                        setActiveMainCategory('Todas');
-                        setActiveSubCategory('Todos');
-                      }}
+                      onClick={() => setActiveSubCategory('Todos')}
                       className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
                     >
                       <div
                         className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center transition-all ${
-                          activeMainCategory === 'Todas'
+                          activeSubCategory === 'Todos'
                             ? 'shadow-md scale-102 ring-2 ring-offset-2'
                             : 'bg-slate-100 hover:bg-slate-200/80 text-slate-600'
                         }`}
-                        style={activeMainCategory === 'Todas' ? {
+                        style={activeSubCategory === 'Todos' ? {
                           backgroundColor: `${primaryColor}15`,
                           color: primaryColor,
                           ringColor: primaryColor
                         } : {}}
                       >
-                        <LayoutGrid size={22} className={activeMainCategory === 'Todas' ? 'stroke-[2.5]' : 'stroke-2'} />
+                        <LayoutGrid size={22} className={activeSubCategory === 'Todos' ? 'stroke-[2.5]' : 'stroke-2'} />
                         <span className="text-[10px] font-black uppercase tracking-wider mt-0.5">All</span>
                       </div>
                       <span className={`text-[10px] font-black text-center truncate max-w-[70px] ${
-                        activeMainCategory === 'Todas' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
+                        activeSubCategory === 'Todos' ? 'text-slate-900 font-extrabold' : 'text-slate-500'
                       }`}>
                         Todas
                       </span>
                     </button>
 
-                    <div className="w-8 h-[1px] bg-slate-200 my-0.5"></div>
+                    {currentCategorySubCats.length > 0 && (
+                      <div className="w-8 h-[1px] bg-slate-200 my-0.5"></div>
+                    )}
 
-                    {/* Categorías Generales con imágenes cuadradas redondeadas */}
-                    {(() => {
-                      const allCatNames = new Set();
-                      storeCustomCategories.forEach(c => {
-                        const n = (typeof c === 'string' ? c : c?.name || '').trim();
-                        if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
-                      });
-                      mainCategories.forEach(mc => {
-                        const n = (typeof mc === 'string' ? mc : '').trim();
-                        if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
-                      });
-                      return Array.from(allCatNames);
-                    })().map((mc) => {
-                      const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === mc.trim().toLowerCase());
-                      const catImg = (typeof customCat === 'object' ? (customCat?.imageUrl || customCat?.image_url) : null) ||
-                        products.find(p => (p.category || '').trim().toLowerCase() === mc.trim().toLowerCase() && p.image_url)?.image_url;
-                      const isActive = (activeMainCategory || '').trim().toLowerCase() === mc.trim().toLowerCase();
+                    {/* Subcategorías de la categoría activa con imágenes cuadradas redondeadas */}
+                    {currentCategorySubCats.map((sc) => {
+                      const isSubActive = (activeSubCategory || '').trim().toLowerCase() === sc.name.trim().toLowerCase();
+                      const subImg = sc.imageUrl || products.find(p => 
+                        (activeMainCategory === 'Todas' || (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase()) && 
+                        (p.subcategory || '').trim().toLowerCase() === sc.name.trim().toLowerCase() && 
+                        p.image_url
+                      )?.image_url;
 
                       return (
-                        <div key={mc} className="w-full flex flex-col items-center gap-2">
-                          {/* Botón de Categoría General */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (activeMainCategory === mc) {
-                                setActiveMainCategory('Todas');
-                                setActiveSubCategory('Todos');
-                              } else {
-                                setActiveMainCategory(mc);
-                                setActiveSubCategory('Todos');
-                              }
-                            }}
-                            className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
+                        <button
+                          key={sc.name}
+                          type="button"
+                          onClick={() => {
+                            if (activeSubCategory.trim().toLowerCase() === sc.name.trim().toLowerCase()) {
+                              setActiveSubCategory('Todos');
+                            } else {
+                              setActiveSubCategory(sc.name);
+                            }
+                          }}
+                          className="group flex flex-col items-center gap-1 cursor-pointer w-full select-none"
+                        >
+                          <div
+                            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden flex items-center justify-center relative transition-all ${
+                              isSubActive
+                                ? 'shadow-md ring-2 ring-offset-2 scale-102'
+                                : 'border border-slate-200/90 hover:border-slate-300 bg-white'
+                            }`}
+                            style={isSubActive ? { ringColor: primaryColor } : {}}
                           >
-                            <div
-                              className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden flex items-center justify-center relative transition-all ${
-                                isActive
-                                  ? 'shadow-md ring-2 ring-offset-2 scale-102'
-                                  : 'border border-slate-200/90 hover:border-slate-300 bg-white'
-                              }`}
-                              style={isActive ? { ringColor: primaryColor } : {}}
-                            >
-                              {catImg ? (
-                                <img
-                                  src={resolveImageUrl(catImg)}
-                                  alt={mc}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                              ) : (
-                                <div
-                                  className="w-full h-full flex items-center justify-center font-black text-base uppercase"
-                                  style={{
-                                    backgroundColor: isActive ? `${primaryColor}20` : '#f1f5f9',
-                                    color: isActive ? primaryColor : '#64748b'
-                                  }}
-                                >
-                                  {mc.substring(0, 2)}
-                                </div>
-                              )}
-                            </div>
-                            <span
-                              className={`text-[10px] font-bold text-center leading-tight line-clamp-2 max-w-[72px] ${
-                                isActive ? 'text-slate-900 font-black' : 'text-slate-600'
-                              }`}
-                            >
-                              {mc}
-                            </span>
-                          </button>
-
-                          {/* Subcategorías Desplegadas Debajo */}
-                          {isActive && currentCategorySubCats.length > 0 && (
-                            <div className="w-full flex flex-col items-center gap-2 pt-1 pb-1 border-t border-b border-amber-200/60 bg-amber-50/40 rounded-xl p-1">
-                              <button
-                                type="button"
-                                onClick={() => setActiveSubCategory('Todos')}
-                                className={`w-full text-center py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                                  activeSubCategory === 'Todos'
-                                    ? 'bg-amber-500 text-zinc-950 shadow-2xs font-extrabold'
-                                    : 'text-slate-600 hover:bg-white/80'
-                                }`}
+                            {subImg ? (
+                              <img
+                                src={resolveImageUrl(subImg)}
+                                alt={sc.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div
+                                className="w-full h-full flex items-center justify-center font-black text-base uppercase"
+                                style={{
+                                  backgroundColor: isSubActive ? `${primaryColor}20` : '#f1f5f9',
+                                  color: isSubActive ? primaryColor : '#64748b'
+                                }}
                               >
-                                Todo
-                              </button>
-
-                              {currentCategorySubCats.map((sc) => {
-                                const isSubActive = (activeSubCategory || '').toLowerCase() === sc.name.toLowerCase();
-                                const subImg = sc.imageUrl || products.find(p => (p.category || '').toLowerCase() === mc.toLowerCase() && (p.subcategory || '').toLowerCase() === sc.name.toLowerCase() && p.image_url)?.image_url;
-
-                                return (
-                                  <button
-                                    key={sc.name}
-                                    type="button"
-                                    onClick={() => setActiveSubCategory(sc.name)}
-                                    className="group flex flex-col items-center gap-0.5 cursor-pointer w-full select-none"
-                                  >
-                                    <div
-                                      className={`w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center transition-all ${
-                                        isSubActive
-                                          ? 'ring-2 ring-offset-1 shadow-xs scale-105'
-                                          : 'border border-slate-200 bg-white hover:border-slate-300'
-                                      }`}
-                                      style={isSubActive ? { ringColor: primaryColor } : {}}
-                                    >
-                                      {subImg ? (
-                                        <img
-                                          src={resolveImageUrl(subImg)}
-                                          alt={sc.name}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <div
-                                          className="w-full h-full flex items-center justify-center text-[11px] font-black uppercase"
-                                          style={{
-                                            backgroundColor: isSubActive ? `${primaryColor}25` : '#f8fafc',
-                                            color: isSubActive ? primaryColor : '#64748b'
-                                          }}
-                                        >
-                                          {sc.name.substring(0, 1)}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <span
-                                      className={`text-[9px] font-bold text-center leading-tight line-clamp-1 max-w-[65px] ${
-                                        isSubActive ? 'text-amber-800 font-black' : 'text-slate-600'
-                                      }`}
-                                    >
-                                      {sc.name}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                                {sc.name.substring(0, 2)}
+                              </div>
+                            )}
+                          </div>
+                          <span
+                            className={`text-[10px] font-bold text-center leading-tight line-clamp-2 max-w-[72px] ${
+                              isSubActive ? 'text-slate-900 font-black' : 'text-slate-600'
+                            }`}
+                          >
+                            {sc.name}
+                          </span>
+                        </button>
                       );
                     })}
                   </div>
                 </aside>
 
-                {/* ═══ COLUMNA 2: BUSCADOR Y PRODUCTOS ═══ */}
+                {/* ═══ COLUMNA 2: CATEGORÍAS GENERALES HORIZONTALES Y PRODUCTOS ═══ */}
                 <div className="flex-1 min-w-0">
                    
-                   {/* Barra Compacta de Búsqueda y Ordenar */}
-                   <div className="bg-white p-2.5 sm:p-3 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
-                     <div className="relative flex-1">
-                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                         <Search size={16} />
-                       </div>
-                       <input 
-                         type="text" 
-                         placeholder="Buscar productos en el catálogo..." 
-                         value={searchQuery}
-                         onChange={(e) => setSearchQuery(e.target.value)}
-                         className="w-full pl-9 pr-8 py-2 text-xs md:text-sm bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
-                       />
-                       {searchQuery && (
-                         <button 
+                   {/* Barra Horizontal Superior de Categorías Generales (Hacia la derecha) con Lupita Compacta */}
+                   <div className="bg-white p-2 sm:p-2.5 rounded-2xl shadow-xs border border-zinc-200/80 mb-3.5 flex items-center gap-2">
+                     
+                     {/* Botón Lupita de Búsqueda Compacta */}
+                     <div className="shrink-0 flex items-center">
+                       {!isSearchOpen && !searchQuery ? (
+                         <button
                            type="button"
-                           onClick={() => setSearchQuery('')}
-                           className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600"
-                           aria-label="Limpiar búsqueda"
+                           onClick={() => setIsSearchOpen(true)}
+                           className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-zinc-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs border border-zinc-200/70"
+                           title="Buscar en el catálogo"
+                           aria-label="Abrir buscador"
                          >
-                           <X size={14} />
+                           <Search size={18} className="stroke-[2.2]" />
                          </button>
+                       ) : (
+                         <div className="relative flex items-center w-44 sm:w-56 transition-all">
+                           <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
+                             <Search size={15} />
+                           </div>
+                           <input
+                             type="text"
+                             autoFocus
+                             placeholder="Buscar..."
+                             value={searchQuery}
+                             onChange={(e) => setSearchQuery(e.target.value)}
+                             className="w-full pl-8 pr-7 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-800 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-amber-500 transition-colors"
+                           />
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setSearchQuery('');
+                               setIsSearchOpen(false);
+                             }}
+                             className="absolute inset-y-0 right-0 pr-2 flex items-center text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                             title="Cerrar búsqueda"
+                           >
+                             <X size={14} />
+                           </button>
+                         </div>
                        )}
                      </div>
 
-                     <div className="flex items-center gap-2">
-                       {/* Selector de Orden */}
-                       <div className="relative flex-1 sm:flex-initial min-w-[130px]">
-                         <select 
-                           value={sortBy} 
-                           onChange={(e) => setSortBy(e.target.value)}
-                           aria-label="Ordenar productos"
-                           className="w-full appearance-none bg-zinc-50 border border-zinc-200 rounded-xl pl-3 pr-7 py-2 text-xs font-bold text-zinc-700 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                         >
-                           <option value="newest">Más recientes</option>
-                           <option value="priceAsc">Precio: Menor</option>
-                           <option value="priceDesc">Precio: Mayor</option>
-                           <option value="nameAsc">Nombre: A-Z</option>
-                         </select>
-                         <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-zinc-400">
-                           <ChevronRight size={13} className="rotate-90" />
+                     <div className="w-[1px] h-7 bg-zinc-200 shrink-0 mx-0.5"></div>
+
+                     {/* Hilera Horizontal de Categorías Generales (Despliegue hacia la derecha) */}
+                     <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide py-1">
+                       
+                       {/* Botón ALL (Todas las categorías principales) */}
+                       <button
+                         type="button"
+                         onClick={() => {
+                           setActiveMainCategory('Todas');
+                           setActiveSubCategory('Todos');
+                         }}
+                         className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all cursor-pointer select-none ${
+                           activeMainCategory === 'Todas'
+                             ? 'shadow-xs scale-102 ring-2 ring-offset-1'
+                             : 'bg-white hover:bg-slate-50 text-slate-700 border-zinc-200/90'
+                         }`}
+                         style={activeMainCategory === 'Todas' ? {
+                           backgroundColor: `${primaryColor}15`,
+                           borderColor: primaryColor,
+                           color: primaryColor,
+                           ringColor: primaryColor
+                         } : {}}
+                       >
+                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-slate-100 text-slate-600 shrink-0">
+                           <LayoutGrid size={16} className="stroke-[2.5]" />
                          </div>
-                       </div>
+                         <span className="font-extrabold tracking-wide uppercase text-[11px] whitespace-nowrap">Todas</span>
+                       </button>
+
+                       {/* Categorías Generales con Foto Cuadrada Redondeada y Nombre */}
+                       {(() => {
+                         const allCatNames = new Set();
+                         storeCustomCategories.forEach(c => {
+                           const n = (typeof c === 'string' ? c : c?.name || '').trim();
+                           if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
+                         });
+                         mainCategories.forEach(mc => {
+                           const n = (typeof mc === 'string' ? mc : '').trim();
+                           if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
+                         });
+                         return Array.from(allCatNames);
+                       })().map((mc) => {
+                         const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === mc.trim().toLowerCase());
+                         const catImg = (typeof customCat === 'object' ? (customCat?.imageUrl || customCat?.image_url) : null) ||
+                           products.find(p => (p.category || '').trim().toLowerCase() === mc.trim().toLowerCase() && p.image_url)?.image_url;
+                         const isActive = (activeMainCategory || '').trim().toLowerCase() === mc.trim().toLowerCase();
+
+                         return (
+                           <button
+                             key={mc}
+                             type="button"
+                             onClick={() => {
+                               if (activeMainCategory === mc) {
+                                 setActiveMainCategory('Todas');
+                                 setActiveSubCategory('Todos');
+                               } else {
+                                 setActiveMainCategory(mc);
+                                 setActiveSubCategory('Todos');
+                               }
+                             }}
+                             className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shrink-0 transition-all cursor-pointer select-none ${
+                               isActive
+                                 ? 'shadow-xs scale-102 ring-2 ring-offset-1'
+                                 : 'bg-white hover:bg-slate-50 text-slate-700 border-zinc-200/90'
+                             }`}
+                             style={isActive ? {
+                               backgroundColor: `${primaryColor}15`,
+                               borderColor: primaryColor,
+                               color: primaryColor,
+                               ringColor: primaryColor
+                             } : {}}
+                           >
+                             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-slate-100 border border-slate-200">
+                               {catImg ? (
+                                 <img
+                                   src={resolveImageUrl(catImg)}
+                                   alt={mc}
+                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                 />
+                               ) : (
+                                 <span className="text-[11px] font-black uppercase text-slate-600">
+                                   {mc.substring(0, 2)}
+                                 </span>
+                               )}
+                             </div>
+                             <span className="font-extrabold whitespace-nowrap text-[12px]">{mc}</span>
+                           </button>
+                         );
+                       })}
+
                      </div>
                    </div>
 
