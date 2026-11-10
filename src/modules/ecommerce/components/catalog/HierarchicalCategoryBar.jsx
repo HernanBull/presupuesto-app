@@ -128,6 +128,14 @@ export const HierarchicalCategoryBar = ({
                 title={`Categoría anclada con pincito: ${cat.name}`}
               >
                 <Pin size={12} className={isCatActive ? 'fill-current text-white -rotate-45' : 'text-orange-600 fill-orange-600 -rotate-45'} />
+                {cat.imageUrl && (
+                  <img
+                    src={cat.imageUrl}
+                    alt={cat.name}
+                    className="w-4.5 h-4.5 rounded-full object-cover shrink-0 border border-white/50"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
                 <span>{cat.name}</span>
                 {isCatActive && (
                   <span className="ml-0.5 opacity-80 hover:opacity-100 text-[10px]">✕</span>
@@ -138,12 +146,20 @@ export const HierarchicalCategoryBar = ({
 
           {/* Categoría Seleccionada Pill (si no es ALL y no está en las ancladas) */}
           {selectedCategory && !pinnedCategoriesList.some(p => p.id === selectedCategory.id) && (
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-bold truncate shrink-0">
+            <div className="flex items-center gap-1.5 bg-orange-600 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold truncate shrink-0 shadow-xs">
+              {selectedCategory.imageUrl && (
+                <img
+                  src={selectedCategory.imageUrl}
+                  alt={selectedCategory.name}
+                  className="w-4.5 h-4.5 rounded-full object-cover shrink-0 border border-white/50"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
               <span className="truncate">{selectedCategory.name}</span>
               <button
                 type="button"
                 onClick={() => onSelectCategory && onSelectCategory('ALL')}
-                className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="text-white/80 hover:text-white p-0.5 cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -352,9 +368,10 @@ export const HierarchicalCategoryBar = ({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: '50%',
+                          width: 40,
+                          height: 40,
+                          borderRadius: 10,
+                          overflow: 'hidden',
                           backgroundColor: cat.color ? `${cat.color}20` : '#F1F5F9',
                           color: cat.color || '#EA580C',
                           display: 'flex',
@@ -362,10 +379,20 @@ export const HierarchicalCategoryBar = ({
                           justifyContent: 'center',
                           fontWeight: 800,
                           fontSize: 14,
-                          flexShrink: 0
+                          flexShrink: 0,
+                          border: '1px solid #E2E8F0'
                         }}
                       >
-                        {cat.name.charAt(0).toUpperCase()}
+                        {cat.imageUrl ? (
+                          <img
+                            src={cat.imageUrl}
+                            alt={cat.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          cat.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

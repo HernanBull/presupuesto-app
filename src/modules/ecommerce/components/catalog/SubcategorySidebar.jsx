@@ -2,6 +2,7 @@ import React from 'react';
 import { Boxes, Sparkles } from 'lucide-react';
 
 export const SubcategorySidebar = ({
+  parentCategory = null,
   subcategories = [],
   selectedSubcategoryId = 'ALL',
   onSelectSubcategory,
@@ -57,7 +58,7 @@ export const SubcategorySidebar = ({
         `}
       </style>
 
-      {/* 1. BOTÓN "ALL" */}
+      {/* 1. BOTÓN CATEGORÍA GENERAL / ALL CON LOGO / IMAGEN REAL */}
       <button
         type="button"
         onClick={() => onSelectSubcategory && onSelectSubcategory('ALL')}
@@ -101,37 +102,53 @@ export const SubcategorySidebar = ({
           />
         )}
 
-        {/* Círculo con Icono Boxes (sustituye los 4 cuadros anteriores) */}
+        {/* Thumbnail Circular: Logo/Imagen de la Categoría General o Icono Boxes */}
         <div
           style={{
-            width: 52,
-            height: 52,
+            width: 54,
+            height: 54,
             borderRadius: '50%',
+            overflow: 'hidden',
             backgroundColor: selectedSubcategoryId === 'ALL' ? '#FFEDD5' : '#F1F5F9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: selectedSubcategoryId === 'ALL' ? activeAccentColor : '#64748B',
-            border: selectedSubcategoryId === 'ALL' ? `2px solid ${activeAccentColor}` : '1.5px solid #E2E8F0',
-            boxShadow: selectedSubcategoryId === 'ALL' ? '0 2px 6px rgba(234, 88, 12, 0.2)' : 'none',
+            border: selectedSubcategoryId === 'ALL' ? `2.5px solid ${activeAccentColor}` : '2px solid #E2E8F0',
+            boxShadow: selectedSubcategoryId === 'ALL' ? '0 2px 8px rgba(234, 88, 12, 0.25)' : 'none',
             transition: 'all 0.15s ease',
-            marginBottom: 6
+            marginBottom: 6,
+            flexShrink: 0
           }}
         >
-          <Boxes size={22} strokeWidth={selectedSubcategoryId === 'ALL' ? 2.2 : 1.8} />
+          {parentCategory?.imageUrl ? (
+            <img 
+              src={parentCategory.imageUrl} 
+              alt={parentCategory.name}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            <Boxes size={24} strokeWidth={selectedSubcategoryId === 'ALL' ? 2.2 : 1.8} />
+          )}
         </div>
 
-        {/* Etiqueta "All" */}
+        {/* Etiqueta del botón padre */}
         <span
           style={{
-            fontSize: '12px',
-            fontWeight: selectedSubcategoryId === 'ALL' ? 700 : 500,
-            color: selectedSubcategoryId === 'ALL' ? '#0F172A' : '#475569',
+            fontSize: '11px',
+            fontWeight: selectedSubcategoryId === 'ALL' ? 700 : 600,
+            color: selectedSubcategoryId === 'ALL' ? '#EA580C' : '#475569',
             textAlign: 'center',
-            lineHeight: 1.2
+            lineHeight: 1.2,
+            maxWidth: '100px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
           }}
+          title={parentCategory?.name || 'Todos los productos'}
         >
-          All
+          {parentCategory?.name || 'Todos'}
         </span>
 
         {/* Contador */}
@@ -139,10 +156,9 @@ export const SubcategorySidebar = ({
           <span
             style={{
               fontSize: '10px',
-              fontWeight: 600,
-              color: '#94A3B8',
-              marginTop: 2,
-              fontFamily: 'monospace'
+              fontWeight: 700,
+              color: selectedSubcategoryId === 'ALL' ? '#EA580C' : '#94A3B8',
+              marginTop: 2
             }}
           >
             ({totalCount})

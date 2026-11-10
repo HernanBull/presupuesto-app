@@ -470,13 +470,17 @@ export default function ProductsManager() {
     subcategoryName: '',
     selectedProductIds: new Set(),
     searchQuery: '',
+    categoryFilter: 'ALL',
     saving: false
   });
 
   const handleOpenAssignModal = (categoryName, subcategoryName) => {
     const preSelected = new Set(
       products
-        .filter(p => (p.category || 'General').toLowerCase() === categoryName.toLowerCase() && (p.subcategory || '').toLowerCase() === subcategoryName.toLowerCase())
+        .filter(p => 
+          (p.subcategory || '').toLowerCase() === subcategoryName.toLowerCase() &&
+          (p.category || 'General').toLowerCase() === categoryName.toLowerCase()
+        )
         .map(p => p.id)
     );
     setAssignModal({
@@ -485,6 +489,7 @@ export default function ProductsManager() {
       subcategoryName,
       selectedProductIds: preSelected,
       searchQuery: '',
+      categoryFilter: 'ALL',
       saving: false
     });
   };
@@ -506,30 +511,33 @@ export default function ProductsManager() {
     try {
       setAssignModal(prev => ({ ...prev, saving: true }));
 
-      const catProducts = products.filter(p => (p.category || 'General').toLowerCase() === categoryName.toLowerCase());
-      
       const toAssign = [];
       const toUnassign = [];
 
-      catProducts.forEach(p => {
+      products.forEach(p => {
         const isSelected = selectedProductIds.has(p.id);
-        const currentSub = (p.subcategory || '').toLowerCase();
-        const targetSub = subcategoryName.toLowerCase();
+        const inThisSub = (p.subcategory || '').toLowerCase() === subcategoryName.toLowerCase() &&
+                          (p.category || 'General').toLowerCase() === categoryName.toLowerCase();
 
-        if (isSelected && currentSub !== targetSub) {
+        if (isSelected && !inThisSub) {
           toAssign.push(p.id);
-        } else if (!isSelected && currentSub === targetSub) {
+        } else if (!isSelected && inThisSub) {
           toUnassign.push(p.id);
         }
       });
 
+      // Asignar los seleccionados a la categoría padre y a la subcategoría
       if (toAssign.length > 0) {
         await supabase
           .from('ecommerce_products')
-          .update({ subcategory: subcategoryName })
+          .update({ 
+            category: categoryName,
+            subcategory: subcategoryName 
+          })
           .in('id', toAssign);
       }
 
+      // Desasignar los desmarcados
       if (toUnassign.length > 0) {
         await supabase
           .from('ecommerce_products')
@@ -538,7 +546,7 @@ export default function ProductsManager() {
       }
 
       toast.success(`Productos asignados a "${subcategoryName}" exitosamente`);
-      setAssignModal({ isOpen: false, categoryName: '', subcategoryName: '', selectedProductIds: new Set(), searchQuery: '', saving: false });
+      setAssignModal({ isOpen: false, categoryName: '', subcategoryName: '', selectedProductIds: new Set(), searchQuery: '', categoryFilter: 'ALL', saving: false });
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -982,21 +990,21 @@ export default function ProductsManager() {
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
                             {/* Avatar con botón (+) para imagen */}
-                            <div className="relative group/avatar shrink-0">
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black overflow-hidden shadow-inner">
+                            <div className="relative shrink-0">
+                              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/50 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black overflow-hidden shadow-sm">
                                 {cat.imageUrl ? (
                                   <img src={cat.imageUrl} alt={cat.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <Tag size={20} />
+                                  <Tag size={24} />
                                 )}
                               </div>
                               <button
                                 type="button"
                                 onClick={() => handleTriggerUpload('category', cat.name)}
                                 title={cat.imageUrl ? "Cambiar foto de categoría" : "Agregar foto a categoría"}
-                                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center hover:bg-amber-400 shadow-md transition-transform hover:scale-110 cursor-pointer"
+                                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow-md transition-transform hover:scale-110 cursor-pointer border-2 border-white dark:border-slate-900"
                               >
-                                <Plus size={12} strokeWidth={3} />
+                                <Plus size={13} strokeWidth={3} />
                               </button>
                             </div>
 
@@ -1062,20 +1070,20 @@ export default function ProductsManager() {
                                   <div className="flex items-center gap-2 min-w-0">
                                     {/* Avatar subcategoría con botón (+) */}
                                     <div className="relative shrink-0">
-                                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 flex items-center justify-center overflow-hidden">
+                                      <div className="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 flex items-center justify-center overflow-hidden border-2 border-amber-500/40 shadow-xs">
                                         {sub.imageUrl ? (
                                           <img src={sub.imageUrl} alt={sub.name} className="w-full h-full object-cover" />
                                         ) : (
-                                          <FolderTree size={13} />
+                                          <FolderTree size={16} />
                                         )}
                                       </div>
                                       <button
                                         type="button"
                                         onClick={() => handleTriggerUpload('subcategory', cat.name, sub.name)}
                                         title="Subir foto a subcategoría"
-                                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center hover:bg-amber-400 shadow cursor-pointer text-[9px]"
+                                        className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow cursor-pointer border border-white dark:border-slate-900"
                                       >
-                                        <Plus size={8} strokeWidth={3} />
+                                        <Plus size={9} strokeWidth={3} />
                                       </button>
                                     </div>
                                     <div className="min-w-0">
@@ -1283,17 +1291,17 @@ export default function ProductsManager() {
 
       {/* Modal para Asignar Productos a Subcategoría */}
       {assignModal.isOpen && (() => {
-        const catProducts = products.filter(p => 
-          (p.category || 'General').toLowerCase() === assignModal.categoryName.toLowerCase()
-        );
-        const filteredProds = catProducts.filter(p => 
-          p.name.toLowerCase().includes(assignModal.searchQuery.toLowerCase()) ||
-          (p.sku && p.sku.toLowerCase().includes(assignModal.searchQuery.toLowerCase()))
-        );
+        const availableCategories = ['ALL', ...Array.from(new Set(products.map(p => p.category || 'General')))];
+        const filteredProds = products.filter(p => {
+          const matchCat = assignModal.categoryFilter === 'ALL' || (p.category || 'General').toLowerCase() === assignModal.categoryFilter.toLowerCase();
+          const q = assignModal.searchQuery.toLowerCase().trim();
+          const matchQuery = !q || p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q));
+          return matchCat && matchQuery;
+        });
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
               {/* Header */}
               <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
@@ -1309,6 +1317,9 @@ export default function ProductsManager() {
                   <h3 className="font-black text-lg text-slate-900 dark:text-white mt-1">
                     Asignar productos a "{assignModal.subcategoryName}"
                   </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Puedes seleccionar cualquier producto de tu inventario. Al guardar, quedará registrado en esta subcategoría.
+                  </p>
                 </div>
                 <button 
                   onClick={() => setAssignModal(prev => ({ ...prev, isOpen: false }))}
@@ -1318,8 +1329,8 @@ export default function ProductsManager() {
                 </button>
               </div>
 
-              {/* Barra de búsqueda dentro del modal */}
-              <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-between gap-3">
+              {/* Barra de búsqueda y filtro de categoría */}
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-950/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                   <input
@@ -1330,25 +1341,39 @@ export default function ProductsManager() {
                     className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
                   />
                 </div>
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0">
-                  {assignModal.selectedProductIds.size} seleccionados
-                </span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={assignModal.categoryFilter}
+                    onChange={(e) => setAssignModal(prev => ({ ...prev, categoryFilter: e.target.value }))}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none"
+                  >
+                    <option value="ALL">Todo el Inventario ({products.length})</option>
+                    {availableCategories.filter(c => c !== 'ALL').map(cat => (
+                      <option key={cat} value={cat}>Categoría: {cat}</option>
+                    ))}
+                  </select>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 shrink-0 whitespace-nowrap">
+                    {assignModal.selectedProductIds.size} selec.
+                  </span>
+                </div>
               </div>
 
               {/* Lista de productos para seleccionar */}
               <div className="p-4 overflow-y-auto flex-1 space-y-2">
-                {catProducts.length === 0 ? (
+                {products.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
-                    No hay productos registrados en la categoría "{assignModal.categoryName}".
+                    No hay productos registrados en el inventario.
                   </div>
                 ) : filteredProds.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-400">
-                    No se encontraron productos coincidentes con "{assignModal.searchQuery}".
+                    No se encontraron productos con los filtros aplicados.
                   </div>
                 ) : (
                   filteredProds.map((product) => {
                     const isChecked = assignModal.selectedProductIds.has(product.id);
-                    const currentOtherSub = product.subcategory && product.subcategory.toLowerCase() !== assignModal.subcategoryName.toLowerCase() ? product.subcategory : null;
+                    const prodCat = product.category || 'General';
+                    const prodSub = product.subcategory || '';
+                    const isInOtherSub = prodSub && (prodSub.toLowerCase() !== assignModal.subcategoryName.toLowerCase() || prodCat.toLowerCase() !== assignModal.categoryName.toLowerCase());
 
                     return (
                       <div
@@ -1356,7 +1381,7 @@ export default function ProductsManager() {
                         onClick={() => handleToggleProductInSubcat(product.id)}
                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
                           isChecked
-                            ? 'bg-amber-500/10 border-amber-500/40 dark:bg-amber-500/15'
+                            ? 'bg-amber-500/10 border-amber-500/40 dark:bg-amber-500/15 shadow-xs'
                             : 'bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                         }`}
                       >
@@ -1369,10 +1394,10 @@ export default function ProductsManager() {
                           </button>
 
                           {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
+                            <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
                           ) : (
-                            <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
-                              <Package size={16} />
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                              <Package size={18} />
                             </div>
                           )}
 
@@ -1380,16 +1405,19 @@ export default function ProductsManager() {
                             <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                               {product.name}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
                               <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400">
                                 ${Number(product.price || 0).toFixed(2)}
                               </span>
                               <span className="text-[10px] text-slate-400">
                                 · Stock: {product.stock ?? 0}
                               </span>
-                              {currentOtherSub && (
-                                <span className="text-[10px] text-orange-600 dark:text-orange-400 italic">
-                                  (actualmente en: {currentOtherSub})
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                                {prodCat}
+                              </span>
+                              {isInOtherSub && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 font-bold">
+                                  subcat: {prodSub}
                                 </span>
                               )}
                             </div>

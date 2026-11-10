@@ -615,6 +615,7 @@ export default function UnifiedPosPage() {
               id: cName,
               name: cName,
               color: c.color || '#EA580C',
+              imageUrl: c.imageUrl || '',
               level: 'main'
             });
 
@@ -622,12 +623,14 @@ export default function UnifiedPosPage() {
             const rawSubs = Array.isArray(c.subcategories) ? c.subcategories : [];
             rawSubs.forEach(sub => {
               const sName = typeof sub === 'string' ? sub.trim() : (sub?.name || '').trim();
+              const sImg = typeof sub === 'object' ? (sub?.imageUrl || '') : '';
               if (sName) {
                 const subKey = `${cName}::${sName}`;
                 subcatMap.set(subKey, {
                   id: sName,
                   name: sName,
                   parentId: cName,
+                  imageUrl: sImg,
                   level: 'sub'
                 });
               }
@@ -1715,6 +1718,7 @@ export default function UnifiedPosPage() {
               {activeSubcategories.length > 0 && (
                 <div className="hidden lg:flex shrink-0">
                   <SubcategorySidebar
+                    parentCategory={mainCategories.find(c => c.id === selectedMainCategory)}
                     subcategories={activeSubcategories}
                     selectedSubcategoryId={selectedSubcategory}
                     onSelectSubcategory={(subId) => setSelectedSubcategory(subId)}
