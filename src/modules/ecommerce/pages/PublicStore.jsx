@@ -1782,11 +1782,22 @@ export default function PublicStore() {
         Object.entries(newCart).forEach(([id, qty]) => {
           const p = products.find(prod => prod.id === id);
           if (p) {
-            storeItems[id] = { id, name: p.name, price: p.discount_price || p.price, quantity: qty, imageUrl: p.image_url };
+            const pImg = p.image_url || (Array.isArray(p.images) ? p.images[0] : '') || (Array.isArray(p.metadata?.images) ? p.metadata.images[0] : '') || '';
+            storeItems[id] = { 
+              id, 
+              name: p.name, 
+              price: Number(p.discount_price || p.price), 
+              quantity: qty, 
+              imageUrl: pImg 
+            };
           }
         });
+        const resolvedStoreName = config?.business_name || config?.expediente?.razon_social || store?.name || slug;
+        const resolvedStoreLogo = config?.logoUrl || config?.storefront?.logoUrl || store?.logo_url || '';
         globalCart[slug] = {
-          storeName: config?.texts?.nav1 === 'Inicio' ? slug : slug,
+          storeName: resolvedStoreName,
+          storeLogo: resolvedStoreLogo,
+          storeSlug: slug,
           items: storeItems
         };
       }

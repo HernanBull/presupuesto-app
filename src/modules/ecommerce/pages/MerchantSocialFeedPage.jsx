@@ -84,7 +84,8 @@ export default function MerchantSocialFeedPage() {
     status: 'Publicado',
     badge: '🔥 Oferta Exclusiva',
     post_type: 'post', // 'post' o 'status'
-    is_permanent: false
+    is_permanent: false,
+    fit_mode: 'contain' // 'contain' (fondo blur TikTok) o 'cover' (pantalla vertical completa)
   });
 
   const workspaceId = localStorage.getItem('activeWorkspace');
@@ -1562,12 +1563,22 @@ export default function MerchantSocialFeedPage() {
                       />
                     ) : (formData.images && formData.images.length > 0) ? (
                       <div className="absolute inset-0 w-full h-full">
-                        <img 
-                          src={formData.images[previewPhotoIndex] || formData.images[0]} 
-                          alt="Preview" 
-                          className="w-full h-full object-cover" 
-                          onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
-                        />
+                        <div className="absolute inset-0 w-full h-full overflow-hidden select-none">
+                          <img 
+                            src={formData.images[previewPhotoIndex] || formData.images[0]} 
+                            alt="" 
+                            className="w-full h-full object-cover blur-2xl opacity-40 scale-110" 
+                            aria-hidden="true"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center p-0">
+                            <img 
+                              src={formData.images[previewPhotoIndex] || formData.images[0]} 
+                              alt="Preview" 
+                              className="w-full h-full max-h-[85vh] object-contain drop-shadow-2xl" 
+                              onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+                            />
+                          </div>
+                        </div>
                         {formData.images.length > 1 && (
                           <>
                             {previewPhotoIndex > 0 && (
@@ -1600,17 +1611,27 @@ export default function MerchantSocialFeedPage() {
                         )}
                       </div>
                     ) : formData.image_url ? (
-                      <img 
-                        src={formData.image_url} 
-                        alt="Preview" 
-                        className="absolute inset-0 w-full h-full object-cover z-0" 
-                        onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
-                      />
+                      <div className="absolute inset-0 w-full h-full overflow-hidden z-0">
+                        <img 
+                          src={formData.image_url} 
+                          alt="" 
+                          className="w-full h-full object-cover blur-2xl opacity-40 scale-110" 
+                          aria-hidden="true"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center p-0">
+                          <img 
+                            src={formData.image_url} 
+                            alt="Preview" 
+                            className="w-full h-full max-h-[85vh] object-contain drop-shadow-2xl" 
+                            onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+                          />
+                        </div>
+                      </div>
                     ) : (
                       <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-0 gap-2 p-4 text-center">
                         <ImageIcon size={36} className="opacity-40 text-amber-500" />
                         <span className="text-xs font-semibold text-zinc-400">Sube o selecciona una foto para verla aquí</span>
-                        <span className="text-[10px] text-zinc-600">Formato 9:16 vertical o cualquier imagen</span>
+                        <span className="text-[10px] text-amber-400 font-bold">📱 Formato TikTok: 9:16 Vertical (1080×1920 px)</span>
                       </div>
                     )}
 

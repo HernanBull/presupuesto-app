@@ -1861,11 +1861,17 @@ export default function MarketplaceDirectory() {
     const c = mainContainerRef.current;
     const scrollPos = c ? c.scrollTop : (window.scrollY || 0);
 
-    // Al deslizar hacia abajo: ocultar barras de inmediato y mantenerlas ocultas permanentemente
-    if (scrollPos > 30) {
+    // Al deslizar hacia abajo (segundo post en adelante): ocultar barras de inmediato
+    if (scrollPos > 40) {
       if (isNavOpenRef.current) {
         isNavOpenRef.current = false;
         setIsBottomNavOpen(false);
+      }
+    } else if (scrollPos <= 15) {
+      // Al volver arriba del todo en el primer post, volver a mostrar las barras
+      if (!isNavOpenRef.current) {
+        isNavOpenRef.current = true;
+        setIsBottomNavOpen(true);
       }
     }
     lastScrollTopRef.current = scrollPos;
@@ -1881,8 +1887,8 @@ export default function MarketplaceDirectory() {
 
   // Detección de publicación visible (IntersectionObserver de cada tarjeta)
   const handleCardVisible = useCallback((cardIndex) => {
-    if (cardIndex > 0) {
-      // Viendo la publicación de otro comerciante (2da en adelante) -> ocultar barras de inmediato
+    if (cardIndex >= 1) {
+      // Viendo la publicación de otro comerciante (2da en adelante) -> ocultar barras automáticamente
       if (isNavOpenRef.current) {
         isNavOpenRef.current = false;
         setIsBottomNavOpen(false);
@@ -2312,27 +2318,26 @@ export default function MarketplaceDirectory() {
           </ActiveFeedMediaProvider>
         </div>
 
-        {/* Botón flotante en esquina izquierda (Ultra ligero a 60-120 FPS, sin lag en capturas) */}
-        <button
-          onClick={() => {
-            isNavOpenRef.current = true;
-            setIsBottomNavOpen(true);
-          }}
-          className={`fixed bottom-6 left-5 z-50 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer shadow-lg active:scale-90 hover:scale-105 transition-transform duration-150 ${!isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
-            }`}
-          style={{
-            background: 'linear-gradient(135deg, #f59e0b, #ea580c)',
-            border: '2px solid rgba(255, 255, 255, 0.85)',
-            boxShadow: '0 6px 20px rgba(234, 88, 12, 0.45)'
-          }}
-          title="Abrir menú"
-          aria-label="Abrir menú de navegación"
+        {/* Botón flotante de reapertura cuando las barras están ocultas */}
+        <div
+          className={`fixed bottom-6 left-4 z-50 transition-all duration-200 ${!isBottomNavOpen ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-4 pointer-events-none'}`}
         >
-          <ShoppingBag size={22} className="stroke-[2.5] text-white" />
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-white shadow-xs"></span>
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              isNavOpenRef.current = true;
+              setIsBottomNavOpen(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 shadow-2xl backdrop-blur-md active:scale-95 transition-transform cursor-pointer group"
+            title="Mostrar menú de navegación"
+            aria-label="Mostrar menú de navegación"
+          >
+            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black shadow-xs">
+              <ShoppingBag size={13} className="stroke-[2.5]" />
+            </div>
+            <span className="text-xs font-black tracking-wide pr-1">Menú</span>
+          </button>
+        </div>
 
         {/* Bottom Navigation Bar - Sólido optimizado (Cero lag de GPU en screenshots, 60-120 FPS fluidos) */}
         <div
@@ -2450,79 +2455,130 @@ export default function MarketplaceDirectory() {
           {isCartOpen && (
             <div className="fixed inset-0 z-[100] flex justify-end">
               <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-                className="absolute inset-0 bg-black/90" onClick={() => setIsCartOpen(false)}
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                transition={{ duration: 0.18 }}
+                className="absolute inset-0 bg-black/80" 
+                onClick={() => setIsCartOpen(false)}
               />
               <motion.div
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 30, stiffness: 200 }}
-                className="bg-zinc-50 border-l border-zinc-200 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col"
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="bg-zinc-50 border-l border-zinc-200 w-full max-w-md h-full relative z-10 shadow-2xl flex flex-col will-change-transform"
               >
-                <div className="p-6 border-b border-black/5 flex items-center justify-between bg-white">
+                <div className="p-5 border-b border-black/5 flex items-center justify-between bg-white">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100">
+                    <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center border border-amber-100 shadow-2xs">
                       <ShoppingCart className="text-amber-500" size={20} />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-800 tracking-tight">Mis Carritos</h2>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900 tracking-tight">Mis Carritos</h2>
+                      <p className="text-[11px] text-slate-500">Pedidos guardados por comercio</p>
+                    </div>
                   </div>
-                  <button onClick={() => setIsCartOpen(false)} className="text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all">
+                  <button 
+                    onClick={() => setIsCartOpen(false)} 
+                    className="text-zinc-500 hover:text-black hover:bg-zinc-100 rounded-full p-2 transition-all cursor-pointer"
+                  >
                     <X size={20} />
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 scrollbar-hide bg-zinc-50">
+                <div className="flex-1 overflow-y-auto p-5 scrollbar-hide bg-zinc-50">
                   {Object.keys(globalCart).length === 0 ? (
-                    <div className="text-center py-20 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300">
-                      <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center mb-8 shadow-sm border border-black/5">
-                        <ShoppingBag size={48} className="text-zinc-700" />
+                    <div className="text-center py-20 flex flex-col items-center animate-in fade-in duration-200">
+                      <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-black/5">
+                        <ShoppingBag size={40} className="text-zinc-400 stroke-[1.5]" />
                       </div>
-                      <h3 className="text-2xl font-bold text-slate-800 mb-3 tracking-tight">Carrito Vacío</h3>
-                      <p className="text-zinc-600 text-sm mb-10 max-w-[250px] leading-relaxed">El ecosistema está lleno de productos increíbles. Explora el directorio.</p>
-                      <button onClick={() => setIsCartOpen(false)} className="px-10 py-4 text-zinc-900 bg-amber-500 rounded-full text-xs font-bold tracking-widest uppercase transition-all shadow-lg shadow-amber-500/30 hover:scale-[1.02]">Explorar</button>
+                      <h3 className="text-xl font-black text-slate-800 mb-2 tracking-tight">Carrito Vacío</h3>
+                      <p className="text-zinc-500 text-xs mb-8 max-w-[240px] leading-relaxed">Aún no tienes productos agregados. Explora las tiendas del directorio.</p>
+                      <button 
+                        onClick={() => setIsCartOpen(false)} 
+                        className="px-8 py-3 text-zinc-950 bg-amber-500 hover:bg-amber-400 rounded-2xl text-xs font-black tracking-wider uppercase transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer"
+                      >
+                        Explorar Comercios
+                      </button>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      {Object.entries(globalCart).map(([storeSlug, storeData]) => (
-                        <div key={storeSlug} className="bg-white rounded-[24px] p-5 border border-black/5 shadow-sm hover:shadow-md transition-all">
-                          <div className="flex items-center justify-between mb-5 border-b border-black/5 pb-4">
-                            <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center border border-amber-100 text-amber-500">
-                                <Store size={16} />
-                              </div>
-                              {storeData.storeName}
-                            </h4>
-                            <button onClick={() => {
-                              const gc = { ...globalCart };
-                              delete gc[storeSlug];
-                              setGlobalCart(gc);
-                              localStorage.setItem('ecommerce_global_cart', JSON.stringify(gc));
-                              window.dispatchEvent(new Event('cart_updated'));
-                            }} className="text-[10px] text-red-500 hover:text-red-600 font-bold tracking-[0.1em] uppercase transition-colors bg-red-50 px-3 py-1.5 rounded-full">Vaciar</button>
-                          </div>
-                          <div className="space-y-4">
-                            {Object.values(storeData.items).map(item => (
-                              <div key={item.id} className="flex gap-4">
-                                <div className="w-16 h-16 bg-zinc-50 rounded-2xl border border-black/5 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-inner">
-                                  {item.imageUrl ? (
-                                    <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="space-y-4">
+                      {Object.entries(globalCart).map(([storeSlug, storeData]) => {
+                        const foundStore = stores.find(s => s.store_slug === storeSlug || s.slug === storeSlug);
+                        const resolvedLogo = storeData.storeLogo || foundStore?.config?.logoUrl || foundStore?.config?.storefront?.logoUrl;
+                        const resolvedName = storeData.storeName && storeData.storeName !== storeSlug 
+                          ? storeData.storeName 
+                          : (foundStore?.name || foundStore?.config?.business_name || storeSlug);
+
+                        return (
+                          <div key={storeSlug} className="bg-white rounded-2xl p-4 border border-zinc-200/80 shadow-xs hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-4 border-b border-zinc-100 pb-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200/80 overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+                                  {resolvedLogo ? (
+                                    <img src={resolveImageUrl(resolvedLogo)} alt={resolvedName} className="w-full h-full object-cover" />
                                   ) : (
-                                    <Package size={20} className="text-zinc-500" />
+                                    <Store size={18} className="text-amber-600" />
                                   )}
                                 </div>
-                                <div className="flex-1 flex flex-col justify-center">
-                                  <h5 className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{item.name}</h5>
-                                  <div className="text-amber-500 font-black text-sm tracking-wide">${item.price.toFixed(2)} <span className="text-zinc-600 font-medium ml-1">x {item.quantity}</span></div>
+                                <div className="min-w-0">
+                                  <h4 className="font-black text-slate-900 text-sm truncate leading-tight">
+                                    {resolvedName}
+                                  </h4>
+                                  <span className="text-[11px] text-zinc-400 font-mono">@{storeSlug}</span>
                                 </div>
                               </div>
-                            ))}
+                              <button 
+                                onClick={() => {
+                                  const gc = { ...globalCart };
+                                  delete gc[storeSlug];
+                                  setGlobalCart(gc);
+                                  localStorage.setItem('ecommerce_global_cart', JSON.stringify(gc));
+                                  window.dispatchEvent(new Event('cart_updated'));
+                                }} 
+                                className="text-[10px] text-red-600 hover:text-red-700 font-bold uppercase transition-colors bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg cursor-pointer"
+                              >
+                                Vaciar
+                              </button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {Object.values(storeData.items || {}).map(item => (
+                                <div key={item.id} className="flex items-center gap-3 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
+                                  <div className="w-14 h-14 bg-white rounded-xl border border-zinc-200/80 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                    {item.imageUrl ? (
+                                      <img src={resolveImageUrl(item.imageUrl)} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Package size={22} className="text-zinc-400 stroke-[1.5]" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h5 className="text-xs font-bold text-slate-800 line-clamp-1 mb-0.5">{item.name}</h5>
+                                    <div className="text-slate-900 font-black text-sm flex items-center gap-1.5">
+                                      <span>${Number(item.price || 0).toFixed(2)}</span>
+                                      <span className="text-slate-500 font-semibold text-xs">× {item.quantity}</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="text-xs font-black text-amber-600 font-mono">
+                                      ${((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <button 
+                              onClick={() => handleNavigateToStore(storeSlug)} 
+                              className="w-full mt-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <span>Completar Pedido</span>
+                              <ArrowRight size={14} className="stroke-[2.5]" />
+                            </button>
                           </div>
-                          <button onClick={() => handleNavigateToStore(storeSlug)} className="w-full mt-6 py-4 bg-amber-500 text-zinc-900 rounded-2xl text-xs font-bold tracking-[0.2em] uppercase shadow-lg shadow-amber-500/30 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
-                            Completar Pedido <ArrowRight size={16} />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
