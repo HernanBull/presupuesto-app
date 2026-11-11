@@ -129,7 +129,7 @@ export const DASHBOARD_TUTORIAL_STEPS = [
   },
   {
     id: 'dash-nav',
-    selector: '[data-tour="tour-dash-nav"]',
+    selector: '[data-tour="tour-dash-nav"], nav.fixed.bottom-0, [data-tour="tour-dash-nav-desktop"]',
     title: '7. Menú de Navegación',
     subtitle: 'Todo tu negocio en la punta de tus dedos',
     badge: 'NAVEGACIÓN',
@@ -177,9 +177,9 @@ export default function DashboardTutorialOverlay({ isOpen, onClose }) {
       const rect = el.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
 
-      const elCenterY = rect.top + rect.height / 2;
-      const shouldCardBeBottom = elCenterY < viewportHeight * 0.45;
-      const placement = shouldCardBeBottom ? 'bottom' : 'top';
+      // Si es el menú de navegación inferior o está abajo, la tarjeta DEBE ir arriba siempre
+      const isBottomNav = step.id === 'dash-nav' || rect.top > viewportHeight * 0.55;
+      const placement = isBottomNav ? 'top' : (rect.top + rect.height / 2 < viewportHeight * 0.45 ? 'bottom' : 'top');
       setCardPlacement(placement);
 
       setTargetRect({
@@ -203,28 +203,28 @@ export default function DashboardTutorialOverlay({ isOpen, onClose }) {
       const elRect = el.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
 
-      const containerRect = scrollContainer.getBoundingClientRect ? scrollContainer.getBoundingClientRect() : { top: 0 };
-      const relativeTop = elRect.top - containerRect.top;
-      
-      const shouldCardBeBottom = relativeTop < viewportHeight * 0.42;
-      const placement = shouldCardBeBottom ? 'bottom' : 'top';
+      const isBottomNav = step.id === 'dash-nav' || elRect.top > viewportHeight * 0.55;
+      const placement = isBottomNav ? 'top' : (elRect.top < viewportHeight * 0.42 ? 'bottom' : 'top');
       setCardPlacement(placement);
 
-      const desiredViewportTop = placement === 'top' 
-        ? Math.max(190, Math.min(250, viewportHeight * 0.35)) 
-        : 85;
+      // Si es la barra de navegación fija inferior, no necesita desplazar el scroll
+      if (!isBottomNav) {
+        const desiredViewportTop = placement === 'top' 
+          ? Math.max(190, Math.min(250, viewportHeight * 0.35)) 
+          : 85;
 
-      const currentScrollTop = scrollContainer.scrollTop || window.scrollY || 0;
-      const deltaY = elRect.top - desiredViewportTop;
-      const targetScroll = Math.max(0, currentScrollTop + deltaY);
+        const currentScrollTop = scrollContainer.scrollTop || window.scrollY || 0;
+        const deltaY = elRect.top - desiredViewportTop;
+        const targetScroll = Math.max(0, currentScrollTop + deltaY);
 
-      if (scrollContainer.scrollTo) {
-        scrollContainer.scrollTo({
-          top: targetScroll,
-          behavior: 'smooth'
-        });
-      } else {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (scrollContainer.scrollTo) {
+          scrollContainer.scrollTo({
+            top: targetScroll,
+            behavior: 'smooth'
+          });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       }
 
       updatePosition();
@@ -453,3 +453,4 @@ export default function DashboardTutorialOverlay({ isOpen, onClose }) {
     </div>
   );
 }
+

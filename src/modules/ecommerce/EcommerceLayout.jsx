@@ -1549,6 +1549,7 @@ export default function EcommerceLayout({ theme, toggleTheme }) {
           ======================================================== */}
       {!location.pathname.startsWith('/product-studio') && (
         <nav
+          data-tour="tour-dash-nav"
           className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/5 shadow-[0_-4px_25px_rgba(0,0,0,0.08)]"
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         >
