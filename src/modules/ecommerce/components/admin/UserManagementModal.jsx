@@ -53,6 +53,8 @@ export default function UserManagementModal({ isOpen, onClose }) {
   const [users, setUsers] = useState([]);
   const [registers, setRegisters] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [auditFilter, setAuditFilter] = useState('ALL'); // 'ALL' | 'REGISTERS' | 'USERS' | 'SECURITY'
+  const [auditSearch, setAuditSearch] = useState('');
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
 
   // Sub-modal para cambio de PIN maestro
@@ -378,128 +380,340 @@ export default function UserManagementModal({ isOpen, onClose }) {
     }
   };
 
+  // Función amigable para formatear eventos del Libro de Auditoría
+  const getAuditInfo = (action) => {
+    switch (action) {
+      case 'REGISTER_CREATED':
+        return {
+          label: 'Caja Creada',
+          bg: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20',
+          dot: 'bg-emerald-500',
+          icon: PlusCircle
+        };
+      case 'REGISTER_UPDATED':
+        return {
+          label: 'Caja Modificada',
+          bg: 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400 border-sky-200 dark:border-sky-500/20',
+          dot: 'bg-sky-500',
+          icon: Edit2
+        };
+      case 'REGISTER_DELETED':
+        return {
+          label: 'Caja Eliminada',
+          bg: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+          dot: 'bg-rose-500',
+          icon: Trash2
+        };
+      case 'USER_CREATED':
+        return {
+          label: 'Nuevo Empleado',
+          bg: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-500/20',
+          dot: 'bg-blue-500',
+          icon: UserPlus
+        };
+      case 'USER_UPDATED':
+        return {
+          label: 'Empleado Editado',
+          bg: 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400 border-purple-200 dark:border-purple-500/20',
+          dot: 'bg-purple-500',
+          icon: Edit2
+        };
+      case 'USER_DELETED':
+        return {
+          label: 'Empleado Eliminado',
+          bg: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20',
+          dot: 'bg-rose-500',
+          icon: Trash2
+        };
+      case 'MASTER_PIN_CHANGED':
+        return {
+          label: 'PIN Maestro Modificado',
+          bg: 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300 border-amber-300 dark:border-amber-500/30',
+          dot: 'bg-amber-500',
+          icon: KeyRound
+        };
+      case 'PIN_CHANGED':
+        return {
+          label: 'PIN Cajero Modificado',
+          bg: 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300 border-amber-300 dark:border-amber-500/30',
+          dot: 'bg-amber-500',
+          icon: KeyRound
+        };
+      case 'STATUS_TOGGLED':
+        return {
+          label: 'Estado de Acceso',
+          bg: 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-slate-200 dark:border-white/10',
+          dot: 'bg-slate-500',
+          icon: RotateCcw
+        };
+      case 'TEST_AUDIT':
+        return {
+          label: 'Prueba de Seguridad',
+          bg: 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400 border-teal-200 dark:border-teal-500/20',
+          dot: 'bg-teal-500',
+          icon: ShieldCheck
+        };
+      default:
+        return {
+          label: action,
+          bg: 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 border-slate-200 dark:border-white/10',
+          dot: 'bg-slate-400',
+          icon: History
+        };
+    }
+  };
+
+  // Prueba en vivo del Libro de Auditoría
+  const handleTestAuditLog = async () => {
+    try {
+      await authService.addAuditLog(
+        'TEST_AUDIT',
+        currentUser?.id || 'admin',
+        currentUser?.username || 'propietario',
+        currentUser?.role || 'MASTER',
+        'Propietario',
+        'Verificación exitosa del Libro de Auditoría en tiempo real'
+      );
+      const updated = await authService.getAuditLogs();
+      setAuditLogs(updated);
+      toast.success('¡Registro de auditoría generado y verificado con éxito!');
+    } catch (err) {
+      toast.error('Error al registrar evento de auditoría.');
+    }
+  };
+
+  // Filtrado de eventos de auditoría
+  const filteredAuditLogs = auditLogs.filter(log => {
+    if (auditFilter === 'REGISTERS' && !log.action.includes('REGISTER')) return false;
+    if (auditFilter === 'USERS' && !log.action.includes('USER') && !log.action.includes('STATUS')) return false;
+    if (auditFilter === 'SECURITY' && !log.action.includes('PIN') && !log.action.includes('TEST')) return false;
+    if (auditSearch.trim()) {
+      const q = auditSearch.toLowerCase();
+      const txt = `${log.action} ${log.details} ${log.targetUsername} ${log.performedByAdmin}`.toLowerCase();
+      return txt.includes(q);
+    }
+    return true;
+  });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 w-full max-w-4xl overflow-hidden flex flex-col max-h-[94vh]">
         
         {/* ========================================================
-            CABECERA PRINCIPAL (IDÉNTICA A IMAGEN 1)
+            CABECERA COMPACTA & ELEGANTE
             ======================================================== */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-white/5 flex items-start justify-between bg-white dark:bg-zinc-900">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-              <ShieldCheck size={22} />
+        <div className="px-4 py-3 sm:px-5 sm:py-3.5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-white dark:bg-zinc-900 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/25">
+              <ShieldCheck size={20} />
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
-                  Centro de Control Maestro: Personal & Cajas Registradoras
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h2 className="text-sm sm:text-base font-black text-slate-900 dark:text-white tracking-tight truncate">
+                  Control Maestro: Cajas & Personal
                 </h2>
-                <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
-                  👑 Control Maestro
+                <span className="bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-300 dark:border-amber-500/30 shrink-0">
+                  👑 Axon Propietario
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                El Maestro y Administrador pueden gestionar usuarios, cambiar nombres y contraseñas (PIN), asignar checklist de funciones y crear o activar cajas
+              <p className="text-[11px] text-slate-400 dark:text-zinc-400 truncate hidden sm:block">
+                Puntos de cobro, PINes táctiles, checklist de funciones y bitácora de seguridad
               </p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 ml-2"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         {/* ========================================================
-            BARRA DE PESTAÑAS + INDICADOR DE SESIÓN
+            BARRA DE PESTAÑAS (SEGMENTED CONTROL RESPONSIVE GRID 3 COLS)
             ======================================================== */}
-        <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-950/40 flex-wrap gap-2">
-          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar">
+        <div className="px-3 sm:px-6 pt-2.5 pb-2 border-b border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-zinc-950/40 shrink-0">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-slate-200/60 dark:bg-zinc-800 rounded-2xl w-full">
             {[
-              { id: 'personal', label: `Personal & PINes (${users.length})`, icon: Users },
-              { id: 'registers', label: `Cajas Registradoras (${registers.length})`, icon: Monitor },
-              { id: 'audit', label: `Libro de Auditoría (${auditLogs.length})`, icon: History }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === tab.id
-                    ? 'bg-orange-500 text-white shadow-xs shadow-orange-500/30'
-                    : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 border border-slate-200/60 dark:border-white/5'
-                }`}
-              >
-                <tab.icon size={14} />
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-400 text-[11px]">Sesión autorizada:</span>
-            <span className="bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-200 font-black text-[11px] px-2.5 py-1 rounded-xl flex items-center gap-1 border border-amber-300 dark:border-amber-500/30">
-              👑 Axon (Propietario)
-            </span>
+              { id: 'personal', label: 'Personal', fullLabel: 'Personal & PINes', count: users.length, icon: Users },
+              { id: 'registers', label: 'Cajas', fullLabel: 'Cajas Registradoras', count: registers.length, icon: Monitor },
+              { id: 'audit', label: 'Auditoría', fullLabel: 'Libro de Auditoría', count: auditLogs.length, icon: History }
+            ].map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center justify-center gap-1 sm:gap-2 py-1.5 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-zinc-700/50'
+                  }`}
+                >
+                  <tab.icon size={14} className={isActive ? 'text-white' : 'text-slate-400'} />
+                  <span className="sm:hidden">{tab.label}</span>
+                  <span className="hidden sm:inline">{tab.fullLabel}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-300/60 dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* ========================================================
             CUERPO DE LA PESTAÑA SELECCIONADA
             ======================================================== */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 custom-scrollbar">
+        <div className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-4 custom-scrollbar">
 
           {/* TAB 1: PERSONAL & PINES */}
           {activeTab === 'personal' && (
             <>
-              {/* Tarjeta de Seguridad del Propietario (Idéntica a Imagen 1) */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-500/5 border border-emerald-200/80 dark:border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Tarjeta de Seguridad del Propietario (Compacta y Moderna) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Crown size={20} />
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Crown size={18} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                        Seguridad del Propietario: PIN Maestro
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                        PIN Maestro del Propietario
                       </h4>
-                      <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
-                        🛡️ PIN Personalizado & Seguro
+                      <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                        🛡️ Seguro
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                      Su comercio cuenta con un PIN Maestro privado. Este PIN controla autorizaciones, creación de personal y arqueos.
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                      Controla autorizaciones críticas, arqueos y configuración de cajas registradoras.
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsChangePinOpen(true)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 bg-white dark:bg-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-700 text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 rounded-xl text-xs font-black shadow-2xs transition-all cursor-pointer whitespace-nowrap"
+                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-zinc-700 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs font-black shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
                 >
-                  <KeyRound size={14} />
+                  <KeyRound size={13} />
                   <span>Cambiar PIN Maestro</span>
                 </button>
               </div>
 
               {/* Botón Registrar Nuevo Empleado */}
-              <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Personal Activo en el Negocio ({users.length})
-                </h3>
+              <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                    Personal Registrado ({users.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Asigna roles, PINes individuales y funciones específicas para cada trabajador.
+                  </p>
+                </div>
 
                 <button
                   onClick={openCreateUserModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer active:scale-95"
                 >
-                  <UserPlus size={16} />
-                  <span>Registrar Nuevo Empleado</span>
+                  <UserPlus size={15} />
+                  <span>+ Registrar Empleado</span>
                 </button>
               </div>
 
-              {/* Tabla de Usuarios (Idéntica a Imagen 1) */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-xs">
+              {/* VISTA MÓVIL: Tarjetas de Empleados */}
+              <div className="grid grid-cols-1 gap-2.5 sm:hidden">
+                {users.map(u => {
+                  const isMaster = u.role === 'MASTER';
+                  const permsCount = isMaster 
+                    ? 20 
+                    : (Array.isArray(u.customPermissions) ? u.customPermissions.length : (ROLE_PERMISSIONS[u.role] || []).length);
+
+                  return (
+                    <div key={u.id} className="p-3.5 bg-white dark:bg-zinc-800/80 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div 
+                            className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-xs shrink-0 shadow-2xs"
+                            style={{ backgroundColor: u.avatarColor || '#FF6B00' }}
+                          >
+                            {(u.fullName || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate flex items-center gap-1">
+                              <span>{u.fullName}</span>
+                              {isMaster && <span>👑</span>}
+                            </h4>
+                            <p className="text-[10px] text-slate-400 truncate">@{u.username}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => isMaster ? setIsChangePinOpen(true) : openEditUserModal(u)}
+                            className="p-1.5 text-slate-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-500/10 transition-colors"
+                            title="Editar Empleado"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          {!isMaster && (
+                            <button
+                              onClick={() => handleDeleteUser(u)}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                              title="Eliminar Empleado"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-white/5 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                            isMaster 
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
+                              : u.role === 'ADMIN'
+                                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-300'
+                                : u.role === 'PICKER'
+                                  ? 'bg-pink-100 text-pink-800 dark:bg-pink-500/20 dark:text-pink-300'
+                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
+                          }`}>
+                            {isMaster ? 'Propietario' : (u.role === 'PICKER' ? 'Empacador' : (u.role === 'CASHIER' ? 'Cajero' : u.role))}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-bold">
+                            🛡️ {permsCount} funciones
+                          </span>
+                        </div>
+
+                        {/* PIN Táctil */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400 font-semibold">PIN:</span>
+                          {isMaster ? (
+                            <span className="text-amber-600 dark:text-amber-400 font-mono font-bold text-[10px]">••••</span>
+                          ) : (
+                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-700/60 px-2 py-0.5 rounded-lg">
+                              <span className="font-mono font-black text-slate-800 dark:text-white text-xs tracking-wider">
+                                {revealedPins[u.id] ? u.pinCode : '••••'}
+                              </span>
+                              <button
+                                onClick={() => togglePinReveal(u.id)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                              >
+                                {revealedPins[u.id] ? <EyeOff size={12} /> : <Eye size={12} />}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* VISTA ESCRITORIO: Tabla de Personal */}
+              <div className="hidden sm:block bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
@@ -507,7 +721,6 @@ export default function UserManagementModal({ isOpen, onClose }) {
                         <th className="py-3 px-4">Usuario</th>
                         <th className="py-3 px-4">Rol & Funciones</th>
                         <th className="py-3 px-4">PIN Táctil</th>
-                        <th className="py-3 px-4">Registrado Por</th>
                         <th className="py-3 px-4">Estado</th>
                         <th className="py-3 px-4 text-right">Acciones</th>
                       </tr>
@@ -522,7 +735,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
                         return (
                           <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                             {/* USUARIO */}
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <div className="flex items-center gap-3">
                                 <div 
                                   className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-xs shrink-0 shadow-2xs"
@@ -541,8 +754,8 @@ export default function UserManagementModal({ isOpen, onClose }) {
                             </td>
 
                             {/* ROL & FUNCIONES */}
-                            <td className="py-3.5 px-4">
-                              <div className="space-y-1">
+                            <td className="py-3 px-4">
+                              <div className="space-y-0.5">
                                 <span className={`inline-block text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
                                   isMaster 
                                     ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300'
@@ -562,7 +775,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
                             </td>
 
                             {/* PIN TÁCTIL */}
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               {isMaster ? (
                                 <span className="text-amber-600 dark:text-amber-400 font-mono font-bold tracking-wider text-[11px]">
                                   •••• (Confidencial)
@@ -582,17 +795,12 @@ export default function UserManagementModal({ isOpen, onClose }) {
                               )}
                             </td>
 
-                            {/* REGISTRADO POR */}
-                            <td className="py-3.5 px-4 text-slate-500 dark:text-zinc-400 text-[11px]">
-                              {u.createdBy || 'AxonMarket Cloud'}
-                            </td>
-
                             {/* ESTADO */}
-                            <td className="py-3.5 px-4">
+                            <td className="py-3 px-4">
                               <button
                                 onClick={() => handleToggleStatus(u)}
                                 disabled={isMaster}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                                   u.isActive
                                     ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
                                     : 'bg-slate-100 text-slate-400 dark:bg-zinc-800'
@@ -604,7 +812,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
                             </td>
 
                             {/* ACCIONES */}
-                            <td className="py-3.5 px-4 text-right">
+                            <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
                                   onClick={() => isMaster ? setIsChangePinOpen(true) : openEditUserModal(u)}
@@ -636,14 +844,14 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
           {/* TAB 2: CAJAS REGISTRADORAS */}
           {activeTab === 'registers' && (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                    Cajas Registradoras Configuradas ({registers.length})
+                    Puntos de Cobro ({registers.length})
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                    Gestiona tus puntos de cobro, cajeros y abre turnos con fondo bimonetario al instante.
+                    Crea terminales para tus cajeros y genera códigos QR para cobro independiente.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -654,11 +862,11 @@ export default function UserManagementModal({ isOpen, onClose }) {
                       setTimeout(() => setIsRefreshing(false), 500);
                       toast.success('Estado de cajas actualizado.');
                     }}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs rounded-xl transition-all cursor-pointer active:scale-95 border border-slate-200/60 dark:border-white/5"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs rounded-xl transition-all cursor-pointer active:scale-95 border border-slate-200/60 dark:border-white/5"
                     title="Actualizar estado de cajas en vivo"
                   >
                     <RefreshCw size={13} className={isRefreshing ? 'animate-spin text-orange-500' : 'text-slate-500'} />
-                    <span className="hidden sm:inline">Refrescar</span>
+                    <span>Refrescar</span>
                   </button>
                   <button
                     onClick={() => {
@@ -676,15 +884,15 @@ export default function UserManagementModal({ isOpen, onClose }) {
                       });
                       setIsRegisterFormOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95 w-fit"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-xl shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95 w-fit"
                   >
                     <Plus size={15} />
-                    <span>+ Registrar Nueva Caja</span>
+                    <span>+ Nueva Caja</span>
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {registers.map(r => {
                   const liveShift = activeShifts.find(s => {
                     if (!s || s.status !== 'OPEN') return false;
@@ -709,19 +917,20 @@ export default function UserManagementModal({ isOpen, onClose }) {
                   const isOpenShift = !!liveShift;
 
                   return (
-                    <div key={r.id} className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-white/10 shadow-xs flex flex-col justify-between space-y-3">
+                    <div key={r.id} className="p-3.5 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-200/90 dark:border-white/10 shadow-xs flex flex-col justify-between space-y-3 hover:border-orange-500/30 transition-all">
+                      {/* Cabecera de la Tarjeta */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                             isOpenShift 
                               ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-500/20' 
                               : 'bg-orange-500/10 text-orange-500'
                           }`}>
-                            <Monitor size={20} />
+                            <Monitor size={18} />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-black text-slate-900 dark:text-white text-sm">{r.name}</h4>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-black text-slate-900 dark:text-white text-xs sm:text-sm truncate">{r.name}</h4>
                               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
                                 isOpenShift 
                                   ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
@@ -731,37 +940,61 @@ export default function UserManagementModal({ isOpen, onClose }) {
                                 {isOpenShift ? 'En Servicio' : 'Cerrada'}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 font-mono mt-0.5">
-                              Código: {r.code} • Base: ${r.defaultFloatUsd || 0} / Bs. {(Number(r.defaultFloatVes) || (Number(r.defaultFloatUsd || 0) * bcvRate)).toLocaleString('es-VE')}
+                            <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                              {r.code} • Base: ${r.defaultFloatUsd || 0} / Bs. {(Number(r.defaultFloatVes) || (Number(r.defaultFloatUsd || 0) * bcvRate)).toLocaleString('es-VE')}
                             </p>
-                            {isOpenShift ? (
-                              <div className="mt-1 space-y-0.5">
-                                <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                  <span>👤 Cajero activo:</span>
-                                  <b>{liveShift.cashier_name}</b>
-                                </p>
-                                <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                  <span>⏰ Abierta: {(() => {
-                                    const rawDate = liveShift?.opened_at || liveShift?.openedAt;
-                                    if (!rawDate) return 'Hoy';
-                                    const d = new Date(rawDate);
-                                    return isNaN(d.getTime()) ? 'Hoy' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                  })()}</span>
-                                  {liveShift.isCurrentDevice && (
-                                    <span className="text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded">Esta estación</span>
-                                  )}
-                                </p>
-                              </div>
-                            ) : (
-                              <p className="text-[10px] text-slate-400 mt-1 italic">
-                                🔒 Caja sin turno activo actualmente
-                              </p>
-                            )}
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                          {isOpenShift ? (
+                        {/* Botones de Edición / Borrado */}
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <button
+                            onClick={() => {
+                              setRegFormData({
+                                ...r,
+                                defaultCashier: r.defaultCashier || 'yende',
+                                defaultFloatUsd: r.defaultFloatUsd || 50,
+                                defaultFloatVes: r.defaultFloatVes || 1000,
+                                openShiftNow: false
+                              });
+                              setIsRegisterFormOpen(true);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-orange-500 rounded-lg transition-colors cursor-pointer"
+                            title="Editar Caja"
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRegister(r)}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar Caja"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Estado del Cajero / Información de Turno */}
+                      <div className="bg-slate-50 dark:bg-zinc-900/60 p-2.5 rounded-xl border border-slate-100 dark:border-white/5">
+                        {isOpenShift ? (
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 truncate">
+                                <span>👤 Cajero:</span>
+                                <b>{liveShift.cashier_name}</b>
+                              </p>
+                              <p className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                <span>⏰ Abierta: {(() => {
+                                  const rawDate = liveShift?.opened_at || liveShift?.openedAt;
+                                  if (!rawDate) return 'Hoy';
+                                  const d = new Date(rawDate);
+                                  return isNaN(d.getTime()) ? 'Hoy' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                })()}</span>
+                                {liveShift.isCurrentDevice && (
+                                  <span className="text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 font-bold px-1.5 py-0.2 rounded">Esta estación</span>
+                                )}
+                              </p>
+                            </div>
                             <button
                               onClick={async () => {
                                 if (window.confirm(`¿Desea cerrar el turno de ${r.name} (Cajero: ${liveShift.cashier_name})?`)) {
@@ -782,12 +1015,16 @@ export default function UserManagementModal({ isOpen, onClose }) {
                                   }
                                 }
                               }}
-                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
-                              title="Cerrar turno activo de esta caja"
+                              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 rounded-lg text-[10px] font-black transition-all cursor-pointer whitespace-nowrap"
                             >
                               Cerrar Turno
                             </button>
-                          ) : (
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-[11px] text-slate-400 italic">
+                              🔒 Sin turno activo actualmente
+                            </span>
                             <button
                               onClick={() => {
                                 setRegFormData({
@@ -799,45 +1036,22 @@ export default function UserManagementModal({ isOpen, onClose }) {
                                 });
                                 setIsRegisterFormOpen(true);
                               }}
-                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
-                              title="Iniciar turno en esta caja ahora"
+                              className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 rounded-lg text-[10px] font-black transition-all cursor-pointer whitespace-nowrap"
                             >
                               + Abrir Turno
                             </button>
-                          )}
-                          <button
-                            onClick={() => setSelectedRegisterForQr(r)}
-                            className="px-2.5 py-1.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-xl text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                            title="Generar Código QR o Enlace de Acceso Rápido"
-                          >
-                            <QrCode size={14} />
-                            <span className="hidden sm:inline">QR / Link</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setRegFormData({
-                                ...r,
-                                defaultCashier: r.defaultCashier || 'yende',
-                                defaultFloatUsd: r.defaultFloatUsd || 50,
-                                defaultFloatVes: r.defaultFloatVes || 1000,
-                                openShiftNow: false
-                              });
-                              setIsRegisterFormOpen(true);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-orange-500 cursor-pointer"
-                            title="Editar Caja"
-                          >
-                            <Edit2 size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteRegister(r)}
-                            className="p-1.5 text-slate-400 hover:text-rose-500 cursor-pointer"
-                            title="Eliminar Caja"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Botón Acceso Rápido QR */}
+                      <button
+                        onClick={() => setSelectedRegisterForQr(r)}
+                        className="w-full py-2 bg-slate-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+                      >
+                        <QrCode size={14} className="text-orange-500" />
+                        <span>Generar Código QR / Enlace de Cobro</span>
+                      </button>
                     </div>
                   );
                 })}
@@ -845,26 +1059,111 @@ export default function UserManagementModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* TAB 3: LIBRO DE AUDITORÍA */}
+          {/* TAB 3: LIBRO DE AUDITORÍA (AUDIT LOG PROFESIONAL) */}
           {activeTab === 'audit' && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                Bitácora de Seguridad & Modificaciones Recientes
-              </h3>
+            <div className="space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
+                    Bitácora Inmutable de Seguridad ({auditLogs.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Registro de trazabilidad legal y seguridad: supervisa creaciones, borrados y cambios de PIN.
+                  </p>
+                </div>
 
-              {auditLogs.length === 0 ? (
-                <p className="text-xs text-slate-400 text-center py-6">Sin eventos de auditoría registrados aún.</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleTestAuditLog}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 font-bold text-xs rounded-xl border border-emerald-200 dark:border-emerald-500/20 transition-all cursor-pointer active:scale-95"
+                    title="Registrar un evento de prueba en la bitácora"
+                  >
+                    <ShieldCheck size={13} />
+                    <span>🧪 Probar Registro en Vivo</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtros de Auditoría */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {[
+                  { id: 'ALL', label: 'Todos' },
+                  { id: 'REGISTERS', label: 'Cajas' },
+                  { id: 'USERS', label: 'Personal' },
+                  { id: 'SECURITY', label: 'Seguridad / PIN' }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setAuditFilter(f.id)}
+                    className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                      auditFilter === f.id
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                        : 'bg-slate-100 text-slate-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-slate-200'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Lista de Registros */}
+              {filteredAuditLogs.length === 0 ? (
+                <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-white/10 p-8 text-center space-y-2">
+                  <History size={28} className="mx-auto text-slate-400" />
+                  <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">
+                    Sin eventos en este criterio de búsqueda.
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    Presiona "Probar Registro en Vivo" para verificar el funcionamiento de la bitácora.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {auditLogs.map(log => (
-                    <div key={log.id} className="p-3 bg-white dark:bg-zinc-800/40 border border-slate-100 dark:border-white/5 rounded-xl flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-slate-800 dark:text-white mr-2">[{log.action}]</span>
-                        <span className="text-slate-600 dark:text-zinc-300">{log.details || log.targetUsername}</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Por: {log.performedByAdmin} • {new Date(log.timestamp).toLocaleString('es-VE')}</p>
+                  {filteredAuditLogs.map(log => {
+                    const badge = getAuditInfo(log.action);
+                    const IconComponent = badge.icon;
+                    const dateFormatted = new Date(log.timestamp).toLocaleString('es-VE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    });
+
+                    return (
+                      <div 
+                        key={log.id} 
+                        className="p-3 bg-white dark:bg-zinc-800/70 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xs flex items-start gap-3 hover:border-slate-300 transition-colors"
+                      >
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${badge.bg}`}>
+                          <IconComponent size={15} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${badge.bg}`}>
+                              {badge.label}
+                            </span>
+                            <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                              {log.details || log.targetUsername || 'Operación de sistema'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1 flex-wrap font-medium">
+                            <span className="flex items-center gap-1">
+                              <span>👤 Autorizado por:</span>
+                              <b className="text-slate-600 dark:text-zinc-300">{log.performedByAdmin || 'Propietario'}</b>
+                            </span>
+                            <span>•</span>
+                            <span className="font-mono text-slate-500 dark:text-zinc-400">
+                              📅 {dateFormatted}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -873,14 +1172,14 @@ export default function UserManagementModal({ isOpen, onClose }) {
         </div>
 
         {/* PIE DE PÁGINA */}
-        <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-zinc-950/40 flex items-center justify-between">
-          <p className="text-xs text-slate-400 flex items-center gap-1.5">
-            <CheckCircle2 size={14} className="text-emerald-500" />
-            <span>Los cambios de usuarios, permisos y cajas tienen efecto instantáneo en todo el sistema POS</span>
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-slate-100 dark:border-white/5 bg-slate-50/70 dark:bg-zinc-950/40 flex items-center justify-between shrink-0">
+          <p className="text-[11px] text-slate-400 flex items-center gap-1.5 truncate">
+            <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+            <span className="truncate">Sincronización instantánea en estaciones POS locales y remotas</span>
           </p>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+            className="px-4 py-1.5 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200 font-bold text-xs rounded-xl transition-colors cursor-pointer shrink-0 ml-2"
           >
             Cerrar
           </button>
