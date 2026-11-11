@@ -244,11 +244,8 @@ export default function MerchantCashMasterView() {
               <Wallet size={20} />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <span>Caja Maestra Consolidada</span>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-500/30">
-                  {storeName}
-                </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Caja Maestra Consolidada
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 Supervisión en tiempo real de ingresos, gavetas y turnos de todas las cajas registradoras de tu negocio.
