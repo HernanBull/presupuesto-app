@@ -253,26 +253,61 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden pointer-events-auto animate-in fade-in duration-200">
       
-      {/* Fondo Oscuro con Recorte / Spotlight */}
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs transition-all duration-300" />
+      {/* ========================================================
+          MÁSCARA SVG DE SPOTLIGHT (RECORTE NÍTIDO 100% TRANSPARENTE)
+          El botón señalado queda completamente al descubierto y brillante,
+          mientras que el resto de la pantalla se oscurece con elegancia.
+          ======================================================== */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-40">
+        <defs>
+          <mask id="tutorial-spotlight-mask">
+            {/* 1. Capa blanca que cubre toda la pantalla */}
+            <rect x="0" y="0" width="100%" height="100%" fill="white" />
+            
+            {/* 2. Recorte transparente (negro en la máscara) donde está el botón */}
+            {targetRect && (
+              <rect
+                x={Math.max(2, targetRect.left - 6)}
+                y={Math.max(2, targetRect.top - 6)}
+                width={targetRect.width + 12}
+                height={targetRect.height + 12}
+                rx="18"
+                ry="18"
+                fill="black"
+              />
+            )}
+          </mask>
+        </defs>
 
-      {/* Recuadro Brillante y Pulsante sobre el elemento objetivo */}
+        {/* Fondo oscuro que respeta el hueco transparente del botón */}
+        <rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="rgba(15, 23, 42, 0.76)"
+          mask="url(#tutorial-spotlight-mask)"
+        />
+      </svg>
+
+      {/* Recuadro Luminoso Neón Naranja alrededor del Botón Descubierto */}
       {targetRect && (
         <div 
-          className="absolute border-2 border-orange-500 rounded-2xl shadow-[0_0_25px_rgba(255,107,0,0.6)] transition-all duration-300 pointer-events-none z-50"
+          className="absolute border-2 border-orange-500 rounded-2xl shadow-[0_0_25px_rgba(255,107,0,0.9)] transition-all duration-300 pointer-events-none z-50"
           style={{
-            top: Math.max(8, targetRect.top - 6),
-            left: Math.max(8, targetRect.left - 6),
+            top: Math.max(2, targetRect.top - 6),
+            left: Math.max(2, targetRect.left - 6),
             width: targetRect.width + 12,
             height: targetRect.height + 12,
           }}
         >
           {/* Pulso de señalización */}
-          <span className="absolute -inset-1 rounded-2xl border-2 border-orange-400 animate-ping opacity-75" />
+          <span className="absolute -inset-1 rounded-2xl border-2 border-orange-400 animate-ping opacity-60 pointer-events-none" />
           
-          {/* Badge superior indicando paso */}
-          <span className="absolute -top-3 left-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
-            {step.badge}
+          {/* Badge superior indicando la función */}
+          <span className="absolute -top-3 left-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-md flex items-center gap-1">
+            <Sparkles size={10} />
+            <span>{step.badge}</span>
           </span>
         </div>
       )}
@@ -282,19 +317,19 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
         <div 
           className="absolute z-50 transition-all duration-300 pointer-events-none flex items-center justify-center"
           style={{
-            left: Math.min(window.innerWidth - 60, Math.max(20, targetRect.left + (targetRect.width / 2) - 18)),
+            left: Math.min(window.innerWidth - 60, Math.max(20, targetRect.left + (targetRect.width / 2) - 16)),
             top: isTargetInBottomHalf 
-              ? Math.max(10, targetRect.top - 42)
-              : Math.min(window.innerHeight - 50, targetRect.bottom + 8)
+              ? Math.max(6, targetRect.top - 36)
+              : Math.min(window.innerHeight - 45, targetRect.bottom + 8)
           }}
         >
           <div className="flex flex-col items-center animate-bounce">
             {isTargetInBottomHalf ? (
-              // Flecha apuntando hacia abajo
-              <div className="w-0 h-0 border-x-8 border-x-transparent border-t-12 border-t-orange-500 drop-shadow-[0_2px_8px_rgba(255,107,0,0.8)]" />
+              // Flecha apuntando hacia abajo hacia el botón
+              <div className="w-0 h-0 border-x-8 border-x-transparent border-t-12 border-t-orange-500 drop-shadow-[0_2px_10px_rgba(255,107,0,1)]" />
             ) : (
-              // Flecha apuntando hacia arriba
-              <div className="w-0 h-0 border-x-8 border-x-transparent border-b-12 border-b-orange-500 drop-shadow-[0_2px_8px_rgba(255,107,0,0.8)]" />
+              // Flecha apuntando hacia arriba hacia el botón
+              <div className="w-0 h-0 border-x-8 border-x-transparent border-b-12 border-b-orange-500 drop-shadow-[0_2px_10px_rgba(255,107,0,1)]" />
             )}
           </div>
         </div>
@@ -302,13 +337,17 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
 
       {/* TARJETA DIDÁCTICA FLOTANTE (TOOLTIP EXPLICATIVO) */}
       <div 
-        className="fixed z-50 w-full max-w-sm sm:max-w-md px-4 transition-all duration-300 pointer-events-auto"
+        className="fixed z-50 w-full max-w-sm sm:max-w-md px-3.5 transition-all duration-300 pointer-events-auto"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
           ...(isTargetInBottomHalf
-            ? { top: Math.max(16, targetRect ? Math.min(targetRect.top - 340, window.innerHeight * 0.15) : 30) }
-            : { bottom: Math.max(16, targetRect ? Math.min(window.innerHeight - targetRect.bottom - 20, window.innerHeight * 0.12) : 30) }
+            ? { 
+                top: Math.max(12, targetRect ? Math.min(targetRect.top - 340, window.innerHeight * 0.12) : 25) 
+              }
+            : { 
+                bottom: Math.max(12, targetRect ? Math.min(window.innerHeight - targetRect.bottom - 25, window.innerHeight * 0.10) : 25) 
+              }
           )
         }}
       >
@@ -402,3 +441,4 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
     </div>
   );
 }
+
