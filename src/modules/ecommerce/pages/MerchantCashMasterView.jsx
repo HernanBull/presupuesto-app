@@ -111,6 +111,32 @@ export default function MerchantCashMasterView() {
     return () => clearInterval(interval);
   }, [workspaceId]);
 
+  // Filtro de fecha para conciliación y KPIs consolidados
+  const now = new Date();
+  const todayKey = now.toISOString().slice(0, 10);
+  const yDate = new Date(now); yDate.setDate(yDate.getDate() - 1);
+  const yesterdayKey = yDate.toISOString().slice(0, 10);
+
+  const todayCount = orders.filter(o => o.date && o.date.slice(0, 10) === todayKey).length;
+  const yesterdayCount = orders.filter(o => o.date && o.date.slice(0, 10) === yesterdayKey).length;
+
+  const filteredOrders = orders.filter(o => {
+    if (!o.date) return false;
+    const odStr = o.date.slice(0, 10);
+
+    if (selectedDateFilter === 'TODAY') return odStr === todayKey;
+    if (selectedDateFilter === 'YESTERDAY') return odStr === yesterdayKey;
+    if (selectedDateFilter === '7DAYS') {
+      const diffTime = now.getTime() - new Date(o.date).getTime();
+      const diffDays = diffTime / (1000 * 3600 * 24);
+      return diffDays <= 7;
+    }
+    if (selectedDateFilter === 'CUSTOM' && customDate) {
+      return odStr === customDate;
+    }
+    return true; // 'ALL'
+  });
+
   // Desglose Consolidado por Método de Pago y Moneda Exacta (Bimonetario Físico & Digital)
   const breakdown = {
     cashUsd: { usd: 0, ves: 0, count: 0 },
@@ -125,7 +151,7 @@ export default function MerchantCashMasterView() {
   let totalSalesUsd = 0;
   let totalSalesVes = 0;
 
-  orders.forEach(o => {
+  filteredOrders.forEach(o => {
     const totalOrderUsd = Number(o.total) || 0;
     const pd = typeof o.paymentdetails === 'string'
       ? (() => { try { return JSON.parse(o.paymentdetails); } catch(e) { return {}; } })()
@@ -282,19 +308,101 @@ export default function MerchantCashMasterView() {
         </div>
       </div>
 
-      {/* Barra de Acciones Operativas de Caja & Turno (Integración Total) */}
-      <div className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* ========================================================
+          SELECTOR DE PERÍODO CLARO Y SIMPLE (ORDEN CONTABLE)
+          ======================================================== */}
+      <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
+            <Calendar size={13} className="text-orange-500" />
+            <span>Período:</span>
+          </span>
+
+          <button
+            onClick={() => setSelectedDateFilter('TODAY')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              selectedDateFilter === 'TODAY'
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            Hoy ({todayCount})
+          </button>
+
+          <button
+            onClick={() => setSelectedDateFilter('YESTERDAY')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              selectedDateFilter === 'YESTERDAY'
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            Ayer ({yesterdayCount})
+          </button>
+
+          <button
+            onClick={() => setSelectedDateFilter('7DAYS')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              selectedDateFilter === '7DAYS'
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            Últimos 7 Días
+          </button>
+
+          <button
+            onClick={() => setSelectedDateFilter('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+              selectedDateFilter === 'ALL'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+          >
+            Todo ({orders.length})
+          </button>
+        </div>
+
+        {/* Selector de Fecha Específica */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-400">Día específico:</span>
+          <input
+            type="date"
+            value={customDate}
+            onChange={(e) => {
+              setCustomDate(e.target.value);
+              setSelectedDateFilter('CUSTOM');
+            }}
+            className="px-2.5 py-1 text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
+          />
+        </div>
+      </div>
+
+      {/* ========================================================
+          BARRA DE ACCIONES SIMPLIFICADA (3 ACCIONES CLARAS)
+          ======================================================== */}
+      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        
+        {/* Bloque 1: Operativa del Turno y Gastos de Caja Chica */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => {
               setCashShiftModalTab('status');
               setSelectedShiftForModal(openShifts[0] || null);
               setIsCashShiftModalOpen(true);
             }}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm shadow-orange-500/20 active:scale-95 cursor-pointer"
+            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 shadow-sm cursor-pointer active:scale-95 ${
+              openShifts.length > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+                : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-orange-500/20'
+            }`}
           >
-            <Wallet size={15} />
-            <span>{openShifts.length > 0 ? 'Control de Caja & Turno (F9)' : 'Abrir Turno de Caja'}</span>
+            <Wallet size={16} />
+            <span>
+              {openShifts.length > 0 
+                ? `🟢 Caja en Servicio: ${openShifts[0].register_name || 'Caja 1'} (${openShifts[0].cashier_name || 'Cajero'})` 
+                : '🟠 Iniciar Turno de Hoy (Abrir Caja)'}
+            </span>
           </button>
 
           <button
@@ -303,48 +411,26 @@ export default function MerchantCashMasterView() {
               setSelectedShiftForModal(openShifts[0] || null);
               setIsCashShiftModalOpen(true);
             }}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Registrar compras menores, hielo, bolsas o anticipos"
           >
             <ArrowRightLeft size={14} className="text-orange-500" />
-            <span>Caja Chica (Gastos/Retiros)</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setCashShiftModalTab('close');
-              setSelectedShiftForModal(openShifts[0] || null);
-              setIsCashShiftModalOpen(true);
-            }}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <Lock size={14} className="text-rose-500" />
-            <span>Arqueo & Cierre</span>
+            <span>Caja Chica (Gastos)</span>
           </button>
         </div>
 
+        {/* Bloque 2: Cierres y Reportes Fiscales SENIAT */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
               setFiscalReportType('X');
               setIsFiscalReportModalOpen(true);
             }}
-            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-            title="Ver Cuadre e Imprimir / Exportar a PDF"
-          >
-            <Printer size={14} className="text-slate-500" />
-            <span>Imprimir Cuadre</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setFiscalReportType('X');
-              setIsFiscalReportModalOpen(true);
-            }}
-            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-            title="Emitir Corte X Parcial (PDF / Word / Impresora Térmica)"
+            className="px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Ver o imprimir Corte X (Informe Parcial)"
           >
             <Receipt size={14} className="text-orange-500" />
-            <span>Corte X (SENIAT)</span>
+            <span>Corte X (Parcial)</span>
           </button>
 
           <button
@@ -352,13 +438,14 @@ export default function MerchantCashMasterView() {
               setFiscalReportType('Z');
               setIsFiscalReportModalOpen(true);
             }}
-            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-            title="Emitir Cierre Z Definitivo (PDF / Word / Impresora Térmica)"
+            className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Emitir Cierre Z Definitivo del Día"
           >
             <Printer size={14} className="text-rose-500" />
-            <span>Cierre Z (SENIAT)</span>
+            <span>Cierre Z (Definitivo)</span>
           </button>
         </div>
+
       </div>
 
       {/* Tarjetas Principales de Ingresos Consolidados */}
@@ -369,7 +456,7 @@ export default function MerchantCashMasterView() {
           <div className="flex justify-between items-start">
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 block mb-1">
-                Ingresos Consolidados
+                Ingresos {selectedDateFilter === 'TODAY' ? 'de Hoy' : selectedDateFilter === 'YESTERDAY' ? 'de Ayer' : selectedDateFilter === '7DAYS' ? '(Últimos 7 Días)' : 'Consolidados'}
               </span>
               <h3 className="text-3xl font-black font-mono tracking-tight text-white">
                 ${totalSalesUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -383,8 +470,8 @@ export default function MerchantCashMasterView() {
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Operaciones de venta:</span>
-            <strong className="text-white font-mono">{orders.length} tickets</strong>
+            <span>Operaciones en este período:</span>
+            <strong className="text-white font-mono">{filteredOrders.length} tickets</strong>
           </div>
         </div>
 

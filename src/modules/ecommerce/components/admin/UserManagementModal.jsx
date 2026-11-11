@@ -741,7 +741,12 @@ export default function UserManagementModal({ isOpen, onClose }) {
                                   <b>{liveShift.cashier_name}</b>
                                 </p>
                                 <p className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                  <span>⏰ Abierta: {liveShift.opened_at ? new Date(liveShift.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Hoy'}</span>
+                                  <span>⏰ Abierta: {(() => {
+                                    const rawDate = liveShift?.opened_at || liveShift?.openedAt;
+                                    if (!rawDate) return 'Hoy';
+                                    const d = new Date(rawDate);
+                                    return isNaN(d.getTime()) ? 'Hoy' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                  })()}</span>
                                   {liveShift.isCurrentDevice && (
                                     <span className="text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded">Esta estación</span>
                                   )}
