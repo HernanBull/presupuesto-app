@@ -29,7 +29,8 @@ import {
   QrCode,
   Copy,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Smartphone
 } from 'lucide-react';
 import { authService, ROLE_PERMISSIONS, PERMISSION_DEFINITIONS } from '../../services/authService';
 import { supabase } from '../../../../supabaseClient';
@@ -59,6 +60,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
   // Sub-modal para cambio de PIN maestro
   const [isChangePinOpen, setIsChangePinOpen] = useState(false);
+  const [pinModalView, setPinModalView] = useState('change'); // 'change' | 'setup_2fa'
 
   // Sub-modal para Crear / Editar Empleado
   const [isUserFormOpen, setIsUserFormOpen] = useState(false);
@@ -432,6 +434,13 @@ export default function UserManagementModal({ isOpen, onClose }) {
           dot: 'bg-amber-500',
           icon: KeyRound
         };
+      case 'MASTER_PIN_RESET':
+        return {
+          label: 'PIN Restablecido (2FA/Clave)',
+          bg: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30',
+          dot: 'bg-emerald-500',
+          icon: ShieldCheck
+        };
       case 'PIN_CHANGED':
         return {
           label: 'PIN Cajero Modificado',
@@ -572,7 +581,7 @@ export default function UserManagementModal({ isOpen, onClose }) {
           {/* TAB 1: PERSONAL & PINES */}
           {activeTab === 'personal' && (
             <>
-              {/* Tarjeta de Seguridad del Propietario (Compacta y Moderna) */}
+              {/* Tarjeta de Seguridad del Propietario (Compacta y Moderna con Soporte 2FA) */}
               <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
@@ -584,22 +593,39 @@ export default function UserManagementModal({ isOpen, onClose }) {
                         PIN Maestro del Propietario
                       </h4>
                       <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
-                        🛡️ Seguro
+                        🛡️ Protegido
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
-                      Controla autorizaciones críticas, arqueos y configuración de cajas registradoras.
+                      Controla autorizaciones, arqueos y cajas. Recuperable con contraseña o Google Authenticator.
                     </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setIsChangePinOpen(true)}
-                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-zinc-700 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs font-black shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                >
-                  <KeyRound size={13} />
-                  <span>Cambiar PIN Maestro</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => {
+                      setPinModalView('setup_2fa');
+                      setIsChangePinOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200/80 dark:border-white/10 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                    title="Vincular o gestionar Google Authenticator (2FA)"
+                  >
+                    <Smartphone size={13} className="text-orange-500" />
+                    <span>Google Auth (2FA)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setPinModalView('change');
+                      setIsChangePinOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white dark:bg-zinc-800 hover:bg-emerald-50 dark:hover:bg-zinc-700 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs font-black shadow-2xs transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                  >
+                    <KeyRound size={13} />
+                    <span>Cambiar PIN</span>
+                  </button>
+                </div>
               </div>
 
               {/* Botón Registrar Nuevo Empleado */}
@@ -1187,11 +1213,12 @@ export default function UserManagementModal({ isOpen, onClose }) {
 
       </div>
 
-      {/* SUB-MODAL: CAMBIAR PIN MAESTRO */}
+      {/* SUB-MODAL: CAMBIAR / RECUPERAR PIN MAESTRO / 2FA */}
       <ChangeMasterPinModal
         isOpen={isChangePinOpen}
         onClose={() => setIsChangePinOpen(false)}
         onSuccess={() => loadData()}
+        initialView={pinModalView}
       />
 
       {/* SUB-MODAL: FORMULARIO CREAR / EDITAR EMPLEADO CON CHECKLIST DE 21 PERMISOS */}
