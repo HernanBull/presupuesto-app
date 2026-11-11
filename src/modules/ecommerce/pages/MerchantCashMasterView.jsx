@@ -4,13 +4,15 @@ import {
   RefreshCw, CheckCircle2, Clock, Users, QrCode, Copy, ExternalLink,
   ChevronRight, AlertCircle, ShoppingBag, Landmark, Smartphone,
   ShieldCheck, PlusCircle, Calculator, Layers, Receipt, CreditCard,
-  Banknote, ArrowRightLeft, Zap, Printer, Lock, FileSpreadsheet, Calendar
+  Banknote, ArrowRightLeft, Zap, Printer, Lock, FileSpreadsheet, Calendar,
+  BookOpen
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import CashShiftModal from '../components/admin/CashShiftModal';
 import FiscalReportModal from '../components/admin/FiscalReportModal';
+import CashMasterTutorialOverlay from '../components/admin/CashMasterTutorialOverlay';
 
 export default function MerchantCashMasterView() {
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,7 @@ export default function MerchantCashMasterView() {
   const [customDate, setCustomDate] = useState('');
   const [isFiscalReportModalOpen, setIsFiscalReportModalOpen] = useState(false);
   const [fiscalReportType, setFiscalReportType] = useState('X'); // 'X' o 'Z'
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   const workspaceId = localStorage.getItem('activeWorkspace');
 
@@ -266,13 +269,25 @@ export default function MerchantCashMasterView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25 shrink-0">
               <Wallet size={20} />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                Caja Maestra Consolidada
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Caja Maestra Consolidada
+                </h2>
+
+                {/* BOTÓN CUADERNITO: GUÍA Y TUTORIAL DIDÁCTICO */}
+                <button
+                  onClick={() => setIsTutorialOpen(true)}
+                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 animate-pulse"
+                  title="Abrir Tutorial y Guía Didáctica Interactiva"
+                >
+                  <BookOpen size={14} className="text-orange-600 dark:text-orange-400" />
+                  <span>Guía Didáctica</span>
+                </button>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 Supervisión en tiempo real de ingresos, gavetas y turnos de todas las cajas registradoras de tu negocio.
               </p>
@@ -282,13 +297,17 @@ export default function MerchantCashMasterView() {
 
         <div className="flex items-center gap-2.5 flex-wrap">
           {/* Tasa BCV */}
-          <div className="bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-2xs">
+          <div 
+            data-tour="tour-bcv"
+            className="bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-2xs"
+          >
             <span className="text-slate-400">Tasa BCV Oficial:</span>
             <span className="font-mono text-orange-600 dark:text-orange-400 font-black">Bs. {bcvRate.toFixed(2)}</span>
           </div>
 
           {/* Botón Gestión de Cajas & Empleados */}
           <button
+            data-tour="tour-config"
             onClick={() => setIsUserManagementModalOpen(true)}
             className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
           >
@@ -311,7 +330,10 @@ export default function MerchantCashMasterView() {
       {/* ========================================================
           SELECTOR DE PERÍODO CLARO Y SIMPLE (ORDEN CONTABLE)
           ======================================================== */}
-      <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+      <div 
+        data-tour="tour-period"
+        className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3"
+      >
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1 mr-1">
             <Calendar size={13} className="text-orange-500" />
@@ -386,6 +408,7 @@ export default function MerchantCashMasterView() {
         {/* Bloque 1: Operativa del Turno y Gastos de Caja Chica */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            data-tour="tour-shift"
             onClick={() => {
               setCashShiftModalTab('status');
               setSelectedShiftForModal(openShifts[0] || null);
@@ -406,6 +429,7 @@ export default function MerchantCashMasterView() {
           </button>
 
           <button
+            data-tour="tour-pettycash"
             onClick={() => {
               setCashShiftModalTab('movement');
               setSelectedShiftForModal(openShifts[0] || null);
@@ -420,7 +444,7 @@ export default function MerchantCashMasterView() {
         </div>
 
         {/* Bloque 2: Cierres y Reportes Fiscales SENIAT */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div data-tour="tour-fiscal" className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
               setFiscalReportType('X');
@@ -452,7 +476,10 @@ export default function MerchantCashMasterView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* KPI 1: Ingreso Total Consolidado */}
-        <div className="bg-gradient-to-br from-slate-900 via-zinc-900 to-black text-white p-5 rounded-3xl shadow-xl flex flex-col justify-between border border-white/10 relative overflow-hidden">
+        <div 
+          data-tour="tour-kpis"
+          className="bg-gradient-to-br from-slate-900 via-zinc-900 to-black text-white p-5 rounded-3xl shadow-xl flex flex-col justify-between border border-white/10 relative overflow-hidden"
+        >
           <div className="flex justify-between items-start">
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 block mb-1">
@@ -1272,6 +1299,12 @@ export default function MerchantCashMasterView() {
           registers={configuredRegisters}
         />
       )}
+
+      {/* Tutorial y Guía Didáctica Interactiva Paso a Paso */}
+      <CashMasterTutorialOverlay
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+      />
 
     </div>
   );
