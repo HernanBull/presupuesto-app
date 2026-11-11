@@ -4,11 +4,13 @@ import {
   Plus, Search, Edit2, Trash2, X, Image as ImageIcon, 
   CheckCircle, Clock, Package, FolderTree, Tag, Layers, 
   ArrowRight, ExternalLink, Sparkles, CheckCircle2, AlertCircle,
-  PackageSearch, Camera, Upload, CheckSquare, Square, CornerDownRight
+  PackageSearch, Camera, Upload, CheckSquare, Square, CornerDownRight,
+  BookOpen
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import ComboBuilderModal from '../components/ComboBuilderModal';
+import CategoriesTutorialOverlay from '../components/catalog/CategoriesTutorialOverlay';
 import { MARKETPLACE_CATEGORIES } from '../../../config/marketplaceCategories';
 import { optimizeStoreImage } from '../utils/imageOptimizer';
 
@@ -35,6 +37,21 @@ export default function ProductsManager() {
     }
     return 'combos';
   });
+
+  // Estado del Tutorial Interactivo de Categorías
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'categories') {
+      const hasSeen = localStorage.getItem('hasSeenCategoriesTour');
+      if (!hasSeen) {
+        const timer = setTimeout(() => {
+          setIsTutorialOpen(true);
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [activeTab]);
 
   // Sincronizar pestaña según URL
   useEffect(() => {
@@ -650,11 +667,24 @@ export default function ProductsManager() {
       
       {/* Encabezado Principal */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-            <span className="w-2.5 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full inline-block"></span>
-            {activeTab === 'categories' ? 'Categorías del Catálogo' : 'Combos & Paquetes Promocionales'}
-          </h2>
+        <div data-tour="tour-cat-header">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-2xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="w-2.5 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full inline-block"></span>
+              {activeTab === 'categories' ? 'Categorías del Catálogo' : 'Combos & Paquetes Promocionales'}
+            </h2>
+            {activeTab === 'categories' && (
+              <button
+                type="button"
+                onClick={() => setIsTutorialOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-bold rounded-xl border border-amber-200 dark:border-amber-500/30 transition-all cursor-pointer shadow-xs active:scale-95"
+                title="Abrir Guía Didáctica e Ilustrativa de Categorías"
+              >
+                <BookOpen size={14} className="text-amber-600 dark:text-amber-400" />
+                <span>Guía Didáctica</span>
+              </button>
+            )}
+          </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {activeTab === 'categories'
               ? 'Organiza los departamentos y rubros de tu negocio para que aparezcan en el POS Kiosco y el Inventario.'
@@ -679,6 +709,7 @@ export default function ProductsManager() {
           ) : (
             <button 
               type="button"
+              data-tour="tour-cat-new-btn"
               onClick={() => setIsCategoryModalOpen(true)} 
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black px-5 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-amber-500/25 active:scale-95 cursor-pointer"
             >
@@ -690,7 +721,7 @@ export default function ProductsManager() {
       </div>
 
       {/* Pestañas Unificadas: Combos & Paquetes vs Categorías */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div data-tour="tour-cat-tabs" className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
           onClick={() => setActiveTab('combos')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
@@ -905,7 +936,7 @@ export default function ProductsManager() {
       {activeTab === 'categories' && (
         <div className="space-y-6">
           {/* Tarjetas de Resumen */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div data-tour="tour-cat-kpis" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xs flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0">
                 <FolderTree size={24} />
@@ -940,7 +971,7 @@ export default function ProductsManager() {
           {/* Panel Principal de Categorías */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
             {/* Toolbar */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
+            <div data-tour="tour-cat-search" className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input 
@@ -980,9 +1011,10 @@ export default function ProductsManager() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCategories.map((cat) => (
+                  {filteredCategories.map((cat, catIdx) => (
                     <div 
                       key={cat.name}
+                      {...(catIdx === 0 ? { 'data-tour': 'tour-cat-card' } : {})}
                       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 hover:shadow-lg transition-all duration-200 flex flex-col justify-between group"
                     >
                       <div>
@@ -1039,7 +1071,10 @@ export default function ProductsManager() {
                         </div>
 
                         {/* Bloque de Subcategorías */}
-                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                        <div 
+                          {...(catIdx === 0 ? { 'data-tour': 'tour-cat-subcats' } : {})}
+                          className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80"
+                        >
                           <div className="flex items-center justify-between gap-2 mb-2">
                             <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                               <CornerDownRight size={13} className="text-amber-500" />
@@ -1062,7 +1097,7 @@ export default function ProductsManager() {
                             </p>
                           ) : (
                             <div className="space-y-1.5 my-2 max-h-48 overflow-y-auto pr-1">
-                              {cat.subcategories.map((sub) => (
+                              {cat.subcategories.map((sub, subIdx) => (
                                 <div 
                                   key={sub.name} 
                                   className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 hover:border-amber-500/40 transition-colors"
@@ -1099,6 +1134,7 @@ export default function ProductsManager() {
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
                                       type="button"
+                                      {...(catIdx === 0 && subIdx === 0 ? { 'data-tour': 'tour-cat-assign' } : {})}
                                       onClick={() => handleOpenAssignModal(cat.name, sub.name)}
                                       title="Asignar productos a esta subcategoría"
                                       className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-200/80 hover:bg-amber-500 dark:bg-slate-800 dark:hover:bg-amber-500 text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-slate-950 text-[10px] font-black transition-colors cursor-pointer"
@@ -1141,6 +1177,7 @@ export default function ProductsManager() {
 
                       {/* Botón Ver Productos en Inventario */}
                       <button
+                        {...(catIdx === 0 ? { 'data-tour': 'tour-cat-inventory-link' } : {})}
                         onClick={() => navigate(`/inventory?category=${encodeURIComponent(cat.name)}`)}
                         className="mt-3 w-full flex items-center justify-center gap-1.5 py-2.5 px-3 bg-slate-100 hover:bg-amber-50 dark:bg-slate-800 dark:hover:bg-amber-950/40 text-slate-700 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-400 font-bold text-xs rounded-xl transition-all cursor-pointer border border-transparent hover:border-amber-500/30"
                       >
@@ -1461,6 +1498,12 @@ export default function ProductsManager() {
         }}
         existingCombo={editingCombo}
         availableProducts={products}
+      />
+
+      {/* Guía Didáctica e Ilustrativa de Categorías del Catálogo */}
+      <CategoriesTutorialOverlay
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
       />
     </div>
   );
