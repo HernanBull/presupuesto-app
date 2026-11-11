@@ -1,9 +1,10 @@
 // ==============================================================================
 // AXONMARKET & AXONPOS — Tutorial Interactivo y Guía Didáctica de Caja Maestra
 // Sistema de Posicionamiento Inteligente Sin Superposición (Zero-Overlap)
+// Compatible con Contenedor de Scroll Interno <main> y Pantallas Móviles
 // ==============================================================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowRight, ArrowLeft, X, Sparkles, ShieldCheck, 
   HelpCircle, BookOpen, Check, Wallet, Calendar, 
@@ -132,9 +133,12 @@ export const TUTORIAL_STEPS = [
     icon: DollarSign,
     content: (
       <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p className="text-slate-500 dark:text-zinc-400">
+          En Venezuela el dinero entra por dos vías completamente distintas:
+        </p>
         <div className="space-y-1 text-[11px]">
           <div className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-900 dark:text-emerald-300">
-            💵 <b>Efectivo Físico en Gaveta:</b> Billetes que debes tener en mano (USD en efectivo y Bolívares en efectivo).
+            💵 <b>Efectivo Físico en Gaveta:</b> Billetes que debes tener en mano (USD y Bolívares en efectivo).
           </div>
           <div className="p-1.5 bg-sky-50 dark:bg-sky-500/10 rounded-lg text-sky-900 dark:text-sky-300">
             🏦 <b>Dinero Digital en Bancos:</b> Pago Móvil, Punto POS, Transferencias y Zelle.
@@ -147,16 +151,30 @@ export const TUTORIAL_STEPS = [
     id: 'method-breakdown',
     selector: '[data-tour="tour-method-breakdown"]',
     title: '8. Consolidación por Métodos de Pago',
-    subtitle: 'Desglose exacto canal por canal',
+    subtitle: 'Desglose exacto bimonetario canal por canal',
     badge: 'CANALES DE COBRO',
     icon: Landmark,
     content: (
       <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
         <p>
-          Te muestra exactamente cuánto ingresó por cada método con su cantidad de cobros:
+          Te muestra exactamente cuánto dinero ingresó por cada método con su cantidad de cobros:
         </p>
-        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-          Separa Efectivo USD, Efectivo Bs., Pago Móvil, Punto de Venta, Zelle y Transferencias. Es la herramienta principal para la conciliación bancaria diaria.
+        <div className="grid grid-cols-2 gap-1 text-[11px]">
+          <div className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-900 dark:text-emerald-300 font-medium">
+            💵 Efectivo USD & Bs.
+          </div>
+          <div className="p-1.5 bg-sky-50 dark:bg-sky-500/10 rounded-lg text-sky-900 dark:text-sky-300 font-medium">
+            📲 Pago Móvil & POS
+          </div>
+          <div className="p-1.5 bg-purple-50 dark:bg-purple-500/10 rounded-lg text-purple-900 dark:text-purple-300 font-medium">
+            🟣 Zelle Digital
+          </div>
+          <div className="p-1.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-900 dark:text-indigo-300 font-medium">
+            🏛️ Transferencias
+          </div>
+        </div>
+        <p className="text-[10px] text-slate-400">
+          Es la herramienta clave para tu conciliación bancaria diaria: compara lo que dice tu banco contra cada tarjeta.
         </p>
       </div>
     )
@@ -164,18 +182,40 @@ export const TUTORIAL_STEPS = [
   {
     id: 'shift-monitor',
     selector: '[data-tour="tour-shift-monitor"]',
-    title: '9. Monitor de Turnos & Arqueo Ticket por Ticket',
-    subtitle: 'Supervisión en vivo de cajas y cajeros',
+    title: '9. Monitor de Turnos y Cajas Registradoras',
+    subtitle: 'Supervisión en vivo de gavetas y cajeros',
     badge: 'MONITOR EN VIVO',
     icon: Monitor,
     content: (
       <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
         <p>
-          Supervisa en vivo qué cajero está cobrando, su hora de apertura y su fondo inicial en gaveta.
+          Panel de supervisión en tiempo real de cada punto de venta de tu negocio:
         </p>
-        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-          Abajo encuentras el <b>Arqueo de Operaciones</b> con el detalle cronológico de cada ticket emitido en el día para auditorías precisas.
+        <div className="space-y-1 text-[11px]">
+          <div>• <b>Cajeros Activos:</b> Conoce quién está operando cada caja y a qué hora abrió.</div>
+          <div>• <b>Base Inicial en Gaveta:</b> Fondo de sencillo asignado al iniciar la jornada.</div>
+          <div>• <b>Estado del Turno:</b> Muestra si la caja está <i>En Servicio</i> o <i>Cerrada</i> tras el arqueo.</div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'operations-audit',
+    selector: '[data-tour="tour-operations-audit"]',
+    title: '10. Arqueo de Operaciones & Cobros Desglosados',
+    subtitle: 'Auditoría cronológica ticket a ticket',
+    badge: 'AUDITORÍA DE VENTAS',
+    icon: Receipt,
+    content: (
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p>
+          Historial cronológico detallado de cada ticket y venta procesada en el período:
         </p>
+        <div className="space-y-1 text-[11px]">
+          <div>• <b>Métodos Combinados:</b> Si un cliente pagó mitad en $ y mitad en Pago Móvil, lo ves desglosado.</div>
+          <div>• <b>Recibo & Comprobante:</b> Reimprime el ticket térmico o compártelo al cliente.</div>
+          <div>• <b>Seguridad de Anulación:</b> Solo el Propietario con PIN Maestro puede anular ventas, registrándose en auditoría.</div>
+        </div>
       </div>
     )
   }
@@ -186,63 +226,113 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
   const [targetRect, setTargetRect] = useState(null);
   const [cardPlacement, setCardPlacement] = useState('bottom'); // 'bottom' | 'top'
   const [isMinimized, setIsMinimized] = useState(false);
+  const scrollTimeoutRef = useRef(null);
 
   const step = TUTORIAL_STEPS[currentStepIndex];
 
   // Actualizar posición del elemento seleccionado con desplazamiento inteligente
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !step) return;
 
-    const updatePosition = () => {
-      if (!step) return;
-      const el = document.querySelector(step.selector);
-      if (el) {
-        // Obtenemos las dimensiones iniciales
-        const rawRect = el.getBoundingClientRect();
-        
-        // Decidimos la posición de la tarjeta:
-        // Si el elemento está en la mitad superior de la pantalla, la tarjeta irá abajo.
-        // Si el elemento está en la mitad inferior, la tarjeta irá arriba.
-        const shouldCardBeBottom = rawRect.top < window.innerHeight * 0.45;
-        const newPlacement = shouldCardBeBottom ? 'bottom' : 'top';
-        setCardPlacement(newPlacement);
-
-        // Desplazamos suavemente la ventana para que el elemento quede con suficiente espacio
-        // Si la tarjeta está abajo: el elemento debe quedar en el tercio superior (top: 80px a 140px)
-        // Si la tarjeta está arriba: el elemento debe quedar en el tercio inferior (bottom libre)
-        if (newPlacement === 'bottom') {
-          const desiredTop = window.scrollY + rawRect.top - 100;
-          window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
-        } else {
-          const desiredTop = window.scrollY + rawRect.top - (window.innerHeight - rawRect.height - 100);
-          window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
-        }
-
-        // Leemos las coordenadas finales tras el scroll
-        setTimeout(() => {
-          const finalRect = el.getBoundingClientRect();
-          setTargetRect({
-            top: finalRect.top,
-            left: finalRect.left,
-            width: finalRect.width,
-            height: finalRect.height,
-            bottom: finalRect.bottom,
-            right: finalRect.right
-          });
-        }, 220);
-
-      } else {
-        setTargetRect(null);
-      }
+    const findScrollContainer = () => {
+      // En AxonPOS el layout utiliza <main className="flex-1 overflow-y-auto...">
+      return document.querySelector('main') || document.documentElement;
     };
 
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
+    const updatePosition = () => {
+      const el = document.querySelector(step.selector);
+      if (!el) {
+        setTargetRect(null);
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Determinamos si el elemento está en la mitad superior o inferior del viewport
+      const elCenterY = rect.top + rect.height / 2;
+      const shouldCardBeBottom = elCenterY < viewportHeight * 0.45;
+      const placement = shouldCardBeBottom ? 'bottom' : 'top';
+      setCardPlacement(placement);
+
+      setTargetRect({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        bottom: rect.bottom,
+        right: rect.right
+      });
+    };
+
+    const scrollToTargetAndPosition = () => {
+      const el = document.querySelector(step.selector);
+      if (!el) {
+        // Reintentar si el elemento aún está cargando
+        scrollTimeoutRef.current = setTimeout(scrollToTargetAndPosition, 80);
+        return;
+      }
+
+      const scrollContainer = findScrollContainer();
+      const elRect = el.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+
+      // Decidimos la posición de la tarjeta:
+      // Si el elemento está en la mitad superior -> tarjeta abajo
+      // Si el elemento está en la mitad inferior -> tarjeta arriba
+      const containerRect = scrollContainer.getBoundingClientRect ? scrollContainer.getBoundingClientRect() : { top: 0 };
+      const relativeTop = elRect.top - containerRect.top;
+      
+      const shouldCardBeBottom = relativeTop < viewportHeight * 0.42;
+      const placement = shouldCardBeBottom ? 'bottom' : 'top';
+      setCardPlacement(placement);
+
+      // Desplazamiento inteligente en el contenedor <main>:
+      // Si la tarjeta está arriba (placement === 'top'):
+      // Dejamos un espacio libre arriba de ~220px para la tarjeta didáctica.
+      // Si la tarjeta está abajo (placement === 'bottom'):
+      // El elemento debe quedar en el tercio superior (~80px).
+      const desiredViewportTop = placement === 'top' 
+        ? Math.max(200, Math.min(260, viewportHeight * 0.35)) 
+        : 85;
+
+      const currentScrollTop = scrollContainer.scrollTop || window.scrollY || 0;
+      const deltaY = elRect.top - desiredViewportTop;
+      const targetScroll = Math.max(0, currentScrollTop + deltaY);
+
+      if (scrollContainer.scrollTo) {
+        scrollContainer.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+      } else {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Varios chequeos para sincronizar el spotlight con el movimiento suave
+      updatePosition();
+      const t1 = setTimeout(updatePosition, 100);
+      const t2 = setTimeout(updatePosition, 250);
+      const t3 = setTimeout(updatePosition, 450);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    };
+
+    const cleanupTimers = scrollToTargetAndPosition();
+
+    // Escuchamos el evento de scroll en fase de captura para que detecte el scroll de <main>
     window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
 
     return () => {
-      window.removeEventListener('resize', updatePosition);
+      if (cleanupTimers) cleanupTimers();
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
       window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
     };
   }, [isOpen, currentStepIndex, step]);
 
@@ -295,13 +385,13 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
           </mask>
         </defs>
 
-        {/* Fondo oscuro que respeta el hueco transparente del botón */}
+        {/* Fondo oscuro semitransparente que respeta el hueco transparente del elemento */}
         <rect
           x="0"
           y="0"
           width="100%"
           height="100%"
-          fill="rgba(15, 23, 42, 0.76)"
+          fill="rgba(15, 23, 42, 0.78)"
           mask="url(#tutorial-spotlight-mask)"
         />
       </svg>
@@ -335,8 +425,8 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
           style={{
             left: Math.min(window.innerWidth - 60, Math.max(20, targetRect.left + (targetRect.width / 2) - 16)),
             top: cardPlacement === 'bottom'
-              ? Math.min(window.innerHeight - 45, targetRect.bottom + 8)
-              : Math.max(6, targetRect.top - 36)
+              ? Math.min(window.innerHeight - 50, targetRect.bottom + 8)
+              : Math.max(8, targetRect.top - 36)
           }}
         >
           <div className="flex flex-col items-center animate-bounce">
@@ -354,6 +444,7 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
       {/* ========================================================
           TARJETA DIDÁCTICA DOCKED (TOP O BOTTOM)
           Garantiza CERO superposición con el elemento señalado
+          En móvil: bottom respeta el bottom navigation bar (72px)
           ======================================================== */}
       <div 
         className="fixed z-50 w-full max-w-sm sm:max-w-md px-3 transition-all duration-300 pointer-events-auto"
@@ -361,8 +452,8 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
           left: '50%',
           transform: 'translateX(-50%)',
           ...(cardPlacement === 'bottom'
-            ? { bottom: '12px' }
-            : { top: '12px' }
+            ? { bottom: '72px' }
+            : { top: '16px' }
           )
         }}
       >
