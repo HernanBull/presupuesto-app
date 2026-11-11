@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, Printer, FileText, Download, Calendar, Building2, 
   CheckCircle2, DollarSign, Receipt, Copy, Share2, 
-  Smartphone, ShieldCheck, ArrowRightLeft, Store
+  Smartphone, ShieldCheck, ArrowRightLeft, Store, Scissors, RefreshCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../../../../supabaseClient';
@@ -27,30 +27,31 @@ export default function FiscalReportModal({
   const [internalOrders, setInternalOrders] = useState([]);
   const [internalShifts, setInternalShifts] = useState([]);
   const [liveBcvRate, setLiveBcvRate] = useState(propBcvRate);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
-  // Cargar órdenes y tasa si no se pasan como props
+  // Cargar órdenes y tasa oficial si no se pasan como props o al cambiar workspace
   useEffect(() => {
     if (!isOpen) return;
 
-    if (propOrders.length === 0 && workspaceId) {
+    if (workspaceId) {
+      setIsLoadingOrders(true);
       supabase
         .from('ecommerce_orders_v2')
         .select('id, total, status, paymentmethod, paymentdetails, date, workspace_id, items, order_type, customer')
         .eq('workspace_id', workspaceId)
         .neq('status', 'Cancelado')
-        .order('date', { ascending: false })
+        .order('date', { ascending: true }) // Orden cronológico ascendente fundamental para SENIAT
         .then(({ data }) => {
           if (data) setInternalOrders(data);
         })
-        .catch(console.error);
-    }
+        .catch(console.error)
+        .finally(() => setIsLoadingOrders(false));
 
-    if (propShifts.length === 0 && workspaceId) {
       supabase
         .from('cash_shifts')
         .select('*')
         .eq('branch_id', workspaceId)
-        .order('opened_at', { ascending: false })
+        .order('opened_at', { ascending: true })
         .then(({ data }) => {
           if (data) setInternalShifts(data);
         })
@@ -63,11 +64,10 @@ export default function FiscalReportModal({
         if (d?.rate) setLiveBcvRate(Number(d.rate));
       })
       .catch(() => {});
-  }, [isOpen, workspaceId, propOrders.length, propShifts.length]);
+  }, [isOpen, workspaceId]);
 
   const orders = propOrders.length > 0 ? propOrders : internalOrders;
   const shifts = propShifts.length > 0 ? propShifts : internalShifts;
-  const bcvRate = propBcvRate || liveBcvRate;
 
   // Extraer información fiscal del comercio guardada en localStorage o fallback
   const storeInfo = useMemo(() => {
@@ -87,15 +87,15 @@ export default function FiscalReportModal({
   }, [storeName, workspaceId]);
 
   // Sincronizar el tipo de reporte cuando cambia la prop initialReportType
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialReportType) {
       setReportType(initialReportType);
     }
   }, [initialReportType]);
 
-  // Filtrado de pedidos por fecha seleccionada y caja
+  // Filtrado de pedidos por fecha seleccionada y caja, con orden cronológico ascendente
   const dayOrders = useMemo(() => {
-    return orders.filter(o => {
+    const list = orders.filter(o => {
       if (!o.date) return false;
       const orderDateStr = o.date.slice(0, 10);
       if (orderDateStr !== selectedDate) return false;
@@ -110,6 +110,9 @@ export default function FiscalReportModal({
 
       return true;
     });
+
+    // Orden cronológico estricto ascendente (de la primera venta a la última de la jornada)
+    return [...list].sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
   }, [orders, selectedDate, selectedRegisterId]);
 
   // Turnos del día seleccionado
@@ -121,9 +124,36 @@ export default function FiscalReportModal({
     });
   }, [shifts, selectedDate]);
 
-  // Cálculos Fiscales SENIAT
+  // Determinación de la Tasa BCV Oficial:
+  // Si la jornada es "Hoy", se toma la tasa oficial del día en vivo.
+  // Si la jornada es una fecha histórica (ej: 09/11/2026), se toma la tasa BCV efectiva registrada en las facturas de ese día.
+  const effectiveFiscalRate = useMemo(() => {
+    if (selectedDate === todayStr) {
+      return Number(liveBcvRate) || Number(propBcvRate) || 901.62;
+    }
+
+    // Fecha histórica: buscar tasas registradas en las ventas de ese día
+    const recordedRates = dayOrders
+      .map(o => {
+        const pd = typeof o.paymentdetails === 'string'
+          ? (() => { try { return JSON.parse(o.paymentdetails); } catch(e) { return {}; } })()
+          : (o.paymentdetails || {});
+        const r = Number(pd.bcvRate) || (Number(pd.totalVes) && Number(o.total) ? Number(pd.totalVes) / Number(o.total) : null);
+        return r && r > 0 ? r : null;
+      })
+      .filter(Boolean);
+
+    if (recordedRates.length > 0) {
+      // Tomar la tasa de la jornada registrada en las operaciones
+      return recordedRates[0];
+    }
+
+    return Number(liveBcvRate) || Number(propBcvRate) || 901.62;
+  }, [selectedDate, todayStr, dayOrders, liveBcvRate, propBcvRate]);
+
+  // Cálculos Fiscales SENIAT (Providencia SNAT/2018/0141 y Ley de Reforma del IGTF)
   const fiscalStats = useMemo(() => {
-    const rate = Number(bcvRate) || 1;
+    const rate = Number(effectiveFiscalRate) || 1;
 
     let totalSalesUsd = 0;
     let totalSalesVes = 0;
@@ -145,7 +175,30 @@ export default function FiscalReportModal({
 
     let firstInvoiceNum = null;
     let lastInvoiceNum = null;
-    let fiscalInvoiceCount = 0;
+    let fiscalInvoiceCount = dayOrders.length;
+
+    // Helper para extraer número de factura limpio y correlativo
+    const getInvoiceStr = (order, index) => {
+      const pd = typeof order.paymentdetails === 'string'
+        ? (() => { try { return JSON.parse(order.paymentdetails); } catch(e) { return {}; } })()
+        : (order.paymentdetails || {});
+
+      if (pd.invoiceNumber && pd.invoiceNumber.trim()) {
+        return pd.invoiceNumber.trim();
+      }
+      if (pd.controlNumber && pd.controlNumber.trim()) {
+        return pd.controlNumber.trim();
+      }
+      return `FAC-${String(index + 1).padStart(6, '0')}`;
+    };
+
+    if (dayOrders.length > 0) {
+      firstInvoiceNum = getInvoiceStr(dayOrders[0], 0);
+      lastInvoiceNum = getInvoiceStr(dayOrders[dayOrders.length - 1], dayOrders.length - 1);
+    } else {
+      firstInvoiceNum = '000000';
+      lastInvoiceNum = '000000';
+    }
 
     dayOrders.forEach((o, index) => {
       const orderUsd = Number(o.total) || 0;
@@ -158,12 +211,6 @@ export default function FiscalReportModal({
 
       totalSalesUsd += orderUsd;
       totalSalesVes += orderVes;
-
-      // Numeración de facturas
-      fiscalInvoiceCount++;
-      const invNum = pd.invoiceNumber || String(index + 1).padStart(6, '0');
-      if (!firstInvoiceNum) firstInvoiceNum = invNum;
-      lastInvoiceNum = invNum;
 
       // Desglose impositivo de los productos
       const items = Array.isArray(o.items) ? o.items : [];
@@ -185,10 +232,11 @@ export default function FiscalReportModal({
           }
         });
       } else {
+        // En ausencia de items desglosados, se toma base gravada general
         generalBaseUsd += (orderUsd / 1.16);
       }
 
-      // Pagos y recaudación
+      // Pagos y recaudación (IGTF 3% aplica a divisas en efectivo, Zelle, etc.)
       if (Array.isArray(pd.payments) && pd.payments.length > 0) {
         pd.payments.forEach(p => {
           const m = String(p.method || '').toUpperCase();
@@ -248,17 +296,18 @@ export default function FiscalReportModal({
     const expectedCashUsd = initialCashUsd + breakdown.cashUsd;
     const expectedCashVes = initialCashVes + breakdown.cashVes;
 
-    // Consecutivo estimado de Z o X basado en la fecha
+    // Consecutivo legal estimado de Z o X basado en la fecha
     const daysSinceEpoch = Math.floor(new Date(selectedDate).getTime() / (1000 * 60 * 60 * 24));
     const reportSequence = String((daysSinceEpoch % 9000) + 100).padStart(4, '0');
 
     return {
       rate,
+      isHistorical: selectedDate !== todayStr,
       totalSalesUsd,
       totalSalesVes,
       fiscalInvoiceCount,
-      firstInvoiceNum: firstInvoiceNum || '000001',
-      lastInvoiceNum: lastInvoiceNum || '000001',
+      firstInvoiceNum,
+      lastInvoiceNum,
       exemptVes,
       exemptUsd,
       generalBaseVes,
@@ -275,7 +324,7 @@ export default function FiscalReportModal({
       expectedCashVes,
       reportSequence
     };
-  }, [dayOrders, dayShifts, bcvRate, selectedDate]);
+  }, [dayOrders, dayShifts, effectiveFiscalRate, selectedDate, todayStr]);
 
   if (!isOpen) return null;
 
@@ -292,7 +341,7 @@ export default function FiscalReportModal({
         <meta charset='utf-8'>
         <title>Reporte Fiscal SENIAT ${reportCode} - ${storeInfo.name}</title>
         <style>
-          body { font-family: 'Courier New', Courier, monospace; font-size: 11pt; color: #111; line-height: 1.35; padding: 20px; }
+          body { font-family: 'Courier New', Courier, monospace; font-size: 11pt; color: #111; line-height: 1.35; padding: 25px; }
           .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 12px; margin-bottom: 15px; }
           .store-title { font-size: 16pt; font-weight: bold; text-transform: uppercase; }
           .report-badge { font-size: 14pt; font-weight: bold; margin: 10px 0; color: #000; }
@@ -315,13 +364,13 @@ export default function FiscalReportModal({
           <div>SERIAL FISCAL: ${storeInfo.fiscalSerial}</div>
           <div class="report-badge">*** REPORTE FISCAL ${reportTitle} ***</div>
           <div>NÚMERO DE REPORTE: <b>#${reportCode}</b></div>
-          <div>FECHA JORNADA: <b>${selectedDate}</b> · TASA BCV: <b>Bs. ${fiscalStats.rate.toFixed(2)}</b></div>
+          <div>FECHA JORNADA: <b>${selectedDate}</b> · TASA BCV APLICADA: <b>Bs. ${fiscalStats.rate.toFixed(2)}</b></div>
           <div>HORA DE EMISIÓN: <b>${new Date().toLocaleTimeString()}</b></div>
         </div>
 
         <table>
           <tr class="border-b"><td colspan="2" class="bold text-center">RANGO DE COMPROBANTES FISCALES</td></tr>
-          <tr><td>CANTIDAD DE FACTURAS:</td><td class="text-right bold">${fiscalStats.fiscalInvoiceCount} emitidas</td></tr>
+          <tr><td>FACTURAS EMITIDAS:</td><td class="text-right bold">${fiscalStats.fiscalInvoiceCount} operaciones</td></tr>
           <tr><td>PRIMERA FACTURA:</td><td class="text-right bold">${fiscalStats.firstInvoiceNum}</td></tr>
           <tr><td>ÚLTIMA FACTURA:</td><td class="text-right bold">${fiscalStats.lastInvoiceNum}</td></tr>
         </table>
@@ -364,7 +413,7 @@ export default function FiscalReportModal({
             <td class="text-right">-</td>
           </tr>
           <tr class="border-t bold">
-            <td>TOTAL VENTAS DEL DÍA:</td>
+            <td>TOTAL VENTAS FACTURADAS:</td>
             <td class="text-right bold">Bs. ${fiscalStats.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</td>
             <td class="text-right bold">Ref $ ${fiscalStats.totalSalesUsd.toFixed(2)}</td>
           </tr>
@@ -382,7 +431,7 @@ export default function FiscalReportModal({
 
         <div style="margin-top: 30px; text-align: center; font-size: 8pt; border-top: 1px dashed #000; padding-top: 10px;">
           ${isZ ? '*** CIERRE DIARIO DEFINITIVO - MEMORIA FISCAL SENIAT ACTUALIZADA ***' : '*** CORTE X PARCIAL - LA JORNADA FISCAL CONTINÚA ABIERTA ***'}
-          <br/>Emitido por Sistema Certificado AxonMarket Cloud POS
+          <br/>Emitido por Sistema Certificado AxonMarket Cloud POS · Providencia SNAT/2018/0141
         </div>
 
         <table style="margin-top: 40px; width: 100%;">
@@ -464,12 +513,12 @@ export default function FiscalReportModal({
             <div class="subtitle">${storeInfo.legalName}</div>
             <div class="subtitle">RIF: ${storeInfo.rif}</div>
             <div class="subtitle">${storeInfo.address}</div>
-            <div class="subtitle">SERIAL: ${storeInfo.fiscalSerial}</div>
+            <div class="subtitle">SERIAL FISCAL: ${storeInfo.fiscalSerial}</div>
             <div class="double-divider"></div>
             <div class="badge">*** REPORTE ${reportTitle} ***</div>
             <div class="bold">COMPROBANTE #${reportCode}</div>
-            <div class="subtitle">FECHA: ${selectedDate} | HORA: ${new Date().toLocaleTimeString()}</div>
-            <div class="subtitle">TASA BCV: Bs. ${fiscalStats.rate.toFixed(2)}</div>
+            <div class="subtitle">FECHA JORNADA: ${selectedDate} | HORA: ${new Date().toLocaleTimeString()}</div>
+            <div class="subtitle bold">TASA BCV APLICADA: Bs. ${fiscalStats.rate.toFixed(2)}</div>
             <div class="divider"></div>
           </div>
 
@@ -510,7 +559,7 @@ export default function FiscalReportModal({
           </div>
           <div class="divider"></div>
           <div class="row bold" style="font-size: 12px;">
-            <span>TOTAL FISCAL:</span>
+            <span>TOTAL FACTURADO:</span>
             <span>Bs. ${fiscalStats.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
           </div>
           <div class="row bold" style="font-size: 11px;">
@@ -532,7 +581,7 @@ export default function FiscalReportModal({
             ${isZ ? '*** CIERRE DIARIO DEFINITIVO SENIAT ***<br/>MEMORIA FISCAL ALMACENADA' : '*** CORTE X PARCIAL SENIAT ***<br/>LA JORNADA FISCAL CONTINÚA ABIERTA'}
           </div>
           <div class="center subtitle" style="margin-top: 5px;">
-            AxonMarket Cloud Network v4.5
+            AxonMarket Fiscal System · Providencia SNAT/2018/0141
           </div>
         </body>
         </html>
@@ -555,15 +604,15 @@ export default function FiscalReportModal({
   const handleCopyWhatsApp = () => {
     const text = `📊 *REPORTE FISCAL ${reportTitle}*\n` +
       `🏢 *${storeInfo.name}* (RIF: ${storeInfo.rif})\n` +
-      `📅 Fecha: ${selectedDate} | Reporte: #${reportCode}\n` +
-      `💵 Tasa BCV: Bs. ${fiscalStats.rate.toFixed(2)}\n\n` +
+      `📅 Fecha Jornada: ${selectedDate} | Reporte: #${reportCode}\n` +
+      `💵 Tasa BCV Aplicada: Bs. ${fiscalStats.rate.toFixed(2)} ${fiscalStats.isHistorical ? '(Jornada)' : '(Hoy)'}\n\n` +
       `🧾 *FACTURACIÓN:*\n` +
       `• Facturas emitidas: ${fiscalStats.fiscalInvoiceCount}\n` +
       `• Rango: ${fiscalStats.firstInvoiceNum} al ${fiscalStats.lastInvoiceNum}\n` +
       `• Total Ventas: Bs. ${fiscalStats.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })} (Ref $ ${fiscalStats.totalSalesUsd.toFixed(2)})\n\n` +
       `🏛️ *SENIAT IVA & IGTF:*\n` +
       `• Exento: Bs. ${fiscalStats.exemptVes.toFixed(2)}\n` +
-      `• Base 16%: Bs. ${fiscalStats.generalBaseVes.toFixed(2)} | IVA: Bs. ${fiscalStats.generalIvaVes.toFixed(2)}\n` +
+      `• Base 16%: Bs. ${fiscalStats.generalBaseVes.toFixed(2)} | IVA 16%: Bs. ${fiscalStats.generalIvaVes.toFixed(2)}\n` +
       `• IGTF 3% Divisas: Bs. ${fiscalStats.igtfAmountVes.toFixed(2)}\n\n` +
       `💰 *INGRESOS POR MEDIO:*\n` +
       `• Efectivo USD: $ ${fiscalStats.breakdown.cashUsd.toFixed(2)}\n` +
@@ -571,45 +620,41 @@ export default function FiscalReportModal({
       `• Pago Móvil: Bs. ${fiscalStats.breakdown.pagoMovilVes.toFixed(2)}\n` +
       `• Punto de Venta: Bs. ${fiscalStats.breakdown.posVes.toFixed(2)}\n` +
       `• Zelle: $ ${fiscalStats.breakdown.zelleUsd.toFixed(2)}\n\n` +
-      `_AxonMarket Fiscal Cloud_`;
+      `_AxonMarket Fiscal Cloud - Providencia SNAT/2018/0141_`;
 
     navigator.clipboard.writeText(text)
       .then(() => toast.success('¡Reporte copiado para enviar por WhatsApp!'))
       .catch(() => toast.error('No se pudo copiar el texto'));
   };
 
-  // 4. Enviar a Impresora Hardware / Térmica si está conectada
-  const handleSendHardware = () => {
-    toast.success(`Enviando comando de ${reportTitle} a impresora conectada`);
-    handlePrintOrPdf();
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-zinc-900 w-full max-w-2xl rounded-3xl sm:rounded-[2.5rem] shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
+      
+      {/* Contenedor Principal: Papel Blanco Continuo de Punta a Punta */}
+      <div className="bg-white dark:bg-zinc-950 w-full max-w-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[94vh]">
         
         {/* Cabecera del Modal */}
-        <div className="px-5 py-4 sm:px-7 sm:py-5 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/80 dark:bg-white/2">
+        <div className="px-5 py-3.5 sm:px-6 sm:py-4 border-b border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/90 dark:bg-zinc-900/90 shrink-0">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md ${
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md ${
               isZ 
                 ? 'bg-gradient-to-tr from-rose-600 to-red-500 shadow-rose-500/25' 
                 : 'bg-gradient-to-tr from-orange-500 to-amber-500 shadow-orange-500/25'
             }`}>
-              <Receipt size={22} />
+              <Receipt size={20} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                <span className={`text-[9.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
                   isZ ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400'
                 }`}>
                   SENIAT OFICIAL
                 </span>
-                <span className="text-xs font-mono font-bold text-slate-400">
+                <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
                   #{reportCode}
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-tight">
                 {reportTitle}
               </h3>
             </div>
@@ -617,19 +662,19 @@ export default function FiscalReportModal({
 
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer"
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
 
         {/* Barra de Filtro de Fecha y Conmutador X / Z */}
-        <div className="px-5 py-3 sm:px-7 bg-white dark:bg-zinc-900 border-b border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="px-5 py-2.5 sm:px-6 bg-slate-50/50 dark:bg-zinc-900/50 border-b border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-2 shrink-0">
           {/* Selector de Tipo: X o Z */}
-          <div className="flex items-center bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+          <div className="flex items-center bg-slate-200/70 dark:bg-white/10 p-0.5 rounded-xl">
             <button
               onClick={() => setReportType('X')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                 !isZ 
                   ? 'bg-orange-500 text-white shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -639,7 +684,7 @@ export default function FiscalReportModal({
             </button>
             <button
               onClick={() => setReportType('Z')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                 isZ 
                   ? 'bg-rose-600 text-white shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -650,7 +695,7 @@ export default function FiscalReportModal({
           </div>
 
           {/* Selector de Fecha */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Calendar size={13} className="text-orange-500" />
               <span>Día:</span>
@@ -659,12 +704,12 @@ export default function FiscalReportModal({
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-2.5 py-1 text-xs font-bold bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="px-2.5 py-1 text-xs font-bold bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
             />
             {selectedDate !== todayStr && (
               <button
                 onClick={() => setSelectedDate(todayStr)}
-                className="text-[10px] font-bold text-orange-600 hover:underline cursor-pointer"
+                className="text-[11px] font-black text-orange-600 dark:text-orange-400 hover:underline cursor-pointer px-1 py-0.5"
               >
                 Hoy
               </button>
@@ -672,56 +717,69 @@ export default function FiscalReportModal({
           </div>
         </div>
 
-        {/* Cuerpo del Modal: Simulación de Ticket Fiscal 80mm */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 dark:bg-black/40 flex justify-center">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-950 p-5 sm:p-6 rounded-2xl shadow-md border border-slate-200 dark:border-white/10 font-mono text-xs text-slate-800 dark:text-slate-200 space-y-3">
+        {/* ========================================================
+            CUERPO DEL MODAL: PAPEL CONTINUO TÉRMICO HASTA EL FONDO
+            (Sin márgenes grises que corten por la mitad)
+            ======================================================== */}
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950 p-4 sm:p-6 custom-scrollbar">
+          <div className="w-full max-w-md mx-auto font-mono text-xs text-slate-800 dark:text-slate-200 space-y-3.5">
             
-            {/* Encabezado Fiscal */}
+            {/* Encabezado Fiscal de Máquina Autorizada */}
             <div className="text-center space-y-1 pb-3 border-b-2 border-dashed border-slate-300 dark:border-zinc-700">
               <h4 className="font-black text-sm uppercase tracking-wide text-slate-900 dark:text-white">
                 {storeInfo.name}
               </h4>
-              <p className="text-[10.5px] text-slate-600 dark:text-slate-400">{storeInfo.legalName}</p>
-              <p className="text-[11px] font-bold">RIF: {storeInfo.rif}</p>
+              <p className="text-[10.5px] text-slate-600 dark:text-slate-400 font-medium">{storeInfo.legalName}</p>
+              <p className="text-[11px] font-black text-slate-800 dark:text-zinc-200">RIF: {storeInfo.rif}</p>
               <p className="text-[10px] text-slate-500">{storeInfo.address}</p>
-              <p className="text-[10px] text-slate-400">SERIAL FISCAL: {storeInfo.fiscalSerial}</p>
+              <p className="text-[10px] text-slate-400 font-bold">SERIAL FISCAL: {storeInfo.fiscalSerial}</p>
               
               <div className="pt-2">
-                <span className={`inline-block px-3 py-1 rounded-md text-xs font-black uppercase tracking-wider text-white ${
+                <span className={`inline-block px-3 py-1 rounded-md text-xs font-black uppercase tracking-wider text-white shadow-xs ${
                   isZ ? 'bg-rose-600' : 'bg-orange-500'
                 }`}>
                   *** REPORTE {reportTitle} ***
                 </span>
               </div>
-              <p className="text-xs font-bold text-slate-900 dark:text-white mt-1">COMPROBANTE #{reportCode}</p>
-              <div className="flex justify-between text-[10px] text-slate-500 pt-1">
-                <span>FECHA: {selectedDate}</span>
-                <span>HORA: {new Date().toLocaleTimeString()}</span>
+              <p className="text-xs font-black text-slate-900 dark:text-white mt-1">COMPROBANTE #{reportCode}</p>
+              
+              <div className="flex justify-between text-[10.5px] text-slate-500 pt-1 border-t border-slate-100 dark:border-white/5 mt-1.5">
+                <span>FECHA: <b>{selectedDate}</b></span>
+                <span>HORA: <b>{new Date().toLocaleTimeString()}</b></span>
               </div>
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                TASA OFICIAL BCV: Bs. {fiscalStats.rate.toFixed(2)}
-              </p>
+
+              {/* Tasa BCV Oficial Específica del Día */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 rounded-lg py-1 px-2.5 mt-1.5 flex items-center justify-between text-[11px]">
+                <span className="text-amber-800 dark:text-amber-300 font-bold">
+                  {fiscalStats.isHistorical ? 'TASA BCV APLICADA (JORNADA):' : 'TASA BCV OFICIAL (HOY):'}
+                </span>
+                <span className="font-black text-amber-700 dark:text-amber-300">
+                  Bs. {fiscalStats.rate.toFixed(2)}
+                </span>
+              </div>
             </div>
 
-            {/* Rango de Facturación */}
-            <div className="py-2 border-b border-dashed border-slate-300 dark:border-zinc-700 space-y-1 text-[11px]">
-              <div className="flex justify-between">
+            {/* Rango de Facturación Cronológica */}
+            <div className="py-2 border-b border-dashed border-slate-300 dark:border-zinc-700 space-y-1.5 text-[11px]">
+              <div className="flex justify-between items-center">
                 <span>FACTURAS EMITIDAS:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{fiscalStats.fiscalInvoiceCount}</span>
+                <span className="font-black text-sm text-slate-900 dark:text-white bg-slate-100 dark:bg-white/10 px-2 py-0.5 rounded">
+                  {fiscalStats.fiscalInvoiceCount}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>PRIMERA FACTURA:</span>
-                <span className="font-bold">{fiscalStats.firstInvoiceNum}</span>
+                <span className="font-bold text-slate-800 dark:text-zinc-200">{fiscalStats.firstInvoiceNum}</span>
               </div>
               <div className="flex justify-between">
                 <span>ÚLTIMA FACTURA:</span>
-                <span className="font-bold">{fiscalStats.lastInvoiceNum}</span>
+                <span className="font-bold text-slate-800 dark:text-zinc-200">{fiscalStats.lastInvoiceNum}</span>
               </div>
             </div>
 
             {/* Desglose Impositivo SENIAT */}
             <div className="py-2 border-b border-dashed border-slate-300 dark:border-zinc-700 space-y-1.5 text-[11px]">
-              <p className="font-black text-center text-[10px] uppercase tracking-wider text-slate-500">
+              <p className="font-black text-center text-[10px] uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-100 dark:border-white/5">
                 DESGLOSE TRIBUTARIO SENIAT
               </p>
               <div className="flex justify-between">
@@ -732,7 +790,7 @@ export default function FiscalReportModal({
                 <span>BASE IMP. (G 16%):</span>
                 <span>Bs. {fiscalStats.generalBaseVes.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-900 dark:text-white">
+              <div className="flex justify-between font-black text-slate-900 dark:text-white">
                 <span>IMPUESTO IVA (16%):</span>
                 <span>Bs. {fiscalStats.generalIvaVes.toFixed(2)}</span>
               </div>
@@ -740,7 +798,7 @@ export default function FiscalReportModal({
                 <span>BASE IMP. (R 8%):</span>
                 <span>Bs. {fiscalStats.reducedBaseVes.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold text-slate-900 dark:text-white">
+              <div className="flex justify-between font-black text-slate-900 dark:text-white">
                 <span>IMPUESTO IVA (8%):</span>
                 <span>Bs. {fiscalStats.reducedIvaVes.toFixed(2)}</span>
               </div>
@@ -748,33 +806,36 @@ export default function FiscalReportModal({
                 <span>BASE IGTF DIVISAS (3%):</span>
                 <span>Bs. {fiscalStats.igtfBaseVes.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold text-amber-600 dark:text-amber-400">
+              <div className="flex justify-between font-black text-amber-600 dark:text-amber-400">
                 <span>IGTF PERCIBIDO (3%):</span>
                 <span>Bs. {fiscalStats.igtfAmountVes.toFixed(2)}</span>
               </div>
 
-              <div className="pt-2 border-t border-slate-200 dark:border-zinc-800 flex justify-between items-center text-xs font-black text-slate-900 dark:text-white">
-                <span>TOTAL FACTURADO (Bs):</span>
-                <span className="text-sm text-emerald-600 dark:text-emerald-400">
-                  Bs. {fiscalStats.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] font-bold text-slate-500">
-                <span>TOTAL EQUIVALENTE USD:</span>
-                <span className="text-slate-900 dark:text-white font-mono">
-                  $ {fiscalStats.totalSalesUsd.toFixed(2)}
-                </span>
+              {/* Total Facturado en Bs y Ref USD */}
+              <div className="pt-2.5 border-t-2 border-slate-300 dark:border-zinc-700 space-y-1">
+                <div className="flex justify-between items-center text-xs font-black text-slate-900 dark:text-white">
+                  <span>TOTAL FACTURADO (Bs):</span>
+                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    Bs. {fiscalStats.totalSalesVes.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] font-bold text-slate-500">
+                  <span>TOTAL EQUIVALENTE USD:</span>
+                  <span className="text-slate-900 dark:text-white font-mono font-bold">
+                    $ {fiscalStats.totalSalesUsd.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Medios de Pago Recibidos */}
-            <div className="py-2 border-b border-dashed border-slate-300 dark:border-zinc-700 space-y-1 text-[11px]">
-              <p className="font-black text-center text-[10px] uppercase tracking-wider text-slate-500">
+            <div className="py-2 border-b border-dashed border-slate-300 dark:border-zinc-700 space-y-1.5 text-[11px]">
+              <p className="font-black text-center text-[10px] uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-100 dark:border-white/5">
                 RECAUDACIÓN POR MÉTODO DE PAGO
               </p>
               <div className="flex justify-between">
                 <span>Efectivo Divisas ($):</span>
-                <span className="font-bold text-emerald-600">$ {fiscalStats.breakdown.cashUsd.toFixed(2)}</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">$ {fiscalStats.breakdown.cashUsd.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Efectivo Bolívares (Bs):</span>
@@ -798,30 +859,42 @@ export default function FiscalReportModal({
               </div>
             </div>
 
-            {/* Pie de Ticket Fiscal */}
-            <div className="text-center pt-2 space-y-1 text-[9.5px] text-slate-400">
-              <p className="font-bold text-slate-700 dark:text-slate-300">
+            {/* Pie Legal SENIAT */}
+            <div className="text-center pt-2 space-y-1 text-[9.5px] text-slate-500 dark:text-slate-400">
+              <p className="font-black text-slate-800 dark:text-slate-200">
                 {isZ 
                   ? '*** CIERRE DIARIO DEFINITIVO SENIAT ***' 
-                  : '*** CORTE X PARCIAL - JORNADA ACTIVA ***'}
+                  : '*** CORTE X PARCIAL - JORNADA FISCAL ACTIVA ***'}
               </p>
-              <p>{isZ ? 'MEMORIA FISCAL ACTUALIZADA CORRECTAMENTE' : 'NO MODIFICA ACUMULADORES DE MEMORIA FISCAL'}</p>
-              <p className="text-[9px]">AxonMarket Fiscal System · Conforme Providencia SNAT/2018/0141</p>
+              <p>{isZ ? 'MEMORIA FISCAL REGISTRADA Y ALMACENADA' : 'NO ALTERA ACUMULADORES DE MEMORIA FISCAL'}</p>
+              <p className="text-[9px]">AxonMarket Fiscal System · Providencia SNAT/2018/0141</p>
             </div>
+
+            {/* Troquelado Final de Rollo Térmico Continuo (Llega hasta el fondo) */}
+            <div className="pt-4 pb-2 text-center text-slate-300 dark:text-zinc-700 select-none">
+              <p className="tracking-widest text-[11px]">- - - - - - - - - - - - - - - - - - - - - - - -</p>
+              <div className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mt-1">
+                <Scissors size={11} />
+                <span>CORTE DE PAPEL · FIN DE REPORTE</span>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        {/* Barra Inferior de Acciones: Imprimir, PDF, Word y WhatsApp */}
-        <div className="px-5 py-4 sm:px-7 bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center justify-between gap-3">
+        {/* ========================================================
+            BARRA INFERIOR DE ACCIONES (Anclada limpiamente sin tapar)
+            ======================================================== */}
+        <div className="px-5 py-3 sm:px-6 bg-slate-50/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-2.5 shrink-0">
           
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyWhatsApp}
-              className="px-3.5 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-              title="Copiar texto para enviar por WhatsApp"
+              className="px-3.5 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Copiar texto formateado para WhatsApp"
             >
               <Copy size={14} />
-              <span>Copiar WhatsApp</span>
+              <span>WhatsApp</span>
             </button>
           </div>
 
@@ -829,23 +902,25 @@ export default function FiscalReportModal({
             {/* Descargar en Word (.doc) */}
             <button
               onClick={handleDownloadWord}
-              className="px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              className="px-3.5 py-2.5 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-2xs"
+              title="Descargar reporte formal en Word"
             >
-              <FileText size={15} />
-              <span>Descargar en Word (.doc)</span>
+              <FileText size={14} />
+              <span>Descargar Word (.doc)</span>
             </button>
 
             {/* Imprimir o Guardar en PDF */}
             <button
               onClick={handlePrintOrPdf}
-              className={`px-5 py-2.5 text-white rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer ${
+              className={`px-4 sm:px-5 py-2.5 text-white rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer ${
                 isZ 
                   ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/25' 
                   : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/25'
               }`}
+              title="Imprimir ticket o guardar en PDF"
             >
               <Printer size={15} />
-              <span>Imprimir / Guardar PDF</span>
+              <span>Imprimir / PDF</span>
             </button>
           </div>
 
