@@ -34,6 +34,7 @@ import { supabase } from '../../../../supabaseClient';
 import { offlineDb } from '../../services/offlineSyncService';
 import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
+import FiscalReportModal from './FiscalReportModal';
 
 export default function CashShiftModal({
   isOpen,
@@ -48,6 +49,8 @@ export default function CashShiftModal({
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [movements, setMovements] = useState([]);
   const [registers, setAvailableRegisters] = useState([]);
+  const [isFiscalModalOpen, setIsFiscalModalOpen] = useState(false);
+  const [fiscalReportType, setFiscalReportType] = useState('X');
   const [availableStaff, setAvailableStaff] = useState([]);
 
   // Estado del turno activo (prioriza prop, o carga de localStorage)
@@ -443,13 +446,13 @@ export default function CashShiftModal({
   };
 
   const handlePrintReportX = () => {
-    toast.success('Reporte X (Corte Parcial) generado e impreso.');
+    setFiscalReportType('X');
+    setIsFiscalModalOpen(true);
   };
 
   const handlePrintReportZ = () => {
-    if (window.confirm('¿Está seguro de emitir el REPORTE Z? Este es el corte fiscal definitivo diario para SENIAT.')) {
-      toast.success('Reporte Z (Cierre Diario) emitido con éxito.');
-    }
+    setFiscalReportType('Z');
+    setIsFiscalModalOpen(true);
   };
 
   // Pestañas disponibles: Para el cajero NO se muestra Monitor Multi-Cajas ni gestión de otras terminales
@@ -1125,6 +1128,21 @@ export default function CashShiftModal({
         </div>
 
       </div>
+
+      {/* Modal Fiscal SENIAT para Corte X y Cierre Z (PDF, Word, Impresión Móvil) */}
+      {isFiscalModalOpen && (
+        <FiscalReportModal
+          isOpen={isFiscalModalOpen}
+          onClose={() => setIsFiscalModalOpen(false)}
+          initialReportType={fiscalReportType}
+          workspaceId={localStorage.getItem('activeWorkspace')}
+          storeName={storeName}
+          bcvRate={bcvRate}
+          shifts={shiftsList || []}
+          registers={registers || []}
+        />
+      )}
+
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
 import UserManagementModal from '../components/admin/UserManagementModal';
 import CashShiftModal from '../components/admin/CashShiftModal';
+import FiscalReportModal from '../components/admin/FiscalReportModal';
 
 export default function MerchantCashMasterView() {
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,8 @@ export default function MerchantCashMasterView() {
   const [selectedShiftForModal, setSelectedShiftForModal] = useState(null);
   const [selectedDateFilter, setSelectedDateFilter] = useState('ALL'); // 'ALL', 'TODAY', 'YESTERDAY', '7DAYS', 'CUSTOM'
   const [customDate, setCustomDate] = useState('');
+  const [isFiscalReportModalOpen, setIsFiscalReportModalOpen] = useState(false);
+  const [fiscalReportType, setFiscalReportType] = useState('X'); // 'X' o 'Z'
 
   const workspaceId = localStorage.getItem('activeWorkspace');
 
@@ -325,9 +328,11 @@ export default function MerchantCashMasterView() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
-              window.print();
+              setFiscalReportType('X');
+              setIsFiscalReportModalOpen(true);
             }}
-            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Ver Cuadre e Imprimir / Exportar a PDF"
           >
             <Printer size={14} className="text-slate-500" />
             <span>Imprimir Cuadre</span>
@@ -335,11 +340,11 @@ export default function MerchantCashMasterView() {
 
           <button
             onClick={() => {
-              if (window.confirm('¿Desea emitir el REPORTE X (Corte Parcial SENIAT)?')) {
-                toast.success('Reporte X (Corte Parcial SENIAT) emitido con éxito.');
-              }
+              setFiscalReportType('X');
+              setIsFiscalReportModalOpen(true);
             }}
-            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Emitir Corte X Parcial (PDF / Word / Impresora Térmica)"
           >
             <Receipt size={14} className="text-orange-500" />
             <span>Corte X (SENIAT)</span>
@@ -347,11 +352,11 @@ export default function MerchantCashMasterView() {
 
           <button
             onClick={() => {
-              if (window.confirm('¿Desea emitir el REPORTE Z (Cierre Diario Definitivo SENIAT)?')) {
-                toast.success('Reporte Z (Cierre Fiscal Diario SENIAT) emitido con éxito.');
-              }
+              setFiscalReportType('Z');
+              setIsFiscalReportModalOpen(true);
             }}
-            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Emitir Cierre Z Definitivo (PDF / Word / Impresora Térmica)"
           >
             <Printer size={14} className="text-rose-500" />
             <span>Cierre Z (SENIAT)</span>
@@ -1165,6 +1170,21 @@ export default function MerchantCashMasterView() {
           initialTab={cashShiftModalTab}
           bcvRate={bcvRate}
           storeName={storeName}
+        />
+      )}
+
+      {/* Modal Fiscal SENIAT: Corte X y Cierre Z (PDF, Word, Impresión Móvil y Hardware) */}
+      {isFiscalReportModalOpen && (
+        <FiscalReportModal
+          isOpen={isFiscalReportModalOpen}
+          onClose={() => setIsFiscalReportModalOpen(false)}
+          initialReportType={fiscalReportType}
+          workspaceId={workspaceId}
+          storeName={storeName}
+          bcvRate={bcvRate}
+          orders={orders}
+          shifts={shifts}
+          registers={configuredRegisters}
         />
       )}
 
