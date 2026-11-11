@@ -8,10 +8,11 @@ import {
   FileSpreadsheet, Download, Printer, Calendar, RefreshCw, 
   Search, Filter, Landmark, FileText, CheckCircle2, AlertCircle,
   TrendingUp, DollarSign, Percent, ShieldCheck, ArrowDownRight,
-  ExternalLink, Layers
+  ExternalLink, Layers, BookOpen
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import toast from 'react-hot-toast';
+import FiscalSalesBookTutorialOverlay from '../components/fiscal/FiscalSalesBookTutorialOverlay';
 
 export default function FiscalSalesBookPage() {
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,19 @@ export default function FiscalSalesBookPage() {
     rif: 'J-000000000',
     address: 'Venezuela'
   });
+
+  // Guía Didáctica Fiscal SENIAT
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenFiscalBookTour');
+    if (!hasSeen) {
+      const timer = setTimeout(() => {
+        setIsTutorialOpen(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Rango de fechas por defecto: Mes en curso
   const now = new Date();
@@ -430,18 +444,29 @@ export default function FiscalSalesBookPage() {
       
       {/* Cabecera Principal */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25">
+        <div data-tour="tour-fiscal-header">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/25 shrink-0">
               <FileSpreadsheet size={20} />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                <span>Libro de Ventas Fiscal SENIAT</span>
-                <span className="text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-500/30">
-                  {storeProfile.name}
-                </span>
-              </h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                  <span>Libro de Ventas Fiscal SENIAT</span>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-500/30">
+                    {storeProfile.name}
+                  </span>
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsTutorialOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/20 text-orange-700 dark:text-orange-300 text-xs font-bold rounded-xl border border-orange-200 dark:border-orange-500/30 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Abrir Guía Didáctica Fiscal SENIAT"
+                >
+                  <BookOpen size={14} className="text-orange-600 dark:text-orange-400" />
+                  <span>Guía Didáctica</span>
+                </button>
+              </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
                 Cumplimiento de la Ley del IVA, IGTF 3%, facturación e informe contable oficial para SENIAT.
               </p>
@@ -449,7 +474,7 @@ export default function FiscalSalesBookPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div data-tour="tour-fiscal-actions" className="flex items-center gap-2.5 flex-wrap">
           {/* Tasa BCV */}
           <div className="bg-white dark:bg-slate-900 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2 shadow-2xs">
             <span className="text-slate-400">Tasa BCV:</span>
@@ -490,30 +515,32 @@ export default function FiscalSalesBookPage() {
       {/* Barra de Filtros y Rango de Fechas */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-              <Calendar size={14} className="text-orange-500" />
-              <span>Desde:</span>
-            </span>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-            />
+          <div data-tour="tour-fiscal-dates" className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                <Calendar size={14} className="text-orange-500" />
+                <span>Desde:</span>
+              </span>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Hasta:</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Hasta:</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-            />
-          </div>
-
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
+          <div data-tour="tour-fiscal-filters" className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
             <button
               onClick={() => setFilterType('ALL')}
               className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${filterType === 'ALL' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs' : 'text-slate-500'}`}
@@ -551,7 +578,7 @@ export default function FiscalSalesBookPage() {
       {/* Tarjetas KPI de Resumen Impositivo Oficial */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Facturado */}
-        <div className="bg-gradient-to-br from-slate-900 via-zinc-900 to-black text-white p-5 rounded-3xl shadow-xl flex flex-col justify-between border border-white/10">
+        <div data-tour="tour-fiscal-kpi-sales" className="bg-gradient-to-br from-slate-900 via-zinc-900 to-black text-white p-5 rounded-3xl shadow-xl flex flex-col justify-between border border-white/10">
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-orange-400 block mb-1">
               Total Ventas Facturadas (c/ IVA)
@@ -589,7 +616,7 @@ export default function FiscalSalesBookPage() {
         </div>
 
         {/* Ventas Exentas */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div data-tour="tour-fiscal-kpi-igtf" className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 block mb-1">
               Ventas Exentas / Exoneradas
@@ -628,7 +655,7 @@ export default function FiscalSalesBookPage() {
       </div>
 
       {/* Tabla Oficial de Operaciones del Libro de Ventas */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
+      <div data-tour="tour-fiscal-table" className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
@@ -720,6 +747,12 @@ export default function FiscalSalesBookPage() {
           </div>
         )}
       </div>
+
+      {/* Guía Didáctica Oficial del Libro de Ventas Fiscal SENIAT */}
+      <FiscalSalesBookTutorialOverlay
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+      />
 
     </div>
   );

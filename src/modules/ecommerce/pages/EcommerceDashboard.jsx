@@ -3,11 +3,13 @@ import {
   DollarSign, Package, ShoppingCart, TrendingUp, AlertTriangle, 
   ArrowUpRight, Activity, ShoppingBag, Eye, EyeOff, ExternalLink, Plus, MoreHorizontal, 
   FileText, Banknote, UserPlus, ChevronRight, BarChart2, X,
-  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame, Compass, Bell
+  Rocket, PackageSearch, Tag, Users, Building2, Settings, Wallet, Flame, Compass, Bell,
+  BookOpen
 } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { supabase } from '../../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import DashboardTutorialOverlay from '../components/dashboard/DashboardTutorialOverlay';
 
 // Helper para determinar si una orden tiene pago verificado y aprobado
 export const isOrderPaidAndApproved = (o) => {
@@ -57,6 +59,19 @@ export default function EcommerceDashboard() {
 
   // Contador de Notificaciones y Alertas No Leídas para el Comerciante
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+
+  // Guía Didáctica de Inicio (se abre automáticamente para usuarios nuevos)
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenDashboardTour');
+    if (!hasSeen) {
+      const timer = setTimeout(() => {
+        setIsTutorialOpen(true);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -565,6 +580,17 @@ export default function EcommerceDashboard() {
                 <Compass size={13} className="text-amber-300 shrink-0" />
                 <span className="text-xs font-black tracking-wide">Mercado</span>
               </button>
+
+              {/* Botón Guía Didáctica e Ilustrativa */}
+              <button
+                type="button"
+                onClick={() => setIsTutorialOpen(true)}
+                className="flex items-center gap-1 bg-white/20 hover:bg-white/30 backdrop-blur-md px-2.5 py-1.5 rounded-full cursor-pointer transition-all active:scale-95 border border-white/25 shadow-xs text-white"
+                title="Abrir Guía Didáctica de Inicio"
+              >
+                <BookOpen size={13} className="text-amber-200 shrink-0" />
+                <span className="text-xs font-black tracking-wide">Guía</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -596,12 +622,12 @@ export default function EcommerceDashboard() {
           </div>
 
           {/* Saludo */}
-          <p className="text-white/85 text-sm font-semibold mb-3 relative z-10">
+          <p data-tour="tour-dash-greeting" className="text-white/85 text-sm font-semibold mb-3 relative z-10">
             {getGreeting()}
           </p>
 
           {/* Filtros: Hoy | Este mes */}
-          <div className="flex items-center gap-2 mb-5 relative z-10">
+          <div data-tour="tour-dash-period" className="flex items-center gap-2 mb-5 relative z-10">
             <button
               onClick={() => setMobilePeriod('today')}
               className={`px-4 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
@@ -625,13 +651,13 @@ export default function EcommerceDashboard() {
           </div>
 
           {/* Métrica Hero Principal: Vendiste hoy / Vendiste este mes */}
-          <div className="mb-6 relative z-10">
+          <div data-tour="tour-dash-hero" className="mb-6 relative z-10">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-bold text-white/80 uppercase tracking-wider">
                 {mobilePeriod === 'today' ? 'Vendiste hoy' : 'Vendiste este mes'}
               </p>
               {bcvRate > 0 && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm border border-white/20">
+                <span data-tour="tour-dash-rate" className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white backdrop-blur-sm border border-white/20">
                   Tasa BCV: {bcvRate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/$
                 </span>
               )}
@@ -660,7 +686,7 @@ export default function EcommerceDashboard() {
           </div>
 
           {/* Fila de Botones de Acción (Nueva venta | Caja Maestra | ...) */}
-          <div className="flex items-center gap-2 relative z-10">
+          <div data-tour="tour-dash-actions" className="flex items-center gap-2 relative z-10">
             <button
               onClick={() => navigate('/pos')}
               className="flex-1 py-3 px-3 bg-white text-orange-600 hover:bg-orange-50 font-black rounded-2xl shadow-lg shadow-black/15 flex items-center justify-center gap-1.5 active:scale-95 transition-all text-xs cursor-pointer truncate"
@@ -693,7 +719,7 @@ export default function EcommerceDashboard() {
         <div className="bg-[#f4f7fb] dark:bg-black rounded-t-[32px] -mt-6 pt-6 px-4 pb-24 relative z-10 shadow-2xl space-y-6">
           
           {/* SECCIÓN 1: Hoy en números */}
-          <div>
+          <div data-tour="tour-dash-metrics">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3 px-1">
               {mobilePeriod === 'today' ? 'Hoy en números' : 'Este mes en números'}
             </h4>
@@ -1164,6 +1190,12 @@ export default function EcommerceDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Tutorial Interactivo y Guía Didáctica de Inicio */}
+      <DashboardTutorialOverlay
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+      />
 
     </div>
   );
