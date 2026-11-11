@@ -2316,7 +2316,7 @@ export default function MarketplaceDirectory() {
           </ActiveFeedMediaProvider>
         </div>
 
-        {/* Botón flotante circular azul con icono de tienda (Exacto a la captura del usuario) */}
+        {/* Botón flotante circular anaranjado VIP (Mismo diseño y color que el botón VIP de la barra inferior) */}
         <div
           className={`fixed bottom-6 left-5 z-50 transition-all duration-200 ${!isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'}`}
         >
@@ -2326,14 +2326,14 @@ export default function MarketplaceDirectory() {
               isNavOpenRef.current = true;
               setIsBottomNavOpen(true);
             }}
-            className="w-13 h-13 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center cursor-pointer shadow-2xl border-2 border-white/90 active:scale-90 transition-transform duration-150 backdrop-blur-xs"
-            title="Abrir menú"
+            className="relative w-14 h-14 bg-gradient-to-tr from-orange-600 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_25px_rgba(234,88,12,0.55)] border-2 border-white ring-4 ring-orange-500/25 cursor-pointer active:scale-95 hover:scale-105 transition-all"
+            title="Abrir menú de navegación"
             aria-label="Abrir menú de navegación"
-            style={{
-              boxShadow: '0 8px 25px rgba(37, 99, 235, 0.55)'
-            }}
           >
-            <Store size={22} className="text-white stroke-[2.2]" />
+            <ShoppingBag size={24} className="stroke-[2.5] text-white" />
+            <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wider bg-white text-orange-600 border border-orange-200 rounded-full shadow-md">
+              VIP
+            </span>
           </button>
         </div>
 

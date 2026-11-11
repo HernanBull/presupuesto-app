@@ -772,29 +772,7 @@ export default function SocialFeedCard({
             ))}
           </div>
 
-          {/* Flecha Izquierda para Computadoras / Móvil / Clic Directo */}
-          {currentSlideIndex > 0 && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.max(0, prev - 1)); }}
-              className="flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/75 hover:bg-black/90 text-white items-center justify-center border border-white/20 active:scale-95 transition-all shadow-md cursor-pointer"
-              title="Foto anterior"
-            >
-              <ChevronLeft size={20} />
-            </button>
-          )}
 
-          {/* Flecha Derecha para Computadoras / Móvil / Clic Directo */}
-          {currentSlideIndex < postImages.length - 1 && (
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setCurrentSlideIndex(prev => Math.min(postImages.length - 1, prev + 1)); }}
-              className="flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/75 hover:bg-black/90 text-white items-center justify-center border border-white/20 active:scale-95 transition-all shadow-md cursor-pointer"
-              title="Siguiente foto"
-            >
-              <ChevronRight size={20} />
-            </button>
-          )}
 
           {/* Indicadores de Diapositiva tipo Barra / Puntos */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 max-w-[60%]">
@@ -1007,7 +985,7 @@ export default function SocialFeedCard({
           </button>
         </div>
 
-        {/* Merchant Categories Badges (Estilo TikTok: colapsable con un toque) */}
+        {/* Caption & Detalles Colapsables Estilo TikTok */}
         {(() => {
           const rawCats = Array.isArray(post.categories) && post.categories.length > 0
             ? post.categories
@@ -1015,64 +993,48 @@ export default function SocialFeedCard({
           const isInvalid = (val) => !val || typeof val !== 'string' || /^(almacen|almacén|deposito|depósito|bodega)$/i.test(val.trim());
           const validCats = rawCats.filter(c => !isInvalid(c));
 
-          if (validCats.length === 0) return null;
-
           return (
-            <div className="flex flex-wrap items-center gap-1.5 py-0.5">
-              {/* Botón interactivo para ver / ocultar rubros */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowCategories(prev => !prev);
-                }}
-                className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-black/55 hover:bg-black/75 border border-white/30 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm transition-all active:scale-95 cursor-pointer"
-                title={showCategories ? 'Ocultar categorías' : 'Ver categorías de este comercio'}
-              >
-                <Tag size={9.5} className="text-amber-400" />
-                <span>{showCategories ? 'Menos ▲' : `+ ${validCats[0]} (${validCats.length}) ▼`}</span>
-              </button>
+            <div className="text-white text-xs leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] pr-2 mt-1">
+              <p className={`text-zinc-100 font-medium ${showCategories ? '' : 'line-clamp-2'}`}>
+                {caption}
+              </p>
 
-              {/* Si está expandido, aparecen todas las categorías */}
+              {/* Información ampliada al presionar "+ más" (Categorías y fecha) */}
               {showCategories && (
-                <div className="flex flex-wrap items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
-                  {validCats.map((catName, idx) => (
-                    <span 
-                      key={idx}
-                      className="inline-flex items-center gap-1 text-[10px] font-extrabold text-white bg-white/20 border border-white/35 px-2 py-0.5 rounded-full backdrop-blur-md shadow-sm"
-                    >
-                      <Tag size={8.5} className="shrink-0 text-white/80" />
-                      <span>{catName}</span>
-                    </span>
-                  ))}
+                <div className="mt-2 space-y-2 animate-in fade-in duration-150">
+                  {validCats.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {validCats.map((catName, idx) => (
+                        <span 
+                          key={idx}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-black/60 border border-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-md"
+                        >
+                          <Tag size={8.5} className="text-amber-400" />
+                          <span>{catName}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-white/70 font-medium">Publicado {formatTimeAgo(createdAt)}</p>
                 </div>
+              )}
+
+              {/* Botón "+ más" / "menos" minimalista y limpio como TikTok */}
+              {(caption.length > 70 || validCats.length > 0) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowCategories(prev => !prev);
+                  }}
+                  className="text-[11px] font-bold text-white/80 hover:text-white mt-1 cursor-pointer transition-colors inline-block"
+                >
+                  {showCategories ? 'menos' : '... más'}
+                </button>
               )}
             </div>
           );
         })()}
-
-        {/* Caption / Description */}
-        <div className="text-white text-xs font-normal leading-relaxed drop-shadow-sm pr-1">
-          <span className="text-zinc-100 line-clamp-2">
-            {caption}
-          </span>
-        </div>
-
-        {/* Comments Link & Date */}
-        <div className="flex items-center gap-2 text-[11px]">
-          <button 
-            type="button"
-            onClick={() => onOpenComments({ postId, postTitle: storeName, workspaceId })}
-            className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors drop-shadow-sm"
-          >
-            <MessageCircle size={12} />
-            <span>{commentsCount > 0 ? `Ver ${commentsCount} comentarios` : 'Comentar...'}</span>
-          </button>
-          <span className="text-white text-[11px] font-semibold flex items-center gap-1.5 drop-shadow-sm">
-            <span className="text-amber-400 font-bold">•</span>
-            <span className="text-white drop-shadow-sm">{formatTimeAgo(createdAt)}</span>
-          </span>
-        </div>
       </div>
 
       {/* Heart Burst on double tap (Optimizado GPU: Cero repintados continuos) */}
