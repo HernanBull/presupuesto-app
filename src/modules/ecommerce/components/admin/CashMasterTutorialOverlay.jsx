@@ -1,14 +1,14 @@
 // ==============================================================================
 // AXONMARKET & AXONPOS — Tutorial Interactivo y Guía Didáctica de Caja Maestra
-// Navegación paso a paso con flecha señalizadora animada y explicaciones claras
+// Sistema de Posicionamiento Inteligente Sin Superposición (Zero-Overlap)
 // ==============================================================================
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight, ArrowLeft, X, Sparkles, ShieldCheck, 
   HelpCircle, BookOpen, Check, Wallet, Calendar, 
   ArrowRightLeft, Receipt, Printer, DollarSign, Monitor,
-  KeyRound, Users, History, CheckCircle2
+  Landmark, CreditCard, ChevronDown, ChevronUp, Eye
 } from 'lucide-react';
 
 export const TUTORIAL_STEPS = [
@@ -20,12 +20,12 @@ export const TUTORIAL_STEPS = [
     badge: 'LEGAL BCV',
     icon: DollarSign,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
         <p>
-          Aquí se refleja la <b>Tasa Oficial del Banco Central de Venezuela (BCV)</b> sincronizada al instante.
+          Refleja la <b>Tasa Oficial del Banco Central de Venezuela (BCV)</b> sincronizada al instante.
         </p>
-        <p className="bg-amber-50 dark:bg-amber-500/10 p-2 rounded-xl border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-200">
-          💡 <b>Regla SENIAT:</b> Todas las conversiones de tus precios en dólares a Bolívares se calculan con esta tasa oficial obligatoria.
+        <p className="bg-amber-50 dark:bg-amber-500/10 p-2 rounded-xl border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-200 text-[11px]">
+          ⚖️ <b>Norma SENIAT:</b> Toda conversión a Bolívares debe respaldarse obligatoriamente con esta tasa legal del día.
         </p>
       </div>
     )
@@ -38,27 +38,14 @@ export const TUTORIAL_STEPS = [
     badge: 'SEGURIDAD & PINES',
     icon: ShieldCheck,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
-        <p>
-          Al presionar este botón accedes al <b>Centro de Control Maestro</b> con 3 áreas indispensables:
-        </p>
-        <ul className="space-y-1.5 pl-1">
-          <li className="flex items-start gap-1.5">
-            <span className="text-orange-500 font-bold">•</span>
-            <span><b>Personal & PINes:</b> Registras cajeros, les creas su PIN táctil de 4 dígitos y configuras qué pueden hacer (anular, dar descuentos, etc.).</span>
-          </li>
-          <li className="flex items-start gap-1.5">
-            <span className="text-orange-500 font-bold">•</span>
-            <span><b>Cajas Registradoras:</b> Creas cajas independientes (Caja 1, Caja Rápida) y generas su código QR para que cualquier empleado cobre desde su teléfono.</span>
-          </li>
-          <li className="flex items-start gap-1.5">
-            <span className="text-orange-500 font-bold">•</span>
-            <span><b>Libro de Auditoría:</b> Bitácora que registra con fecha y hora quién creó una caja, quién cambió un PIN o modificó permisos.</span>
-          </li>
-        </ul>
-        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold pt-1">
-          🔐 Si olvidas tu PIN Maestro, lo recuperas con tu contraseña o con Google Authenticator (2FA).
-        </p>
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p>Centro de control para la administración de tu negocio:</p>
+        <div className="space-y-1 text-[11px]">
+          <div>• <b>Personal & PINes:</b> Registras cajeros con PIN táctil de 4 dígitos y checklist de 21 permisos.</div>
+          <div>• <b>Cajas Registradoras:</b> Creas cajas con código QR para cobrar desde cualquier teléfono o tablet.</div>
+          <div>• <b>Libro de Auditoría:</b> Bitácora inmutable de quién creó cajas o cambió contraseñas.</div>
+          <div>• <b>2FA Google Authenticator:</b> Si olvidas tu PIN Maestro, lo restableces con tu contraseña o con Google Auth.</div>
+        </div>
       </div>
     )
   },
@@ -70,15 +57,13 @@ export const TUTORIAL_STEPS = [
     badge: 'FECHAS & FILTROS',
     icon: Calendar,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
-        <p>
-          Este selector gobierna todos los números que ves en pantalla:
-        </p>
-        <div className="grid grid-cols-2 gap-1.5 text-[11px] pt-1">
-          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg font-semibold"><b>Hoy:</b> Ventas de la jornada actual.</span>
-          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg font-semibold"><b>Ayer:</b> Cuadre de la jornada anterior.</span>
-          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg font-semibold"><b>7 Días:</b> Resumen semanal.</span>
-          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg font-semibold"><b>Día Específico:</b> Consulta cualquier fecha histórica.</span>
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p>Este selector gobierna todos los números e ingresos que ves en pantalla:</p>
+        <div className="grid grid-cols-2 gap-1 text-[11px]">
+          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg"><b>Hoy:</b> Ventas de la jornada activa.</span>
+          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg"><b>Ayer:</b> Cuadre del día anterior.</span>
+          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg"><b>7 Días:</b> Resumen semanal.</span>
+          <span className="p-1.5 bg-slate-100 dark:bg-zinc-800 rounded-lg"><b>Día Específico:</b> Cualquier fecha histórica.</span>
         </div>
       </div>
     )
@@ -91,15 +76,12 @@ export const TUTORIAL_STEPS = [
     badge: 'GAVETA INICIAL',
     icon: Wallet,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
         <p>
-          Cada mañana antes de cobrar, el cajero debe <b>Iniciar Turno</b>.
+          Cada mañana antes de facturar, el cajero presiona este botón para <b>Abrir Turno</b>.
         </p>
-        <p>
-          Allí declara el <b>Fondo de Sencillo inicial</b> (en $ y en Bolívares en efectivo) que recibe en la gaveta para poder dar cambio a los primeros clientes.
-        </p>
-        <p className="text-[11px] text-slate-400 italic">
-          El sistema suma este fondo a las ventas del día para que el cuadre nocturno sea exacto.
+        <p className="bg-emerald-50 dark:bg-emerald-500/10 p-2 rounded-xl border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-300 text-[11px]">
+          💵 Declara el <b>Fondo Inicial de Sencillo</b> (en $ y en Bolívares) en gaveta. El sistema lo sumará a las ventas para el cuadre exacto de la noche.
         </p>
       </div>
     )
@@ -112,12 +94,12 @@ export const TUTORIAL_STEPS = [
     badge: 'GASTOS DE GAVETA',
     icon: ArrowRightLeft,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
         <p>
-          ¿Tuviste que sacar dinero de la gaveta para pagar hielo, bolsas plásticas, almuerzo del personal o un anticipo?
+          ¿Tuviste que sacar efectivo para pagar hielo, bolsas, almuerzo del personal o compras urgentes?
         </p>
-        <p className="bg-orange-50 dark:bg-orange-500/10 p-2 rounded-xl border border-orange-200 dark:border-orange-500/20 text-orange-950 dark:text-orange-200">
-          👉 Presiona <b>Caja Chica</b> y anota la salida. El sistema lo descuenta automáticamente del saldo teórico de gaveta para que al final del día no falte dinero.
+        <p className="bg-orange-50 dark:bg-orange-500/10 p-2 rounded-xl border border-orange-200 dark:border-orange-500/20 text-orange-950 dark:text-orange-200 text-[11px]">
+          👉 Anota la salida aquí. Se restará del efectivo en gaveta automáticamente para que <b>nunca falte dinero en el arqueo final</b>.
         </p>
       </div>
     )
@@ -130,22 +112,13 @@ export const TUTORIAL_STEPS = [
     badge: 'NORMATIVA SENIAT',
     icon: Printer,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
-        <p>
-          En Venezuela existen dos reportes oficiales exigidos por el SENIAT:
-        </p>
-        <ul className="space-y-1.5 pl-1">
-          <li className="flex items-start gap-1.5">
-            <span className="text-amber-500 font-bold">•</span>
-            <span><b>Corte X (Parcial):</b> Informe informativo durante el día para chequear cuánto dinero llevas recaudado. <i>No borra memoria ni altera acumuladores</i>.</span>
-          </li>
-          <li className="flex items-start gap-1.5">
-            <span className="text-rose-500 font-bold">•</span>
-            <span><b>Cierre Z (Definitivo):</b> Se emite <u>una sola vez al terminar la jornada</u>. Cierra las ventas fiscales del día y calcula el IVA (16%) y el IGTF (3%) para el contador.</span>
-          </li>
-        </ul>
-        <p className="text-[11px] text-slate-400">
-          Ambos reportes se pueden imprimir en papel térmico de 80mm, descargar en Word o enviar por WhatsApp.
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <div className="space-y-1 text-[11px]">
+          <div>• <b>Corte X (Parcial):</b> Chequeo informativo durante el día para contar gaveta. <i>No borra memoria ni altera acumuladores</i>.</div>
+          <div>• <b>Cierre Z (Definitivo):</b> Se emite <u>una sola vez al terminar la jornada</u>. Consolida ventas, IVA 16% e IGTF 3% para el Libro de Ventas.</div>
+        </div>
+        <p className="text-[10px] text-slate-400">
+          Ambos se pueden imprimir en térmico (80mm), descargar en Word (.doc) o enviar por WhatsApp al contador.
         </p>
       </div>
     )
@@ -158,20 +131,50 @@ export const TUTORIAL_STEPS = [
     badge: 'CONCILIACIÓN',
     icon: DollarSign,
     content: (
-      <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
-        <p>
-          En Venezuela el dinero entra por dos vías completamente distintas:
-        </p>
-        <div className="space-y-1.5">
-          <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-300">
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <div className="space-y-1 text-[11px]">
+          <div className="p-1.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-900 dark:text-emerald-300">
             💵 <b>Efectivo Físico en Gaveta:</b> Billetes que debes tener en mano (USD en efectivo y Bolívares en efectivo).
           </div>
-          <div className="p-2 bg-sky-50 dark:bg-sky-500/10 rounded-xl border border-sky-200 dark:border-sky-500/20 text-sky-900 dark:text-sky-300">
-            🏦 <b>Dinero Digital en Bancos:</b> Lo que entró por Pago Móvil, Punto de Venta, Transferencias y Zelle.
+          <div className="p-1.5 bg-sky-50 dark:bg-sky-500/10 rounded-lg text-sky-900 dark:text-sky-300">
+            🏦 <b>Dinero Digital en Bancos:</b> Pago Móvil, Punto POS, Transferencias y Zelle.
           </div>
         </div>
+      </div>
+    )
+  },
+  {
+    id: 'method-breakdown',
+    selector: '[data-tour="tour-method-breakdown"]',
+    title: '8. Consolidación por Métodos de Pago',
+    subtitle: 'Desglose exacto canal por canal',
+    badge: 'CANALES DE COBRO',
+    icon: Landmark,
+    content: (
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p>
+          Te muestra exactamente cuánto ingresó por cada método con su cantidad de cobros:
+        </p>
         <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-          Esta división evita que mezcles lo que tienes en el banco con lo que tienes en gaveta.
+          Separa Efectivo USD, Efectivo Bs., Pago Móvil, Punto de Venta, Zelle y Transferencias. Es la herramienta principal para la conciliación bancaria diaria.
+        </p>
+      </div>
+    )
+  },
+  {
+    id: 'shift-monitor',
+    selector: '[data-tour="tour-shift-monitor"]',
+    title: '9. Monitor de Turnos & Arqueo Ticket por Ticket',
+    subtitle: 'Supervisión en vivo de cajas y cajeros',
+    badge: 'MONITOR EN VIVO',
+    icon: Monitor,
+    content: (
+      <div className="space-y-1.5 text-xs text-slate-600 dark:text-zinc-300">
+        <p>
+          Supervisa en vivo qué cajero está cobrando, su hora de apertura y su fondo inicial en gaveta.
+        </p>
+        <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+          Abajo encuentras el <b>Arqueo de Operaciones</b> con el detalle cronológico de cada ticket emitido en el día para auditorías precisas.
         </p>
       </div>
     )
@@ -181,11 +184,12 @@ export const TUTORIAL_STEPS = [
 export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState(null);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [cardPlacement, setCardPlacement] = useState('bottom'); // 'bottom' | 'top'
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const step = TUTORIAL_STEPS[currentStepIndex];
 
-  // Actualizar posición del elemento seleccionado
+  // Actualizar posición del elemento seleccionado con desplazamiento inteligente
   useEffect(() => {
     if (!isOpen) return;
 
@@ -193,20 +197,40 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
       if (!step) return;
       const el = document.querySelector(step.selector);
       if (el) {
-        // Desplazar la pantalla suavemente hacia el elemento si está fuera del viewport
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Obtenemos las dimensiones iniciales
+        const rawRect = el.getBoundingClientRect();
         
+        // Decidimos la posición de la tarjeta:
+        // Si el elemento está en la mitad superior de la pantalla, la tarjeta irá abajo.
+        // Si el elemento está en la mitad inferior, la tarjeta irá arriba.
+        const shouldCardBeBottom = rawRect.top < window.innerHeight * 0.45;
+        const newPlacement = shouldCardBeBottom ? 'bottom' : 'top';
+        setCardPlacement(newPlacement);
+
+        // Desplazamos suavemente la ventana para que el elemento quede con suficiente espacio
+        // Si la tarjeta está abajo: el elemento debe quedar en el tercio superior (top: 80px a 140px)
+        // Si la tarjeta está arriba: el elemento debe quedar en el tercio inferior (bottom libre)
+        if (newPlacement === 'bottom') {
+          const desiredTop = window.scrollY + rawRect.top - 100;
+          window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
+        } else {
+          const desiredTop = window.scrollY + rawRect.top - (window.innerHeight - rawRect.height - 100);
+          window.scrollTo({ top: Math.max(0, desiredTop), behavior: 'smooth' });
+        }
+
+        // Leemos las coordenadas finales tras el scroll
         setTimeout(() => {
-          const rect = el.getBoundingClientRect();
+          const finalRect = el.getBoundingClientRect();
           setTargetRect({
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            bottom: rect.bottom,
-            right: rect.right
+            top: finalRect.top,
+            left: finalRect.left,
+            width: finalRect.width,
+            height: finalRect.height,
+            bottom: finalRect.bottom,
+            right: finalRect.right
           });
-        }, 150);
+        }, 220);
+
       } else {
         setTargetRect(null);
       }
@@ -226,9 +250,7 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
 
   const handleNext = () => {
     if (currentStepIndex < TUTORIAL_STEPS.length - 1) {
-      setIsAnimating(true);
       setCurrentStepIndex(prev => prev + 1);
-      setTimeout(() => setIsAnimating(false), 200);
     } else {
       handleFinish();
     }
@@ -236,9 +258,7 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
 
   const handlePrev = () => {
     if (currentStepIndex > 0) {
-      setIsAnimating(true);
       setCurrentStepIndex(prev => prev - 1);
-      setTimeout(() => setIsAnimating(false), 200);
     }
   };
 
@@ -247,16 +267,12 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
     onClose();
   };
 
-  // Determinar si la tarjeta explicativa debe ir arriba o abajo del elemento
-  const isTargetInBottomHalf = targetRect ? targetRect.top > window.innerHeight / 2 : false;
-
   return (
     <div className="fixed inset-0 z-50 overflow-hidden pointer-events-auto animate-in fade-in duration-200">
       
       {/* ========================================================
           MÁSCARA SVG DE SPOTLIGHT (RECORTE NÍTIDO 100% TRANSPARENTE)
-          El botón señalado queda completamente al descubierto y brillante,
-          mientras que el resto de la pantalla se oscurece con elegancia.
+          El elemento señalado queda totalmente visible e iluminado.
           ======================================================== */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-40">
         <defs>
@@ -264,7 +280,7 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
             {/* 1. Capa blanca que cubre toda la pantalla */}
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
             
-            {/* 2. Recorte transparente (negro en la máscara) donde está el botón */}
+            {/* 2. Recorte transparente (negro en la máscara) donde está el elemento */}
             {targetRect && (
               <rect
                 x={Math.max(2, targetRect.left - 6)}
@@ -290,7 +306,7 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
         />
       </svg>
 
-      {/* Recuadro Luminoso Neón Naranja alrededor del Botón Descubierto */}
+      {/* Recuadro Luminoso Neón Naranja alrededor del Elemento Descubierto */}
       {targetRect && (
         <div 
           className="absolute border-2 border-orange-500 rounded-2xl shadow-[0_0_25px_rgba(255,107,0,0.9)] transition-all duration-300 pointer-events-none z-50"
@@ -318,75 +334,87 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
           className="absolute z-50 transition-all duration-300 pointer-events-none flex items-center justify-center"
           style={{
             left: Math.min(window.innerWidth - 60, Math.max(20, targetRect.left + (targetRect.width / 2) - 16)),
-            top: isTargetInBottomHalf 
-              ? Math.max(6, targetRect.top - 36)
-              : Math.min(window.innerHeight - 45, targetRect.bottom + 8)
+            top: cardPlacement === 'bottom'
+              ? Math.min(window.innerHeight - 45, targetRect.bottom + 8)
+              : Math.max(6, targetRect.top - 36)
           }}
         >
           <div className="flex flex-col items-center animate-bounce">
-            {isTargetInBottomHalf ? (
-              // Flecha apuntando hacia abajo hacia el botón
-              <div className="w-0 h-0 border-x-8 border-x-transparent border-t-12 border-t-orange-500 drop-shadow-[0_2px_10px_rgba(255,107,0,1)]" />
-            ) : (
-              // Flecha apuntando hacia arriba hacia el botón
+            {cardPlacement === 'bottom' ? (
+              // Tarjeta está abajo -> Flecha apunta hacia arriba hacia el elemento
               <div className="w-0 h-0 border-x-8 border-x-transparent border-b-12 border-b-orange-500 drop-shadow-[0_2px_10px_rgba(255,107,0,1)]" />
+            ) : (
+              // Tarjeta está arriba -> Flecha apunta hacia abajo hacia el elemento
+              <div className="w-0 h-0 border-x-8 border-x-transparent border-t-12 border-t-orange-500 drop-shadow-[0_2px_10px_rgba(255,107,0,1)]" />
             )}
           </div>
         </div>
       )}
 
-      {/* TARJETA DIDÁCTICA FLOTANTE (TOOLTIP EXPLICATIVO) */}
+      {/* ========================================================
+          TARJETA DIDÁCTICA DOCKED (TOP O BOTTOM)
+          Garantiza CERO superposición con el elemento señalado
+          ======================================================== */}
       <div 
-        className="fixed z-50 w-full max-w-sm sm:max-w-md px-3.5 transition-all duration-300 pointer-events-auto"
+        className="fixed z-50 w-full max-w-sm sm:max-w-md px-3 transition-all duration-300 pointer-events-auto"
         style={{
           left: '50%',
           transform: 'translateX(-50%)',
-          ...(isTargetInBottomHalf
-            ? { 
-                top: Math.max(12, targetRect ? Math.min(targetRect.top - 340, window.innerHeight * 0.12) : 25) 
-              }
-            : { 
-                bottom: Math.max(12, targetRect ? Math.min(window.innerHeight - targetRect.bottom - 25, window.innerHeight * 0.10) : 25) 
-              }
+          ...(cardPlacement === 'bottom'
+            ? { bottom: '12px' }
+            : { top: '12px' }
           )
         }}
       >
-        <div className="bg-white dark:bg-zinc-900 border-2 border-orange-500/80 rounded-3xl p-5 shadow-2xl space-y-3.5 backdrop-blur-md">
+        <div className="bg-white/95 dark:bg-zinc-900/95 border-2 border-orange-500 rounded-3xl p-4 shadow-2xl space-y-2.5 backdrop-blur-md">
           
           {/* Cabecera del Paso */}
-          <div className="flex items-start justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                <step.icon size={18} />
+          <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-white/5 pb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                <step.icon size={16} />
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase text-orange-500 tracking-wider">
-                  Guía Didáctica • Paso {currentStepIndex + 1} de {TUTORIAL_STEPS.length}
+              <div className="min-w-0">
+                <span className="text-[10px] font-black uppercase text-orange-500 tracking-wider block">
+                  Paso {currentStepIndex + 1} de {TUTORIAL_STEPS.length}
                 </span>
-                <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white leading-tight truncate">
                   {step.title}
                 </h3>
               </div>
             </div>
 
-            <button
-              onClick={handleFinish}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
-              title="Cerrar tutorial"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsMinimized(!isMinimized)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                title={isMinimized ? 'Desplegar explicación' : 'Minimizar tarjeta'}
+              >
+                {isMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+              <button
+                onClick={handleFinish}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                title="Cerrar tutorial"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
-          {/* Subtítulo */}
-          <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 -mt-1">
-            {step.subtitle}
-          </p>
+          {/* Cuerpo Explicativo (Colapsable si el comerciante quiere ver la pantalla completa) */}
+          {!isMinimized && (
+            <>
+              <p className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
+                {step.subtitle}
+              </p>
 
-          {/* Cuerpo Explicativo */}
-          <div className="max-h-56 overflow-y-auto custom-scrollbar pr-1">
-            {step.content}
-          </div>
+              <div className="max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                {step.content}
+              </div>
+            </>
+          )}
 
           {/* Barra de Progreso y Navegación */}
           <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
@@ -399,9 +427,9 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
                   onClick={() => setCurrentStepIndex(idx)}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     idx === currentStepIndex
-                      ? 'w-5 bg-orange-500'
+                      ? 'w-4 bg-orange-500'
                       : idx < currentStepIndex
-                        ? 'w-2 bg-emerald-500'
+                        ? 'w-1.5 bg-emerald-500'
                         : 'w-1.5 bg-slate-200 dark:bg-zinc-700'
                   }`}
                   title={s.title}
@@ -410,14 +438,14 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
             </div>
 
             {/* Botones Anterior / Siguiente */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {currentStepIndex > 0 && (
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1"
                 >
-                  <ArrowLeft size={13} />
+                  <ArrowLeft size={12} />
                   <span>Atrás</span>
                 </button>
               )}
@@ -425,11 +453,11 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleNext}
-                className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                className="px-3.5 py-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black rounded-xl shadow-md shadow-orange-500/25 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
               >
-                <span>{currentStepIndex === TUTORIAL_STEPS.length - 1 ? '¡Entendido! Finalizar' : 'Siguiente'}</span>
-                {currentStepIndex < TUTORIAL_STEPS.length - 1 && <ArrowRight size={13} />}
-                {currentStepIndex === TUTORIAL_STEPS.length - 1 && <Check size={13} />}
+                <span>{currentStepIndex === TUTORIAL_STEPS.length - 1 ? '¡Finalizar!' : 'Siguiente'}</span>
+                {currentStepIndex < TUTORIAL_STEPS.length - 1 && <ArrowRight size={12} />}
+                {currentStepIndex === TUTORIAL_STEPS.length - 1 && <Check size={12} />}
               </button>
             </div>
 
@@ -441,4 +469,3 @@ export default function CashMasterTutorialOverlay({ isOpen, onClose }) {
     </div>
   );
 }
-

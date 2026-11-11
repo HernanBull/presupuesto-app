@@ -594,7 +594,10 @@ export default function MerchantCashMasterView() {
       </div>
 
       {/* Desglose Consolidado por Métodos de Pago (Estética Axon Orange & White) */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4">
+      <div 
+        data-tour="tour-method-breakdown"
+        className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-4"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
             <Landmark size={16} className="text-orange-500" />
@@ -779,7 +782,10 @@ export default function MerchantCashMasterView() {
       </div>
 
       {/* Monitor de Cajas Registradoras y Turnos */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
+      <div 
+        data-tour="tour-shift-monitor"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
@@ -904,7 +910,10 @@ export default function MerchantCashMasterView() {
       </div>
 
       {/* Detalle y Arqueo de Operaciones Recientes Agrupado por Días */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6">
+      <div 
+        data-tour="tour-operations-audit"
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden space-y-4 p-6"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
