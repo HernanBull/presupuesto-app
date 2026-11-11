@@ -1167,6 +1167,7 @@ export default function MerchantCashMasterView() {
           initialTab={cashShiftModalTab}
           bcvRate={bcvRate}
           storeName={storeName}
+          orders={orders}
         />
       )}
 

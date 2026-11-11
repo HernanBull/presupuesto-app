@@ -34,7 +34,6 @@ import { supabase } from '../../../../supabaseClient';
 import { offlineDb } from '../../services/offlineSyncService';
 import { authService } from '../../services/authService';
 import toast from 'react-hot-toast';
-import FiscalReportModal from './FiscalReportModal';
 
 export default function CashShiftModal({
   isOpen,
@@ -43,15 +42,15 @@ export default function CashShiftModal({
   onShiftChange,
   bcvRate = 888.89,
   storeName = 'AxonMarket Store',
-  initialTab = 'status'
+  initialTab = 'status',
+  orders: propOrders = []
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [movements, setMovements] = useState([]);
   const [registers, setAvailableRegisters] = useState([]);
-  const [isFiscalModalOpen, setIsFiscalModalOpen] = useState(false);
-  const [fiscalReportType, setFiscalReportType] = useState('X');
   const [availableStaff, setAvailableStaff] = useState([]);
+  const [internalOrders, setInternalOrders] = useState([]);
 
   // Estado del turno activo (prioriza prop, o carga de localStorage)
   const [currentShift, setCurrentShift] = useState(() => {
@@ -150,8 +149,27 @@ export default function CashShiftModal({
       });
 
       loadMovements();
+
+      // Cargar órdenes de ecommerce_orders_v2 si no se pasaron como props
+      if (propOrders.length === 0) {
+        const wsId = localStorage.getItem('activeWorkspace');
+        if (wsId) {
+          supabase
+            .from('ecommerce_orders_v2')
+            .select('id, total, status, paymentmethod, paymentdetails, date, workspace_id, items')
+            .eq('workspace_id', wsId)
+            .neq('status', 'Cancelado')
+            .order('date', { ascending: false })
+            .then(({ data }) => {
+              if (data) setInternalOrders(data);
+            })
+            .catch(console.error);
+        }
+      }
     }
-  }, [isOpen, propActiveShift, initialTab]);
+  }, [isOpen, propActiveShift, initialTab, propOrders.length]);
+
+  const orders = propOrders.length > 0 ? propOrders : internalOrders;
 
   const loadMovements = async () => {
     try {
@@ -172,21 +190,117 @@ export default function CashShiftModal({
 
   const isOpenShift = Boolean(currentShift && (currentShift.status === 'OPEN' || currentShift.status === 'ABIERTO'));
 
-  // Totales de ventas acumuladas en este turno
-  const shiftTotals = {
-    salesCount: currentShift?.salesCount || 0,
-    cashUsd: Number(currentShift?.cashUsd ?? currentShift?.cashSalesUsd ?? 0),
-    cashVes: Number(currentShift?.cashVes ?? currentShift?.cashSalesVes ?? 0),
-    pagoMovil: Number(currentShift?.pagoMovil || 0),
-    puntoVenta: Number(currentShift?.puntoVenta || 0),
-    zelle: Number(currentShift?.zelle || 0),
-    credito: Number(currentShift?.credito || 0),
-    totalSalesUsd: Number(currentShift?.totalSalesUsd || 0),
-    totalSalesVes: Number(currentShift?.totalSalesVes || (Number(currentShift?.totalSalesUsd || 0) * (Number(bcvRate) || 888.89)))
-  };
+  // Totales de ventas acumuladas en este turno calculadas de las órdenes reales
+  const shiftTotals = (() => {
+    let salesCount = Number(currentShift?.salesCount || 0);
+    let cashUsd = Number(currentShift?.cashUsd ?? currentShift?.cashSalesUsd ?? 0);
+    let cashVes = Number(currentShift?.cashVes ?? currentShift?.cashSalesVes ?? 0);
+    let pagoMovil = Number(currentShift?.pagoMovil || 0);
+    let puntoVenta = Number(currentShift?.puntoVenta || 0);
+    let zelle = Number(currentShift?.zelle || 0);
+    let credito = Number(currentShift?.credito || 0);
+    let totalSalesUsd = Number(currentShift?.totalSalesUsd || 0);
+    let totalSalesVes = Number(currentShift?.totalSalesVes || 0);
 
-  const initialUsd = Number(currentShift?.initialUsd ?? currentShift?.initialCashUsd ?? 50.0);
-  const initialVes = Number(currentShift?.initialVes ?? currentShift?.initialCashVes ?? 1000.0);
+    if (orders.length > 0) {
+      const shiftStartRaw = currentShift?.opened_at || currentShift?.openedAt;
+      const shiftEndRaw = currentShift?.closed_at || currentShift?.closedAt;
+      const startMs = shiftStartRaw ? new Date(shiftStartRaw).getTime() : 0;
+      const endMs = shiftEndRaw ? new Date(shiftEndRaw).getTime() : Infinity;
+
+      const matchingOrders = orders.filter(o => {
+        if (!o.date) return false;
+        const oTime = new Date(o.date).getTime();
+        if (isNaN(oTime)) return false;
+        if (startMs > 0 && (oTime < startMs || oTime > endMs)) return false;
+        return true;
+      });
+
+      const ordersToCount = matchingOrders.length > 0 
+        ? matchingOrders 
+        : (shiftStartRaw ? orders.filter(o => o.date && o.date.slice(0, 10) === shiftStartRaw.slice(0, 10)) : orders);
+
+      if (ordersToCount.length > 0) {
+        salesCount = ordersToCount.length;
+        totalSalesUsd = 0;
+        totalSalesVes = 0;
+        cashUsd = 0;
+        cashVes = 0;
+        pagoMovil = 0;
+        puntoVenta = 0;
+        zelle = 0;
+        credito = 0;
+
+        ordersToCount.forEach(o => {
+          const ordUsd = Number(o.total) || 0;
+          const pd = typeof o.paymentdetails === 'string'
+            ? (() => { try { return JSON.parse(o.paymentdetails); } catch(e) { return {}; } })()
+            : (o.paymentdetails || {});
+          const rate = Number(pd.bcvRate) || Number(bcvRate) || 1;
+          const ordVes = Number(pd.totalVes) || (ordUsd * rate);
+
+          totalSalesUsd += ordUsd;
+          totalSalesVes += ordVes;
+
+          if (Array.isArray(pd.payments) && pd.payments.length > 0) {
+            pd.payments.forEach(p => {
+              const m = String(p.method || '').toUpperCase();
+              const cur = String(p.currency || 'USD').toUpperCase();
+              const paid = Number(p.amountPaid) || 0;
+              const vesEq = (cur === 'USD' ? paid * rate : paid);
+              const usdEq = (cur === 'USD' ? paid : paid / rate);
+
+              if (m === 'CASH_USD' || (m.includes('CASH') && cur === 'USD') || m === 'EFECTIVO_USD') {
+                cashUsd += paid;
+              } else if (m === 'CASH_VES' || (m.includes('CASH') && cur === 'VES') || m.includes('EFECTIVO_BS')) {
+                cashVes += paid;
+              } else if (m === 'PAGO_MOVIL' || m.includes('MOVIL')) {
+                pagoMovil += vesEq;
+              } else if (m === 'POS_CARD' || m.includes('PUNTO') || m.includes('TARJETA') || m.includes('CARD')) {
+                puntoVenta += vesEq;
+              } else if (m === 'ZELLE') {
+                zelle += usdEq;
+              } else if (m.includes('CREDIT') || m.includes('FIADO')) {
+                credito += usdEq;
+              }
+            });
+          } else {
+            const pm = String(o.paymentmethod || '').toLowerCase();
+            if (pm.includes('cash_usd') || pm.includes('dolares')) {
+              cashUsd += ordUsd;
+            } else if (pm.includes('cash_ves') || pm.includes('bolivares')) {
+              cashVes += ordVes;
+            } else if (pm.includes('movil')) {
+              pagoMovil += ordVes;
+            } else if (pm.includes('punto') || pm.includes('tarjeta')) {
+              puntoVenta += ordVes;
+            } else if (pm.includes('zelle')) {
+              zelle += ordUsd;
+            } else if (pm.includes('credito') || pm.includes('fiado')) {
+              credito += ordUsd;
+            } else {
+              cashUsd += ordUsd;
+            }
+          }
+        });
+      }
+    }
+
+    return {
+      salesCount,
+      cashUsd,
+      cashVes,
+      pagoMovil,
+      puntoVenta,
+      zelle,
+      credito,
+      totalSalesUsd,
+      totalSalesVes: totalSalesVes || (totalSalesUsd * (Number(bcvRate) || 888.89))
+    };
+  })();
+
+  const initialUsd = Number(currentShift?.initial_usd ?? currentShift?.initialUsd ?? currentShift?.initialCashUsd ?? 50.0);
+  const initialVes = Number(currentShift?.initial_ves ?? currentShift?.initialVes ?? currentShift?.initialCashVes ?? 1000.0);
 
   // Movimientos netos de caja chica
   const totalInUsd = movements.filter(m => m.type === 'IN').reduce((acc, m) => acc + (Number(m.amountUsd) || 0), 0);
@@ -445,16 +559,6 @@ export default function CashShiftModal({
     win.print();
   };
 
-  const handlePrintReportX = () => {
-    setFiscalReportType('X');
-    setIsFiscalModalOpen(true);
-  };
-
-  const handlePrintReportZ = () => {
-    setFiscalReportType('Z');
-    setIsFiscalModalOpen(true);
-  };
-
   // Pestañas disponibles: Para el cajero NO se muestra Monitor Multi-Cajas ni gestión de otras terminales
   const tabsList = [
     { id: 'status', label: 'Resumen de Caja' },
@@ -497,7 +601,17 @@ export default function CashShiftModal({
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2">
                 <span>Cajero: <strong className="text-slate-700 dark:text-zinc-200">{activeCashierName}</strong></span>
                 <span>•</span>
-                <span>{isOpenShift && currentShift?.openedAt ? `Abierto: ${new Date(currentShift.openedAt).toLocaleTimeString('es-VE')}` : 'Caja cerrada'}</span>
+                <span>
+                  {isOpenShift 
+                    ? (() => {
+                        const raw = currentShift?.opened_at || currentShift?.openedAt;
+                        if (!raw) return 'Turno Abierto';
+                        const d = new Date(raw);
+                        return isNaN(d.getTime()) ? 'Turno Abierto' : `Abierto: ${d.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
+                      })()
+                    : 'Caja cerrada'
+                  }
+                </span>
               </p>
             </div>
           </div>
@@ -813,30 +927,6 @@ export default function CashShiftModal({
                   </div>
                 )}
               </div>
-
-              {/* REPORTES SENIAT FISCAL */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-400 mb-2">
-                  Reportes de Impresora Fiscal SENIAT (X y Z):
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button 
-                    onClick={handlePrintReportX}
-                    className="flex items-center justify-center gap-2 p-3 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-extrabold text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-zinc-700/50 shadow-2xs transition-all cursor-pointer"
-                  >
-                    <Receipt size={16} className="text-orange-500" />
-                    <span>Emitir Reporte X (Corte Parcial)</span>
-                  </button>
-
-                  <button 
-                    onClick={handlePrintReportZ}
-                    className="flex items-center justify-center gap-2 p-3 bg-rose-50/50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl text-xs font-extrabold text-rose-600 dark:text-rose-400 hover:bg-rose-100/60 dark:hover:bg-rose-500/20 shadow-2xs transition-all cursor-pointer"
-                  >
-                    <Printer size={16} className="text-rose-500" />
-                    <span>Emitir Reporte Z (Cierre Fiscal SENIAT)</span>
-                  </button>
-                </div>
-              </div>
             </>
           )}
 
@@ -1128,20 +1218,6 @@ export default function CashShiftModal({
         </div>
 
       </div>
-
-      {/* Modal Fiscal SENIAT para Corte X y Cierre Z (PDF, Word, Impresión Móvil) */}
-      {isFiscalModalOpen && (
-        <FiscalReportModal
-          isOpen={isFiscalModalOpen}
-          onClose={() => setIsFiscalModalOpen(false)}
-          initialReportType={fiscalReportType}
-          workspaceId={localStorage.getItem('activeWorkspace')}
-          storeName={storeName}
-          bcvRate={bcvRate}
-          shifts={shiftsList || []}
-          registers={registers || []}
-        />
-      )}
 
     </div>
   );
