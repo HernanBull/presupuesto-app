@@ -453,9 +453,6 @@ export default function FiscalSalesBookPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                   <span>Libro de Ventas Fiscal SENIAT</span>
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full border border-orange-200 dark:border-orange-500/30">
-                    {storeProfile.name}
-                  </span>
                 </h2>
                 <button
                   type="button"
