@@ -22,6 +22,23 @@ export default function InventoryManager() {
   const [bcvRate, setBcvRate] = useState(888.89);
   const [customCategories, setCustomCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [hideFinancialFigures, setHideFinancialFigures] = useState(() => {
+    try {
+      return localStorage.getItem('inventory_hide_financials') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleHideFinancialFigures = () => {
+    setHideFinancialFigures(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('inventory_hide_financials', String(next));
+      } catch (e) {}
+      return next;
+    });
+  };
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [subcategoryFilter, setSubcategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -805,6 +822,19 @@ export default function InventoryManager() {
             <span className="hidden sm:inline">Registrar Entrada</span>
             <span className="sm:hidden">+ Entrada</span>
           </button>
+          <button 
+            type="button"
+            onClick={toggleHideFinancialFigures}
+            className="flex items-center justify-center p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm transition-all active:scale-95 cursor-pointer"
+            title={hideFinancialFigures ? "Mostrar cifras financieras" : "Ocultar cifras financieras"}
+            aria-label={hideFinancialFigures ? "Mostrar cifras financieras" : "Ocultar cifras financieras"}
+          >
+            {hideFinancialFigures ? (
+              <EyeOff size={18} className="text-amber-600 dark:text-amber-400" />
+            ) : (
+              <Eye size={18} className="text-slate-600 dark:text-slate-400" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -827,8 +857,8 @@ export default function InventoryManager() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-500">Capital Invertido (Costo)</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-                ${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+                {hideFinancialFigures ? '••••••••' : `$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
               </h3>
             </div>
           </div>
@@ -840,8 +870,8 @@ export default function InventoryManager() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-500">Ingreso Proyectado</p>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white">
-                ${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+                {hideFinancialFigures ? '••••••••' : `$${projectedRevenue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
               </h3>
             </div>
           </div>
@@ -853,8 +883,8 @@ export default function InventoryManager() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-500">Ganancia Potencial</p>
-              <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                ${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                {hideFinancialFigures ? '••••••••' : `$${potentialProfit.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
               </h3>
             </div>
           </div>
