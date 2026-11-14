@@ -189,6 +189,13 @@ export default function SocialFeedCard({
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const isCarousel = !isVideo && postImages.length > 1;
+  const [isCleanMode, setIsCleanMode] = useState(false);
+
+  const toggleCleanMode = (e) => {
+    e?.stopPropagation();
+    if (isSwiping) return;
+    setIsCleanMode(prev => !prev);
+  };
 
   // Gesto Swipe Left estilo TikTok hacia la vitrina del comercio o cambio de slide en carrusel
   const [swipeX, setSwipeX] = useState(0);
@@ -345,9 +352,13 @@ export default function SocialFeedCard({
     handleTouchEnd();
   };
 
-  // Control manual de Play/Pausa al tocar el video
+  // Control manual de Play/Pausa al tocar el video o salir de modo limpio
   const togglePlayPause = (e) => {
     e?.stopPropagation();
+    if (isCleanMode) {
+      setIsCleanMode(false);
+      return;
+    }
     if (!isVideo || !videoRef.current) return;
 
     if (videoRef.current.paused || !isPlaying) {
@@ -442,6 +453,7 @@ export default function SocialFeedCard({
             }
           } else if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
             setIsInView(false);
+            setIsCleanMode(false);
             if (isVideo) {
               userPausedRef.current = false;
               clearActiveMedia(postId);
@@ -455,6 +467,7 @@ export default function SocialFeedCard({
     observer.observe(el);
     return () => {
       observer.disconnect();
+      setIsCleanMode(false);
       if (isVideo) {
         userPausedRef.current = false;
         clearActiveMedia(postId);
@@ -680,6 +693,7 @@ export default function SocialFeedCard({
         boxShadow: 'none',
         contain: 'content'
       }}
+      onClick={isCleanMode ? toggleCleanMode : undefined}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -690,6 +704,13 @@ export default function SocialFeedCard({
       onMouseLeave={handleMouseUp}
       onDoubleClick={handleDoubleTap}
     >
+      {/* Indicador sutil de Modo Limpio / Enfoque */}
+      {isCleanMode && (
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white/90 text-[11px] font-medium pointer-events-none animate-in fade-in duration-200 shadow-lg">
+          Toca para restaurar
+        </div>
+      )}
+
       {/* Vista previa tras bastidores al deslizar hacia la izquierda (Estilo TikTok Perfil) */}
       <div 
         className="absolute inset-y-0 right-0 w-36 bg-gradient-to-l from-zinc-950 via-zinc-900 to-black flex flex-col items-center justify-center p-3 text-center z-0 pointer-events-none transition-opacity duration-150"
@@ -723,7 +744,7 @@ export default function SocialFeedCard({
         {/* Background Media - 100% Pantalla Completa TikTok Instantánea o Carrusel Multi-Foto */}
       {isVideo ? (
         <div 
-          className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer"
+          className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer overflow-hidden"
           onClick={togglePlayPause}
         >
           <video
@@ -735,9 +756,11 @@ export default function SocialFeedCard({
             muted={isMutedGlobal}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
-            className="w-full h-full object-cover pointer-events-none"
+            className={`w-full h-full object-cover pointer-events-none transition-transform duration-300 ease-out ${
+              isCleanMode ? 'scale-110' : 'scale-100'
+            }`}
           />
-          {!isPlaying && (
+          {!isPlaying && !isCleanMode && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div className="w-16 h-16 rounded-full bg-black/75 flex items-center justify-center text-white border border-white/20 shadow-xl transition-transform active:scale-95">
                 <Play size={32} fill="currentColor" className="translate-x-0.5 text-amber-400" />
@@ -746,7 +769,10 @@ export default function SocialFeedCard({
           )}
         </div>
       ) : isCarousel ? (
-        <div className="absolute inset-0 w-full h-full bg-black z-0 overflow-hidden">
+        <div 
+          className="absolute inset-0 w-full h-full bg-black z-0 overflow-hidden cursor-pointer"
+          onClick={toggleCleanMode}
+        >
           {/* Tira de Fotos en Carrusel Horizontal */}
           <div 
             className="flex h-full w-full transition-transform duration-300 ease-out will-change-transform"
@@ -758,7 +784,7 @@ export default function SocialFeedCard({
             {postImages.map((imgUrl, i) => (
               <div 
                 key={i} 
-                className="h-full relative shrink-0" 
+                className="h-full relative shrink-0 overflow-hidden" 
                 style={{ width: `${100 / postImages.length}%` }}
               >
                 <img 
@@ -766,16 +792,18 @@ export default function SocialFeedCard({
                   decoding="async"
                   src={resolveImageUrl(imgUrl)} 
                   alt={`${storeName} ${i + 1}`} 
-                  className="w-full h-full object-cover select-none pointer-events-none" 
+                  className={`w-full h-full object-cover select-none pointer-events-none transition-transform duration-300 ease-out ${
+                    isCleanMode ? 'scale-110' : 'scale-100'
+                  }`} 
                 />
               </div>
             ))}
           </div>
 
-
-
           {/* Indicadores de Diapositiva tipo Barra / Puntos */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 max-w-[60%]">
+          <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 max-w-[60%] transition-opacity duration-300 ${
+            isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}>
             {postImages.map((_, i) => (
               <button
                 key={i}
@@ -792,25 +820,39 @@ export default function SocialFeedCard({
           </div>
         </div>
       ) : storeCover ? (
-        <img 
-          loading={feedIndex === 0 ? "eager" : "lazy"} 
-          decoding="async"
-          src={resolveImageUrl(storeCover)} 
-          alt={storeName} 
-          className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none select-none" 
-        />
+        <div 
+          className="absolute inset-0 w-full h-full bg-black z-0 overflow-hidden cursor-pointer"
+          onClick={toggleCleanMode}
+        >
+          <img 
+            loading={feedIndex === 0 ? "eager" : "lazy"} 
+            decoding="async"
+            src={resolveImageUrl(storeCover)} 
+            alt={storeName} 
+            className={`w-full h-full object-cover z-0 select-none pointer-events-none transition-transform duration-300 ease-out ${
+              isCleanMode ? 'scale-110' : 'scale-100'
+            }`} 
+          />
+        </div>
       ) : (
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0">
+        <div 
+          className="absolute inset-0 w-full h-full flex flex-col items-center justify-center gap-3 text-slate-400 bg-zinc-950 z-0 cursor-pointer"
+          onClick={toggleCleanMode}
+        >
           <Store size={56} className="text-amber-500/80" />
           <span className="font-medium text-sm text-white">Explorar Tienda</span>
         </div>
       )}
 
       {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}
-      <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10" />
+      <div className={`absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10 transition-opacity duration-300 ${
+        isCleanMode ? 'opacity-0' : 'opacity-100'
+      }`} />
 
       {/* Top Overlay: Pager & Audio Toggle (Ubicado en top-16 para no colisionar con el header superior ni tapar botones) */}
-      <div className="absolute top-16 right-3.5 z-20 flex items-center gap-2 select-none">
+      <div className={`absolute top-16 right-3.5 z-20 flex items-center gap-2 select-none transition-all duration-300 ${
+        isCleanMode ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100'
+      }`}>
         {isVideo && (
           <button
             type="button"
@@ -831,7 +873,9 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-3 bottom-28 sm:bottom-24 z-30 flex flex-col items-center gap-3 select-none"
+        className={`absolute right-3 bottom-28 sm:bottom-24 z-30 flex flex-col items-center gap-3 select-none transition-all duration-300 ${
+          isCleanMode ? 'opacity-0 pointer-events-none translate-x-6' : 'opacity-100'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Like / Corazón (Transparente con relieve y sombra nítida) */}
@@ -872,20 +916,16 @@ export default function SocialFeedCard({
           </span>
         </button>
 
-        {/* Botón Seguir con estilo '+' ubicado debajo de comentarios */}
+        {/* Botón Seguir (Estilo neutro sin colores llamativos: '+' para seguir, '✓' blanco cuando ya sigue) */}
         <button 
           type="button"
           onClick={handleFollow}
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
         >
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
-            isFollowing 
-              ? 'bg-emerald-500/30 border-emerald-400/70 backdrop-blur-[3px] text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' 
-              : 'bg-black/25 border-white/20 backdrop-blur-[3px] text-white hover:bg-black/45 hover:border-amber-400/60'
-          }`}>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 bg-black/25 border-white/20 backdrop-blur-[3px] text-white hover:bg-black/45">
             {isFollowing ? (
-              <Check size={18} strokeWidth={3} className="text-emerald-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
+              <Check size={18} strokeWidth={2.5} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
             ) : (
               <Plus size={22} strokeWidth={2.5} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
             )}
@@ -954,7 +994,9 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Bottom Left Info Overlay (Author, Caption, Comments, Date) */}
       <div 
-        className="relative z-20 p-4 pb-28 sm:pb-24 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
+        className={`relative z-20 p-4 pb-28 sm:pb-24 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto transition-all duration-300 ${
+          isCleanMode ? 'opacity-0 pointer-events-none translate-y-6' : 'opacity-100'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Merchant Profile Row */}

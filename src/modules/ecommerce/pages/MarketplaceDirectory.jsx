@@ -3479,26 +3479,16 @@ export default function MarketplaceDirectory() {
         />
       </div>
 
-      {/* Mobile Menu Drawer (Optimizado Cero Lag: sin backdrop-blur pesado ni resorte) */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/60 z-[200]"
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ duration: 0.15, ease: 'easeOut' }}
-              style={{ willChange: 'transform' }}
-              className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] flex flex-col overflow-y-auto"
-            >
+      {/* Mobile Menu Drawer (100% Nativo Instantáneo sin Framer Motion ni animaciones JS: 0ms lag) */}
+      {isMobileMenuOpen && (
+        <>
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 z-[200] cursor-pointer"
+          />
+          <div
+            className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] flex flex-col overflow-y-auto"
+          >
               <div className="p-5 flex items-center justify-between border-b border-zinc-200 bg-white">
                 <div className="flex items-center gap-2 select-none">
                   <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-zinc-900 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
@@ -3723,10 +3713,9 @@ export default function MarketplaceDirectory() {
                   © 2026 AxonMarket. Todos los derechos reservados.
                 </p>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
 
       {/* Modal de Confirmación de Salida / Cierre de Sesión Seguro */}
       <AnimatePresence>
