@@ -237,13 +237,24 @@ export default function MerchantMorePage() {
     },
     {
       id: 'ofertas',
-      name: 'Promociones, Ofertas & Combos',
-      desc: 'Descuentos con tiempo límite, precios tachados y kits promocionales',
+      name: 'Promociones & Ofertas Flash',
+      desc: 'Descuentos por tiempo límite, precios tachados y badges en vitrina',
       path: '/offers',
       icon: Zap,
       color: 'text-amber-500',
       bg: 'bg-amber-50 dark:bg-amber-500/10',
-      keywords: ['ofertas', 'promociones', 'combos', 'descuentos', 'flash sales', 'paquetes']
+      keywords: ['ofertas', 'promociones', 'descuentos', 'flash sales', 'rebajas']
+    },
+    {
+      id: 'combos',
+      name: 'Combos & Kits Promocionales',
+      desc: 'Crea paquetes y kits de productos agrupados con precio especial',
+      path: '/offers?action=new_combo',
+      icon: Package,
+      badge: 'NUEVO',
+      color: 'text-orange-500',
+      bg: 'bg-orange-50 dark:bg-orange-500/10',
+      keywords: ['combos', 'paquetes', 'kits', 'ofertas', 'promociones', 'agrupados']
     },
     {
       id: 'facturacion',

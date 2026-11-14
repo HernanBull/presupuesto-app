@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Search, Save, Zap, X, CheckCircle, AlertTriangle, Package, Edit2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { Tag, Search, Save, Zap, X, CheckCircle, AlertTriangle, Package, Edit2, Plus, UploadCloud, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
 import ComboBuilderModal from '../components/ComboBuilderModal';
@@ -51,6 +52,15 @@ export default function OffersManager() {
   // Estados de Combos Promocionales
   const [isComboModalOpen, setIsComboModalOpen] = useState(false);
   const [editingCombo, setEditingCombo] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('action') === 'new_combo' || params.get('tab') === 'combos') {
+      setEditingCombo(null);
+      setIsComboModalOpen(true);
+    }
+  }, [location.search]);
 
   // Estados de Estrategia de Marketing
   const [selectedBadge, setSelectedBadge] = useState('🔥 Oferta Flash');
@@ -300,12 +310,24 @@ export default function OffersManager() {
             Destaca productos con descuentos por porcentaje y precios por unidad o medida en tu vitrina.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingCombo(null);
+              setIsComboModalOpen(true);
+            }}
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 px-4 py-2 rounded-xl text-sm font-black transition-all shadow-md shadow-amber-500/20 active:scale-95 cursor-pointer shrink-0"
+            title="Crear un nuevo combo o kit de productos con descuento"
+          >
+            <Package size={17} className="stroke-[2.5]" />
+            <span>+ Crear Combo</span>
+          </button>
           <div className="relative w-full sm:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar producto en oferta..."
+              placeholder="Buscar producto o combo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 dark:text-white"
