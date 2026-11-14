@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check, PackageCheck, Compass, SlidersHorizontal, Flame, Users, UserCog, BookmarkCheck, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, UserCheck, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check, PackageCheck, Compass, SlidersHorizontal, Flame, Users, UserCog, BookmarkCheck, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -1034,6 +1034,9 @@ export default function CustomerProfile() {
     }
     localStorage.removeItem('ecommerce_current_customer');
     localStorage.removeItem('activeWorkspace');
+    localStorage.removeItem('ecommerce_global_cart');
+    window.dispatchEvent(new CustomEvent('customer_updated', { detail: null }));
+    window.dispatchEvent(new Event('cart_updated'));
     navigate('/explorar');
   };
   
@@ -1066,6 +1069,18 @@ export default function CustomerProfile() {
       postId: item.postId || null
     };
   }).filter(item => item.slug || item.id);
+
+  // Lista deduplicada y normalizada de comercios seguidos
+  const uniqueFollowedStores = useMemo(() => {
+    const map = new Map();
+    parsedFavorites.forEach(f => {
+      const key = f.slug || f.store_slug || f.id;
+      if (key && !map.has(key)) {
+        map.set(key, f);
+      }
+    });
+    return Array.from(map.values());
+  }, [parsedFavorites]);
   
   const parsedWishlist = Array.isArray(currentCustomer.wishlist) 
     ? currentCustomer.wishlist 
@@ -1185,6 +1200,66 @@ export default function CustomerProfile() {
                 </div>
               </div>
             )}
+
+            {/* Accesos rápidos interactivos: Me encanta, Guardados y Seguidos */}
+            <div className="mt-5 w-full max-w-sm grid grid-cols-3 gap-2 px-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('recomendaciones')}
+                className={`py-2.5 px-2 rounded-2xl border flex flex-col items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  activeTab === 'recomendaciones'
+                    ? 'bg-red-500 text-white border-red-500 shadow-md shadow-red-500/20'
+                    : 'bg-white hover:bg-red-50/50 text-slate-800 border-slate-200'
+                }`}
+                title="Ver publicaciones que te encantan"
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Heart size={15} className={activeTab === 'recomendaciones' ? 'fill-white text-white' : 'fill-red-500 text-red-500'} />
+                  <span className="text-sm sm:text-base font-black leading-none">{likedPosts.length}</span>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-tight ${activeTab === 'recomendaciones' ? 'text-white' : 'text-slate-600'}`}>
+                  Me encanta
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('wishlist')}
+                className={`py-2.5 px-2 rounded-2xl border flex flex-col items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  activeTab === 'wishlist'
+                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/20'
+                    : 'bg-white hover:bg-amber-50/50 text-slate-800 border-slate-200'
+                }`}
+                title="Ver publicaciones guardadas"
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Bookmark size={15} className={activeTab === 'wishlist' ? 'fill-slate-950 text-slate-950' : 'fill-amber-500 text-amber-500'} />
+                  <span className="text-sm sm:text-base font-black leading-none">{savedPosts.length}</span>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-tight ${activeTab === 'wishlist' ? 'text-slate-950' : 'text-slate-600'}`}>
+                  Guardados
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('favoritas')}
+                className={`py-2.5 px-2 rounded-2xl border flex flex-col items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95 ${
+                  activeTab === 'favoritas'
+                    ? 'bg-slate-950 text-white border-slate-950 shadow-md shadow-slate-950/20'
+                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                }`}
+                title="Ver tiendas que sigues"
+              >
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <Store size={15} className={activeTab === 'favoritas' ? 'text-amber-400' : 'text-amber-600'} />
+                  <span className="text-sm sm:text-base font-black leading-none">{uniqueFollowedStores.length}</span>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-tight ${activeTab === 'favoritas' ? 'text-white' : 'text-slate-600'}`}>
+                  Seguidos
+                </span>
+              </button>
+            </div>
          </div>
       </div>
 
@@ -1240,8 +1315,8 @@ export default function CustomerProfile() {
             {/* Mis calificaciones oculto a solicitud del usuario */}
             <button className={`w-full flex items-center justify-between px-5 py-4 transition-colors border-b border-slate-100 ${activeTab === 'recomendaciones' ? 'bg-amber-50/70 border-l-4 border-amber-500 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'}`} onClick={() => setActiveTab('recomendaciones')}>
                <div className="flex items-center gap-4">
-                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-amber-600' : 'text-slate-400'} />
-                  <span className="text-[15px] font-medium">Lo más TOP</span>
+                  <Heart size={20} className={activeTab === 'recomendaciones' ? 'text-red-500 fill-red-500' : 'text-slate-400'} />
+                  <span className="text-[15px] font-medium">Me encanta</span>
                </div>
                <div className="flex items-center gap-3">
                   <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{likedPosts.length}</span>
@@ -1285,7 +1360,7 @@ export default function CustomerProfile() {
                   <span className="text-[15px] font-medium">Seguidos</span>
                </div>
                <div className="flex items-center gap-3">
-                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{parsedFavorites.length}</span>
+                  <span className="bg-slate-100 text-xs font-bold px-2 py-0.5 rounded-full text-slate-600">{uniqueFollowedStores.length}</span>
                   <ChevronRight size={18} className="text-slate-300" />
                </div>
             </button>
@@ -1562,13 +1637,16 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: RECOMENDACIONES / LO MAS TOP */}
+            {/* TABS: RECOMENDACIONES / ME ENCANTA */}
             {activeTab === 'recomendaciones' && (
               <motion.div key="recomendaciones" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-1">Lo más TOP</h2>
-                    <p className="text-slate-500 text-sm">Publicaciones y novedades a las que has dado "Me encanta".</p>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1 flex items-center gap-2">
+                      <span>Me encanta</span>
+                      <Heart size={22} className="text-red-500 fill-red-500" />
+                    </h2>
+                    <p className="text-slate-500 text-sm">Todas las publicaciones y novedades a las que diste "Me encanta" en el feed.</p>
                   </div>
                   <button 
                     onClick={() => navigate('/explorar')} 
@@ -2311,21 +2389,29 @@ export default function CustomerProfile() {
               </motion.div>
             )}
 
-            {/* TABS: SEGUIDOS (TIENDAS ALIADAS) */}
+            {/* TABS: SEGUIDOS (TIENDAS ALIADAS DEDUPLICADAS CON ENLACE DIRECTO) */}
             {activeTab === 'favoritas' && (
               <motion.div key="favoritas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-1">Seguidos</h2>
-                  <p className="text-slate-500 text-sm">Tiendas y comercios oficiales a los que sigues en Axon Market.</p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-1">Comercios Seguidos</h2>
+                    <p className="text-slate-500 text-sm">Tiendas oficiales a las que sigues. Accede a sus vitrinas directamente sin scroll infinito.</p>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/explorar')} 
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-xs flex items-center gap-1.5 self-start sm:self-auto"
+                  >
+                    <Store size={14} /> Explorar Directorio
+                  </button>
                 </div>
                 
-                {parsedFavorites.length === 0 ? (
+                {uniqueFollowedStores.length === 0 ? (
                   <div className="bg-white rounded-3xl p-12 border border-slate-200 border-dashed text-center shadow-xs">
                     <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100 shadow-xs">
                       <UserPlus size={32} />
                     </div>
                     <h3 className="text-lg font-bold text-slate-900">Aún no sigues tiendas</h3>
-                    <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Navega por el marketplace o el feed y sigue a tus comercios favoritos para enterarte de sus novedades antes que nadie.</p>
+                    <p className="text-slate-500 text-sm mt-2 max-w-md mx-auto">Navega por el marketplace o el feed y pulsa el botón (+) para seguir a tus comercios favoritos y acceder directo a sus vitrinas.</p>
                     <button 
                       onClick={() => navigate('/explorar')} 
                       className="mt-6 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-xs"
@@ -2334,31 +2420,52 @@ export default function CustomerProfile() {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {parsedFavorites.map((store, idx) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {uniqueFollowedStores.map((store, idx) => (
                       <div 
                         key={store.slug || store.id || idx} 
-                        className="bg-white rounded-3xl p-5 border border-slate-200 shadow-xs flex items-center gap-4 hover:border-amber-400 hover:shadow-md transition-all group cursor-pointer" 
-                        onClick={() => navigate(`/${store.slug || store.id}`)}
+                        className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200 shadow-xs flex items-center justify-between gap-3 hover:border-amber-400 hover:shadow-md transition-all group"
                       >
-                        {store.logo ? (
-                          <img src={store.logo} alt={store.name} className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-xs" />
-                        ) : (
-                          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80">
-                             <Store size={24} />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-slate-900 group-hover:text-amber-600 transition-colors truncate">{store.name}</h4>
-                          <span className="text-xs text-slate-500 mt-1 block">Toca para visitar vitrina</span>
-                        </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug || store.id); }}
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
-                          title="Dejar de seguir"
+                        <div 
+                          className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer"
+                          onClick={() => navigate(`/${store.slug || store.id}`)}
                         >
-                          <Heart size={20} fill="currentColor" />
-                        </button>
+                          {store.logo ? (
+                            <img src={store.logo} alt={store.name} className="w-14 h-14 rounded-2xl object-cover border border-slate-100 shadow-xs shrink-0" />
+                          ) : (
+                            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center shadow-xs border border-amber-200/80 shrink-0">
+                               <Store size={24} />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-black text-sm text-slate-900 group-hover:text-amber-600 transition-colors truncate">
+                              {store.name}
+                            </h4>
+                            <span className="text-[11px] text-amber-700 font-bold flex items-center gap-1 mt-0.5">
+                              <span>Vitrina oficial</span>
+                              <ChevronRight size={12} />
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button 
+                            type="button"
+                            onClick={() => navigate(`/${store.slug || store.id}`)}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-xs active:scale-95 transition-all"
+                            title="Ir a la vitrina oficial"
+                          >
+                            Visitar
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeFavorite(store.slug || store.id); }}
+                            className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            title="Dejar de seguir este comercio"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

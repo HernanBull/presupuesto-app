@@ -1372,6 +1372,12 @@ export default function PublicStore() {
           console.warn('[PublicStore Realtime] Error emitiendo broadcast a terminales:', broadErr);
         }
         setCart({});
+        syncGlobalCart({});
+        try {
+          localStorage.removeItem(`cart_${slug}`);
+          localStorage.removeItem(`cart_${storeSlug}`);
+        } catch(e) {}
+        window.dispatchEvent(new Event('cart_updated'));
         setIsCartOpen(false);
         setIsCheckoutMode(false);
         setAppliedDiscount(null);

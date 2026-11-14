@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
-  Play, Volume2, VolumeX, ChevronRight, ChevronLeft, Tag 
+  Play, Volume2, VolumeX, ChevronRight, ChevronLeft, Tag, Plus 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -831,30 +831,30 @@ export default function SocialFeedCard({
 
       {/* TikTok-Style Right Action Bar */}
       <div 
-        className="absolute right-3 bottom-28 sm:bottom-24 z-30 flex flex-col items-center gap-3.5 select-none"
+        className="absolute right-3 bottom-28 sm:bottom-24 z-30 flex flex-col items-center gap-3 select-none"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Like / Corazón */}
+        {/* Like / Corazón (Transparente con relieve y sombra nítida) */}
         <button 
           type="button"
           onClick={handleLike} 
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Me gusta"
         >
-          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
+          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-[3px] flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/45 transition-all">
             <Heart 
               size={22} 
               strokeWidth={isLiked ? 0 : 2} 
               fill={isLiked ? '#ef4444' : 'none'} 
-              className={isLiked ? 'text-red-500 scale-110 transition-transform' : 'text-white'} 
+              className={isLiked ? 'text-red-500 scale-110 drop-shadow-[0_2px_6px_rgba(239,68,68,0.7)] transition-transform' : 'text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]'} 
             />
           </div>
-          <span className="text-[11px] font-bold text-white drop-shadow-sm tracking-tight">
+          <span className="text-[11px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
             {likesCount}
           </span>
         </button>
 
-        {/* Mensaje / Comentarios */}
+        {/* Mensaje / Comentarios (Transparente con relieve) */}
         <button 
           type="button"
           onClick={(e) => {
@@ -864,69 +864,95 @@ export default function SocialFeedCard({
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
           title="Comentar"
         >
-          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
-            <MessageCircle size={21} strokeWidth={2} className="text-white" />
+          <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-[3px] flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/45 transition-all">
+            <MessageCircle size={21} strokeWidth={2} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
           </div>
-          <span className="text-[11px] font-bold text-white drop-shadow-sm tracking-tight">
+          <span className="text-[11px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
             {commentsCount}
           </span>
         </button>
 
-        {/* Telegram / Compartir */}
+        {/* Botón Seguir con estilo '+' ubicado debajo de comentarios */}
         <button 
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenShare(e);
-          }}
+          onClick={handleFollow}
           className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-          title="Compartir publicación"
+          title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
         >
-          <div className="w-10 h-10 rounded-full bg-black/60 flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/75 transition-all">
-            <Send size={19} strokeWidth={2} className="text-white -ml-0.5" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
+            isFollowing 
+              ? 'bg-emerald-500/30 border-emerald-400/70 backdrop-blur-[3px] text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.5)]' 
+              : 'bg-black/25 border-white/20 backdrop-blur-[3px] text-white hover:bg-black/45 hover:border-amber-400/60'
+          }`}>
+            {isFollowing ? (
+              <Check size={18} strokeWidth={3} className="text-emerald-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
+            ) : (
+              <Plus size={22} strokeWidth={2.5} className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
+            )}
           </div>
-          <span className="text-[10px] font-bold text-white drop-shadow-sm tracking-tight">
-            Compartir
+          <span className="text-[10px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
+            {isFollowing ? 'Siguiendo' : 'Seguir'}
           </span>
         </button>
 
-        {/* Favoritos / Guardar (Solo visible para Clientes; los Comerciantes solo pueden Me gusta, Comentar y Compartir) */}
-        {!isMerchantAuth && (
+        {/* Separación hacia abajo para Compartir y Guardar */}
+        <div className="pt-2 sm:pt-3 flex flex-col items-center gap-3">
+          {/* Telegram / Compartir (Transparente) */}
           <button 
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleSave(e);
+              handleOpenShare(e);
             }}
             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-            title="Guardar en favoritos"
+            title="Compartir publicación"
           >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
-              saveBounced 
-                ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
-                : isSaved 
-                  ? 'bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] scale-105' 
-                  : 'bg-black/60 border-white/20 group-hover:bg-black/75 hover:border-orange-400/50'
-            }`}>
-              <Bookmark 
-                size={20} 
-                strokeWidth={isSaved ? 0 : 2} 
-                fill={isSaved ? '#ffffff' : 'none'} 
-                className={`transition-all duration-300 ${
-                  saveBounced ? 'scale-125 rotate-[-12deg]' : ''
-                } text-white ${isSaved ? 'drop-shadow-sm' : ''}`} 
-              />
+            <div className="w-10 h-10 rounded-full bg-black/25 backdrop-blur-[3px] flex items-center justify-center text-white border border-white/20 shadow-sm group-hover:bg-black/45 transition-all">
+              <Send size={19} strokeWidth={2} className="text-white -ml-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]" />
             </div>
-            <span className={`text-[10px] font-bold drop-shadow-sm tracking-tight transition-colors duration-200 ${
-              isSaved ? 'text-orange-400 font-black' : 'text-white'
-            }`}>
-              {isSaved ? 'Guardado' : 'Guardar'}
+            <span className="text-[10px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
+              Compartir
             </span>
           </button>
-        )}
+
+          {/* Favoritos / Guardar (Transparente con resplandor naranja si está guardado) */}
+          {!isMerchantAuth && (
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSave(e);
+              }}
+              className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+              title="Guardar en favoritos"
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
+                saveBounced 
+                  ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
+                  : isSaved 
+                    ? 'bg-gradient-to-tr from-orange-500/80 via-orange-500/70 to-amber-500/80 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] backdrop-blur-[3px] scale-105' 
+                    : 'bg-black/25 border-white/20 backdrop-blur-[3px] group-hover:bg-black/45 hover:border-orange-400/50'
+              }`}>
+                <Bookmark 
+                  size={20} 
+                  strokeWidth={isSaved ? 0 : 2} 
+                  fill={isSaved ? '#ffffff' : 'none'} 
+                  className={`transition-all duration-300 ${
+                    saveBounced ? 'scale-125 rotate-[-12deg]' : ''
+                  } text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]`} 
+                />
+              </div>
+              <span className={`text-[10px] font-black drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight transition-colors duration-200 ${
+                isSaved ? 'text-amber-300' : 'text-white'
+              }`}>
+                {isSaved ? 'Guardado' : 'Guardar'}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* TikTok-Style Bottom Left Info Overlay (Author, Follow, Caption, Comments, Date) */}
+      {/* TikTok-Style Bottom Left Info Overlay (Author, Caption, Comments, Date) */}
       <div 
         className="relative z-20 p-4 pb-28 sm:pb-24 pr-16 flex flex-col gap-1.5 select-none pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
@@ -959,30 +985,6 @@ export default function SocialFeedCard({
               <span className="text-white drop-shadow-sm">{address}</span>
             </span>
           </div>
-
-          {/* Botón Seguir */}
-          <button 
-            type="button"
-            onClick={handleFollow}
-            className={`ml-1.5 text-xs font-bold rounded-full flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shadow-sm transition-all shrink-0 ${
-              isFollowing 
-                ? 'bg-emerald-950/80 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-400/60 px-2.5 py-1' 
-                : 'bg-black/65 hover:bg-black/80 text-white border border-white/50 hover:border-white/80 px-3 py-1 drop-shadow-sm'
-            }`}
-            title={isFollowing ? 'Siguiendo este comercio' : 'Seguir este comercio'}
-          >
-            {isFollowing ? (
-              <>
-                <Check size={12} strokeWidth={3} className="text-emerald-400" />
-                <span className="text-[11px] font-semibold text-emerald-200">Siguiendo</span>
-              </>
-            ) : (
-              <>
-                <UserPlus size={12} strokeWidth={2.5} className="text-white drop-shadow" />
-                <span className="text-[11px] font-bold text-white tracking-wide drop-shadow-sm">Seguir</span>
-              </>
-            )}
-          </button>
         </div>
 
         {/* Caption & Detalles Colapsables Estilo TikTok */}

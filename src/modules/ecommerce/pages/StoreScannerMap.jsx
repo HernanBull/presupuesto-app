@@ -328,15 +328,29 @@ export default function StoreScannerMap() {
   };
 
   const centerOnUser = () => {
+    if (userLocation) {
+      setTargetMapLocation({ lat: userLocation[0], lng: userLocation[1], ts: Date.now() });
+      setIsMapMoved(false);
+    }
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const coords = [position.coords.latitude, position.coords.longitude];
-        setUserLocation(coords);
-        setMapCenter({ lat: coords[0], lng: coords[1] });
-        setActiveSearchLocation({ lat: coords[0], lng: coords[1] });
-        fetchStores(coords);
-        setIsMapMoved(false);
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = [position.coords.latitude, position.coords.longitude];
+          setUserLocation(coords);
+          setMapCenter({ lat: coords[0], lng: coords[1] });
+          setActiveSearchLocation({ lat: coords[0], lng: coords[1] });
+          setTargetMapLocation({ lat: coords[0], lng: coords[1], ts: Date.now() });
+          fetchStores(coords);
+          setIsMapMoved(false);
+        },
+        (err) => {
+          console.warn("Geolocation error in centerOnUser:", err);
+          if (userLocation) {
+            setTargetMapLocation({ lat: userLocation[0], lng: userLocation[1], ts: Date.now() });
+          }
+        },
+        { enableHighAccuracy: true }
+      );
     }
   };
 
@@ -490,6 +504,21 @@ export default function StoreScannerMap() {
           </MapContainer>
         )}
 
+        {/* Loader visual mientras se inicializa el GPS y el mapa */}
+        {!userLocation && (
+          <div className="absolute inset-0 z-20 bg-slate-950 flex flex-col items-center justify-center p-6 text-center select-none">
+            <div className="w-16 h-16 rounded-3xl bg-white border-2 border-orange-500 flex items-center justify-center mb-4 shadow-2xl">
+              <MapPin size={32} className="text-orange-500 animate-bounce" />
+            </div>
+            <h3 className="text-white font-black text-lg mb-1">Cargando Mapa de Comercios</h3>
+            <p className="text-slate-300 text-xs max-w-xs mb-5">Sincronizando ubicación GPS y comercios cercanos...</p>
+            <div className="inline-flex items-center gap-2 bg-white text-orange-600 font-black text-xs px-4 py-2 rounded-full border-2 border-orange-500 shadow-xl">
+              <div className="w-3.5 h-3.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin"></div>
+              <span>Preparando mapa</span>
+            </div>
+          </div>
+        )}
+
         {/* Fixed Central Pin Overlay (Zona de Escaneo) */}
         <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-[50]">
           <div className="relative mt-2 opacity-80 pointer-events-none" style={{ filter: 'drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.5))' }}>
@@ -552,19 +581,19 @@ export default function StoreScannerMap() {
         </div>
       </div>
 
-      {/* Indicador sutil de autoguardado de mapa en caché local */}
+      {/* Indicador de autoguardado de mapa en caché local (Estilo blanco y anaranjado de alta visibilidad) */}
       {autoCacheStatus && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[70] pointer-events-none">
-          <div className="bg-zinc-900 border border-amber-500/40 text-white text-[11px] font-bold px-4 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
+          <div className="bg-white border-2 border-orange-500 text-slate-900 text-xs font-black px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2.5">
             {autoCacheStatus.done ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="text-zinc-200">Mapa guardado en el teléfono (0 datos)</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span className="text-slate-800 font-extrabold">Mapa descargado y guardado en tu teléfono (0 datos)</span>
               </>
             ) : (
               <>
-                <div className="w-2.5 h-2.5 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></div>
-                <span className="text-zinc-200">Guardando mapa local en segundo plano ({autoCacheStatus.percent}%)...</span>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin shrink-0"></div>
+                <span className="text-orange-950 font-black">Descargando mapa local ({autoCacheStatus.percent}%)...</span>
               </>
             )}
           </div>

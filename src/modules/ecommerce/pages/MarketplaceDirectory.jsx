@@ -1753,13 +1753,16 @@ export default function MarketplaceDirectory() {
     }, 250);
   };
 
-  // Cierre de sesión de cliente
+  // Cierre de sesión de cliente (Limpia sesión y vacía el carrito acumulado)
   const handleCustomerLogout = () => {
     localStorage.removeItem('ecommerce_current_customer');
+    localStorage.removeItem('ecommerce_global_cart');
+    setGlobalCart({});
     setCurrentCustomer(null);
     setIsMobileMenuOpen(false);
     toast.success('Sesión de cliente cerrada');
     window.dispatchEvent(new CustomEvent('customer_updated', { detail: null }));
+    window.dispatchEvent(new Event('cart_updated'));
   };
 
   // Estado para prevenir el flasheo de la primera publicación al restaurar scroll
