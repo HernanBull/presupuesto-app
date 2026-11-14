@@ -448,8 +448,8 @@ export default function PublicStore() {
   // Estados para seguimiento de compras/pedidos del cliente en esta tienda (Mis compras)
   const [customerStoreOrders, setCustomerStoreOrders] = useState([]);
   const [loadingStoreOrders, setLoadingStoreOrders] = useState(false);
-  const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
   const [orderFilterDate, setOrderFilterDate] = useState('');
+  const [orderDatePreset, setOrderDatePreset] = useState('all'); // 'all', 'today', 'week', 'month'
   const [copiedPinOrderId, setCopiedPinOrderId] = useState(null);
 
   // Límite de Presupuesto del Cliente en esta tienda (Soporta USD y VES / Bolívares)
@@ -505,30 +505,33 @@ export default function PublicStore() {
 
   const fetchCustomerStoreOrders = useCallback(async () => {
     const wsId = workspaceId || config?.workspace_id || config?.id;
-    const custEmail = currentCustomer?.email;
-    const custPhone = currentCustomer?.phone;
+    let custEmail = currentCustomer?.email;
+    if (!custEmail) {
+      try {
+        const saved = localStorage.getItem('ecommerce_current_customer');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          custEmail = parsed?.email;
+        }
+      } catch (e) {}
+    }
 
     setLoadingStoreOrders(true);
     try {
       let ordersList = [];
-      if (wsId && (custEmail || custPhone)) {
-        let query = supabase
+      if (wsId && custEmail) {
+        // Consultar únicamente por customer_email (ecommerce_orders_v2 no tiene customer_phone)
+        const { data, error } = await supabase
           .from('ecommerce_orders_v2')
           .select('*')
           .eq('workspace_id', wsId)
+          .ilike('customer_email', custEmail.trim())
           .order('date', { ascending: false });
 
-        if (custEmail && custPhone) {
-          query = query.or(`customer_email.ilike.${custEmail},customer_phone.eq.${custPhone}`);
-        } else if (custEmail) {
-          query = query.ilike('customer_email', custEmail);
-        } else if (custPhone) {
-          query = query.eq('customer_phone', custPhone);
-        }
-
-        const { data, error } = await query;
         if (!error && Array.isArray(data)) {
           ordersList = data;
+        } else if (error) {
+          console.warn('[PublicStore] Error consultando pedidos en Supabase:', error);
         }
       }
 
@@ -556,11 +559,38 @@ export default function PublicStore() {
     } finally {
       setLoadingStoreOrders(false);
     }
-  }, [workspaceId, config?.workspace_id, config?.id, currentCustomer?.email, currentCustomer?.phone]);
+  }, [workspaceId, config?.workspace_id, config?.id, currentCustomer?.email]);
 
   useEffect(() => {
     fetchCustomerStoreOrders();
   }, [fetchCustomerStoreOrders, currentPage]);
+
+  // Suscripción Realtime para actualizar pedidos de la vitrina instantáneamente
+  useEffect(() => {
+    const custEmail = currentCustomer?.email;
+    if (!custEmail) return;
+
+    const channelName = `storefront_orders_${custEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const ordersChannel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ecommerce_orders_v2',
+          filter: `customer_email=eq.${custEmail}`
+        },
+        () => {
+          fetchCustomerStoreOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(ordersChannel);
+    };
+  }, [currentCustomer?.email, fetchCustomerStoreOrders]);
 
   const activeStoreOrdersCount = useMemo(() => {
     return customerStoreOrders.filter(o => o.status !== 'Completado' && o.status !== 'Cancelado' && o.status !== 'Entregado').length;
@@ -1700,6 +1730,21 @@ export default function PublicStore() {
         setAppliedDiscount(null);
         setDiscountCode('');
         
+        // Inyectar de inmediato la orden al estado local de pedidos (Optimistic UI)
+        const newMappedOrder = {
+          ...orderData,
+          dateFormatted: new Date(orderData.date).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }),
+          itemsParsed: orderItems,
+          deliveryPin: generatedDeliveryPin
+        };
+        setCustomerStoreOrders(prev => [newMappedOrder, ...(prev || []).filter(o => o.id !== orderData.id)]);
+        try {
+          const wsKey = `orders_${workspaceId || config?.workspace_id || 'default'}`;
+          const existingLocal = JSON.parse(localStorage.getItem(wsKey) || '[]');
+          const updatedLocal = [newMappedOrder, ...(Array.isArray(existingLocal) ? existingLocal : []).filter(o => o.id !== orderData.id)];
+          localStorage.setItem(wsKey, JSON.stringify(updatedLocal));
+        } catch(e) {}
+
         // Guardar datos del pedido para mostrar en el modal de confirmación
         setLastPlacedOrder({
           id: orderData.id,
@@ -5442,56 +5487,92 @@ export default function PublicStore() {
           </div>
         ); })()}
 
-        {/* MIS COMPRAS (PEDIDOS DEL CLIENTE) - VISTA EXACTA DEL PERFIL DEL CLIENTE */}
+        {/* MIS COMPRAS (PEDIDOS DEL CLIENTE) - VISTA DENTRO DE LA VITRINA */}
         {currentPage === 'orders' && (
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-24 text-slate-800">
             <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
               
-
-
-              {/* Encabezado y Filtros */}
+              {/* Encabezado y Filtros por Fecha */}
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Mis compras</h2>
                   <p className="text-slate-500 text-xs sm:text-sm mt-1">Revisa el estado de tus compras anteriores y comprobantes.</p>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado</label>
-                    <select 
-                      value={orderFilterStatus} 
-                      onChange={(e) => setOrderFilterStatus(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                {/* Filtro inteligente por Fecha (Se eliminó el filtro de Estado por requerimiento) */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center bg-white border border-slate-200/90 rounded-2xl p-1 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('all'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'all' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
                     >
-                      <option value="Todos">Todos</option>
-                      <option value="Activos">Activos</option>
-                      <option value="Pendiente">Pendiente</option>
-                      <option value="En Preparación">En Preparación</option>
-                      <option value="Enviado">Enviado</option>
-                      <option value="Entregado">Entregado</option>
-                      <option value="Completado">Completados</option>
-                      <option value="Cancelado">Cancelados</option>
-                    </select>
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('today'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'today' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('week'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'week' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Últimos 7 días
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('month'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'month' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Este mes
+                    </button>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</label>
+
+                  <div className="flex items-center gap-1 bg-white border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs">
                     <input 
                       type="date"
                       value={orderFilterDate}
-                      onChange={(e) => setOrderFilterDate(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                      onChange={(e) => {
+                        setOrderFilterDate(e.target.value);
+                        setOrderDatePreset('custom');
+                      }}
+                      className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                      title="Filtrar por fecha específica"
                     />
+                    {orderFilterDate && (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setOrderFilterDate('');
+                          setOrderDatePreset('all');
+                        }}
+                        className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                        title="Limpiar fecha"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
-                  {orderFilterDate && (
-                    <button 
-                      onClick={() => setOrderFilterDate('')}
-                      className="self-end h-[34px] px-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all text-xs"
-                      title="Limpiar filtro de fecha"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -5503,15 +5584,25 @@ export default function PublicStore() {
                 </div>
               ) : (() => {
                 const filtered = customerStoreOrders.filter(o => {
-                  let matchesStatus = true;
-                  if (orderFilterStatus === 'Activos') matchesStatus = o.status !== 'Completado' && o.status !== 'Cancelado' && o.status !== 'Entregado';
-                  else if (orderFilterStatus !== 'Todos') matchesStatus = (o.status || '').toLowerCase() === orderFilterStatus.toLowerCase();
+                  if (!o.date) return true;
+                  const orderDate = new Date(o.date);
+                  const now = new Date();
 
-                  let matchesDate = true;
-                  if (orderFilterDate && o.date) {
-                    matchesDate = o.date.includes(orderFilterDate);
+                  if (orderFilterDate) {
+                    const isoDate = o.date.slice(0, 10);
+                    if (isoDate !== orderFilterDate) return false;
+                  } else if (orderDatePreset === 'today') {
+                    const isToday = orderDate.toDateString() === now.toDateString();
+                    if (!isToday) return false;
+                  } else if (orderDatePreset === 'week') {
+                    const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
+                    if (diffDays > 7 || diffDays < 0) return false;
+                  } else if (orderDatePreset === 'month') {
+                    const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
+                    if (diffDays > 30 || diffDays < 0) return false;
                   }
-                  return matchesStatus && matchesDate;
+
+                  return true;
                 });
 
                 if (filtered.length === 0) {
@@ -6897,11 +6988,12 @@ export default function PublicStore() {
           <button 
             onClick={() => {
               setShowSuccessModal(false);
-              navigate('/profile', { state: { tab: 'pedidos' } });
+              setCurrentPage('orders');
+              fetchCustomerStoreOrders();
             }}
             className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-bold transition-all shadow-md shadow-amber-500/25 flex items-center justify-center gap-2 text-sm cursor-pointer"
           >
-            Ver estado en Mis Pedidos <ArrowRight size={16} />
+            Ver estado de mi pedido <ArrowRight size={16} />
           </button>
           <button 
             onClick={() => setShowSuccessModal(false)}
