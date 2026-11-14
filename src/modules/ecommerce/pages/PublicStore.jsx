@@ -273,6 +273,7 @@ export default function PublicStore() {
   const [subCategories, setSubCategories] = useState(['Todos']);
   const [activeSubCategory, setActiveSubCategory] = useState('Todos');
   const [storeCustomCategories, setStoreCustomCategories] = useState([]);
+  const [activeOffersCategory, setActiveOffersCategory] = useState('all'); // 'all' | 'flash' | 'combos'
 
   // Categoría general personalizada activa (Memoizado para fluidez total)
   const activeCustomCat = useMemo(() => {
@@ -3471,7 +3472,9 @@ export default function PublicStore() {
 
   const recentProducts = products.slice(0, 8);
   const nowTime = Date.now();
-  const offerProducts = products.filter(p => {
+
+  // Ofertas Flash con temporizador activo
+  const flashOffersList = products.filter(p => {
     if (!p.is_offer || Number(p.is_offer) === 0) return false;
     const endDate = p.metadata?.offer_end_date;
     if (endDate) {
@@ -3480,6 +3483,31 @@ export default function PublicStore() {
     }
     return true;
   });
+
+  // Combos y Kits Promocionales
+  const comboOffersList = products.filter(p => {
+    return Boolean(p.metadata?.is_combo || (p.category || '').toLowerCase() === 'combos');
+  });
+
+  // Todas las Promociones Combinadas (Ofertas Flash + Combos)
+  const allOffersAndCombos = products.filter(p => {
+    const isCombo = Boolean(p.metadata?.is_combo || (p.category || '').toLowerCase() === 'combos');
+    if (isCombo) return true;
+    if (!p.is_offer || Number(p.is_offer) === 0) return false;
+    const endDate = p.metadata?.offer_end_date;
+    if (endDate) {
+      const endMs = new Date(endDate).getTime();
+      if (!isNaN(endMs) && endMs < nowTime) return false;
+    }
+    return true;
+  });
+
+  // Productos a mostrar según la pestaña seleccionada
+  const offerProducts = activeOffersCategory === 'flash'
+    ? flashOffersList
+    : activeOffersCategory === 'combos'
+      ? comboOffersList
+      : allOffersAndCombos;
   let catalogProducts = [...products];
   if (activeMainCategory !== 'Todas') {
     catalogProducts = catalogProducts.filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase());
@@ -5018,7 +5046,49 @@ export default function PublicStore() {
                </div>
             </div>
             
-            <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 md:py-12 relative z-10">
+            <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-6 md:py-10 relative z-10 space-y-6">
+              {/* Barra de Filtro de Categorías en Ofertas: Todas, Ofertas Flash, Combos Promocionales */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => setActiveOffersCategory('all')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                    activeOffersCategory === 'all'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <Sparkles size={14} className={activeOffersCategory === 'all' ? 'text-slate-950' : 'text-amber-500'} />
+                  <span>Todas ({allOffersAndCombos.length})</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setActiveOffersCategory('flash')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                    activeOffersCategory === 'flash'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <Zap size={14} className={activeOffersCategory === 'flash' ? 'fill-slate-950 text-slate-950' : 'text-amber-500 fill-amber-500'} />
+                  <span>🔥 Ofertas Flash ({flashOffersList.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveOffersCategory('combos')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                    activeOffersCategory === 'combos'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <Package size={14} className={activeOffersCategory === 'combos' ? 'text-slate-950' : 'text-amber-600'} />
+                  <span>🎁 Combos Promocionales ({comboOffersList.length})</span>
+                </button>
+              </div>
+
               <div className="flex flex-col md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-3 gap-3.5">
                 {offerProducts.length > 0 ? offerProducts.map((p, i) => (
                   <div 
@@ -5027,50 +5097,70 @@ export default function PublicStore() {
                     onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
                     className={`group relative flex flex-col bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    {/* Imagen de Portada / Banner de Oferta (Ocupa la mitad superior del widget si fue asignada) */}
+                    {/* Imagen de Portada / Banner de Oferta (Completamente limpia para lucir la foto sin badges ni textos que la tapen) */}
                     {p.metadata?.offer_banner_url && (
-                      <div className="w-full h-36 sm:h-40 relative overflow-hidden bg-slate-100 shrink-0">
+                      <div className="w-full h-36 sm:h-44 relative overflow-hidden bg-slate-100 shrink-0">
                         <img 
                           src={resolveImageUrl(p.metadata.offer_banner_url)} 
                           alt={p.name} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
-                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap z-10">
-                          <span className="text-[10px] font-black text-amber-900 bg-amber-100/95 backdrop-blur-xs border border-amber-300 px-2 py-0.5 rounded-md shadow-xs">
-                            {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
-                          </span>
-                          {p.metadata?.offer_end_date && (
-                            <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
-                          )}
-                        </div>
                       </div>
                     )}
 
                     <div className="p-4 flex justify-between gap-3 flex-1">
                       <div className="flex-1 flex flex-col pt-1">
-                        {!p.metadata?.offer_banner_url && (
-                          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                            <span className="text-[10px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
-                              {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
+                        {/* Precios especiales, Badges y Contador pasados hacia abajo para NO tapar la foto del comerciante */}
+                        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                          <span className="text-[10px] font-black text-amber-900 bg-amber-100/90 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
+                            {p.metadata?.combo_badge || p.metadata?.offer_badge || (p.metadata?.is_combo ? '🎁 COMBO ESPECIAL' : '🔥 OFERTA FLASH')}
+                          </span>
+                          {p.metadata?.offer_end_date && (
+                            <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
+                          )}
+                          {p.metadata?.offer_limit_qty && (
+                            <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                              Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
                             </span>
-                            {p.metadata?.offer_end_date && (
-                              <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
-                            )}
-                            {p.metadata?.offer_limit_qty && (
-                              <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
-                                Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
+                          )}
+                        </div>
+
+                        {/* Si es combo: Mostrar ahorro del cliente */}
+                        {p.metadata?.is_combo && (p.metadata?.savings_usd > 0 || p.metadata?.savings_percentage > 0) && (
+                          <div className="mb-2 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg flex items-center justify-between text-xs font-black text-emerald-700 dark:text-emerald-400">
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles size={13} className="text-emerald-600 shrink-0" />
+                              ¡Ahorras ${Number(p.metadata.savings_usd || 0).toFixed(2)} ({p.metadata.savings_percentage}% OFF)!
+                            </span>
+                            {p.metadata?.original_sum_price && (
+                              <span className="text-[10px] text-slate-400 line-through font-normal">
+                                Antes: ${Number(p.metadata.original_sum_price).toFixed(2)}
                               </span>
                             )}
                           </div>
                         )}
-                        {p.metadata?.offer_banner_url && p.metadata?.offer_limit_qty && (
-                          <div className="mb-1.5">
-                            <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
-                              Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
-                            </span>
+
+                        {/* Si es combo: Mostrar qué productos incluye */}
+                        {p.metadata?.is_combo && Array.isArray(p.metadata?.combo_items) && p.metadata.combo_items.length > 0 && (
+                          <div className="mb-2">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                              Incluye ({p.metadata.combo_items.length} productos):
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {p.metadata.combo_items.slice(0, 3).map((ci, ciIdx) => (
+                                <span key={ci.id || ciIdx} className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                                  {ci.qty}x {ci.name}
+                                </span>
+                              ))}
+                              {p.metadata.combo_items.length > 3 && (
+                                <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                  +{p.metadata.combo_items.length - 3} más
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
+
                         <p className="font-bold text-slate-900 text-[15px] line-clamp-2 mb-1 group-hover:text-amber-600 transition-colors leading-tight">{p.name}</p>
                         <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed font-normal">{p.description || 'Sin descripción detallada.'}</p>
                         
@@ -5079,9 +5169,13 @@ export default function PublicStore() {
                               <div className="flex items-center gap-2">
                                 <p className="font-black text-base text-amber-600">
                                   ${Number(p.discount_price || p.price).toFixed(2)}
-                                  <span className="text-xs font-semibold text-slate-500 ml-1">/ {p.unit_type || p.unit || 'und'}</span>
+                                  <span className="text-xs font-semibold text-slate-500 ml-1">/ {p.unit_type || p.unit || (p.metadata?.is_combo ? 'combo' : 'und')}</span>
                                 </p>
-                                <p className="text-xs text-slate-400 line-through">${Number(p.price).toFixed(2)}</p>
+                                {(p.metadata?.original_sum_price || (p.is_offer && p.price > (p.discount_price || p.price))) && (
+                                  <p className="text-xs text-slate-400 line-through">
+                                    ${Number(p.metadata?.original_sum_price || p.price).toFixed(2)}
+                                  </p>
+                                )}
                               </div>
                             ) : (
                               <button 
@@ -5119,7 +5213,7 @@ export default function PublicStore() {
                       )}
                       
                       <div className="absolute top-1 left-1 bg-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow-sm flex items-center gap-1">
-                        <Tag size={8} className="fill-current" /> OFERTA
+                        <Tag size={8} className="fill-current" /> {p.metadata?.is_combo ? 'COMBO' : 'OFERTA'}
                       </div>
                       
                       {(p.stock_vitrina || 0) <= 0 && (

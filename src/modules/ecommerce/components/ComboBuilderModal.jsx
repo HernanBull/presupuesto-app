@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Plus, Minus, Trash2, Package, Sparkles, CheckCircle2, 
-  AlertCircle, DollarSign, Image as ImageIcon, Tag, Search, ArrowRight, ArrowLeft 
+  AlertCircle, DollarSign, Image as ImageIcon, Tag, Search, ArrowLeft, Check 
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import MultiImageUploader from './MultiImageUploader';
@@ -55,6 +55,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
       setComboImages([]);
       setSelectedBadge('🎁 COMBO ESPECIAL');
       setComboItems([]);
+      setProductSearch('');
       setError(null);
     }
   }, [existingCombo, isOpen]);
@@ -119,7 +120,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
     setError(null);
 
     if (!comboName.trim()) {
-      setError('Por favor indica un nombre para el combo (Ej. Combo Víveres Quincenal).');
+      setError('Por favor indica un nombre para el combo (Ej. Mega Combo Víveres Quincenal).');
       return;
     }
     if (comboItems.length < 2) {
@@ -216,7 +217,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 flex flex-col w-full h-full min-h-screen overflow-hidden animate-in fade-in duration-150">
-        {/* Header de Ventana Completa (Sin Lag ni Ventanas Flotantes Pequeñas) */}
+        {/* Header de Ventana Completa (Rápido, Fluido y sin Ventanas Flotantes Pequeñas) */}
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-3.5 sm:px-6 text-white flex justify-between items-center relative shrink-0 shadow-md">
           <div className="flex items-center gap-3">
             <button
@@ -233,7 +234,7 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
                 {existingCombo ? 'Modificar Combo' : 'Crear Combo de Productos'}
               </h3>
               <p className="text-white/85 text-[11px] sm:text-xs">
-                Agrupa productos de tu inventario para venderlos juntos como un combo en vitrina.
+                Agrupa productos de tu inventario para venderlos juntos con un precio especial en vitrina.
               </p>
             </div>
           </div>
@@ -247,257 +248,369 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
           </button>
         </div>
 
-        {/* Cuerpo con 2 columnas: Espacioso, fluido y optimizado 60 FPS */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-6xl mx-auto w-full">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-20">
-            {/* Columna Izquierda: Configuración del Combo (7 cols) */}
-            <div className="md:col-span-7 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Nombre y Badge */}
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1">
-                    Nombre del Combo *
-                  </label>
-                  <input
-                    type="text"
-                    value={comboName}
-                    onChange={(e) => setComboName(e.target.value)}
-                    placeholder="Ej. Mega Combo Víveres Quincenal"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                {/* Badge Promocional */}
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                    Etiqueta Promocional
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {comboBadges.map((badge) => (
-                      <button
-                        key={badge}
-                        type="button"
-                        onClick={() => setSelectedBadge(badge)}
-                        className={`text-xs px-2.5 py-1 rounded-lg font-bold border transition-all ${
-                          selectedBadge === badge
-                            ? 'bg-amber-500 text-black border-amber-600 shadow-xs'
-                            : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        {badge}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        {/* Cuerpo del Formulario en Secuencia Optimizada:
+            1. Nombre & Etiqueta
+            2. Agregar Producto (Catálogo con buscador)
+            3. Productos Incluidos (Cantidades y total)
+            4. Precio Especial del Combo & Ahorro
+            5. Stock Disponible
+            6. Fotos del Combo (De último)
+        */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-4xl mx-auto w-full">
+          <div className="space-y-6 pb-24">
+            {error && (
+              <div className="p-3.5 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-2xl text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-2 shadow-xs">
+                <AlertCircle size={18} className="shrink-0" />
+                <span>{error}</span>
               </div>
+            )}
 
-              {/* Lista de Productos Incluidos en el Combo */}
+            {/* ENCABEZADO DEL COMBO: Nombre y Etiqueta Promocional */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    Productos Incluidos ({comboItems.length})
-                  </label>
-                  <span className="text-[11px] font-bold text-slate-500">
-                    Suma Regular: <strong className="text-slate-800 dark:text-slate-200">${originalSumPrice.toFixed(2)}</strong>
-                  </span>
-                </div>
-
-                {comboItems.length === 0 ? (
-                  <div className="p-6 text-center border-2 border-dashed border-amber-200 dark:border-amber-500/20 bg-amber-50/40 dark:bg-amber-500/5 rounded-2xl">
-                    <Package size={28} className="mx-auto text-amber-500 mb-1.5 opacity-80" />
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">El combo aún está vacío</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Selecciona productos de la lista de la derecha para agregarlos al combo.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {comboItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80 gap-2"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="w-9 h-9 rounded-lg bg-white dark:bg-slate-700 overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">
-                            {item.image_url
-                              ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                              : <Tag size={16} className="text-slate-400" />
-                            }
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{item.name}</p>
-                            <p className="text-[10px] text-slate-500">${item.price.toFixed(2)} c/u</p>
-                          </div>
-                        </div>
-
-                        {/* Controles de Cantidad */}
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQty(item.id, -1)}
-                            className="w-6 h-6 rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-100"
-                          >
-                            <Minus size={12} />
-                          </button>
-                          <span className="w-6 text-center text-xs font-black text-slate-800 dark:text-white">
-                            {item.qty}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateQty(item.id, 1)}
-                            className="w-6 h-6 rounded-md bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-100"
-                          >
-                            <Plus size={12} />
-                          </button>
-                          <span className="text-xs font-black text-slate-700 dark:text-slate-300 w-14 text-right">
-                            ${(item.price * item.qty).toFixed(2)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="w-6 h-6 text-red-500 hover:text-red-700 flex items-center justify-center ml-1"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Caja de Fijación de Precios y Ahorro */}
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 border-2 border-amber-300 dark:border-amber-500/40 rounded-2xl p-3.5 space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <label className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
-                      Precio Especial del Combo ($) *
-                    </label>
-                    <p className="text-[10px] text-slate-500">Lo que pagará el cliente en vitrina</p>
-                  </div>
-                  <div className="relative w-36">
-                    <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={comboPrice}
-                      onChange={(e) => setComboPrice(e.target.value)}
-                      className="w-full px-3 py-2 bg-white dark:bg-slate-950 border-2 border-amber-400 rounded-xl text-lg font-black text-slate-900 dark:text-white text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Banner de Ahorro para el Cliente */}
-                {savingsAmount > 0 && (
-                  <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs">
-                    <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-emerald-600" />
-                      ¡Ahorro del Cliente: <strong>${savingsAmount.toFixed(2)}</strong> ({savingsPct}% OFF)!
-                    </span>
-                    <span className="text-[10px] text-slate-400 line-through">
-                      Antes: ${originalSumPrice.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Stock del Combo */}
-              <div className="pt-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                  Stock Disponible del Combo
+                <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider block mb-1.5">
+                  Nombre del Combo *
                 </label>
                 <input
-                  type="number"
-                  min="1"
-                  value={comboStock}
-                  onChange={(e) => setComboStock(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white"
+                  type="text"
+                  value={comboName}
+                  onChange={(e) => setComboName(e.target.value)}
+                  placeholder="Ej. Mega Combo Víveres Quincenal, Parrillada Familiar..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
                 />
               </div>
 
-              {/* Galería de Fotos del Combo */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <MultiImageUploader
-                  images={comboImages}
-                  onChange={setComboImages}
-                  folder="combos"
-                  maxImages={5}
-                  title="Fotos del Combo"
-                  subtitle="Sube fotos del combo preparado o presentación."
-                />
+              <div>
+                <label className="text-[11px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider block mb-1.5">
+                  Etiqueta Promocional
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {comboBadges.map((badge) => (
+                    <button
+                      key={badge}
+                      type="button"
+                      onClick={() => setSelectedBadge(badge)}
+                      className={`text-xs px-3 py-1.5 rounded-xl font-bold border transition-all cursor-pointer ${
+                        selectedBadge === badge
+                          ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm font-black scale-102'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/60'
+                      }`}
+                    >
+                      {badge}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Columna Derecha: Catálogo para Seleccionar Productos (5 cols) */}
-            <div className="md:col-span-5 bg-slate-50 dark:bg-slate-950/60 rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 flex flex-col">
-              <div className="mb-2.5">
-                <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider mb-1 flex items-center gap-1">
-                  <Plus size={14} className="text-amber-500" /> Agregar Productos
-                </p>
-                <div className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Buscar producto..."
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-semibold text-slate-800 dark:text-white focus:outline-none"
-                  />
+            {/* PASO 1: AGREGAR PRODUCTO (Catálogo disponible con buscador) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shrink-0">
+                    1
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Agregar Productos al Combo
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Busca y toca los productos de tu inventario que formarán parte de este paquete.
+                    </p>
+                  </div>
                 </div>
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                  {candidateProducts.length} disponibles
+                </span>
               </div>
 
-              {/* Lista de Candidatos */}
-              <div className="flex-1 overflow-y-auto space-y-1.5 max-h-[380px] pr-1">
+              {/* Buscador */}
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar producto por nombre..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="w-full pl-9 pr-3.5 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                />
+                {productSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setProductSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold p-1"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {/* Lista Deslizable de Productos para Añadir Rápido */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
                 {candidateProducts.map((p) => {
-                  const isSelected = comboItems.some(it => it.id === p.id);
+                  const existingItem = comboItems.find(it => it.id === p.id);
+                  const isSelected = Boolean(existingItem);
                   return (
                     <div
                       key={p.id}
                       onClick={() => handleAddItem(p)}
-                      className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
+                      className={`flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group active:scale-[0.99] ${
                         isSelected
-                          ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-300'
+                          ? 'bg-amber-50/70 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30'
+                          : 'bg-slate-50/80 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-amber-400 hover:bg-amber-50/30'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center shrink-0">
-                          {p.image_url
-                            ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                            : <Tag size={14} className="text-slate-400" />
-                          }
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-800 overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Tag size={16} className="text-slate-400" />
+                          )}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{p.name}</p>
-                          <p className="text-[10px] text-slate-500 font-semibold">${Number(p.price).toFixed(2)}</p>
+                          <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-amber-600 transition-colors">
+                            {p.name}
+                          </p>
+                          <div className="flex items-center gap-2 text-[11px]">
+                            <span className="font-black text-slate-700 dark:text-slate-300">
+                              ${Number(p.price || 0).toFixed(2)}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-black text-amber-700 bg-amber-100 dark:bg-amber-500/20 px-1.5 py-0.2 rounded-md">
+                                {existingItem.qty} en combo
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
+
                       <button
                         type="button"
-                        className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-black transition-colors ${
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddItem(p);
+                        }}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-all cursor-pointer shrink-0 ml-2 ${
                           isSelected
-                            ? 'bg-amber-500 text-black shadow-xs'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-amber-100 hover:text-amber-700'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 hover:bg-amber-500 hover:text-slate-950 hover:border-amber-500'
                         }`}
+                        title="Agregar una unidad al combo"
                       >
-                        <Plus size={13} />
+                        <Plus size={15} />
                       </button>
                     </div>
                   );
                 })}
 
                 {candidateProducts.length === 0 && (
-                  <div className="p-6 text-center text-slate-400 text-xs">
-                    No se encontraron productos coincidentes.
+                  <div className="col-span-full p-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/30 rounded-xl">
+                    No se encontraron productos coincidentes en el inventario.
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* PASO 2: PRODUCTOS INCLUIDOS EN EL COMBO (Cantidades, subtotales y eliminación) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shrink-0">
+                    2
+                  </span>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Productos Incluidos en el Combo ({comboItems.length})
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Ajusta la cantidad de cada ítem que recibirá el cliente al comprar el paquete.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[11px] font-bold text-slate-500 block">Suma Regular Total</span>
+                  <span className="text-sm font-black text-slate-900 dark:text-white">
+                    ${originalSumPrice.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {comboItems.length === 0 ? (
+                <div className="p-6 text-center border-2 border-dashed border-amber-200 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 rounded-2xl space-y-1.5">
+                  <Package size={30} className="mx-auto text-amber-500 opacity-80" />
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-200">El combo aún está vacío</p>
+                  <p className="text-[11px] text-slate-500">
+                    Selecciona productos en el paso 1 anterior usando el botón (+) para agregarlos al combo.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {comboItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700/80 gap-2"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-700 overflow-hidden flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Tag size={16} className="text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{item.name}</p>
+                          <p className="text-[10px] text-slate-500">${item.price.toFixed(2)} c/u</p>
+                        </div>
+                      </div>
+
+                      {/* Controles de Cantidad */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.id, -1)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                          title="Restar cantidad"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span className="w-7 text-center text-xs font-black text-slate-900 dark:text-white">
+                          {item.qty}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateQty(item.id, 1)}
+                          className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors cursor-pointer"
+                          title="Sumar cantidad"
+                        >
+                          <Plus size={13} />
+                        </button>
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 w-16 text-right">
+                          ${(item.price * item.qty).toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="w-7 h-7 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center justify-center ml-1 transition-colors cursor-pointer"
+                          title="Quitar del combo"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* PASO 3: PRECIO ESPECIAL DEL COMBO Y AHORRO */}
+            <div className="bg-gradient-to-br from-amber-50 via-orange-50/60 to-white dark:from-amber-500/10 dark:via-orange-500/5 dark:to-slate-900 border-2 border-amber-300 dark:border-amber-500/40 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shrink-0">
+                  3
+                </span>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Precio Especial del Combo ($) *
+                  </h4>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Establece el precio promocional que pagará el cliente por todo el paquete en vitrina.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                  <span>Precio de los productos por separado: </span>
+                  <strong className="text-slate-900 dark:text-white">${originalSumPrice.toFixed(2)}</strong>
+                </div>
+
+                <div className="relative w-full sm:w-44">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base font-black text-amber-600">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={comboPrice}
+                    onChange={(e) => setComboPrice(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-950 border-2 border-amber-400 rounded-xl text-lg font-black text-slate-900 dark:text-white text-right focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Banner de Ahorro para el Cliente */}
+              {savingsAmount > 0 ? (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs flex-wrap gap-2">
+                  <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <Sparkles size={15} className="text-emerald-600" />
+                    ¡Ahorro del Cliente: <strong>${savingsAmount.toFixed(2)}</strong> ({savingsPct}% OFF)!
+                  </span>
+                  <span className="text-[11px] text-slate-400 line-through">
+                    Antes: ${originalSumPrice.toFixed(2)}
+                  </span>
+                </div>
+              ) : originalSumPrice > 0 && numericComboPrice >= originalSumPrice ? (
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-300">
+                  💡 Tip: Para que el combo sea atractivo, fija un precio menor a la suma regular (${originalSumPrice.toFixed(2)}).
+                </div>
+              ) : null}
+            </div>
+
+            {/* PASO 4: STOCK DISPONIBLE DEL COMBO */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shrink-0">
+                  4
+                </span>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Stock Disponible del Combo
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Cantidad de combos completos disponibles para vender en la vitrina.
+                  </p>
+                </div>
+              </div>
+
+              <input
+                type="number"
+                min="1"
+                value={comboStock}
+                onChange={(e) => setComboStock(e.target.value)}
+                placeholder="10"
+                className="w-full sm:w-48 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+            </div>
+
+            {/* PASO 5: FOTOS DEL COMBO (DE ÚLTIMO) */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shrink-0">
+                  5
+                </span>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Fotos del Combo
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Sube fotos del combo preparado o presentación (con cuadro de superficie 1:1 para encuadre perfecto).
+                  </p>
+                </div>
+              </div>
+
+              <MultiImageUploader
+                images={comboImages}
+                onChange={setComboImages}
+                folder="combos"
+                maxImages={5}
+                title="Fotos del Combo"
+                subtitle="Sube fotos del combo preparado o presentación."
+              />
             </div>
           </div>
         </div>
