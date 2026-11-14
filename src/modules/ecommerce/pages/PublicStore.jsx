@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2 } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -361,6 +361,76 @@ export default function PublicStore() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [discountCode, setDiscountCode] = useState('');
+
+  // Estados para seguimiento de compras/pedidos del cliente en esta tienda (Mis compras)
+  const [customerStoreOrders, setCustomerStoreOrders] = useState([]);
+  const [loadingStoreOrders, setLoadingStoreOrders] = useState(false);
+  const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
+  const [orderFilterDate, setOrderFilterDate] = useState('');
+  const [copiedPinOrderId, setCopiedPinOrderId] = useState(null);
+
+  const fetchCustomerStoreOrders = useCallback(async () => {
+    const wsId = workspaceId || config?.workspace_id || config?.id;
+    const custEmail = currentCustomer?.email;
+    const custPhone = currentCustomer?.phone;
+
+    setLoadingStoreOrders(true);
+    try {
+      let ordersList = [];
+      if (wsId && (custEmail || custPhone)) {
+        let query = supabase
+          .from('ecommerce_orders_v2')
+          .select('*')
+          .eq('workspace_id', wsId)
+          .order('date', { ascending: false });
+
+        if (custEmail && custPhone) {
+          query = query.or(`customer_email.ilike.${custEmail},customer_phone.eq.${custPhone}`);
+        } else if (custEmail) {
+          query = query.ilike('customer_email', custEmail);
+        } else if (custPhone) {
+          query = query.eq('customer_phone', custPhone);
+        }
+
+        const { data, error } = await query;
+        if (!error && Array.isArray(data)) {
+          ordersList = data;
+        }
+      }
+
+      // Si no hay pedidos en BD o para respaldo de compra reciente en esta sesión
+      if (ordersList.length === 0) {
+        try {
+          const localStr = localStorage.getItem(`orders_${wsId}`) || localStorage.getItem('lastPlacedOrder');
+          if (localStr) {
+            const parsed = JSON.parse(localStr);
+            ordersList = Array.isArray(parsed) ? parsed : [parsed];
+          }
+        } catch (e) {}
+      }
+
+      const mapped = ordersList.map(order => ({
+        ...order,
+        dateFormatted: order.date ? new Date(order.date).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : 'Reciente',
+        itemsParsed: typeof order.items === 'string' ? (() => { try { return JSON.parse(order.items); } catch(e){ return []; } })() : (order.items || []),
+        deliveryPin: order.delivery_pin || order.deliveryPin || null
+      }));
+
+      setCustomerStoreOrders(mapped);
+    } catch (err) {
+      console.warn('Error fetching customer store orders:', err);
+    } finally {
+      setLoadingStoreOrders(false);
+    }
+  }, [workspaceId, config?.workspace_id, config?.id, currentCustomer?.email, currentCustomer?.phone]);
+
+  useEffect(() => {
+    fetchCustomerStoreOrders();
+  }, [fetchCustomerStoreOrders, currentPage]);
+
+  const activeStoreOrdersCount = useMemo(() => {
+    return customerStoreOrders.filter(o => o.status !== 'Completado' && o.status !== 'Cancelado' && o.status !== 'Entregado').length;
+  }, [customerStoreOrders]);
 
   const merchantWhatsAppUrl = useMemo(() => {
     const phone = resolveStoreWhatsApp(config);
@@ -3350,7 +3420,34 @@ export default function PublicStore() {
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
-             {!currentCustomer && !isMerchantOwner ? (
+             {currentPage === 'products' ? (
+               /* En Catálogo: Ocultamos el perfil del cliente y colocamos el Widget del Carrito con conteo en $ y Bs. */
+               <button
+                 type="button"
+                 onClick={() => setIsCartOpen(true)}
+                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white active:scale-95 transition-all shadow-sm border border-slate-700/80 cursor-pointer select-none"
+                 title="Ver carrito de compras"
+               >
+                 <div className="relative flex items-center justify-center">
+                   <ShoppingCart size={16} className="text-amber-400 stroke-[2.4]" />
+                   {totalCartItems > 0 && (
+                     <span 
+                       className="absolute -top-2 -right-2.5 min-w-[15px] h-[15px] px-1 font-black text-[9px] flex items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-xs"
+                     >
+                       {totalCartItems}
+                     </span>
+                   )}
+                 </div>
+                 <div className="flex flex-col text-right leading-none">
+                   <span className="text-[11px] sm:text-xs font-black text-white font-mono">
+                     ${cartSubtotal.toFixed(2)}
+                   </span>
+                   <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 font-mono mt-0.5">
+                     Bs. {(cartSubtotal * Number(bcvRate || config?.bcvRate || 36.50)).toFixed(2)}
+                   </span>
+                 </div>
+               </button>
+             ) : !currentCustomer && !isMerchantOwner ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
                  className="flex items-center gap-1.5 text-xs font-bold uppercase px-4 py-2 rounded-full transition-all active:scale-95 cursor-pointer border"
@@ -5047,57 +5144,59 @@ export default function PublicStore() {
                                 </span>
                               </div>
                             )}
-                            <div className="flex items-center justify-between gap-1 mb-2.5">
-                              <p className="text-xs text-zinc-500 font-medium">{p.step_size || 1} {p.unit || 'unidad'}</p>
-                              {(() => {
-                                const qty = Number(p.stock_vitrina) || 0;
-                                if (qty > 5) {
-                                  return (
-                                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title={`Disponible: ${qty}`}>
-                                      {qty}
-                                    </span>
-                                  );
-                                }
-                                if (qty > 0) {
-                                  return (
-                                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs animate-pulse" title={`Pocas unidades: ${qty}`}>
-                                      {qty}
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <span className="text-xs font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs" title="Agotado">
-                                    0
-                                  </span>
-                                );
-                              })()}
+
+                            {/* Fila Superior: Precio (Subido aquí, libre y sin interferencia con el botón +) */}
+                            <div className="mb-2 min-w-0">
+                              {isUserAllowedToSeePrices ? (
+                                p.is_offer ? (
+                                  <div className="flex flex-col min-w-0">
+                                    <div className="flex items-baseline gap-1">
+                                      <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.discount_price || p.price).toFixed(2)}</p>
+                                      <span className="text-[10px] text-zinc-500 font-semibold truncate">/ {p.unit_type || p.unit || 'und'}</span>
+                                    </div>
+                                    <p className="text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
+                                    {p.metadata?.offer_limit_qty && (
+                                      <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate">
+                                        Máx. {p.metadata.offer_limit_qty} por pedido
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-baseline gap-1">
+                                    <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.price).toFixed(2)}</p>
+                                    <span className="text-[10px] text-zinc-500 font-semibold truncate">/ {p.unit_type || p.unit || 'und'}</span>
+                                  </div>
+                                )
+                              ) : (
+                                <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded truncate">Ver Precio</button>
+                              )}
                             </div>
                             
-                            <div className="mt-auto pt-2 flex items-center justify-between gap-1 w-full min-w-0">
-                              <div className="min-w-0 flex-1 pr-1">
-                                {isUserAllowedToSeePrices ? (
-                                  p.is_offer ? (
-                                    <div className="flex flex-col min-w-0">
-                                      <div className="flex items-baseline gap-0.5 truncate">
-                                        <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.discount_price || p.price).toFixed(2)}</p>
-                                        <span className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold truncate">/ {p.unit_type || p.unit || 'und'}</span>
-                                      </div>
-                                      <p className="text-[9px] sm:text-[10px] text-zinc-400 line-through mt-0.5">${Number(p.price).toFixed(2)}</p>
-                                      {p.metadata?.offer_limit_qty && (
-                                        <span className="text-[8px] sm:text-[9px] font-bold text-amber-700 bg-amber-50 px-1 py-0.5 rounded mt-0.5 inline-block truncate">
-                                          Máx. {p.metadata.offer_limit_qty} por pedido
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col min-w-0">
-                                      <p className="font-extrabold text-sm sm:text-base text-zinc-900 leading-none truncate">${Number(p.price).toFixed(2)}</p>
-                                      <span className="text-[9px] sm:text-[10px] text-zinc-500 font-semibold truncate mt-0.5">/ {p.unit_type || p.unit || 'und'}</span>
-                                    </div>
-                                  )
-                                ) : (
-                                  <button onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }} className="text-[9px] sm:text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded truncate">Ver Precio</button>
-                                )}
+                            {/* Fila Inferior: Stock disponible a la izquierda, Botón + a la derecha */}
+                            <div className="mt-auto pt-1 flex items-center justify-between gap-1 w-full min-w-0">
+                              <div className="shrink-0">
+                                {(() => {
+                                  const qty = Number(p.stock_vitrina) || 0;
+                                  if (qty > 5) {
+                                    return (
+                                      <span className="text-xs font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title={`Disponible: ${qty}`}>
+                                        {qty}
+                                      </span>
+                                    );
+                                  }
+                                  if (qty > 0) {
+                                    return (
+                                      <span className="text-xs font-black px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs animate-pulse" title={`Pocas unidades: ${qty}`}>
+                                        {qty}
+                                      </span>
+                                    );
+                                  }
+                                  return (
+                                    <span className="text-xs font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs" title="Agotado">
+                                      0
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               
                               {/* Add Button & Quantity Selector Widget (Anti-overflow shrink-0) */}
@@ -5177,6 +5276,221 @@ export default function PublicStore() {
             </div>
           </div>
         ); })()}
+
+        {/* MIS COMPRAS (PEDIDOS DEL CLIENTE) - VISTA EXACTA DEL PERFIL DEL CLIENTE */}
+        {currentPage === 'orders' && (
+          <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-24 text-slate-800">
+            <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+              
+              {/* Botón Volver al menú / tienda */}
+              <div className="flex items-center justify-between">
+                <button 
+                  type="button"
+                  onClick={() => setCurrentPage('products')}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-950 font-bold text-xs shadow-xs hover:bg-slate-100 transition-all cursor-pointer"
+                >
+                  <ArrowLeft size={16} />
+                  <span>Volver al menú</span>
+                </button>
+              </div>
+
+              {/* Encabezado y Filtros */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Mis compras</h2>
+                  <p className="text-slate-500 text-xs sm:text-sm mt-1">Revisa el estado de tus compras anteriores y comprobantes.</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado</label>
+                    <select 
+                      value={orderFilterStatus} 
+                      onChange={(e) => setOrderFilterStatus(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    >
+                      <option value="Todos">Todos</option>
+                      <option value="Activos">Activos</option>
+                      <option value="Pendiente">Pendiente</option>
+                      <option value="En Preparación">En Preparación</option>
+                      <option value="Enviado">Enviado</option>
+                      <option value="Entregado">Entregado</option>
+                      <option value="Completado">Completados</option>
+                      <option value="Cancelado">Cancelados</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</label>
+                    <input 
+                      type="date"
+                      value={orderFilterDate}
+                      onChange={(e) => setOrderFilterDate(e.target.value)}
+                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-none focus:border-amber-500 shadow-xs cursor-pointer"
+                    />
+                  </div>
+                  {orderFilterDate && (
+                    <button 
+                      onClick={() => setOrderFilterDate('')}
+                      className="self-end h-[34px] px-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all text-xs"
+                      title="Limpiar filtro de fecha"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Órdenes */}
+              {loadingStoreOrders ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Loader2 className="animate-spin text-amber-500" size={32} />
+                  <p className="text-xs text-slate-500 font-medium">Consultando tus compras...</p>
+                </div>
+              ) : (() => {
+                const filtered = customerStoreOrders.filter(o => {
+                  let matchesStatus = true;
+                  if (orderFilterStatus === 'Activos') matchesStatus = o.status !== 'Completado' && o.status !== 'Cancelado' && o.status !== 'Entregado';
+                  else if (orderFilterStatus !== 'Todos') matchesStatus = (o.status || '').toLowerCase() === orderFilterStatus.toLowerCase();
+
+                  let matchesDate = true;
+                  if (orderFilterDate && o.date) {
+                    matchesDate = o.date.includes(orderFilterDate);
+                  }
+                  return matchesStatus && matchesDate;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bg-white rounded-3xl p-10 sm:p-12 border border-slate-200 border-dashed text-center shadow-xs">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100">
+                        <ShoppingBag size={28} />
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                        {customerStoreOrders.length > 0 ? "No hay compras con estos filtros" : "Aún no tienes compras en esta tienda"}
+                      </h3>
+                      <p className="text-slate-500 text-xs sm:text-sm mt-1.5 max-w-sm mx-auto">
+                        {customerStoreOrders.length > 0 ? "Prueba cambiando el estado o la fecha de búsqueda." : "Tus pedidos completados y el estado de tu entrega aparecerán aquí con su código PIN de seguridad."}
+                      </p>
+                      <button 
+                        onClick={() => setCurrentPage('products')} 
+                        className="mt-5 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs sm:text-sm transition-all shadow-xs cursor-pointer"
+                      >
+                        Ver Catálogo de Productos
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {filtered.map(order => (
+                      <div key={order.id} className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col gap-4">
+                        
+                        {/* Cabecera de la Orden: Código, Fecha, Estado */}
+                        <div className="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-slate-100 text-slate-800 px-3 py-1 rounded-lg text-xs font-black font-mono border border-slate-200">
+                              {order.id}
+                            </span>
+                            <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
+                              <Clock size={13} className="text-slate-400" /> 
+                              {order.dateFormatted || order.date}
+                            </span>
+                          </div>
+                          
+                          <span className={`px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 ${
+                            order.status === 'Entregado' || order.status === 'Completado' 
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                              : order.status === 'Cancelado'
+                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 animate-pulse'
+                          }`}>
+                            {(order.status === 'Entregado' || order.status === 'Completado') && <CheckCircle2 size={13} />}
+                            {order.status || 'Pendiente'}
+                          </span>
+                        </div>
+
+                        {/* Listado de Ítems */}
+                        <div className="space-y-2 py-1">
+                          {Array.isArray(order.itemsParsed) && order.itemsParsed.map((item, idx) => (
+                            <div key={item.id || idx} className="flex justify-between items-center text-xs sm:text-sm">
+                              <span className="font-semibold text-slate-800">
+                                {item.quantity || 1}x {item.name}
+                              </span>
+                              <span className="text-slate-900 font-bold font-mono">
+                                ${((Number(item.price) || 0) * (Number(item.quantity) || 1)).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Total del Pedido */}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total</span>
+                          <span className="text-lg sm:text-xl font-black text-slate-900 font-mono">
+                            ${Number(order.total || 0).toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* SECCIÓN SEGURIDAD DE ENTREGA / PIN SECRETO */}
+                        <div className="mt-2 border-t border-slate-100 pt-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Lock size={13} className="text-amber-500" />
+                              Seguridad de Entrega
+                            </h4>
+                            <span className="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                              Código de Verificación
+                            </span>
+                          </div>
+
+                          {order.deliveryPin ? (
+                            <div className="bg-amber-50/60 border-2 border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                              <div>
+                                <span className="block text-[10px] font-black text-amber-900 tracking-wider mb-1 uppercase">
+                                  PIN Secreto de Entrega
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-[0.25em] font-mono bg-white px-3 py-1 rounded-xl border border-amber-200 shadow-inner">
+                                    {order.deliveryPin}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(order.deliveryPin);
+                                      setCopiedPinOrderId(order.id);
+                                      setTimeout(() => setCopiedPinOrderId(null), 2500);
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-amber-500 text-slate-950 hover:bg-amber-400 active:scale-95 transition-all shadow-xs cursor-pointer"
+                                  >
+                                    {copiedPinOrderId === order.id ? <Check size={14} /> : <Copy size={14} />}
+                                    <span>{copiedPinOrderId === order.id ? '¡Copiado!' : 'Copiar'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 border-amber-200/60">
+                                <p className="text-[11px] sm:text-xs text-amber-950 font-medium leading-relaxed max-w-[220px]">
+                                  🛡️ Dicta este código al repartidor únicamente cuando recibas tu paquete en tus manos.
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-center gap-2 text-slate-500 text-xs font-medium text-center">
+                              <Clock size={14} className="shrink-0" />
+                              El PIN de seguridad se generará cuando el comercio valide tu pedido.
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+            </div>
+          </div>
+        )}
       </div>
       <footer className="bg-white border-t border-zinc-200 mt-auto relative z-10 py-8 px-6">
         <div className="max-w-[1400px] mx-auto flex flex-col items-center justify-center gap-3 text-center">
@@ -6757,24 +7071,23 @@ export default function PublicStore() {
               <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'products' ? { color: primaryColor } : {}}>{texts?.nav2 || 'Catálogo'}</span>
             </button>
 
-            {/* Standard Button for Cart */}
+            {/* Botón para Pedidos / Mis compras del Cliente */}
             <button
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => setCurrentPage('orders')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
-              style={isCartOpen ? { color: primaryColor } : { color: '#ffffff' }}
+              style={currentPage === 'orders' ? { color: primaryColor } : { color: '#ffffff' }}
             >
               <div className="relative">
-                <ShoppingCart size={22} className={isCartOpen ? "stroke-[2.4]" : "text-white opacity-95"} style={isCartOpen ? { color: primaryColor } : {}} />
-                {totalCartItems > 0 && (
+                <ClipboardList size={22} className={currentPage === 'orders' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'orders' ? { color: primaryColor } : {}} />
+                {activeStoreOrdersCount > 0 && (
                   <span 
-                    className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm"
-                    style={{ backgroundColor: primaryColor, color: primaryTextColor }}
+                    className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-500 text-slate-950 animate-pulse"
                   >
-                    {totalCartItems}
+                    {activeStoreOrdersCount}
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] ${isCartOpen ? 'font-black' : 'font-bold text-white'}`} style={isCartOpen ? { color: primaryColor } : {}}>Carrito</span>
+              <span className={`text-[10px] ${currentPage === 'orders' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'orders' ? { color: primaryColor } : {}}>Pedidos</span>
             </button>
 
             <button
