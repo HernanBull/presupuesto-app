@@ -820,9 +820,7 @@ export default function SocialFeedCard({
             muted={isMutedGlobal}
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
-            className={`w-full h-full object-cover pointer-events-none transition-transform duration-300 ease-out ${
-              isCleanMode ? 'scale-110' : 'scale-100'
-            }`}
+            className="w-full h-full object-cover pointer-events-none"
           />
           {!isPlaying && !isCleanMode && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
@@ -856,9 +854,7 @@ export default function SocialFeedCard({
                   decoding="async"
                   src={resolveImageUrl(imgUrl)} 
                   alt={`${storeName} ${i + 1}`} 
-                  className={`w-full h-full object-cover select-none pointer-events-none transition-transform duration-300 ease-out ${
-                    isCleanMode ? 'scale-110' : 'scale-100'
-                  }`} 
+                  className="w-full h-full object-cover select-none pointer-events-none" 
                 />
               </div>
             ))}
@@ -893,9 +889,7 @@ export default function SocialFeedCard({
             decoding="async"
             src={resolveImageUrl(storeCover)} 
             alt={storeName} 
-            className={`w-full h-full object-cover z-0 select-none pointer-events-none transition-transform duration-300 ease-out ${
-              isCleanMode ? 'scale-110' : 'scale-100'
-            }`} 
+            className="w-full h-full object-cover z-0 select-none pointer-events-none" 
           />
         </div>
       ) : (
@@ -915,23 +909,25 @@ export default function SocialFeedCard({
 
       {/* Top Overlay: Botón Pantalla Completa / Modo Limpio, Audio Toggle y Carrusel */}
       <div className="absolute top-16 right-3.5 z-30 flex flex-col items-center gap-2 select-none">
-        {/* Botón arriba del sonido para pantalla completa / ocultar toda la UI */}
-        <button
-          type="button"
-          onClick={toggleCleanMode}
-          className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all cursor-pointer shadow-md active:scale-90 ${
-            isCleanMode 
-              ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-400/50' 
-              : 'bg-black/65 text-white border-white/20 hover:bg-black/80'
-          }`}
-          title={isCleanMode ? "Mostrar controles" : "Pantalla completa / Ocultar controles"}
-        >
-          {isCleanMode ? (
-            <Minimize2 size={15} />
-          ) : (
-            <Maximize2 size={15} />
-          )}
-        </button>
+        {/* Botón arriba del sonido para pantalla completa / ocultar toda la UI (Solo en videos) */}
+        {isVideo && (
+          <button
+            type="button"
+            onClick={toggleCleanMode}
+            className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all cursor-pointer shadow-md active:scale-90 ${
+              isCleanMode 
+                ? 'bg-black/60 text-white border-white/30 backdrop-blur-xs hover:bg-black/80' 
+                : 'bg-black/65 text-white border-white/20 hover:bg-black/80'
+            }`}
+            title={isCleanMode ? "Mostrar controles" : "Pantalla completa / Ocultar controles"}
+          >
+            {isCleanMode ? (
+              <Minimize2 size={15} />
+            ) : (
+              <Maximize2 size={15} />
+            )}
+          </button>
+        )}
 
         {/* Botón de Sonido Estático (Siempre accesible tanto en modo normal como pantalla completa) */}
         {isVideo && (
@@ -1179,15 +1175,13 @@ export default function SocialFeedCard({
         </div>
       )}
 
-      {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo TikTok / Reels) */}
+      {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo YouTube / TikTok profesional) */}
       {isVideo && (
         <div className="absolute inset-x-0 bottom-0 z-30 pb-0 select-none">
-          {/* Indicador de Segundos / Duración estilo TikTok alineado a la derecha para no colisionar con el botón VIP de la izquierda */}
-          <div className={`px-3 py-1 flex items-center justify-end gap-2 text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] transition-opacity duration-300 ${
-            isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}>
-            <span className="bg-black/65 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
-              <Clock size={11} className="text-amber-400" />
+          {/* Indicador de Segundos / Duración y Velocidad: Minimalista, traslúcido y siempre estático */}
+          <div className="px-3 pb-1.5 flex items-center justify-end gap-1.5 text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+            <span className="bg-black/35 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 flex items-center gap-1.5 shadow-xs">
+              <Clock size={10} className="text-amber-400" />
               <span>{formatSeconds(videoCurrentTime)} / {formatSeconds(videoDuration)}</span>
             </span>
 
@@ -1198,7 +1192,7 @@ export default function SocialFeedCard({
                 e.stopPropagation();
                 handleTogglePlaybackSpeed();
               }}
-              className="bg-black/65 hover:bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+              className="bg-black/35 hover:bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-xs flex items-center gap-1"
               title="Cambiar velocidad (o mantén pulsada la pantalla para 2x)"
             >
               <Zap size={10} className="text-amber-400 fill-amber-400" />
@@ -1206,22 +1200,22 @@ export default function SocialFeedCard({
             </button>
           </div>
 
-          {/* Pista del reproductor */}
+          {/* Pista del reproductor estilo YouTube: Delgada, semitransparente, conteo fluido */}
           <div
             ref={progressBarRef}
-            className="h-7 flex items-end cursor-pointer group px-0 pb-0"
+            className="h-5 flex items-end cursor-pointer group px-0 pb-0"
             onClick={(e) => { e.stopPropagation(); handleSeek(e.clientX); }}
             onTouchStart={handleScrubberTouchStart}
             onTouchMove={handleScrubberTouchMove}
             onTouchEnd={handleScrubberTouchEnd}
             title="Toca o desliza para avanzar o retroceder el video"
           >
-            <div className="w-full h-1 group-hover:h-2 group-active:h-2 bg-white/20 transition-all relative overflow-visible">
+            <div className="w-full h-[3px] group-hover:h-[5px] group-active:h-[5px] bg-white/20 backdrop-blur-2xs transition-all relative overflow-visible">
               <div
-                className="h-full bg-gradient-to-r from-orange-500 to-amber-400 relative transition-[width] duration-75"
+                className="h-full bg-amber-400/90 relative transition-[width] duration-75 shadow-[0_0_8px_rgba(251,191,36,0.4)]"
                 style={{ width: `${Math.min(100, Math.max(0, videoProgress))}%` }}
               >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50 scale-0 group-hover:scale-100 group-active:scale-100 transition-transform border-2 border-white" />
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3 h-3 bg-amber-400 rounded-full shadow-md scale-0 group-hover:scale-100 group-active:scale-100 transition-transform border border-white" />
               </div>
             </div>
           </div>
