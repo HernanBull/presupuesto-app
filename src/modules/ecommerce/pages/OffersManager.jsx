@@ -13,7 +13,12 @@ function useToast() {
     setToasts(prev => [...prev, { id, msg, type }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
   };
-  return { toasts, success: (m) => add(m, 'success'), error: (m) => add(m, 'error') };
+  return { 
+    toasts, 
+    success: (m) => add(m, 'success'), 
+    error: (m) => add(m, 'error'),
+    loading: (m) => add(m, 'info')
+  };
 }
 
 function ToastContainer({ toasts }) {
@@ -29,6 +34,8 @@ function ToastContainer({ toasts }) {
             className={`flex items-center gap-2 px-4 py-3 rounded-2xl shadow-xl text-sm font-bold pointer-events-auto
               ${t.type === 'success'
                 ? 'bg-emerald-500 text-white'
+                : t.type === 'info'
+                ? 'bg-amber-600 text-white'
                 : 'bg-red-500 text-white'}`}
           >
             {t.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
@@ -88,6 +95,65 @@ export default function OffersManager() {
   });
   const [isAddingBadge, setIsAddingBadge] = useState(false);
   const [newBadgeInput, setNewBadgeInput] = useState('');
+
+  // Cuadro Indicador de Superficie de la Foto de Portada (2:1)
+  const [bannerCropModalOpen, setBannerCropModalOpen] = useState(false);
+  const [pendingBannerFile, setPendingBannerFile] = useState(null);
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState('');
+  const [bannerDims, setBannerDims] = useState({ width: 0, height: 0 });
+
+  const fileToBase64 = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleSelectBannerFile = (file) => {
+    if (!file) return;
+    setPendingBannerFile(file);
+    const pUrl = URL.createObjectURL(file);
+    setBannerPreviewUrl(pUrl);
+    const img = new Image();
+    img.onload = () => {
+      setBannerDims({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = pUrl;
+    setBannerCropModalOpen(true);
+  };
+
+  const handleUploadBanner = async (file) => {
+    if (!file) return;
+    try {
+      toast.loading('Subiendo imagen de portada...');
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `offers/${workspaceId || 'general'}/${fileName}`;
+
+      const { error: upErr } = await supabase.storage.from('ecommerce').upload(filePath, file, { upsert: true });
+      if (!upErr) {
+        const { data: pubData } = supabase.storage.from('ecommerce').getPublicUrl(filePath);
+        if (pubData?.publicUrl) {
+          setOfferBannerUrl(pubData.publicUrl);
+          toast.success('¡Portada de oferta cargada!');
+          return;
+        }
+      }
+      const base64 = await fileToBase64(file);
+      setOfferBannerUrl(base64);
+      toast.success('¡Portada de oferta cargada!');
+    } catch (err) {
+      console.error(err);
+      try {
+        const base64 = await fileToBase64(file);
+        setOfferBannerUrl(base64);
+        toast.success('¡Portada de oferta cargada!');
+      } catch (e) {
+        toast.error('Error al subir imagen: ' + (err.message || ''));
+      }
+    }
+  };
 
   const handleCreateCustomBadge = (e) => {
     e?.preventDefault();
@@ -770,24 +836,7 @@ export default function OffersManager() {
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              toast.loading('Subiendo imagen de portada...', { id: 'upload-banner' });
-                              const fileExt = file.name.split('.').pop();
-                              const fileName = `offer_banner_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-                              const filePath = `offers/${fileName}`;
-                              const { error: upErr } = await supabase.storage.from('ecommerce-media').upload(filePath, file);
-                              if (upErr) throw upErr;
-                              const { data: pubData } = supabase.storage.from('ecommerce-media').getPublicUrl(filePath);
-                              setOfferBannerUrl(pubData.publicUrl);
-                              toast.success('¡Portada de oferta cargada!', { id: 'upload-banner' });
-                            } catch (err) {
-                              console.error(err);
-                              toast.error('Error al subir imagen: ' + err.message, { id: 'upload-banner' });
-                            }
-                          }}
+                          onChange={(e) => handleSelectBannerFile(e.target.files?.[0])}
                         />
                       </label>
                     </div>
@@ -890,6 +939,102 @@ export default function OffersManager() {
         existingCombo={editingCombo}
         availableProducts={products}
       />
+
+      {/* Modal / Cuadro de Superficie de Portada de Oferta (2:1) */}
+      {bannerCropModalOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+                  <ImageIcon size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                    Superficie de Portada de Oferta
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Así se mostrará en la mitad superior del widget en vitrina
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setBannerCropModalOpen(false);
+                  setPendingBannerFile(null);
+                  if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Cuadro Indicando la Superficie Exacta (2:1 Proporción) */}
+            <div className="relative w-full max-w-sm h-40 sm:h-44 mx-auto rounded-2xl overflow-hidden border-2 border-amber-500 shadow-2xl bg-black select-none">
+              {bannerPreviewUrl && (
+                <img
+                  src={bannerPreviewUrl}
+                  alt="Superficie de portada"
+                  className="w-full h-full object-cover"
+                />
+              )}
+
+              {/* Guías de Encuadre de la Superficie */}
+              <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-2 border border-white/20">
+                <div className="border-r border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div className="border-b border-white/20" />
+                <div className="border-r border-white/20" />
+                <div className="border-r border-white/20" />
+                <div />
+              </div>
+
+              {/* Badge Flotante de Superficie */}
+              <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-xs text-white text-[10px] font-black px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5 shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>Superficie 2:1 Widget Oferta</span>
+              </div>
+            </div>
+
+            {/* Dimensiones */}
+            {bannerDims.width > 0 && (
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 text-center">
+                Resolución detectada: <span className="text-slate-800 dark:text-slate-200">{bannerDims.width} × {bannerDims.height} px</span>
+                <span className="block text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">Recomendado: 800 × 400 px</span>
+              </p>
+            )}
+
+            {/* Botones de Confirmación */}
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setBannerCropModalOpen(false);
+                  setPendingBannerFile(null);
+                  if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+                }}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setBannerCropModalOpen(false);
+                  if (bannerPreviewUrl) URL.revokeObjectURL(bannerPreviewUrl);
+                  await handleUploadBanner(pendingBannerFile);
+                  setPendingBannerFile(null);
+                }}
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 rounded-xl text-xs font-black shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                ✓ Confirmar y Subir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
