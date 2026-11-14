@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import { 
   Heart, MessageCircle, Send, Bookmark, User, UserPlus, CheckCircle, 
   MapPin, MoreHorizontal, Store, Check, Copy, CheckCheck, Share2, X,
-  Play, Volume2, VolumeX, ChevronRight, ChevronLeft, Tag, Plus 
+  Play, Volume2, VolumeX, ChevronRight, ChevronLeft, Tag, Plus, 
+  Maximize2, Minimize2, Zap, Clock 
 } from 'lucide-react';
 import { 
   getPostLikeState, 
@@ -127,6 +128,48 @@ export default function SocialFeedCard({
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isFastForwarding, setIsFastForwarding] = useState(false);
+  const longPressTimerRef = useRef(null);
+
+  const formatSeconds = (sec) => {
+    if (isNaN(sec) || sec < 0) return '0:00';
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleTogglePlaybackSpeed = () => {
+    const nextSpeed = playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1;
+    setPlaybackSpeed(nextSpeed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = nextSpeed;
+    }
+    toast(`Velocidad: ${nextSpeed}x`, { icon: '⚡', id: 'speed-toast', duration: 1500 });
+  };
+
+  const handleVideoPressStart = () => {
+    if (!isVideo || !videoRef.current) return;
+    longPressTimerRef.current = setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.playbackRate = 2;
+        setIsFastForwarding(true);
+      }
+    }, 280);
+  };
+
+  const handleVideoPressEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    if (isFastForwarding) {
+      setIsFastForwarding(false);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = playbackSpeed;
+      }
+    }
+  };
   const progressBarRef = useRef(null);
   const isDraggingScrubberRef = useRef(false);
 
@@ -758,7 +801,15 @@ export default function SocialFeedCard({
       {isVideo ? (
         <div 
           className="absolute inset-0 w-full h-full bg-black z-0 cursor-pointer overflow-hidden"
-          onClick={togglePlayPause}
+          onClick={(e) => {
+            if (isFastForwarding) return;
+            togglePlayPause(e);
+          }}
+          onMouseDown={handleVideoPressStart}
+          onMouseUp={handleVideoPressEnd}
+          onMouseLeave={handleVideoPressEnd}
+          onTouchStart={handleVideoPressStart}
+          onTouchEnd={handleVideoPressEnd}
         >
           <video
             ref={videoRef}
@@ -862,27 +913,52 @@ export default function SocialFeedCard({
         isCleanMode ? 'opacity-0' : 'opacity-100'
       }`} />
 
-      {/* Top Overlay: Pager & Audio Toggle (Ubicado en top-16 para no colisionar con el header superior ni tapar botones) */}
-      <div className={`absolute top-16 right-3.5 z-20 flex items-center gap-2 select-none transition-all duration-300 ${
-        isCleanMode ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100'
-      }`}>
-        {isVideo && (
+      {/* Top Overlay: Botón Pantalla Completa / Modo Limpio, Audio Toggle y Carrusel */}
+      <div className="absolute top-16 right-3.5 z-30 flex flex-col items-center gap-2 select-none">
+        {/* Botón arriba del sonido para pantalla completa / ocultar toda la UI */}
+        <button
+          type="button"
+          onClick={toggleCleanMode}
+          className={`w-8 h-8 rounded-full flex items-center justify-center border transition-all cursor-pointer shadow-md active:scale-90 ${
+            isCleanMode 
+              ? 'bg-amber-500 text-slate-950 border-amber-300 ring-2 ring-amber-400/50' 
+              : 'bg-black/65 text-white border-white/20 hover:bg-black/80'
+          }`}
+          title={isCleanMode ? "Mostrar controles" : "Pantalla completa / Ocultar controles"}
+        >
+          {isCleanMode ? (
+            <Minimize2 size={15} />
+          ) : (
+            <Maximize2 size={15} />
+          )}
+        </button>
+
+        {/* Botón de Sonido (Debajo del botón de pantalla completa) */}
+        {isVideo && !isCleanMode && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); toggleMutedGlobal(); }}
-            className="w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
+            className="w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm animate-in fade-in"
             title={isMutedGlobal ? "Activar sonido" : "Silenciar"}
           >
             {isMutedGlobal ? <VolumeX size={15} className="text-amber-400" /> : <Volume2 size={15} className="text-emerald-400" />}
           </button>
         )}
 
-        {isCarousel && (
+        {isCarousel && !isCleanMode && (
           <div className="bg-black/65 px-2.5 py-1 rounded-full text-[10px] text-white/95 border border-white/20 font-semibold tracking-wider pointer-events-none shadow-sm">
             {`${currentSlideIndex + 1}/${postImages.length}`}
           </div>
         )}
       </div>
+
+      {/* Floating 2x Fast-Forward Badge (Estilo TikTok al mantener presionado) */}
+      {isFastForwarding && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-amber-400/50 text-white flex items-center gap-2 shadow-2xl animate-pulse pointer-events-none">
+          <Zap size={14} className="text-amber-400 fill-amber-400" />
+          <span className="text-xs font-black tracking-wide font-mono">2x Acelerando video</span>
+        </div>
+      )}
 
       {/* TikTok-Style Right Action Bar */}
       <div 
@@ -1105,24 +1181,48 @@ export default function SocialFeedCard({
 
       {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo TikTok / Reels) */}
       {isVideo && (
-        <div
-          ref={progressBarRef}
-          className="absolute inset-x-0 bottom-0 z-30 h-7 flex items-end cursor-pointer group select-none px-0 pb-0"
-          onClick={(e) => { e.stopPropagation(); handleSeek(e.clientX); }}
-          onTouchStart={handleScrubberTouchStart}
-          onTouchMove={handleScrubberTouchMove}
-          onTouchEnd={handleScrubberTouchEnd}
-          title="Toca o desliza para avanzar o retroceder el video"
-        >
-          {/* Pista del reproductor */}
-          <div className="w-full h-1 group-hover:h-2 group-active:h-2 bg-white/20 transition-all relative overflow-visible">
-            {/* Relleno de reproducción actual */}
-            <div
-              className="h-full bg-gradient-to-r from-orange-500 to-amber-400 relative transition-[width] duration-75"
-              style={{ width: `${Math.min(100, Math.max(0, videoProgress))}%` }}
+        <div className="absolute inset-x-0 bottom-0 z-30 pb-0 select-none">
+          {/* Indicador de Segundos / Duración del Video y Selector de Velocidad */}
+          <div className={`px-3 py-1 flex items-center justify-between text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] transition-opacity duration-300 ${
+            isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}>
+            <span className="bg-black/50 px-2.5 py-0.5 rounded-full border border-white/10 backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+              <Clock size={11} className="text-amber-400" />
+              <span>{formatSeconds(videoCurrentTime)} / {formatSeconds(videoDuration)}</span>
+            </span>
+
+            {/* Selector Rápido de Velocidad (1x, 1.5x, 2x) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTogglePlaybackSpeed();
+              }}
+              className="bg-black/60 hover:bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+              title="Cambiar velocidad (o mantén pulsada la pantalla para 2x)"
             >
-              {/* Cabezal de arrastre (Thumb) */}
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50 scale-0 group-hover:scale-100 group-active:scale-100 transition-transform border-2 border-white" />
+              <Zap size={10} className="text-amber-400 fill-amber-400" />
+              <span>{playbackSpeed}x</span>
+            </button>
+          </div>
+
+          {/* Pista del reproductor */}
+          <div
+            ref={progressBarRef}
+            className="h-7 flex items-end cursor-pointer group px-0 pb-0"
+            onClick={(e) => { e.stopPropagation(); handleSeek(e.clientX); }}
+            onTouchStart={handleScrubberTouchStart}
+            onTouchMove={handleScrubberTouchMove}
+            onTouchEnd={handleScrubberTouchEnd}
+            title="Toca o desliza para avanzar o retroceder el video"
+          >
+            <div className="w-full h-1 group-hover:h-2 group-active:h-2 bg-white/20 transition-all relative overflow-visible">
+              <div
+                className="h-full bg-gradient-to-r from-orange-500 to-amber-400 relative transition-[width] duration-75"
+                style={{ width: `${Math.min(100, Math.max(0, videoProgress))}%` }}
+              >
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-3.5 h-3.5 bg-amber-400 rounded-full shadow-lg shadow-amber-500/50 scale-0 group-hover:scale-100 group-active:scale-100 transition-transform border-2 border-white" />
+              </div>
             </div>
           </div>
         </div>

@@ -48,6 +48,56 @@ export default function MerchantSocialFeedPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'posts' | 'statuses'
+  const [customHashtags, setCustomHashtags] = useState(() => {
+    try {
+      const wsId = currentWorkspaceId || localStorage.getItem('activeWorkspace') || 'default';
+      const saved = localStorage.getItem(`merchant_custom_hashtags_${wsId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [isAddingHashtag, setIsAddingHashtag] = useState(false);
+  const [newHashtagInput, setNewHashtagInput] = useState('');
+
+  const handleCreateCustomHashtag = (e) => {
+    e?.preventDefault();
+    if (!newHashtagInput || !newHashtagInput.trim()) {
+      setIsAddingHashtag(false);
+      return;
+    }
+    let tag = newHashtagInput.trim().replace(/\s+/g, '');
+    if (!tag.startsWith('#')) {
+      tag = `#${tag}`;
+    }
+    if (tag.length < 2) return;
+
+    if (!customHashtags.includes(tag) && !SUGGESTED_HASHTAGS.includes(tag)) {
+      const updated = [...customHashtags, tag];
+      setCustomHashtags(updated);
+      try {
+        const wsId = currentWorkspaceId || localStorage.getItem('activeWorkspace') || 'default';
+        localStorage.setItem(`merchant_custom_hashtags_${wsId}`, JSON.stringify(updated));
+      } catch (err) {}
+      addHashtag(tag);
+      toast.success(`Hashtag ${tag} creado y agregado`);
+    } else {
+      addHashtag(tag);
+    }
+    setNewHashtagInput('');
+    setIsAddingHashtag(false);
+  };
+
+  const handleDeleteCustomHashtag = (tagToDelete, e) => {
+    e?.stopPropagation();
+    const updated = customHashtags.filter(t => t !== tagToDelete);
+    setCustomHashtags(updated);
+    try {
+      const wsId = currentWorkspaceId || localStorage.getItem('activeWorkspace') || 'default';
+      localStorage.setItem(`merchant_custom_hashtags_${wsId}`, JSON.stringify(updated));
+    } catch (err) {}
+    toast.success(`Hashtag ${tagToDelete} eliminado`);
+  };
   const [storeData, setStoreData] = useState(null);
   const [storeProducts, setStoreProducts] = useState([]);
   const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
@@ -1305,7 +1355,7 @@ export default function MerchantSocialFeedPage() {
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
                   />
                   
-                  {/* Hashtags sugeridos */}
+                  {/* Hashtags sugeridos y personalizados */}
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
                     <span className="text-[10px] text-gray-400 font-semibold mr-1">Hashtags rápidos:</span>
                     {SUGGESTED_HASHTAGS.map(tag => (
@@ -1313,11 +1363,72 @@ export default function MerchantSocialFeedPage() {
                         key={tag}
                         type="button"
                         onClick={() => addHashtag(tag)}
-                        className="text-[11px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 font-medium transition-colors"
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 font-medium transition-colors cursor-pointer"
                       >
                         {tag}
                       </button>
                     ))}
+
+                    {/* Etiquetas creadas por el comerciante */}
+                    {customHashtags.map(tag => (
+                      <div
+                        key={tag}
+                        className="group relative flex items-center bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-300/40 rounded-md text-[11px] font-medium transition-all"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => addHashtag(tag)}
+                          className="px-2 py-0.5 hover:underline cursor-pointer"
+                        >
+                          {tag}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteCustomHashtag(tag, e)}
+                          className="pr-1.5 pl-0.5 text-orange-400 hover:text-red-500 transition-colors cursor-pointer"
+                          title="Eliminar este hashtag"
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Botón e Input para agregar nueva etiqueta */}
+                    {isAddingHashtag ? (
+                      <form onSubmit={handleCreateCustomHashtag} className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={newHashtagInput}
+                          onChange={(e) => setNewHashtagInput(e.target.value)}
+                          placeholder="#MiPromo"
+                          className="text-[11px] px-2 py-0.5 rounded-md border border-amber-400 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white outline-none w-28"
+                        />
+                        <button
+                          type="submit"
+                          className="text-[11px] px-2 py-0.5 rounded-md bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold cursor-pointer"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAddingHashtag(false); setNewHashtagInput(''); }}
+                          className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                        >
+                          <X size={12} />
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingHashtag(true)}
+                        className="text-[11px] px-2 py-0.5 rounded-md border border-dashed border-gray-300 dark:border-zinc-700 text-gray-500 hover:text-amber-500 hover:border-amber-400 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                        title="Crear tu propia etiqueta o hashtag"
+                      >
+                        <Plus size={12} />
+                        <span>Etiqueta</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
