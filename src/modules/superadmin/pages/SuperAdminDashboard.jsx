@@ -809,6 +809,25 @@ export default function SuperAdminDashboard({ superKey }) {
     setIsActionLoading(false);
   };
 
+  const handleToggleFounder = async (merchant) => {
+    setIsActionLoading(true);
+    try {
+      let configObj = safeParseConfig(merchant.config);
+      const newFounderStatus = !configObj.is_founder;
+      configObj.is_founder = newFounderStatus;
+      
+      const { error } = await supabase.from('workspaces').update({ config: configObj }).eq('id', merchant.id);
+      if (!error) {
+        fetchData();
+      } else {
+        alert('Error al cambiar estatus de Co-fundador: ' + error.message);
+      }
+    } catch(e) {
+      alert('Error de conexión');
+    }
+    setIsActionLoading(false);
+  };
+
   const handleToggleSuspend = async (merchant) => {
     setIsActionLoading(true);
     const isActivating = merchant.status === 'Pendiente' || merchant.status === 'Pre_Registro' || merchant.status === 'Solicitud';
@@ -3263,6 +3282,18 @@ export default function SuperAdminDashboard({ superKey }) {
                               {safeParseConfig(item.config).is_verified ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
                             </button>
                             <button 
+                              onClick={() => handleToggleFounder(item)}
+                              disabled={isActionLoading}
+                              className={`p-2 rounded-lg border transition-colors ${
+                                safeParseConfig(item.config).is_founder
+                                ? 'bg-amber-100 text-amber-800 border-amber-400'
+                                : 'bg-slate-100 text-slate-400 border-slate-200'
+                              }`}
+                              title={safeParseConfig(item.config).is_founder ? "Quitar Co-fundador" : "Asignar Co-fundador"}
+                            >
+                              <Crown size={16} className={safeParseConfig(item.config).is_founder ? "fill-amber-400" : ""} />
+                            </button>
+                            <button 
                               onClick={() => handleToggleSuspend(item)}
                               disabled={isActionLoading}
                               className={`p-2 rounded-lg border ${
@@ -3341,11 +3372,18 @@ export default function SuperAdminDashboard({ superKey }) {
                           )}
                           {(activeTab === 'merchants' || activeTab === 'pending_merchants') && (
                             <td className="py-4 px-4 text-center">
-                              <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                                safeParseConfig(item.config).is_verified ? 'bg-amber-50 text-amber-700 border border-amber-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
-                              }`}>
-                                {safeParseConfig(item.config).is_verified ? 'Verificada' : 'No'}
-                              </span>
+                              <div className="flex flex-col items-center gap-1">
+                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                                  safeParseConfig(item.config).is_verified ? 'bg-amber-50 text-amber-700 border border-amber-300' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                }`}>
+                                  {safeParseConfig(item.config).is_verified ? 'Verificada' : 'No'}
+                                </span>
+                                {safeParseConfig(item.config).is_founder && (
+                                  <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-600 flex items-center gap-1 shadow-2xs">
+                                    <Crown size={10} className="fill-slate-950" /> Fundador
+                                  </span>
+                                )}
+                              </div>
                             </td>
                           )}
                           {activeTab === 'customers' && <td className="py-4 px-4 text-sm text-slate-700 font-medium">{item.email}</td>}
@@ -3374,6 +3412,18 @@ export default function SuperAdminDashboard({ superKey }) {
                                     title={safeParseConfig(item.config).is_verified ? "Quitar Verificación" : "Marcar como Verificada"}
                                   >
                                     {safeParseConfig(item.config).is_verified ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleToggleFounder(item)}
+                                    disabled={isActionLoading}
+                                    className={`p-2 rounded-lg transition-colors border shadow-xs ${
+                                      safeParseConfig(item.config).is_founder
+                                      ? 'bg-amber-100 text-amber-800 border-amber-400 hover:bg-amber-500 hover:text-white'
+                                      : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200 hover:text-slate-800'
+                                    }`}
+                                    title={safeParseConfig(item.config).is_founder ? "Quitar Co-fundador" : "Designar como Co-fundador / Fundador"}
+                                  >
+                                    <Crown size={18} className={safeParseConfig(item.config).is_founder ? "fill-amber-400" : ""} />
                                   </button>
                                   <button 
                                     onClick={() => handleToggleSuspend(item)}

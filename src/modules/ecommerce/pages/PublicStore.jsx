@@ -3705,16 +3705,7 @@ export default function PublicStore() {
                 <ChevronLeft size={22} className="stroke-[2.5] -ml-0.5" />
               </button>
 
-              {/* Etiqueta Oficial de Comercio Fundador */}
-              <div 
-                className="absolute top-4 right-4 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-amber-400/50 shadow-lg text-amber-300 select-none"
-                title="Comercio pionero registrado en AxonMarket"
-              >
-                <Sparkles size={13} className="text-amber-400 fill-amber-400/30" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-200">
-                  Fundador
-                </span>
-              </div>
+
 
               {resolvedCoverUrl ? (
                 <>
@@ -3850,10 +3841,6 @@ export default function PublicStore() {
                     <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
                       {config?.business_name || 'Mi Tienda'}
                     </h1>
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-[10px] font-black tracking-wide">
-                      <Sparkles size={10} className="text-amber-600 fill-amber-600" />
-                      Fundador
-                    </span>
                   </div>
                   <p className="font-extrabold text-xs sm:text-sm" style={{ color: primaryColor }}>
                     @{slug}
@@ -7205,14 +7192,24 @@ export default function PublicStore() {
               <span className={`text-[10px] ${currentPage === 'products' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'products' ? { color: primaryColor } : {}}>{texts?.nav2 || 'Catálogo'}</span>
             </button>
 
-            {/* Botón para Pedidos / Mis compras del Cliente */}
+            {/* 3. Botón para Ofertas (Antes de Pedidos) */}
+            <button
+              onClick={() => setCurrentPage('offers')}
+              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
+              style={currentPage === 'offers' ? { color: primaryColor } : { color: '#ffffff' }}
+            >
+              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'offers' ? { color: primaryColor } : {}} />
+              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'offers' ? { color: primaryColor } : {}}>{texts?.nav3 || 'Ofertas'}</span>
+            </button>
+
+            {/* 4. Botón para Pedidos / Mis compras del Cliente (De último, con ícono de Moto/Delivery Bike) */}
             <button
               onClick={() => setCurrentPage('orders')}
               className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform relative cursor-pointer"
               style={currentPage === 'orders' ? { color: primaryColor } : { color: '#ffffff' }}
             >
               <div className="relative">
-                <ClipboardList size={22} className={currentPage === 'orders' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'orders' ? { color: primaryColor } : {}} />
+                <Bike size={22} className={currentPage === 'orders' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'orders' ? { color: primaryColor } : {}} />
                 {activeStoreOrdersCount > 0 && (
                   <span 
                     className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-500 text-slate-950 animate-pulse"
@@ -7222,15 +7219,6 @@ export default function PublicStore() {
                 )}
               </div>
               <span className={`text-[10px] ${currentPage === 'orders' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'orders' ? { color: primaryColor } : {}}>Pedidos</span>
-            </button>
-
-            <button
-              onClick={() => setCurrentPage('offers')}
-              className="flex-1 flex flex-col items-center gap-1 p-2 active:scale-90 transition-transform cursor-pointer"
-              style={currentPage === 'offers' ? { color: primaryColor } : { color: '#ffffff' }}
-            >
-              <Tag size={22} className={currentPage === 'offers' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'offers' ? { color: primaryColor } : {}} />
-              <span className={`text-[10px] ${currentPage === 'offers' ? 'font-black' : 'font-bold text-white'}`} style={currentPage === 'offers' ? { color: primaryColor } : {}}>{texts?.nav3 || 'Ofertas'}</span>
             </button>
 
             {/* Botón para cerrar la barra al instante y liberar pantalla */}
