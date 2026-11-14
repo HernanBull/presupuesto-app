@@ -3568,10 +3568,7 @@ export default function PublicStore() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
-             <button onClick={handleGoBack} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
-               <ArrowLeft size={15} /> Salir
-             </button>
-             <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
+
              
              {/* Presupuesto de Compra + Carrito en todas las vistas (Catálogo, Pedidos, Ofertas) */}
              <div className="flex items-center gap-1.5 sm:gap-2">
@@ -7200,11 +7197,12 @@ export default function PublicStore() {
         </nav>
       )}
 
-      {/* Modal de Presupuesto / Límite de Gasto del Cliente */}
+      {/* Modal de Presupuesto / Límite de Gasto del Cliente (Apertura instantánea sin animaciones de lag) */}
       <ResponsiveModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
         title="Presupuesto de Compra"
+        disableAnimation={true}
         className="md:max-w-md bg-white border border-slate-200"
       >
         <div className="space-y-4 p-1">
