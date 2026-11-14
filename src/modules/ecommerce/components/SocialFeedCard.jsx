@@ -400,14 +400,9 @@ export default function SocialFeedCard({
     handleTouchEnd();
   };
 
-  // Control manual de Play/Pausa al tocar el video o salir de modo limpio
+  // Control manual de Play/Pausa al tocar el video (Funciona tanto en modo normal como pantalla completa)
   const togglePlayPause = (e) => {
     e?.stopPropagation();
-    if (isCleanMode) {
-      setIsCleanMode(false);
-      if (onToggleCleanMode) onToggleCleanMode(false);
-      return;
-    }
     if (!isVideo || !videoRef.current) return;
 
     if (videoRef.current.paused || !isPlaying) {
@@ -749,7 +744,7 @@ export default function SocialFeedCard({
         boxShadow: 'none',
         contain: 'content'
       }}
-      onClick={isCleanMode ? toggleCleanMode : undefined}
+      onClick={isCleanMode && !isVideo ? toggleCleanMode : undefined}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -822,7 +817,7 @@ export default function SocialFeedCard({
             onLoadedMetadata={handleLoadedMetadata}
             className="w-full h-full object-cover pointer-events-none"
           />
-          {!isPlaying && !isCleanMode && (
+          {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div className="w-16 h-16 rounded-full bg-black/75 flex items-center justify-center text-white border border-white/20 shadow-xl transition-transform active:scale-95">
                 <Play size={32} fill="currentColor" className="translate-x-0.5 text-amber-400" />
