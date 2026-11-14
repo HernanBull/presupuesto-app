@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2, ClipboardList, Target } from 'lucide-react';
+import { Calendar, ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2, ClipboardList, Target } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
@@ -5499,15 +5499,16 @@ export default function PublicStore() {
                   <p className="text-slate-500 text-xs sm:text-sm mt-1">Revisa el estado de tus compras anteriores y comprobantes.</p>
                 </div>
                 
-                {/* Filtro inteligente por Fecha (Se eliminó el filtro de Estado por requerimiento) */}
-                <div className="flex flex-wrap items-center gap-2">
+                {/* Filtro inteligente por Fecha con personalización de color */}
+                <div className="flex flex-wrap items-center gap-2.5">
                   <div className="flex items-center bg-white border border-slate-200/90 rounded-2xl p-1 shadow-2xs">
                     <button
                       type="button"
                       onClick={() => { setOrderDatePreset('all'); setOrderFilterDate(''); }}
+                      style={orderDatePreset === 'all' && !orderFilterDate ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         orderDatePreset === 'all' && !orderFilterDate
-                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          ? 'shadow-xs'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
@@ -5516,9 +5517,10 @@ export default function PublicStore() {
                     <button
                       type="button"
                       onClick={() => { setOrderDatePreset('today'); setOrderFilterDate(''); }}
+                      style={orderDatePreset === 'today' && !orderFilterDate ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         orderDatePreset === 'today' && !orderFilterDate
-                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          ? 'shadow-xs'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
@@ -5527,9 +5529,10 @@ export default function PublicStore() {
                     <button
                       type="button"
                       onClick={() => { setOrderDatePreset('week'); setOrderFilterDate(''); }}
+                      style={orderDatePreset === 'week' && !orderFilterDate ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         orderDatePreset === 'week' && !orderFilterDate
-                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          ? 'shadow-xs'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
@@ -5538,9 +5541,10 @@ export default function PublicStore() {
                     <button
                       type="button"
                       onClick={() => { setOrderDatePreset('month'); setOrderFilterDate(''); }}
+                      style={orderDatePreset === 'month' && !orderFilterDate ? { backgroundColor: primaryColor, color: primaryTextColor } : {}}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         orderDatePreset === 'month' && !orderFilterDate
-                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          ? 'shadow-xs'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
@@ -5548,31 +5552,52 @@ export default function PublicStore() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-white border border-slate-200/90 rounded-2xl px-2.5 py-1 shadow-2xs">
+                  {/* Selector con texto visible: 'Fecha personalizada' para evitar barra en blanco */}
+                  <label 
+                    className={`relative flex items-center gap-2 border rounded-2xl px-3.5 py-2 shadow-2xs cursor-pointer transition-all ${
+                      orderDatePreset === 'custom' && orderFilterDate
+                        ? 'border-amber-400 bg-amber-50/70 text-slate-900 font-bold'
+                        : 'bg-white border-slate-200/90 hover:border-slate-300 text-slate-700 font-semibold'
+                    }`}
+                    style={orderDatePreset === 'custom' && orderFilterDate ? { borderColor: primaryColor } : {}}
+                  >
+                    <Calendar size={15} style={{ color: primaryColor }} className="shrink-0" />
+                    <span className="text-xs">
+                      {orderFilterDate
+                        ? `Fecha: ${orderFilterDate.split('-').reverse().join('/')}`
+                        : 'Fecha personalizada'}
+                    </span>
                     <input 
                       type="date"
                       value={orderFilterDate}
                       onChange={(e) => {
-                        setOrderFilterDate(e.target.value);
-                        setOrderDatePreset('custom');
+                        const val = e.target.value;
+                        setOrderFilterDate(val);
+                        if (val) {
+                          setOrderDatePreset('custom');
+                        } else {
+                          setOrderDatePreset('all');
+                        }
                       }}
-                      className="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                       title="Filtrar por fecha específica"
                     />
                     {orderFilterDate && (
                       <button 
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           setOrderFilterDate('');
                           setOrderDatePreset('all');
                         }}
-                        className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                        className="z-10 p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded-lg transition-colors ml-1"
                         title="Limpiar fecha"
                       >
-                        <X size={14} />
+                        <X size={13} />
                       </button>
                     )}
-                  </div>
+                  </label>
                 </div>
               </div>
 
@@ -5588,18 +5613,25 @@ export default function PublicStore() {
                   const orderDate = new Date(o.date);
                   const now = new Date();
 
-                  if (orderFilterDate) {
-                    const isoDate = o.date.slice(0, 10);
-                    if (isoDate !== orderFilterDate) return false;
+                  if (orderDatePreset === 'custom' && orderFilterDate) {
+                    const y = orderDate.getFullYear();
+                    const m = String(orderDate.getMonth() + 1).padStart(2, '0');
+                    const d = String(orderDate.getDate()).padStart(2, '0');
+                    const localOrderDate = `${y}-${m}-${d}`;
+                    if (localOrderDate !== orderFilterDate) return false;
                   } else if (orderDatePreset === 'today') {
                     const isToday = orderDate.toDateString() === now.toDateString();
                     if (!isToday) return false;
                   } else if (orderDatePreset === 'week') {
-                    const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
-                    if (diffDays > 7 || diffDays < 0) return false;
+                    const startOfWeek = new Date(now);
+                    startOfWeek.setHours(0, 0, 0, 0);
+                    startOfWeek.setDate(now.getDate() - 7);
+                    if (orderDate < startOfWeek) return false;
                   } else if (orderDatePreset === 'month') {
-                    const diffDays = (now - orderDate) / (1000 * 60 * 60 * 24);
-                    if (diffDays > 30 || diffDays < 0) return false;
+                    const startOfMonth = new Date(now);
+                    startOfMonth.setHours(0, 0, 0, 0);
+                    startOfMonth.setDate(now.getDate() - 30);
+                    if (orderDate < startOfMonth) return false;
                   }
 
                   return true;
@@ -7380,7 +7412,8 @@ export default function PublicStore() {
                 <Bike size={22} className={currentPage === 'orders' ? "stroke-[2.4]" : "text-white opacity-95"} style={currentPage === 'orders' ? { color: primaryColor } : {}} />
                 {activeStoreOrdersCount > 0 && (
                   <span 
-                    className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm bg-amber-500 text-slate-950 animate-pulse"
+                    className="absolute -top-2 -right-2 min-w-4 h-4 px-1 font-black text-[9px] flex items-center justify-center rounded-full shadow-sm animate-pulse"
+                    style={{ backgroundColor: primaryColor, color: primaryTextColor }}
                   >
                     {activeStoreOrdersCount}
                   </span>
