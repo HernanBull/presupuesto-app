@@ -4054,17 +4054,38 @@ export default function PublicStore() {
                         setFollowersCount(prev => !newFollowing ? prev + 1 : Math.max(0, prev - 1));
                       }
                     }}
-                    style={!isFollowing ? themeStyles.buttonStyle : {}}
-                    className={`flex-1 ${isFollowing ? 'bg-slate-100 text-slate-700 border border-slate-300' : ''} py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95`}
+                    style={isFollowing ? {
+                      backgroundColor: primaryColor,
+                      color: primaryTextColor,
+                      border: `1.5px solid ${primaryColor}`,
+                      boxShadow: `0 4px 14px ${primaryColor}40`
+                    } : {
+                      backgroundColor: '#ffffff',
+                      border: `1.5px solid ${primaryColor ? primaryColor + '50' : '#e2e8f0'}`,
+                      color: primaryColor || '#1e293b'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isFollowing) {
+                        e.currentTarget.style.backgroundColor = primaryColor ? primaryColor + '12' : '#f8fafc';
+                        e.currentTarget.style.borderColor = primaryColor || '#ea580c';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isFollowing) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.borderColor = primaryColor ? primaryColor + '50' : '#e2e8f0';
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-xl font-extrabold transition-all text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-xs"
                   >
                     {isFollowing ? (
                       <>
-                        <CheckCircle2 size={18} className="text-emerald-600" />
+                        <Check size={18} className="stroke-[2.5]" style={{ color: primaryTextColor }} />
                         <span>Siguiendo</span>
                       </>
                     ) : (
                       <>
-                        <UserPlus size={18} />
+                        <UserPlus size={18} style={{ color: primaryColor || '#1e293b' }} />
                         <span>Seguir</span>
                       </>
                     )}
