@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, UserCheck, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check, PackageCheck, Compass, SlidersHorizontal, Flame, Users, UserCog, BookmarkCheck, Sparkles } from 'lucide-react';
+import { Calendar, User, FileText, Banknote, Phone, MapPin, Edit3, ArrowLeft, LogOut, ShoppingBag, History, Heart, Package, Store, ChevronRight, CheckCircle, Clock, Plus, Trash2, Settings, HelpCircle, Star, StarHalf, Navigation, Loader2, Info, Lock, AlertCircle, ShieldAlert, MessageSquare, Send, Image as ImageIcon, X, CheckCheck, MailWarning, ShieldCheck, RefreshCw, Award, UserPlus, UserCheck, Bookmark, Hammer, Eye, EyeOff, Mail, Video, Copy, Check, PackageCheck, Compass, SlidersHorizontal, Flame, Users, UserCog, BookmarkCheck, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../../supabaseClient';
 import { io } from 'socket.io-client';
@@ -146,8 +146,8 @@ export default function CustomerProfile() {
 
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
-  const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
   const [orderFilterDate, setOrderFilterDate] = useState('');
+  const [orderDatePreset, setOrderDatePreset] = useState('all'); // 'all', 'today', 'week', 'month'
   
   const [newAddress, setNewAddress] = useState('');
   const [newAddressSector, setNewAddressSector] = useState('');
@@ -696,7 +696,8 @@ export default function CustomerProfile() {
       if (!error && data) {
         const mappedOrders = data.map(order => ({
           ...order,
-          date: new Date(order.date).toLocaleString(),
+          rawDate: order.date,
+          date: order.date ? new Date(order.date).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : 'Reciente',
           paymentMethod: order.paymentmethod,
           paymentStatus: order.paymentstatus,
           paymentDetails: typeof order.paymentdetails === 'string' ? JSON.parse(order.paymentdetails) : order.paymentdetails,
@@ -2036,61 +2037,135 @@ export default function CustomerProfile() {
                     <h2 className="text-2xl font-black text-slate-900 mb-2">Mis compras</h2>
                     <p className="text-slate-500 text-sm">Revisa el estado de tus compras anteriores y comprobantes.</p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado</label>
-                      <select 
-                        value={orderFilterStatus}
-                        onChange={(e) => setOrderFilterStatus(e.target.value)}
-                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-xs"
-                      >
-                        <option value="Todos">Todos</option>
-                        <option value="Activos">En Proceso</option>
-                        <option value="Completado">Completados</option>
-                        <option value="Cancelado">Cancelados</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</label>
-                      <input 
-                        type="date"
-                        value={orderFilterDate}
-                        onChange={(e) => setOrderFilterDate(e.target.value)}
-                        className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-xs"
-                      >
-                      </input>
-                    </div>
+                {/* Filtro inteligente por Fecha idéntico y consistente con la vitrina */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="flex items-center bg-white border border-slate-200/90 rounded-2xl p-1 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('all'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'all' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('today'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'today' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('week'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'week' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Últimos 7 días
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setOrderDatePreset('month'); setOrderFilterDate(''); }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        orderDatePreset === 'month' && !orderFilterDate
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      Este mes
+                    </button>
+                  </div>
+
+                  {/* Selector con texto visible: 'Fecha personalizada' para evitar recuadro en blanco */}
+                  <label 
+                    className={`relative flex items-center gap-2 border rounded-2xl px-3.5 py-2 shadow-2xs cursor-pointer transition-all ${
+                      orderDatePreset === 'custom' && orderFilterDate
+                        ? 'border-amber-400 bg-amber-50/70 text-slate-900 font-bold'
+                        : 'bg-white border-slate-200/90 hover:border-slate-300 text-slate-700 font-semibold'
+                    }`}
+                  >
+                    <Calendar size={15} className="text-amber-600 shrink-0" />
+                    <span className="text-xs">
+                      {orderFilterDate
+                        ? `Fecha: ${orderFilterDate.split('-').reverse().join('/')}`
+                        : 'Fecha personalizada'}
+                    </span>
+                    <input 
+                      type="date"
+                      value={orderFilterDate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setOrderFilterDate(val);
+                        if (val) {
+                          setOrderDatePreset('custom');
+                        } else {
+                          setOrderDatePreset('all');
+                        }
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      title="Filtrar por fecha específica"
+                    />
                     {orderFilterDate && (
                       <button 
-                        onClick={() => setOrderFilterDate('')}
-                        className="self-end h-[38px] px-3 bg-red-50 text-red-600 border border-red-200 rounded-xl flex items-center justify-center hover:bg-red-100 transition-all"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setOrderFilterDate('');
+                          setOrderDatePreset('all');
+                        }}
+                        className="z-10 p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded-lg transition-colors ml-1"
+                        title="Limpiar fecha"
                       >
-                        <X size={16} />
+                        <X size={13} />
                       </button>
                     )}
-                  </div>
+                  </label>
                 </div>
+              </div>
                 
                 {loadingOrders ? (
                   <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div></div>
                 ) : (() => {
                   const filteredOrders = orders.filter(o => {
-                    let matchesStatus = true;
-                    if (orderFilterStatus === 'Activos') matchesStatus = o.status !== 'Completado' && o.status !== 'Cancelado';
-                    else if (orderFilterStatus !== 'Todos') matchesStatus = o.status === orderFilterStatus;
-                    
-                    let matchesDate = true;
-                    if (orderFilterDate) {
-                      const [year, month, day] = orderFilterDate.split('-');
-                      const m = parseInt(month, 10).toString();
-                      const d = parseInt(day, 10).toString();
-                      const matchesF1 = o.date?.includes(`${d}/${m}/${year}`);
-                      const matchesF2 = o.date?.includes(`${m}/${d}/${year}`);
-                      const matchesF3 = o.date?.includes(`${year}-${month}-${day}`);
-                      const matchesF4 = o.date?.includes(`${day}/${month}/${year}`);
-                      matchesDate = matchesF1 || matchesF2 || matchesF3 || matchesF4;
+                    const dSource = o.rawDate || o.created_at || o.date;
+                    if (!dSource) return true;
+                    const orderDate = new Date(dSource);
+                    if (isNaN(orderDate.getTime())) return true;
+                    const now = new Date();
+
+                    if (orderDatePreset === 'custom' && orderFilterDate) {
+                      const y = orderDate.getFullYear();
+                      const m = String(orderDate.getMonth() + 1).padStart(2, '0');
+                      const d = String(orderDate.getDate()).padStart(2, '0');
+                      const localOrderDate = `${y}-${m}-${d}`;
+                      if (localOrderDate !== orderFilterDate) return false;
+                    } else if (orderDatePreset === 'today') {
+                      const isToday = orderDate.toDateString() === now.toDateString();
+                      if (!isToday) return false;
+                    } else if (orderDatePreset === 'week') {
+                      const startOfWeek = new Date(now);
+                      startOfWeek.setHours(0, 0, 0, 0);
+                      startOfWeek.setDate(now.getDate() - 7);
+                      if (orderDate < startOfWeek) return false;
+                    } else if (orderDatePreset === 'month') {
+                      const startOfMonth = new Date(now);
+                      startOfMonth.setHours(0, 0, 0, 0);
+                      startOfMonth.setDate(now.getDate() - 30);
+                      if (orderDate < startOfMonth) return false;
                     }
-                    return matchesStatus && matchesDate;
+
+                    return true;
                   });
 
                   if (filteredOrders.length === 0) {
