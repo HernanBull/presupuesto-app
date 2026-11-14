@@ -273,6 +273,88 @@ export default function PublicStore() {
   const [subCategories, setSubCategories] = useState(['Todos']);
   const [activeSubCategory, setActiveSubCategory] = useState('Todos');
   const [storeCustomCategories, setStoreCustomCategories] = useState([]);
+
+  // Categoría general personalizada activa (Memoizado para fluidez total)
+  const activeCustomCat = useMemo(() => {
+    return storeCustomCategories.find(
+      c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === (activeMainCategory || '').trim().toLowerCase()
+    );
+  }, [storeCustomCategories, activeMainCategory]);
+
+  // Subcategorías de la categoría general activa (Memoizado para evitar lag en móvil)
+  const currentCategorySubCats = useMemo(() => {
+    const subMap = {};
+    if (activeMainCategory === 'Todas') {
+      storeCustomCategories.forEach(cat => {
+        if (Array.isArray(cat?.subcategories)) {
+          cat.subcategories.forEach(sc => {
+            const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
+            if (sName) {
+              const sKey = sName.toLowerCase();
+              if (!subMap[sKey]) {
+                subMap[sKey] = {
+                  name: sName,
+                  imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
+                };
+              }
+            }
+          });
+        }
+      });
+      products.forEach(p => {
+        const sName = (p.subcategory || '').trim();
+        if (sName) {
+          const sKey = sName.toLowerCase();
+          if (!subMap[sKey]) {
+            subMap[sKey] = {
+              name: sName,
+              imageUrl: p.image_url || ''
+            };
+          }
+        }
+      });
+    } else {
+      if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
+        activeCustomCat.subcategories.forEach(sc => {
+          const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
+          if (sName) {
+            const sKey = sName.toLowerCase();
+            subMap[sKey] = {
+              name: sName,
+              imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
+            };
+          }
+        });
+      }
+      products
+        .filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase() && p.subcategory)
+        .forEach(p => {
+          const sName = (p.subcategory || '').trim();
+          const sKey = sName.toLowerCase();
+          if (sName && !subMap[sKey]) {
+            subMap[sKey] = {
+              name: sName,
+              imageUrl: p.image_url || ''
+            };
+          }
+        });
+    }
+    return Object.values(subMap);
+  }, [activeMainCategory, storeCustomCategories, products, activeCustomCat]);
+
+  // Nombres únicos de categorías generales (Memoizado para máxima velocidad de catálogo)
+  const allGeneralCategoryNames = useMemo(() => {
+    const set = new Set();
+    storeCustomCategories.forEach(c => {
+      const n = (typeof c === 'string' ? c : c?.name || '').trim();
+      if (n && n.toLowerCase() !== 'todas') set.add(n);
+    });
+    mainCategories.forEach(mc => {
+      const n = (typeof mc === 'string' ? mc : '').trim();
+      if (n && n.toLowerCase() !== 'todas') set.add(n);
+    });
+    return Array.from(set);
+  }, [storeCustomCategories, mainCategories]);
   const [bcvRate, setBcvRate] = useState(36.50);
 
   // Estados para Edición Rápida de Información de la Tienda
@@ -370,7 +452,7 @@ export default function PublicStore() {
   const [orderFilterDate, setOrderFilterDate] = useState('');
   const [copiedPinOrderId, setCopiedPinOrderId] = useState(null);
 
-  // Límite de Presupuesto del Cliente en esta tienda
+  // Límite de Presupuesto del Cliente en esta tienda (Soporta USD y VES / Bolívares)
   const [customerBudgetLimit, setCustomerBudgetLimit] = useState(() => {
     try {
       const wsId = workspaceId || config?.workspace_id || 'default';
@@ -378,19 +460,44 @@ export default function PublicStore() {
       return saved ? Number(saved) : 0;
     } catch(e) { return 0; }
   });
+  const [customerBudgetCurrency, setCustomerBudgetCurrency] = useState(() => {
+    try {
+      const wsId = workspaceId || config?.workspace_id || 'default';
+      const savedCurr = localStorage.getItem(`budget_currency_${wsId}`);
+      return savedCurr === 'VES' ? 'VES' : 'USD';
+    } catch(e) { return 'USD'; }
+  });
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [tempBudgetInput, setTempBudgetInput] = useState('');
+  const [tempBudgetCurrency, setTempBudgetCurrency] = useState('USD');
 
-  const handleSetBudgetLimit = (limitValue) => {
-    const num = Math.max(0, Number(limitValue) || 0);
-    setCustomerBudgetLimit(num);
+  const effectiveBcvRate = useMemo(() => {
+    return Number(bcvRate || config?.bcvRate || 36.50) || 36.50;
+  }, [bcvRate, config?.bcvRate]);
+
+  const handleSetBudgetLimit = (limitValue, currency = tempBudgetCurrency) => {
+    const rawNum = Math.max(0, Number(limitValue) || 0);
     const wsId = workspaceId || config?.workspace_id || 'default';
     const key = `budget_limit_${wsId}`;
-    if (num > 0) {
-      localStorage.setItem(key, String(num));
-      toast.success(`Presupuesto fijado en $${num.toFixed(2)} USD`, { icon: '🎯' });
+    const currKey = `budget_currency_${wsId}`;
+
+    if (rawNum > 0) {
+      // Normalizamos el límite siempre a USD para las comparaciones numéricas del carrito
+      const limitInUsd = currency === 'VES' ? (rawNum / effectiveBcvRate) : rawNum;
+      setCustomerBudgetLimit(limitInUsd);
+      setCustomerBudgetCurrency(currency);
+      localStorage.setItem(key, String(limitInUsd));
+      localStorage.setItem(currKey, currency);
+
+      if (currency === 'VES') {
+        toast.success(`Presupuesto fijado en Bs. ${rawNum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (~$${limitInUsd.toFixed(2)} USD)`, { icon: '🎯' });
+      } else {
+        toast.success(`Presupuesto fijado en $${limitInUsd.toFixed(2)} USD (~Bs. ${(limitInUsd * effectiveBcvRate).toFixed(2)})`, { icon: '🎯' });
+      }
     } else {
+      setCustomerBudgetLimit(0);
       localStorage.removeItem(key);
+      localStorage.removeItem(currKey);
       toast('Presupuesto sin límite desactivado', { icon: '🔓' });
     }
     setIsBudgetModalOpen(false);
@@ -1991,7 +2098,11 @@ export default function PublicStore() {
       const addedQty = Number(stepSize || 1);
       const addedCost = pPrice * addedQty;
       if (cartSubtotal + addedCost > customerBudgetLimit + 0.001) {
-        toast.error(`¡Superaste tu presupuesto límite de $${Number(customerBudgetLimit).toFixed(2)} USD! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
+        const rate = Number(bcvRate || config?.bcvRate || 36.50) || 36.50;
+        const limitDisplay = customerBudgetCurrency === 'VES'
+          ? `Bs. ${(customerBudgetLimit * rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (~$${customerBudgetLimit.toFixed(2)})`
+          : `$${customerBudgetLimit.toFixed(2)} USD (~Bs. ${(customerBudgetLimit * rate).toFixed(2)})`;
+        toast.error(`¡Superaste tu presupuesto límite de ${limitDisplay}! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
           duration: 3500,
           icon: '🛑'
         });
@@ -2106,7 +2217,11 @@ export default function PublicStore() {
       const pPrice = Number(selectedProduct.is_offer ? selectedProduct.discount_price : selectedProduct.price) || 0;
       const addedCost = pPrice * Number(modalQty || 1);
       if (cartSubtotal + addedCost > customerBudgetLimit + 0.001) {
-        toast.error(`¡Superaste tu presupuesto límite de $${Number(customerBudgetLimit).toFixed(2)} USD! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
+        const rate = Number(bcvRate || config?.bcvRate || 36.50) || 36.50;
+        const limitDisplay = customerBudgetCurrency === 'VES'
+          ? `Bs. ${(customerBudgetLimit * rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (~$${customerBudgetLimit.toFixed(2)})`
+          : `$${customerBudgetLimit.toFixed(2)} USD (~Bs. ${(customerBudgetLimit * rate).toFixed(2)})`;
+        toast.error(`¡Superaste tu presupuesto límite de ${limitDisplay}! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
           duration: 3500,
           icon: '🛑'
         });
@@ -3392,37 +3507,20 @@ export default function PublicStore() {
       {/* Navbar Superior (Limpio, integrado sin franja negra) */}
       {currentPage !== 'home' && (
       <nav 
-        className="z-40 transition-all duration-300 px-4 md:px-8 py-2.5 sticky top-0 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
+        className="z-40 px-4 md:px-8 py-2.5 sticky top-0 bg-white/95 backdrop-blur-md border-b border-zinc-200/80 shadow-xs"
       >
         <div className="max-w-[1400px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button 
               type="button"
               onClick={() => setCurrentPage('home')} 
-              className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 hover:text-black flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/60 shrink-0"
+              className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 hover:text-black flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/60 shrink-0"
               title="Volver al inicio"
             >
               <ChevronLeft size={18} className="stroke-[2.5]" />
             </button>
-            {currentPage !== 'products' && (
-              <span 
-                onClick={() => setCurrentPage('home')}
-                className="text-base sm:text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5 cursor-pointer truncate max-w-[150px] sm:max-w-[240px] md:max-w-none"
-                style={{ 
-                  fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
-                  letterSpacing: '-0.025em'
-                }}
-              >
-                {config.business_name || 'MI TIENDA'}
-                {config.is_verified && (
-                  <div title="Comercio Verificado" className="inline-flex mt-0.5 shrink-0">
-                    <ShieldCheck size={18} className="text-amber-500 fill-amber-500/20" />
-                  </div>
-                )}
-              </span>
-            )}
 
-            {/* 🔍 Lupita de Búsqueda Interactiva al lado del nombre de la vitrina */}
+            {/* 🔍 Lupita de Búsqueda Interactiva */}
             <div className="flex items-center ml-1">
               {!isSearchOpen && !searchQuery ? (
                 <button
@@ -3431,14 +3529,14 @@ export default function PublicStore() {
                     setIsSearchOpen(true);
                     if (currentPage !== 'products') setCurrentPage('products');
                   }}
-                  className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-amber-100 text-zinc-700 hover:text-amber-700 flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/80"
+                  className="w-8 h-8 rounded-full bg-zinc-100 hover:bg-amber-100 text-zinc-700 hover:text-amber-700 flex items-center justify-center active:scale-90 cursor-pointer shadow-2xs border border-zinc-200/80"
                   title="Buscar en el catálogo"
                   aria-label="Buscar en el catálogo"
                 >
                   <Search size={15} className="stroke-[2.5]" />
                 </button>
               ) : (
-                <div className="relative flex items-center w-36 sm:w-52 md:w-64 transition-all">
+                <div className="relative flex items-center w-36 sm:w-52 md:w-64">
                   <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-zinc-400">
                     <Search size={13} />
                   </div>
@@ -3468,105 +3566,73 @@ export default function PublicStore() {
               )}
             </div>
           </div>
-          
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
              <button onClick={handleGoBack} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-zinc-500 hover:text-zinc-900 transition-colors" style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif" }}>
                <ArrowLeft size={15} /> Salir
              </button>
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
-             {currentPage === 'products' ? (
-               /* En Catálogo: Presupuesto/Límite de Gasto + Widget del Carrito con conteo en $ y Bs. */
-               <div className="flex items-center gap-1.5 sm:gap-2">
-                 <button
-                   type="button"
-                   onClick={() => {
-                     setTempBudgetInput(customerBudgetLimit > 0 ? String(customerBudgetLimit) : '');
-                     setIsBudgetModalOpen(true);
-                   }}
-                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-black transition-all active:scale-95 cursor-pointer shadow-xs border ${
-                     customerBudgetLimit > 0
-                       ? cartSubtotal >= customerBudgetLimit
-                         ? 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse'
-                         : 'bg-amber-50 text-amber-800 border-amber-300'
-                       : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200'
-                   }`}
-                   title={customerBudgetLimit > 0 ? `Presupuesto: $${customerBudgetLimit.toFixed(2)} USD` : "Fijar presupuesto de compra"}
-                 >
-                   <Target size={14} className={customerBudgetLimit > 0 ? (cartSubtotal >= customerBudgetLimit ? 'text-rose-600' : 'text-amber-600') : 'text-zinc-500'} />
-                   <span className="text-[11px] font-bold">
-                     {customerBudgetLimit > 0 
-                       ? `$${customerBudgetLimit.toFixed(0)}` 
-                       : 'Límite'}
-                   </span>
-                 </button>
-
-                 <button
-                   type="button"
-                   onClick={() => setIsCartOpen(true)}
-                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white active:scale-95 transition-all shadow-sm border border-slate-700/80 cursor-pointer select-none"
-                   title="Ver carrito de compras"
-                 >
-                   <div className="relative flex items-center justify-center">
-                     <ShoppingCart size={16} className="text-amber-400 stroke-[2.4]" />
-                     {totalCartItems > 0 && (
-                       <span 
-                         className="absolute -top-2 -right-2.5 min-w-[15px] h-[15px] px-1 font-black text-[9px] flex items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-xs"
-                       >
-                         {totalCartItems}
-                       </span>
-                     )}
-                   </div>
-                   <div className="flex flex-col text-right leading-none">
-                     <span className="text-[11px] sm:text-xs font-black text-white font-mono">
-                       ${cartSubtotal.toFixed(2)}
-                     </span>
-                     <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 font-mono mt-0.5">
-                       Bs. {(cartSubtotal * Number(bcvRate || config?.bcvRate || 36.50)).toFixed(2)}
-                     </span>
-                   </div>
-                 </button>
-               </div>
-             ) : !currentCustomer && !isMerchantOwner ? (
-               <button 
-                 onClick={() => setShowAuthModal(true)} 
-                 className="flex items-center gap-1.5 text-xs font-bold uppercase px-4 py-2 rounded-full transition-all active:scale-95 cursor-pointer border"
-                 style={{
-                   fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
-                   letterSpacing: '0.04em',
-                   backgroundColor: '#09090b',
-                   color: '#fbbf24',
-                   borderColor: 'rgba(251, 191, 36, 0.4)',
-                   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.12)'
+             {/* Presupuesto de Compra + Carrito en todas las vistas (Catálogo, Pedidos, Ofertas) */}
+             <div className="flex items-center gap-1.5 sm:gap-2">
+               <button
+                 type="button"
+                 onClick={() => {
+                   setTempBudgetCurrency(customerBudgetCurrency || 'USD');
+                   if (customerBudgetLimit > 0) {
+                     setTempBudgetInput(customerBudgetCurrency === 'VES' 
+                       ? String(Math.round(customerBudgetLimit * effectiveBcvRate)) 
+                       : String(customerBudgetLimit));
+                   } else {
+                     setTempBudgetInput('');
+                   }
+                   setIsBudgetModalOpen(true);
                  }}
+                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-black active:scale-95 cursor-pointer shadow-xs border ${
+                   customerBudgetLimit > 0
+                     ? cartSubtotal >= customerBudgetLimit
+                       ? 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse'
+                       : 'bg-amber-50 text-amber-800 border-amber-300'
+                     : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200'
+                 }`}
+                 title={customerBudgetLimit > 0 ? "Presupuesto fijado" : "Fijar presupuesto de compra"}
                >
-                 <User size={13} className="text-amber-400 stroke-[2.5]" />
-                 <span>INGRESAR</span>
+                 <Target size={14} className={customerBudgetLimit > 0 ? (cartSubtotal >= customerBudgetLimit ? 'text-rose-600' : 'text-amber-600') : 'text-zinc-500'} />
+                 <span className="text-[11px] font-bold">
+                   {customerBudgetLimit > 0 
+                     ? (customerBudgetCurrency === 'VES'
+                         ? `Bs. ${Math.round(customerBudgetLimit * effectiveBcvRate)}`
+                         : `$${customerBudgetLimit.toFixed(0)}`)
+                     : 'Límite'}
+                 </span>
                </button>
-             ) : (
-               <div className="flex items-center gap-3">
-                 {currentCustomer && (
-                   <button 
-                     onClick={() => navigate('/profile')} 
-                     className="flex items-center gap-2 p-0.5 rounded-full hover:ring-2 hover:ring-amber-500/50 transition-all focus:outline-none"
-                     title="Mi Perfil"
-                   >
-                     {currentCustomer.profile_pic ? (
-                       <img 
-                         src={resolveImageUrl(currentCustomer.profile_pic)} 
-                         alt="Perfil" 
-                         className="w-8 h-8 rounded-full object-cover border border-zinc-300" 
-                       />
-                     ) : (
-                       <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black text-xs flex items-center justify-center border border-amber-300">
-                         {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                       </div>
-                     )}
-                   </button>
-                 )}
-               </div>
-             )}
+
+               <button
+                 type="button"
+                 onClick={() => setIsCartOpen(true)}
+                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white active:scale-95 shadow-sm border border-slate-700/80 cursor-pointer select-none"
+                 title="Ver carrito de compras"
+               >
+                 <div className="relative flex items-center justify-center">
+                   <ShoppingCart size={16} className="text-amber-400 stroke-[2.4]" />
+                   {totalCartItems > 0 && (
+                     <span 
+                       className="absolute -top-2 -right-2.5 min-w-[15px] h-[15px] px-1 font-black text-[9px] flex items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-xs"
+                     >
+                       {totalCartItems}
+                     </span>
+                   )}
+                 </div>
+                 <div className="flex flex-col text-right leading-none">
+                   <span className="text-[11px] sm:text-xs font-black text-white font-mono">
+                     ${cartSubtotal.toFixed(2)}
+                   </span>
+                   <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 font-mono mt-0.5">
+                     Bs. {(cartSubtotal * effectiveBcvRate).toFixed(2)}
+                   </span>
+                 </div>
+               </button>
+             </div>
           </div>
         </div>
       </nav>
@@ -4915,72 +4981,6 @@ export default function PublicStore() {
 
         {/* PRODUCTOS - VISTA 2 COLUMNAS ESTILO POS KIOSCO Y APP MODERNA */}
         {currentPage === 'products' && (() => {
-          // Categoría general personalizada activa
-          const activeCustomCat = storeCustomCategories.find(
-            c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === (activeMainCategory || '').trim().toLowerCase()
-          );
-
-          // Subcategorías de la categoría general activa (o de la tienda si es 'Todas')
-          const currentCategorySubCats = (() => {
-            const subMap = {};
-            if (activeMainCategory === 'Todas') {
-              storeCustomCategories.forEach(cat => {
-                if (Array.isArray(cat?.subcategories)) {
-                  cat.subcategories.forEach(sc => {
-                    const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
-                    if (sName) {
-                      const sKey = sName.toLowerCase();
-                      if (!subMap[sKey]) {
-                        subMap[sKey] = {
-                          name: sName,
-                          imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
-                        };
-                      }
-                    }
-                  });
-                }
-              });
-              products.forEach(p => {
-                const sName = (p.subcategory || '').trim();
-                if (sName) {
-                  const sKey = sName.toLowerCase();
-                  if (!subMap[sKey]) {
-                    subMap[sKey] = {
-                      name: sName,
-                      imageUrl: p.image_url || ''
-                    };
-                  }
-                }
-              });
-            } else {
-              if (activeCustomCat && Array.isArray(activeCustomCat.subcategories)) {
-                activeCustomCat.subcategories.forEach(sc => {
-                  const sName = (typeof sc === 'string' ? sc : sc?.name || '').trim();
-                  if (sName) {
-                    const sKey = sName.toLowerCase();
-                    subMap[sKey] = {
-                      name: sName,
-                      imageUrl: typeof sc === 'object' ? (sc.imageUrl || sc.image_url || '') : ''
-                    };
-                  }
-                });
-              }
-              products
-                .filter(p => (p.category || '').trim().toLowerCase() === activeMainCategory.trim().toLowerCase() && p.subcategory)
-                .forEach(p => {
-                  const sName = (p.subcategory || '').trim();
-                  const sKey = sName.toLowerCase();
-                  if (sName && !subMap[sKey]) {
-                    subMap[sKey] = {
-                      name: sName,
-                      imageUrl: p.image_url || ''
-                    };
-                  }
-                });
-            }
-            return Object.values(subMap);
-          })();
-
           return (
             <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-20">
               <div className="max-w-[1600px] mx-auto w-full flex px-2 sm:px-4 md:px-6 py-3 gap-2.5 sm:gap-4 items-start">
@@ -5057,7 +5057,7 @@ export default function PublicStore() {
                               <img
                                 src={resolveImageUrl(subImg)}
                                 alt={sc.name}
-                                className="w-full h-full object-cover scale-115 group-hover:scale-120 transition-transform duration-200"
+                                className="w-full h-full object-cover" loading="lazy" decoding="async"
                               />
                             ) : (
                               <div
@@ -5098,18 +5098,7 @@ export default function PublicStore() {
                        }}
                      >
                        {/* Categorías Generales con Foto Cuadrada Redondeada y Nombre (Sin duplicar botón Todas) */}
-                       {(() => {
-                         const allCatNames = new Set();
-                         storeCustomCategories.forEach(c => {
-                           const n = (typeof c === 'string' ? c : c?.name || '').trim();
-                           if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
-                         });
-                         mainCategories.forEach(mc => {
-                           const n = (typeof mc === 'string' ? mc : '').trim();
-                           if (n && n.toLowerCase() !== 'todas') allCatNames.add(n);
-                         });
-                         return Array.from(allCatNames);
-                       })().map((mc) => {
+                       {allGeneralCategoryNames.map((mc) => {
                          const customCat = storeCustomCategories.find(c => (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase() === mc.trim().toLowerCase());
                          const catImg = (typeof customCat === 'object' ? (customCat?.imageUrl || customCat?.image_url) : null) ||
                            products.find(p => (p.category || '').trim().toLowerCase() === mc.trim().toLowerCase() && p.image_url)?.image_url;
@@ -5145,7 +5134,7 @@ export default function PublicStore() {
                                  <img
                                    src={resolveImageUrl(catImg)}
                                    alt={mc}
-                                   className="w-full h-full object-cover scale-115 group-hover:scale-120 transition-transform duration-200"
+                                   className="w-full h-full object-cover" loading="lazy" decoding="async"
                                  />
                                ) : (
                                  <span className="text-xs font-black uppercase text-slate-600">
@@ -5167,7 +5156,7 @@ export default function PublicStore() {
                           key={p.id}
                           id={`product-card-${p.id}`}
                           onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                          className={`group bg-white rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md hover:border-amber-300 transition-all overflow-hidden flex flex-col relative ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                          className={`group bg-white rounded-2xl border border-zinc-200 shadow-sm hover:border-amber-300 overflow-hidden flex flex-col relative ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                         >
                           {/* Top Badges */}
                           {Boolean(p.is_offer) && (
@@ -5199,7 +5188,7 @@ export default function PublicStore() {
                             title="Toca para ampliar foto"
                           >
                             {p.image_url ? (
-                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              <img id={`product-img-${p.id}`} src={resolveImageUrl(p.image_url)} alt={p.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-zinc-300 bg-slate-50">
                                 <Package size={36} className="stroke-[1.5]" />
@@ -5363,17 +5352,7 @@ export default function PublicStore() {
           <div className="flex-1 flex flex-col w-full bg-slate-50 min-h-screen pb-24 text-slate-800">
             <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
               
-              {/* Botón Volver al menú / tienda */}
-              <div className="flex items-center justify-between">
-                <button 
-                  type="button"
-                  onClick={() => setCurrentPage('products')}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 hover:text-slate-950 font-bold text-xs shadow-xs hover:bg-slate-100 transition-all cursor-pointer"
-                >
-                  <ArrowLeft size={16} />
-                  <span>Volver al menú</span>
-                </button>
-              </div>
+
 
               {/* Encabezado y Filtros */}
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -7228,7 +7207,7 @@ export default function PublicStore() {
         title="Presupuesto de Compra"
         className="md:max-w-md bg-white border border-slate-200"
       >
-        <div className="space-y-5 p-1">
+        <div className="space-y-4 p-1">
           <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 shadow-2xs">
             <div className="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0">
               <Target size={24} />
@@ -7236,54 +7215,141 @@ export default function PublicStore() {
             <div>
               <h4 className="text-sm font-black text-slate-900 leading-tight">Controla tu Presupuesto</h4>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                Establece el monto máximo en dólares que deseas gastar en esta tienda. Te avisaremos y bloquearemos la adición de productos si superas tu límite.
+                Establece el monto máximo en dólares o bolívares que deseas gastar. Te avisaremos y bloquearemos la adición de productos si superas tu límite.
               </p>
+            </div>
+          </div>
+
+          {/* Selector de Moneda: Dólares ($) o Bolívares (Bs.) */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">Moneda del Presupuesto</label>
+            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  if (tempBudgetCurrency !== 'USD') {
+                    setTempBudgetCurrency('USD');
+                    if (tempBudgetInput && Number(tempBudgetInput) > 0) {
+                      setTempBudgetInput((Number(tempBudgetInput) / effectiveBcvRate).toFixed(2));
+                    }
+                  }
+                }}
+                className={`py-2 px-3 text-center font-black text-xs rounded-lg transition-all cursor-pointer ${
+                  tempBudgetCurrency === 'USD'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                💵 Dólares ($ USD)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (tempBudgetCurrency !== 'VES') {
+                    setTempBudgetCurrency('VES');
+                    if (tempBudgetInput && Number(tempBudgetInput) > 0) {
+                      setTempBudgetInput(Math.round(Number(tempBudgetInput) * effectiveBcvRate).toString());
+                    }
+                  }
+                }}
+                className={`py-2 px-3 text-center font-black text-xs rounded-lg transition-all cursor-pointer ${
+                  tempBudgetCurrency === 'VES'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/90'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                🇻🇪 Bolívares (Bs. VES)
+              </button>
             </div>
           </div>
 
           {/* Atajos Rápidos */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 block mb-2 uppercase tracking-wider">Atajos Rápidos</label>
-            <div className="grid grid-cols-4 gap-2">
-              {[10, 20, 30, 50].map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => handleSetBudgetLimit(val)}
-                  className={`py-2.5 px-2 text-center font-black text-sm rounded-xl border transition-all cursor-pointer ${
-                    customerBudgetLimit === val
-                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
-                      : 'bg-white hover:bg-amber-50/70 border-slate-200 text-slate-800'
-                  }`}
-                >
-                  ${val}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Atajos Rápidos</label>
+              <span className="text-[10px] font-bold text-slate-400">Tasa: Bs. {effectiveBcvRate.toFixed(2)}</span>
             </div>
+            {tempBudgetCurrency === 'USD' ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[10, 20, 30, 50].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      setTempBudgetInput(String(val));
+                      handleSetBudgetLimit(val, 'USD');
+                    }}
+                    className={`py-2.5 px-2 text-center font-black text-sm rounded-xl border transition-all cursor-pointer ${
+                      customerBudgetLimit === val && customerBudgetCurrency === 'USD'
+                        ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                        : 'bg-white hover:bg-amber-50/70 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    ${val}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  Math.round(10 * effectiveBcvRate),
+                  Math.round(20 * effectiveBcvRate),
+                  Math.round(30 * effectiveBcvRate),
+                  Math.round(50 * effectiveBcvRate)
+                ].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      setTempBudgetInput(String(val));
+                      handleSetBudgetLimit(val, 'VES');
+                    }}
+                    className={`py-2 px-1 text-center font-black text-xs rounded-xl border transition-all cursor-pointer ${
+                      Math.round(customerBudgetLimit * effectiveBcvRate) === val && customerBudgetCurrency === 'VES'
+                        ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                        : 'bg-white hover:bg-amber-50/70 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    Bs. {val}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Monto Personalizado */}
           <div>
-            <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">O ingresa un monto personalizado ($ USD)</label>
+            <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">
+              O ingresa un monto personalizado ({tempBudgetCurrency === 'VES' ? 'Bs. Bolívares' : '$ USD'})
+            </label>
             <div className="relative flex items-center">
-              <span className="absolute left-3.5 text-base font-bold text-slate-400">$</span>
+              <span className="absolute left-3.5 text-base font-bold text-slate-400">
+                {tempBudgetCurrency === 'VES' ? 'Bs.' : '$'}
+              </span>
               <input
                 type="number"
-                step="0.01"
+                step={tempBudgetCurrency === 'VES' ? '1' : '0.01'}
                 min="1"
-                placeholder="Ej: 25.00"
+                placeholder={tempBudgetCurrency === 'VES' ? `Ej: ${Math.round(25 * effectiveBcvRate)}` : "Ej: 25.00"}
                 value={tempBudgetInput}
                 onChange={(e) => setTempBudgetInput(e.target.value)}
-                className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-base"
+                className={`w-full ${tempBudgetCurrency === 'VES' ? 'pl-11' : 'pl-8'} pr-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-base`}
               />
             </div>
+            {tempBudgetInput && Number(tempBudgetInput) > 0 && (
+              <p className="text-[11px] font-bold text-slate-500 mt-1 pl-1">
+                ≈ {tempBudgetCurrency === 'VES' 
+                  ? `$${(Number(tempBudgetInput) / effectiveBcvRate).toFixed(2)} USD` 
+                  : `Bs. ${(Number(tempBudgetInput) * effectiveBcvRate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              </p>
+            )}
           </div>
 
           {/* Acciones */}
           <div className="flex gap-2.5 pt-2">
             <button
               type="button"
-              onClick={() => handleSetBudgetLimit(tempBudgetInput)}
+              onClick={() => handleSetBudgetLimit(tempBudgetInput, tempBudgetCurrency)}
               disabled={!tempBudgetInput || Number(tempBudgetInput) <= 0}
               className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer"
             >
