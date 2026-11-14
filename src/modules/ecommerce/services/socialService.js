@@ -238,16 +238,17 @@ export const getStoreFollowState = async (workspaceId, customerId) => {
   }
 };
 
-export const toggleFollowStore = async (workspaceId, customerId) => {
+export const toggleFollowStore = async (workspaceId, customerId, storeMeta = {}) => {
   if (!workspaceId || !customerId) throw new Error('workspaceId y customerId son requeridos');
 
   const rawId = String(customerId);
   const uuidId = toSocialUuid(customerId);
+  let isFollowing = false;
+  let finalCount = 0;
 
   try {
     const existing = await findRecordByCustomer('ecommerce_store_followers', 'workspace_id', workspaceId, customerId);
 
-    let isFollowing = false;
     if (existing) {
       await supabase
         .from('ecommerce_store_followers')
@@ -264,16 +265,14 @@ export const toggleFollowStore = async (workspaceId, customerId) => {
       .select('*', { count: 'exact', head: true })
       .eq('workspace_id', workspaceId);
 
-    const finalCount = count || 0;
+    finalCount = count || 0;
     notifySocialUpdate('follow', { workspaceId, customerId, isFollowing, count: finalCount });
-    return { isFollowing, count: finalCount, followersCount: finalCount };
   } catch (err) {
     console.warn('Error en toggleFollowStore Supabase, usando respaldo local:', err);
     const key = `${LOCAL_STORAGE_PREFIX}followers_${workspaceId}`;
     const raw = localStorage.getItem(key);
     let followers = raw ? JSON.parse(raw) : [];
 
-    let isFollowing = false;
     if (followers.includes(rawId) || followers.includes(uuidId)) {
       followers = followers.filter(id => id !== rawId && id !== uuidId);
       isFollowing = false;
@@ -282,9 +281,55 @@ export const toggleFollowStore = async (workspaceId, customerId) => {
       isFollowing = true;
     }
     localStorage.setItem(key, JSON.stringify(followers));
-    notifySocialUpdate('follow', { workspaceId, customerId, isFollowing, count: followers.length });
-    return { isFollowing, count: followers.length, followersCount: followers.length };
+    finalCount = followers.length;
+    notifySocialUpdate('follow', { workspaceId, customerId, isFollowing, count: finalCount });
   }
+
+  // Sincronizar también con customer.following para el perfil del cliente
+  try {
+    const savedCustomerStr = localStorage.getItem('ecommerce_current_customer');
+    if (savedCustomerStr) {
+      const customerObj = JSON.parse(savedCustomerStr);
+      let currentFollowing = Array.isArray(customerObj.following) ? [...customerObj.following] : [];
+      const strWsId = String(workspaceId);
+      const existsIdx = currentFollowing.findIndex(f => {
+        if (!f) return false;
+        if (typeof f === 'string') return f === strWsId;
+        return String(f.id) === strWsId || String(f.workspace_id) === strWsId || (storeMeta.store_slug && String(f.slug) === String(storeMeta.store_slug));
+      });
+
+      if (isFollowing && existsIdx === -1) {
+        currentFollowing.push({
+          id: strWsId,
+          workspace_id: strWsId,
+          slug: storeMeta.store_slug || storeMeta.slug || '',
+          store_slug: storeMeta.store_slug || storeMeta.slug || '',
+          name: storeMeta.store_name || storeMeta.name || 'Tienda',
+          store_name: storeMeta.store_name || storeMeta.name || 'Tienda',
+          logo: storeMeta.store_logo || storeMeta.logo || null,
+          followedAt: new Date().toISOString()
+        });
+      } else if (!isFollowing && existsIdx >= 0) {
+        currentFollowing.splice(existsIdx, 1);
+      }
+
+      customerObj.following = currentFollowing;
+      localStorage.setItem('ecommerce_current_customer', JSON.stringify(customerObj));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('customer_updated', { detail: customerObj }));
+      }
+
+      await supabase
+        .from('ecommerce_customers')
+        .update({ following: currentFollowing })
+        .eq('id', customerId);
+    }
+  } catch (folErr) {
+    console.warn('Error sincronizando following en customer:', folErr);
+  }
+
+  return { isFollowing, count: finalCount, followersCount: finalCount };
 };
 
 // ==========================================

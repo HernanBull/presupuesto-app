@@ -591,7 +591,12 @@ export default function SocialFeedCard({
     }
 
     try {
-      await toggleFollowStore(workspaceId, custId);
+      await toggleFollowStore(workspaceId, custId, {
+        store_slug: storeSlug,
+        store_name: storeName,
+        store_logo: storeLogo,
+        store_cover: storeCover
+      });
     } catch (err) {
       console.warn('Error en toggleFollowStore, guardado localmente:', err);
     }
@@ -712,17 +717,10 @@ export default function SocialFeedCard({
       onMouseLeave={handleMouseUp}
       onDoubleClick={handleDoubleTap}
     >
-      {/* Indicador sutil de Modo Limpio / Enfoque con contador de fotos */}
-      {isCleanMode && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 pointer-events-none animate-in fade-in duration-200">
-          <div className="px-3.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 text-[11px] font-medium shadow-lg">
-            Toca para restaurar
-          </div>
-          {postImages.length > 0 && (
-            <div className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white font-bold text-[11px] shadow-lg">
-              {`${currentSlideIndex + 1}/${postImages.length}`}
-            </div>
-          )}
+      {/* En Modo Limpio: Contador de fotos en la esquina superior derecha (coincidiendo con la posición de la vitrina/feed principal) */}
+      {isCleanMode && isCarousel && (
+        <div className="absolute top-4 right-4 z-40 px-2.5 py-1 rounded-full bg-black/65 backdrop-blur-md border border-white/20 text-white/95 text-[10px] font-semibold tracking-wider pointer-events-none shadow-sm animate-in fade-in duration-200">
+          {`${currentSlideIndex + 1}/${postImages.length}`}
         </div>
       )}
 

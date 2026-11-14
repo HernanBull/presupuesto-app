@@ -926,14 +926,21 @@ export default function CustomerProfile() {
   };
 
   const removeFavorite = async (storeIdentifier) => {
-    const favorites = Array.isArray(currentCustomer.favorites) 
+    const favorites = Array.isArray(currentCustomer?.favorites) 
       ? currentCustomer.favorites 
-      : (typeof currentCustomer.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
+      : (typeof currentCustomer?.favorites === 'string' ? JSON.parse(currentCustomer.favorites || '[]') : []);
     const updatedFavorites = favorites.filter(f => {
-      const match = typeof f === 'string' ? f : (f.slug || f.id || f.postId);
+      const match = typeof f === 'string' ? f : (f.slug || f.id || f.workspace_id);
       return match !== storeIdentifier;
     });
-    await updateCustomerData({ favorites: updatedFavorites });
+
+    const following = Array.isArray(currentCustomer?.following) ? currentCustomer.following : [];
+    const updatedFollowing = following.filter(f => {
+      const match = typeof f === 'string' ? f : (f.slug || f.store_slug || f.id || f.workspace_id);
+      return match !== storeIdentifier;
+    });
+
+    await updateCustomerData({ favorites: updatedFavorites, following: updatedFollowing });
   };
   
   const removeWishlist = async (productId) => {
@@ -1053,7 +1060,7 @@ export default function CustomerProfile() {
     
     return raw.map((item, idx) => {
       if (typeof item === 'string') {
-        return { id: item, slug: item, name: item, logo: null };
+        return { id: item, slug: item, name: item, logo: null, type: 'store' };
       }
       return {
         id: item.id || item.slug || `fav_${idx}`,
@@ -1061,7 +1068,8 @@ export default function CustomerProfile() {
         name: item.name || item.store_name || item.slug || 'Tienda',
         logo: item.logo || item.store_logo || null,
         cover: item.cover || item.image_url || null,
-        postId: item.postId || null
+        postId: item.postId || null,
+        type: item.type || (item.postId ? 'post' : 'store')
       };
     }).filter(item => item.slug || item.id);
   }, [currentCustomer?.favorites]);
@@ -1069,14 +1077,36 @@ export default function CustomerProfile() {
   // Lista deduplicada y normalizada de comercios seguidos (Hook llamado incondicionalmente antes de returns tempranos)
   const uniqueFollowedStores = useMemo(() => {
     const map = new Map();
+
+    // 1. Tiendas del array dedicado customer.following (cuando el usuario dio al botón de '+ Seguir')
+    if (Array.isArray(currentCustomer?.following)) {
+      currentCustomer.following.forEach(f => {
+        if (!f) return;
+        const key = f.workspace_id || f.id || f.slug || f.store_slug;
+        if (key && !map.has(String(key))) {
+          map.set(String(key), {
+            id: f.id || f.workspace_id,
+            slug: f.slug || f.store_slug || f.id,
+            name: f.name || f.store_name || 'Tienda',
+            logo: f.logo || f.store_logo || null
+          });
+        }
+      });
+    }
+
+    // 2. Solo tiendas en favorites que NO sean publicaciones (excluir type === 'post' y postId)
     parsedFavorites.forEach(f => {
-      const key = f.slug || f.store_slug || f.id;
-      if (key && !map.has(key)) {
-        map.set(key, f);
+      const isPost = f.type === 'post' || Boolean(f.postId) || f.isPost === true;
+      if (!isPost) {
+        const key = f.slug || f.store_slug || f.id;
+        if (key && !map.has(String(key))) {
+          map.set(String(key), f);
+        }
       }
     });
+
     return Array.from(map.values());
-  }, [parsedFavorites]);
+  }, [currentCustomer?.following, parsedFavorites]);
 
   if (!currentCustomer) {
     return (
