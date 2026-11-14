@@ -873,6 +873,14 @@ export default function PublicStore() {
 
     (storeNews || []).forEach((n, idx) => {
       if (n.status && n.status !== 'Publicado') return;
+      // Excluir estados efímeros caducados (+24 horas)
+      const isEphemeral = (n.post_type === 'status' || (typeof n.title === 'string' && n.title.startsWith('[ESTADO]'))) &&
+        !n.is_permanent &&
+        !(typeof n.title === 'string' && (n.title.startsWith('[ESTADO_PERMANENTE]') || n.title.startsWith('[ESTADO_FIJO]')));
+      if (isEphemeral) {
+        const createdAt = new Date(n.created_at || Date.now()).getTime();
+        if ((Date.now() - createdAt) > (24 * 60 * 60 * 1000)) return;
+      }
       const idKey = n.id || `news-${idx}`;
       if (seenIds.has(idKey)) return;
       seenIds.add(idKey);
@@ -968,20 +976,63 @@ export default function PublicStore() {
       return (now - createdAt) > (24 * 60 * 60 * 1000);
     });
 
-    if (expiredEphemeral.length > 0 && isMerchantOwner) {
+    if (expiredEphemeral.length > 0) {
       const expiredIds = expiredEphemeral.map(n => n.id).filter(Boolean);
       if (expiredIds.length > 0) {
+        // Extraer archivos multimedia para eliminarlos físicamente de Supabase Storage
+        const filesToRemove = [];
+        expiredEphemeral.forEach(item => {
+          const mediaUrls = [];
+          if (item.image_url) {
+            try {
+              const parsed = JSON.parse(item.image_url);
+              if (Array.isArray(parsed)) mediaUrls.push(...parsed);
+              else mediaUrls.push(item.image_url);
+            } catch (e) {
+              mediaUrls.push(item.image_url);
+            }
+          }
+          if (item.video_url) mediaUrls.push(item.video_url);
+
+          mediaUrls.forEach(url => {
+            if (typeof url === 'string' && url.includes('/storage/v1/object/public/')) {
+              const parts = url.split('/object/public/');
+              if (parts[1]) {
+                const subParts = parts[1].split('/');
+                const bucket = subParts[0];
+                const filePath = subParts.slice(1).join('/');
+                if (bucket && filePath) {
+                  filesToRemove.push({ bucket, filePath });
+                }
+              }
+            }
+          });
+        });
+
+        // Eliminar archivos multimedia del storage
+        if (filesToRemove.length > 0) {
+          const bucketsMap = {};
+          filesToRemove.forEach(f => {
+            if (!bucketsMap[f.bucket]) bucketsMap[f.bucket] = [];
+            bucketsMap[f.bucket].push(f.filePath);
+          });
+          Object.entries(bucketsMap).forEach(([bucketName, filePaths]) => {
+            supabase.storage.from(bucketName).remove(filePaths).catch(() => {});
+          });
+        }
+
+        // Eliminar registros de la base de datos
         supabase
           .from('ecommerce_store_news')
           .delete()
           .in('id', expiredIds)
           .then(() => {
-            console.log(`Auto-limpieza de estados 24h: eliminados ${expiredIds.length} estados caducados.`);
+            console.log(`Auto-limpieza de estados 24h: eliminados ${expiredIds.length} estados caducados y sus archivos multimedia.`);
           })
           .catch(err => console.warn('Error en auto-limpieza:', err));
       }
     }
-  }, [storeNews, isMerchantOwner]);
+  }, [storeNews]);
 
   const hasActiveStatuses = useMemo(() => {
     return permanentStatuses.length > 0 || ephemeralStatuses.length > 0;
@@ -3654,22 +3705,16 @@ export default function PublicStore() {
                 <ChevronLeft size={22} className="stroke-[2.5] -ml-0.5" />
               </button>
 
-              {/* Botón flotante de Perfil si el usuario está autenticado */}
-              {currentCustomer && (
-                <button 
-                  onClick={() => navigate('/profile')} 
-                  className="absolute top-4 right-4 z-40 transition-transform hover:scale-105" 
-                  title="Mi Perfil"
-                >
-                  {currentCustomer.profile_pic ? (
-                    <img src={resolveImageUrl(currentCustomer.profile_pic)} alt="Perfil" className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-md" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-orange-500 text-white font-black text-xs flex items-center justify-center border-2 border-white shadow-md">
-                      {(currentCustomer.name || currentCustomer.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </button>
-              )}
+              {/* Etiqueta Oficial de Comercio Fundador */}
+              <div 
+                className="absolute top-4 right-4 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/65 backdrop-blur-md border border-amber-400/50 shadow-lg text-amber-300 select-none"
+                title="Comercio pionero registrado en AxonMarket"
+              >
+                <Sparkles size={13} className="text-amber-400 fill-amber-400/30" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-200">
+                  Fundador
+                </span>
+              </div>
 
               {resolvedCoverUrl ? (
                 <>
@@ -3801,10 +3846,14 @@ export default function PublicStore() {
 
                 {/* Datos de la Tienda: Nombre, Handle, Calificar, EM, Bio y Dirección */}
                 <div className="mt-2.5">
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">
                       {config?.business_name || 'Mi Tienda'}
                     </h1>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-[10px] font-black tracking-wide">
+                      <Sparkles size={10} className="text-amber-600 fill-amber-600" />
+                      Fundador
+                    </span>
                   </div>
                   <p className="font-extrabold text-xs sm:text-sm" style={{ color: primaryColor }}>
                     @{slug}

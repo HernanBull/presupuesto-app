@@ -1191,18 +1191,38 @@ export const getStoreLikesList = async (workspaceId) => {
   }
 };
 
+// Obtener identificador persistente del espectador para garantizar 1 usuario = 1 vista
+const getViewerFingerprint = (viewerId) => {
+  if (viewerId && viewerId !== 'guest' && viewerId !== 'anonymous') {
+    return String(viewerId);
+  }
+  if (typeof localStorage !== 'undefined') {
+    let guestId = localStorage.getItem('axon_guest_viewer_id');
+    if (!guestId) {
+      guestId = 'guest_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+      localStorage.setItem('axon_guest_viewer_id', guestId);
+    }
+    return guestId;
+  }
+  return 'guest_user';
+};
+
 /**
  * Conteo y Registro de Visualizaciones REALES de Publicaciones, Videos y Estados
- * Elimina números inflados y garantiza que cada visualización orgánica sume 1 a 1.
+ * Lógica ESTRICTA: 1 Usuario / Dispositivo = 1 Sola Vista Única por anuncio.
  */
 export const recordPostView = async (postId, workspaceId, viewerId = 'guest') => {
   if (!postId) return;
   try {
-    const sessionKey = `axon_viewed_${postId}`;
-    // Si ya vio esta publicación en esta sesión de navegador, no duplicar inmediatamente
-    if (typeof sessionStorage !== 'undefined') {
-      if (sessionStorage.getItem(sessionKey)) return;
-      sessionStorage.setItem(sessionKey, '1');
+    const finalViewerId = getViewerFingerprint(viewerId);
+    const viewKey = `axon_viewed_${finalViewerId}_${postId}`;
+
+    // Si este usuario ya vio este anuncio previamente, NO incrementar vistas (1 usuario = 1 vista)
+    if (typeof localStorage !== 'undefined') {
+      if (localStorage.getItem(viewKey)) {
+        return; // Ya registrado previamente para este usuario
+      }
+      localStorage.setItem(viewKey, '1');
     }
 
     // Registrar en caché local acumulativa
@@ -1215,7 +1235,7 @@ export const recordPostView = async (postId, workspaceId, viewerId = 'guest') =>
     // Notificar actualización de vistas en tiempo real
     notifySocialUpdate('post_viewed', { postId, workspaceId, views: currentViews });
 
-    // Persistir atómicamente en Supabase si se cuenta con workspaceId
+    // Persistir atómicamente en Supabase asegurando que no se dupliquen IDs de visualizadores
     if (workspaceId && isUuid(workspaceId)) {
       try {
         const { data: ws } = await supabase
@@ -1226,16 +1246,24 @@ export const recordPostView = async (postId, workspaceId, viewerId = 'guest') =>
 
         if (ws) {
           const cfg = ws.config || {};
-          const postViews = cfg.post_views || {};
-          const prevVal = Number(postViews[postId] || 0);
-          postViews[postId] = prevVal + 1;
-          await supabase
-            .from('workspaces')
-            .update({ config: { ...cfg, post_views: postViews } })
-            .eq('id', workspaceId);
+          const postViewers = cfg.post_viewers || {};
+          const viewersList = Array.isArray(postViewers[postId]) ? postViewers[postId] : [];
+
+          if (!viewersList.includes(finalViewerId)) {
+            viewersList.push(finalViewerId);
+            postViewers[postId] = viewersList;
+
+            const postViews = cfg.post_views || {};
+            postViews[postId] = viewersList.length;
+
+            await supabase
+              .from('workspaces')
+              .update({ config: { ...cfg, post_views: postViews, post_viewers: postViewers } })
+              .eq('id', workspaceId);
+          }
         }
       } catch (err) {
-        // En caso de RLS, la caché local y eventos mantienen la reactividad
+        // En caso de RLS, la caché local mantiene la reactividad
       }
     }
   } catch (e) {

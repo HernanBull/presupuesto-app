@@ -138,7 +138,55 @@ export default function MerchantSocialFeedPage() {
       }
       
       const loadedNews = data || [];
-      setNews(loadedNews);
+
+      // Auto-limpieza y depuración estricta de estados efímeros mayores a 24 horas
+      const now = Date.now();
+      const expiredStatuses = loadedNews.filter(n => {
+        const isPermanent = n.is_permanent === true || (typeof n.title === 'string' && (n.title.startsWith('[ESTADO_PERMANENTE]') || n.title.startsWith('[ESTADO_FIJO]')));
+        if (isPermanent) return false;
+        const isStatus = n.post_type === 'status' || (typeof n.title === 'string' && n.title.startsWith('[ESTADO]'));
+        if (!isStatus) return false;
+        const createdAt = new Date(n.created_at || now).getTime();
+        return (now - createdAt) > (24 * 60 * 60 * 1000);
+      });
+
+      if (expiredStatuses.length > 0) {
+        const expiredIds = expiredStatuses.map(s => s.id).filter(Boolean);
+        // Borrar archivos multimedia de Supabase Storage
+        expiredStatuses.forEach(item => {
+          const mediaUrls = [];
+          if (item.image_url) {
+            try {
+              const parsed = JSON.parse(item.image_url);
+              if (Array.isArray(parsed)) mediaUrls.push(...parsed);
+              else mediaUrls.push(item.image_url);
+            } catch (e) {
+              mediaUrls.push(item.image_url);
+            }
+          }
+          if (item.video_url) mediaUrls.push(item.video_url);
+
+          mediaUrls.forEach(url => {
+            if (typeof url === 'string' && url.includes('/storage/v1/object/public/')) {
+              const parts = url.split('/object/public/');
+              if (parts[1]) {
+                const subParts = parts[1].split('/');
+                const bucket = subParts[0];
+                const filePath = subParts.slice(1).join('/');
+                if (bucket && filePath) {
+                  supabase.storage.from(bucket).remove([filePath]).catch(() => {});
+                }
+              }
+            }
+          });
+        });
+
+        // Borrar registros caducados de la base de datos
+        supabase.from('ecommerce_store_news').delete().in('id', expiredIds).catch(() => {});
+      }
+
+      const activeNews = loadedNews.filter(n => !expiredStatuses.some(exp => exp.id === n.id));
+      setNews(activeNews);
 
       // Cargar interacciones individuales de cada post
       const interactions = {};
