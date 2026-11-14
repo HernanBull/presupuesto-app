@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Plus, Minus, Trash2, Package, Sparkles, CheckCircle2, 
-  AlertCircle, DollarSign, Image as ImageIcon, Tag, Search, ArrowRight 
+  AlertCircle, DollarSign, Image as ImageIcon, Tag, Search, ArrowRight, ArrowLeft 
 } from 'lucide-react';
 import { supabase } from '../../../supabaseClient';
 import MultiImageUploader from './MultiImageUploader';
@@ -215,38 +215,41 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-3xl w-full border border-slate-200 dark:border-slate-800 overflow-hidden my-auto flex flex-col max-h-[92vh]"
-        >
-          {/* Header */}
-          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-5 text-white flex justify-between items-center relative shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
-                <Package size={22} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black tracking-tight">
-                  {existingCombo ? 'Modificar Combo' : 'Crear Combo de Productos'}
-                </h3>
-                <p className="text-white/80 text-xs">
-                  Agrupa productos de tu inventario para venderlos juntos como un combo.
-                </p>
-              </div>
-            </div>
+      <div className="fixed inset-0 z-[100] bg-slate-50 dark:bg-slate-950 flex flex-col w-full h-full min-h-screen overflow-hidden animate-in fade-in duration-150">
+        {/* Header de Ventana Completa (Sin Lag ni Ventanas Flotantes Pequeñas) */}
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 px-4 py-3.5 sm:px-6 text-white flex justify-between items-center relative shrink-0 shadow-md">
+          <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-black/10 hover:bg-black/20 text-white flex items-center justify-center transition-colors"
+              className="w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-xs"
+              title="Volver"
             >
-              <X size={18} />
+              <ArrowLeft size={19} />
             </button>
+            <div>
+              <h3 className="text-base sm:text-lg font-black tracking-tight flex items-center gap-2">
+                <Package size={20} className="text-white" />
+                {existingCombo ? 'Modificar Combo' : 'Crear Combo de Productos'}
+              </h3>
+              <p className="text-white/85 text-[11px] sm:text-xs">
+                Agrupa productos de tu inventario para venderlos juntos como un combo en vitrina.
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-black/15 hover:bg-black/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+            title="Cerrar ventana"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-          {/* Cuerpo con 2 columnas (Productos Seleccionados vs Catálogo para Agregar) */}
-          <div className="flex-1 overflow-y-auto p-5 grid grid-cols-1 md:grid-cols-12 gap-5">
+        {/* Cuerpo con 2 columnas: Espacioso, fluido y optimizado 60 FPS */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-6xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-20">
             {/* Columna Izquierda: Configuración del Combo (7 cols) */}
             <div className="md:col-span-7 space-y-4">
               {error && (
@@ -497,31 +500,31 @@ export default function ComboBuilderModal({ isOpen, onClose, onComboSaved, exist
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Footer de Acciones */}
-          <div className="p-4 bg-slate-50 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveCombo}
-              disabled={saving || comboItems.length < 2 || !comboPrice || Number(comboPrice) <= 0}
-              className="px-6 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-amber-500/20 flex items-center gap-2 transition-all"
-            >
-              {saving ? (
-                <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-              ) : (
-                <span>Guardar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
-              )}
-            </button>
-          </div>
-        </motion.div>
+        {/* Footer de Acciones Sticky / Fijo al Borde Inferior */}
+        <div className="p-4 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md flex items-center justify-between sm:justify-end gap-3 shrink-0 shadow-lg">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveCombo}
+            disabled={saving || comboItems.length < 2 || !comboPrice || Number(comboPrice) <= 0}
+            className="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-amber-500/20 flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+          >
+            {saving ? (
+              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            ) : (
+              <span>Guardar Combo (${Number(comboPrice || 0).toFixed(2)})</span>
+            )}
+          </button>
+        </div>
       </div>
     </AnimatePresence>
   );

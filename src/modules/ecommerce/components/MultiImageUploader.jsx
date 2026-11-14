@@ -21,9 +21,31 @@ export default function MultiImageUploader({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [cropPreviewUrl, setCropPreviewUrl] = useState('');
+  const [cropImageDims, setCropImageDims] = useState({ width: 0, height: 0 });
+  const [cropFit, setCropFit] = useState('cover');
   const fileInputRef = useRef(null);
 
   const workspaceId = localStorage.getItem('activeWorkspace') || 'general';
+
+  // Al seleccionar archivos, abrir modal con el cuadro de superficie de encuadre
+  const handleSelectFiles = (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files);
+    setPendingFiles(fileList);
+    const firstFile = fileList[0];
+    const previewUrl = URL.createObjectURL(firstFile);
+    setCropPreviewUrl(previewUrl);
+
+    const img = new Image();
+    img.onload = () => {
+      setCropImageDims({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.src = previewUrl;
+    setCropModalOpen(true);
+  };
 
   // Subir archivos a Supabase Storage
   const uploadFiles = async (files) => {
@@ -103,7 +125,7 @@ export default function MultiImageUploader({
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      uploadFiles(e.dataTransfer.files);
+      handleSelectFiles(e.dataTransfer.files);
     }
   };
 
@@ -158,7 +180,7 @@ export default function MultiImageUploader({
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => uploadFiles(e.target.files)}
+        onChange={(e) => handleSelectFiles(e.target.files)}
       />
 
       {/* Grid de Imágenes Cargadas */}
@@ -297,6 +319,134 @@ export default function MultiImageUploader({
         <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400">
           <Loader2 size={16} className="animate-spin" />
           <span>{uploadProgress || 'Subiendo imágenes a la nube...'}</span>
+        </div>
+      )}
+
+      {/* Modal / Cuadro de Superficie y Encuadre de la Foto */}
+      {cropModalOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+                  <ImageIcon size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                    Superficie y Encuadre de la Foto
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Así se mostrará la foto en el catálogo y vitrina
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCropModalOpen(false);
+                  setPendingFiles([]);
+                  if (cropPreviewUrl) URL.revokeObjectURL(cropPreviewUrl);
+                }}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Cuadro Indicando la Superficie Exacta (1:1 Cuadrado) */}
+            <div className="relative w-64 h-64 sm:w-72 sm:h-72 mx-auto aspect-square rounded-2xl overflow-hidden border-2 border-amber-500 shadow-2xl bg-black select-none">
+              {cropPreviewUrl && (
+                <img
+                  src={cropPreviewUrl}
+                  alt="Superficie de foto"
+                  className={`w-full h-full transition-all ${
+                    cropFit === 'contain' ? 'object-contain' : 'object-cover'
+                  }`}
+                />
+              )}
+
+              {/* Guías de Encuadre de la Superficie (Regla de Tercios) */}
+              <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 border border-white/20">
+                <div className="border-r border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div className="border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div className="border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div className="border-r border-b border-white/20" />
+                <div />
+              </div>
+
+              {/* Badge Flotante de Superficie */}
+              <div className="absolute bottom-2 left-2 bg-black/75 backdrop-blur-xs text-white text-[10px] font-black px-2.5 py-1 rounded-lg border border-white/20 flex items-center gap-1.5 shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Superficie 1:1 Vitrina</span>
+              </div>
+            </div>
+
+            {/* Dimensiones y Selector de Ajuste */}
+            <div className="space-y-2 text-center">
+              {cropImageDims.width > 0 && (
+                <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  Resolución detectada: <span className="text-slate-800 dark:text-slate-200">{cropImageDims.width} × {cropImageDims.height} px</span>
+                  {pendingFiles.length > 1 && ` • ${pendingFiles.length} fotos seleccionadas`}
+                </p>
+              )}
+
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setCropFit('cover')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    cropFit === 'cover'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  Llenar Cuadro (Cover)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCropFit('contain')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    cropFit === 'contain'
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  Foto Completa (Contain)
+                </button>
+              </div>
+            </div>
+
+            {/* Botones de Confirmación */}
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCropModalOpen(false);
+                  setPendingFiles([]);
+                  if (cropPreviewUrl) URL.revokeObjectURL(cropPreviewUrl);
+                }}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setCropModalOpen(false);
+                  if (cropPreviewUrl) URL.revokeObjectURL(cropPreviewUrl);
+                  await uploadFiles(pendingFiles);
+                  setPendingFiles([]);
+                }}
+                className="flex-1 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 rounded-xl text-xs font-black shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                ✓ Confirmar y Subir
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

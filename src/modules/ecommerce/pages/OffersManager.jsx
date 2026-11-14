@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Tag, Search, Save, Zap, X, CheckCircle, AlertTriangle, Package, Edit2, Plus, UploadCloud, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../supabaseClient';
@@ -53,6 +53,16 @@ export default function OffersManager() {
   const [isComboModalOpen, setIsComboModalOpen] = useState(false);
   const [editingCombo, setEditingCombo] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleCloseComboModal = () => {
+    setIsComboModalOpen(false);
+    setEditingCombo(null);
+    const params = new URLSearchParams(location.search);
+    if (params.get('action') === 'new_combo' || params.get('tab') === 'combos') {
+      navigate('/more');
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -871,9 +881,10 @@ export default function OffersManager() {
       {/* Modal Creador y Editor de Combos */}
       <ComboBuilderModal
         isOpen={isComboModalOpen}
-        onClose={() => setIsComboModalOpen(false)}
+        onClose={handleCloseComboModal}
         onComboSaved={() => {
           fetchProducts();
+          handleCloseComboModal();
           toast.success('🎁 ¡Combo promocional publicado exitosamente!');
         }}
         existingCombo={editingCombo}
