@@ -52,7 +52,8 @@ export default function SocialFeedCard({
   onOpenComments,
   onRequireAuth,
   onNavigateStore,
-  onCardVisible
+  onCardVisible,
+  onToggleCleanMode
 }) {
   const postId = post.id || post.store_slug || post.slug;
   const workspaceId = post.workspace_id || post.id;
@@ -194,7 +195,11 @@ export default function SocialFeedCard({
   const toggleCleanMode = (e) => {
     e?.stopPropagation();
     if (isSwiping) return;
-    setIsCleanMode(prev => !prev);
+    setIsCleanMode(prev => {
+      const next = !prev;
+      if (onToggleCleanMode) onToggleCleanMode(next);
+      return next;
+    });
   };
 
   // Gesto Swipe Left estilo TikTok hacia la vitrina del comercio o cambio de slide en carrusel
@@ -357,6 +362,7 @@ export default function SocialFeedCard({
     e?.stopPropagation();
     if (isCleanMode) {
       setIsCleanMode(false);
+      if (onToggleCleanMode) onToggleCleanMode(false);
       return;
     }
     if (!isVideo || !videoRef.current) return;
@@ -454,6 +460,7 @@ export default function SocialFeedCard({
           } else if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
             setIsInView(false);
             setIsCleanMode(false);
+            if (onToggleCleanMode) onToggleCleanMode(false);
             if (isVideo) {
               userPausedRef.current = false;
               clearActiveMedia(postId);
@@ -468,6 +475,7 @@ export default function SocialFeedCard({
     return () => {
       observer.disconnect();
       setIsCleanMode(false);
+      if (onToggleCleanMode) onToggleCleanMode(false);
       if (isVideo) {
         userPausedRef.current = false;
         clearActiveMedia(postId);
@@ -704,10 +712,17 @@ export default function SocialFeedCard({
       onMouseLeave={handleMouseUp}
       onDoubleClick={handleDoubleTap}
     >
-      {/* Indicador sutil de Modo Limpio / Enfoque */}
+      {/* Indicador sutil de Modo Limpio / Enfoque con contador de fotos */}
       {isCleanMode && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white/90 text-[11px] font-medium pointer-events-none animate-in fade-in duration-200 shadow-lg">
-          Toca para restaurar
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 pointer-events-none animate-in fade-in duration-200">
+          <div className="px-3.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white/90 text-[11px] font-medium shadow-lg">
+            Toca para restaurar
+          </div>
+          {postImages.length > 0 && (
+            <div className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white font-bold text-[11px] shadow-lg">
+              {`${currentSlideIndex + 1}/${postImages.length}`}
+            </div>
+          )}
         </div>
       )}
 
@@ -955,40 +970,32 @@ export default function SocialFeedCard({
             </span>
           </button>
 
-          {/* Favoritos / Guardar (Transparente con resplandor naranja si está guardado) */}
-          {!isMerchantAuth && (
-            <button 
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSave(e);
-              }}
-              className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
-              title="Guardar en favoritos"
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 ${
-                saveBounced 
-                  ? 'scale-125 bg-gradient-to-tr from-orange-600 via-orange-500 to-amber-500 border-orange-400 shadow-[0_0_22px_rgba(249,115,22,0.95)]' 
-                  : isSaved 
-                    ? 'bg-gradient-to-tr from-orange-500/80 via-orange-500/70 to-amber-500/80 border-orange-400 shadow-[0_0_16px_rgba(249,115,22,0.85)] backdrop-blur-[3px] scale-105' 
-                    : 'bg-black/25 border-white/20 backdrop-blur-[3px] group-hover:bg-black/45 hover:border-orange-400/50'
-              }`}>
-                <Bookmark 
-                  size={20} 
-                  strokeWidth={isSaved ? 0 : 2} 
-                  fill={isSaved ? '#ffffff' : 'none'} 
-                  className={`transition-all duration-300 ${
-                    saveBounced ? 'scale-125 rotate-[-12deg]' : ''
-                  } text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]`} 
-                />
-              </div>
-              <span className={`text-[10px] font-black drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight transition-colors duration-200 ${
-                isSaved ? 'text-amber-300' : 'text-white'
-              }`}>
-                {isSaved ? 'Guardado' : 'Guardar'}
-              </span>
-            </button>
-          )}
+          {/* Favoritos / Guardar (Estilo neutro de vidrio translúcido para todos los usuarios) */}
+          <button 
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSave(e);
+            }}
+            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform group cursor-pointer"
+            title="Guardar en favoritos"
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-sm transition-all duration-300 bg-black/25 border-white/20 backdrop-blur-[3px] text-white hover:bg-black/45 ${
+              saveBounced ? 'scale-110' : ''
+            }`}>
+              <Bookmark 
+                size={20} 
+                strokeWidth={isSaved ? 0 : 2} 
+                fill={isSaved ? '#ffffff' : 'none'} 
+                className={`transition-all duration-300 ${
+                  saveBounced ? 'scale-115 rotate-[-10deg]' : ''
+                } text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]`} 
+              />
+            </div>
+            <span className="text-[10px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)] tracking-tight">
+              {isSaved ? 'Guardado' : 'Guardar'}
+            </span>
+          </button>
         </div>
       </div>
 

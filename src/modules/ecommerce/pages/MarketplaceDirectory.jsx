@@ -279,6 +279,7 @@ export default function MarketplaceDirectory() {
   // Cart State
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [globalCart, setGlobalCart] = useState({});
+  const [isFeedCleanMode, setIsFeedCleanMode] = useState(false);
 
   // Typewriter State
   const [typedCount, setTypedCount] = useState(0);
@@ -2090,8 +2091,9 @@ export default function MarketplaceDirectory() {
 
         {/* Cabecera Superior Original AxonMarket Flotante Auto-Ocultable (Estilo TikTok Transparente de Borde a Borde) */}
         <div
-          className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-200 ease-out ${!isBottomNavOpen ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
-            }`}
+          className={`fixed top-0 left-0 right-0 max-w-md md:max-w-2xl lg:max-w-[720px] mx-auto z-40 transition-all duration-300 ease-out ${
+            !isBottomNavOpen || isFeedCleanMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100 pointer-events-auto'
+          }`}
         >
           <header className="bg-gradient-to-b from-black/85 via-black/45 to-transparent pt-3 pb-6 px-4 md:px-6">
             <div className="w-full flex items-center justify-between">
@@ -2259,6 +2261,7 @@ export default function MarketplaceDirectory() {
                     onRequireAuth={() => setIsAuthModalOpen(true)}
                     onNavigateStore={(slug, pId, fIdx) => handleNavigateToStore(slug, pId || post.id, fIdx ?? postIndex)}
                     onCardVisible={handleCardVisible}
+                    onToggleCleanMode={setIsFeedCleanMode}
                   />
                 ))
               )}
@@ -2323,7 +2326,9 @@ export default function MarketplaceDirectory() {
 
         {/* Botón flotante circular anaranjado VIP (Mismo diseño y color que el botón VIP de la barra inferior) */}
         <div
-          className={`fixed bottom-6 left-5 z-50 transition-all duration-200 ${!isBottomNavOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'}`}
+          className={`fixed bottom-6 left-5 z-50 transition-all duration-200 ${
+            !isBottomNavOpen && !isFeedCleanMode ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-75 pointer-events-none'
+          }`}
         >
           <button
             type="button"
@@ -2344,8 +2349,9 @@ export default function MarketplaceDirectory() {
 
         {/* Bottom Navigation Bar - Sólido optimizado (Cero lag de GPU en screenshots, 60-120 FPS fluidos) */}
         <div
-          className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-transform duration-150 ease-out ${isBottomNavOpen ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
-            }`}
+          className={`fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-[480px] z-50 rounded-2xl dark-glass-nav transition-transform duration-150 ease-out ${
+            isBottomNavOpen && !isFeedCleanMode ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-28 opacity-0 pointer-events-none'
+          }`}
           style={{
             backgroundColor: 'rgba(12, 12, 14, 0.96)',
             border: '1px solid rgba(255, 255, 255, 0.16)',

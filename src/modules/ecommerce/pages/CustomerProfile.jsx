@@ -1045,32 +1045,28 @@ export default function CustomerProfile() {
     setRatingModal({ isOpen: false, orderId: null, rating: 0, comment: '' });
   };
 
-  if (!currentCustomer) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-amber-500" size={36} />
-      </div>
-    );
-  }
+  const parsedFavorites = useMemo(() => {
+    if (!currentCustomer?.favorites) return [];
+    const raw = Array.isArray(currentCustomer.favorites) 
+      ? currentCustomer.favorites 
+      : (typeof currentCustomer.favorites === 'string' ? (() => { try { return JSON.parse(currentCustomer.favorites); } catch(e){ return []; } })() : []);
+    
+    return raw.map((item, idx) => {
+      if (typeof item === 'string') {
+        return { id: item, slug: item, name: item, logo: null };
+      }
+      return {
+        id: item.id || item.slug || `fav_${idx}`,
+        slug: item.slug || item.store_slug || item.id || '',
+        name: item.name || item.store_name || item.slug || 'Tienda',
+        logo: item.logo || item.store_logo || null,
+        cover: item.cover || item.image_url || null,
+        postId: item.postId || null
+      };
+    }).filter(item => item.slug || item.id);
+  }, [currentCustomer?.favorites]);
 
-  const parsedFavorites = (Array.isArray(currentCustomer.favorites) 
-    ? currentCustomer.favorites 
-    : (typeof currentCustomer.favorites === 'string' ? (() => { try { return JSON.parse(currentCustomer.favorites); } catch(e){ return []; } })() : [])
-  ).map((item, idx) => {
-    if (typeof item === 'string') {
-      return { id: item, slug: item, name: item, logo: null };
-    }
-    return {
-      id: item.id || item.slug || `fav_${idx}`,
-      slug: item.slug || item.store_slug || item.id || '',
-      name: item.name || item.store_name || item.slug || 'Tienda',
-      logo: item.logo || item.store_logo || null,
-      cover: item.cover || item.image_url || null,
-      postId: item.postId || null
-    };
-  }).filter(item => item.slug || item.id);
-
-  // Lista deduplicada y normalizada de comercios seguidos
+  // Lista deduplicada y normalizada de comercios seguidos (Hook llamado incondicionalmente antes de returns tempranos)
   const uniqueFollowedStores = useMemo(() => {
     const map = new Map();
     parsedFavorites.forEach(f => {
@@ -1081,6 +1077,14 @@ export default function CustomerProfile() {
     });
     return Array.from(map.values());
   }, [parsedFavorites]);
+
+  if (!currentCustomer) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-amber-500" size={36} />
+      </div>
+    );
+  }
   
   const parsedWishlist = Array.isArray(currentCustomer.wishlist) 
     ? currentCustomer.wishlist 

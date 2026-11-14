@@ -5,6 +5,7 @@ import {
   X, ShoppingBag, AlertCircle, CheckCircle2, Loader2, Store 
 } from 'lucide-react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
 import { supabase } from '../../../supabaseClient';
 import { loginUser, registerUser } from '../../../supabaseAuth';
 
@@ -229,6 +230,18 @@ export default function CustomerAuthModal({
       }
 
       const user = normalizeAndSaveCustomer(newCustomer, authData.user.id);
+      toast.success(`¡Bienvenido a Axon Market, ${user.name || 'Cliente'}! Cuenta creada con éxito.`, {
+        icon: '🎉',
+        duration: 3500,
+        style: {
+          background: '#09090b',
+          color: '#ffffff',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          borderRadius: '16px',
+          fontWeight: 600,
+          fontSize: '13px'
+        }
+      });
       if (onSuccess) onSuccess(user);
       if (onClose) onClose();
     } catch (err) {
