@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2, ClipboardList } from 'lucide-react';
+import { ShoppingCart, LayoutTemplate, Image as ImageIcon, Calculator, ChevronRight, Heart, X, Plus, Minus, ShoppingBag, ArrowLeft, Lock, Store, User, UserPlus, Zap, Package, ArrowRight, Loader2, Tag, Pen, Smartphone, UploadCloud, ShieldCheck, Hash, MapPin, Map as MapIcon, CreditCard, Star, CheckCircle, CheckCircle2, Clock, Trash2, Building2, Eye, EyeOff, Link, Camera, ChevronLeft, MoreHorizontal, Bike, ChefHat, MessageCircle, Music2, Search, Grid, Menu, Play, ExternalLink, RefreshCw, Repeat, AlertTriangle, Check, Copy, Palette, Sparkles, RotateCcw, Info, Film, Video, Briefcase, FileText, Download, CheckSquare, Square, CornerDownRight, Edit2, LayoutGrid, FolderTree, Boxes, Maximize2, ClipboardList, Target } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import ProfileWizardModal from '../components/ProfileWizardModal';
@@ -368,6 +369,32 @@ export default function PublicStore() {
   const [orderFilterStatus, setOrderFilterStatus] = useState('Todos');
   const [orderFilterDate, setOrderFilterDate] = useState('');
   const [copiedPinOrderId, setCopiedPinOrderId] = useState(null);
+
+  // Límite de Presupuesto del Cliente en esta tienda
+  const [customerBudgetLimit, setCustomerBudgetLimit] = useState(() => {
+    try {
+      const wsId = workspaceId || config?.workspace_id || 'default';
+      const saved = localStorage.getItem(`budget_limit_${wsId}`);
+      return saved ? Number(saved) : 0;
+    } catch(e) { return 0; }
+  });
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [tempBudgetInput, setTempBudgetInput] = useState('');
+
+  const handleSetBudgetLimit = (limitValue) => {
+    const num = Math.max(0, Number(limitValue) || 0);
+    setCustomerBudgetLimit(num);
+    const wsId = workspaceId || config?.workspace_id || 'default';
+    const key = `budget_limit_${wsId}`;
+    if (num > 0) {
+      localStorage.setItem(key, String(num));
+      toast.success(`Presupuesto fijado en $${num.toFixed(2)} USD`, { icon: '🎯' });
+    } else {
+      localStorage.removeItem(key);
+      toast('Presupuesto sin límite desactivado', { icon: '🔓' });
+    }
+    setIsBudgetModalOpen(false);
+  };
 
   const fetchCustomerStoreOrders = useCallback(async () => {
     const wsId = workspaceId || config?.workspace_id || config?.id;
@@ -1958,6 +1985,20 @@ export default function PublicStore() {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
+    // Validación de Límite de Presupuesto del Cliente
+    if (customerBudgetLimit > 0) {
+      const pPrice = Number(product.is_offer ? product.discount_price : product.price) || 0;
+      const addedQty = Number(stepSize || 1);
+      const addedCost = pPrice * addedQty;
+      if (cartSubtotal + addedCost > customerBudgetLimit + 0.001) {
+        toast.error(`¡Superaste tu presupuesto límite de $${Number(customerBudgetLimit).toFixed(2)} USD! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
+          duration: 3500,
+          icon: '🛑'
+        });
+        return;
+      }
+    }
+    
     const currentQty = cart[productId] || 0;
     const addedQty = Number(stepSize || 1);
     const requestedQty = currentQty + addedQty;
@@ -2059,6 +2100,19 @@ export default function PublicStore() {
       return;
     }
     if (!selectedProduct) return;
+    
+    // Validación de Límite de Presupuesto del Cliente
+    if (customerBudgetLimit > 0) {
+      const pPrice = Number(selectedProduct.is_offer ? selectedProduct.discount_price : selectedProduct.price) || 0;
+      const addedCost = pPrice * Number(modalQty || 1);
+      if (cartSubtotal + addedCost > customerBudgetLimit + 0.001) {
+        toast.error(`¡Superaste tu presupuesto límite de $${Number(customerBudgetLimit).toFixed(2)} USD! Total acumulado: $${cartSubtotal.toFixed(2)}`, {
+          duration: 3500,
+          icon: '🛑'
+        });
+        return;
+      }
+    }
     
     const currentQty = cart[selectedProduct.id] || 0;
     let available = selectedProduct.stock_vitrina || 0;
@@ -3350,21 +3404,23 @@ export default function PublicStore() {
             >
               <ChevronLeft size={18} className="stroke-[2.5]" />
             </button>
-            <span 
-              onClick={() => setCurrentPage('home')}
-              className="text-base sm:text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5 cursor-pointer truncate max-w-[150px] sm:max-w-[240px] md:max-w-none"
-              style={{ 
-                fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
-                letterSpacing: '-0.025em'
-              }}
-            >
-              {config.business_name || 'MI TIENDA'}
-              {config.is_verified && (
-                <div title="Comercio Verificado" className="inline-flex mt-0.5 shrink-0">
-                  <ShieldCheck size={18} className="text-amber-500 fill-amber-500/20" />
-                </div>
-              )}
-            </span>
+            {currentPage !== 'products' && (
+              <span 
+                onClick={() => setCurrentPage('home')}
+                className="text-base sm:text-lg md:text-xl font-bold text-zinc-900 flex items-center gap-1.5 cursor-pointer truncate max-w-[150px] sm:max-w-[240px] md:max-w-none"
+                style={{ 
+                  fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif",
+                  letterSpacing: '-0.025em'
+                }}
+              >
+                {config.business_name || 'MI TIENDA'}
+                {config.is_verified && (
+                  <div title="Comercio Verificado" className="inline-flex mt-0.5 shrink-0">
+                    <ShieldCheck size={18} className="text-amber-500 fill-amber-500/20" />
+                  </div>
+                )}
+              </span>
+            )}
 
             {/* 🔍 Lupita de Búsqueda Interactiva al lado del nombre de la vitrina */}
             <div className="flex items-center ml-1">
@@ -3421,32 +3477,57 @@ export default function PublicStore() {
              <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block"></div>
              
              {currentPage === 'products' ? (
-               /* En Catálogo: Ocultamos el perfil del cliente y colocamos el Widget del Carrito con conteo en $ y Bs. */
-               <button
-                 type="button"
-                 onClick={() => setIsCartOpen(true)}
-                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white active:scale-95 transition-all shadow-sm border border-slate-700/80 cursor-pointer select-none"
-                 title="Ver carrito de compras"
-               >
-                 <div className="relative flex items-center justify-center">
-                   <ShoppingCart size={16} className="text-amber-400 stroke-[2.4]" />
-                   {totalCartItems > 0 && (
-                     <span 
-                       className="absolute -top-2 -right-2.5 min-w-[15px] h-[15px] px-1 font-black text-[9px] flex items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-xs"
-                     >
-                       {totalCartItems}
+               /* En Catálogo: Presupuesto/Límite de Gasto + Widget del Carrito con conteo en $ y Bs. */
+               <div className="flex items-center gap-1.5 sm:gap-2">
+                 <button
+                   type="button"
+                   onClick={() => {
+                     setTempBudgetInput(customerBudgetLimit > 0 ? String(customerBudgetLimit) : '');
+                     setIsBudgetModalOpen(true);
+                   }}
+                   className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-black transition-all active:scale-95 cursor-pointer shadow-xs border ${
+                     customerBudgetLimit > 0
+                       ? cartSubtotal >= customerBudgetLimit
+                         ? 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse'
+                         : 'bg-amber-50 text-amber-800 border-amber-300'
+                       : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border-zinc-200'
+                   }`}
+                   title={customerBudgetLimit > 0 ? `Presupuesto: $${customerBudgetLimit.toFixed(2)} USD` : "Fijar presupuesto de compra"}
+                 >
+                   <Target size={14} className={customerBudgetLimit > 0 ? (cartSubtotal >= customerBudgetLimit ? 'text-rose-600' : 'text-amber-600') : 'text-zinc-500'} />
+                   <span className="text-[11px] font-bold">
+                     {customerBudgetLimit > 0 
+                       ? `$${customerBudgetLimit.toFixed(0)}` 
+                       : 'Límite'}
+                   </span>
+                 </button>
+
+                 <button
+                   type="button"
+                   onClick={() => setIsCartOpen(true)}
+                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white active:scale-95 transition-all shadow-sm border border-slate-700/80 cursor-pointer select-none"
+                   title="Ver carrito de compras"
+                 >
+                   <div className="relative flex items-center justify-center">
+                     <ShoppingCart size={16} className="text-amber-400 stroke-[2.4]" />
+                     {totalCartItems > 0 && (
+                       <span 
+                         className="absolute -top-2 -right-2.5 min-w-[15px] h-[15px] px-1 font-black text-[9px] flex items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-xs"
+                       >
+                         {totalCartItems}
+                       </span>
+                     )}
+                   </div>
+                   <div className="flex flex-col text-right leading-none">
+                     <span className="text-[11px] sm:text-xs font-black text-white font-mono">
+                       ${cartSubtotal.toFixed(2)}
                      </span>
-                   )}
-                 </div>
-                 <div className="flex flex-col text-right leading-none">
-                   <span className="text-[11px] sm:text-xs font-black text-white font-mono">
-                     ${cartSubtotal.toFixed(2)}
-                   </span>
-                   <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 font-mono mt-0.5">
-                     Bs. {(cartSubtotal * Number(bcvRate || config?.bcvRate || 36.50)).toFixed(2)}
-                   </span>
-                 </div>
-               </button>
+                     <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 font-mono mt-0.5">
+                       Bs. {(cartSubtotal * Number(bcvRate || config?.bcvRate || 36.50)).toFixed(2)}
+                     </span>
+                   </div>
+                 </button>
+               </div>
              ) : !currentCustomer && !isMerchantOwner ? (
                <button 
                  onClick={() => setShowAuthModal(true)} 
@@ -5890,6 +5971,34 @@ export default function PublicStore() {
                 </div>
               </div>
 
+              {/* Barra Informativa de Presupuesto del Cliente dentro del Carrito */}
+              {customerBudgetLimit > 0 && (
+                <div className={`px-6 py-2.5 border-b text-xs flex flex-col gap-1.5 ${
+                  cartSubtotal >= customerBudgetLimit 
+                    ? 'bg-rose-50 border-rose-200 text-rose-800' 
+                    : 'bg-amber-50 border-amber-200/80 text-amber-900'
+                }`}>
+                  <div className="flex items-center justify-between font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Target size={14} className={cartSubtotal >= customerBudgetLimit ? 'text-rose-600' : 'text-amber-600'} />
+                      <span>Presupuesto límite:</span>
+                    </span>
+                    <span>${cartSubtotal.toFixed(2)} / ${customerBudgetLimit.toFixed(2)} USD</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${cartSubtotal >= customerBudgetLimit ? 'bg-rose-500' : 'bg-amber-500'}`}
+                      style={{ width: `${Math.min(100, (cartSubtotal / customerBudgetLimit) * 100)}%` }}
+                    />
+                  </div>
+                  {cartSubtotal >= customerBudgetLimit && (
+                    <span className="text-[10px] font-black text-rose-600 uppercase tracking-tight">
+                      🛑 Límite de gasto alcanzado. No puedes agregar más productos.
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Items Area */}
               <div className="flex-1 overflow-y-auto px-8 py-8 scrollbar-hide relative z-10">
                 {isCheckoutMode ? (
@@ -7111,6 +7220,87 @@ export default function PublicStore() {
           </div>
         </nav>
       )}
+
+      {/* Modal de Presupuesto / Límite de Gasto del Cliente */}
+      <ResponsiveModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        title="Presupuesto de Compra"
+        className="md:max-w-md bg-white border border-slate-200"
+      >
+        <div className="space-y-5 p-1">
+          <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 shadow-2xs">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0">
+              <Target size={24} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-slate-900 leading-tight">Controla tu Presupuesto</h4>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                Establece el monto máximo en dólares que deseas gastar en esta tienda. Te avisaremos y bloquearemos la adición de productos si superas tu límite.
+              </p>
+            </div>
+          </div>
+
+          {/* Atajos Rápidos */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 block mb-2 uppercase tracking-wider">Atajos Rápidos</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[10, 20, 30, 50].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => handleSetBudgetLimit(val)}
+                  className={`py-2.5 px-2 text-center font-black text-sm rounded-xl border transition-all cursor-pointer ${
+                    customerBudgetLimit === val
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-xs'
+                      : 'bg-white hover:bg-amber-50/70 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  ${val}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Monto Personalizado */}
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 block mb-1.5 uppercase tracking-wider">O ingresa un monto personalizado ($ USD)</label>
+            <div className="relative flex items-center">
+              <span className="absolute left-3.5 text-base font-bold text-slate-400">$</span>
+              <input
+                type="number"
+                step="0.01"
+                min="1"
+                placeholder="Ej: 25.00"
+                value={tempBudgetInput}
+                onChange={(e) => setTempBudgetInput(e.target.value)}
+                className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-base"
+              />
+            </div>
+          </div>
+
+          {/* Acciones */}
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => handleSetBudgetLimit(tempBudgetInput)}
+              disabled={!tempBudgetInput || Number(tempBudgetInput) <= 0}
+              className="flex-1 py-3 px-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-all shadow-xs cursor-pointer"
+            >
+              Fijar Presupuesto
+            </button>
+            {customerBudgetLimit > 0 && (
+              <button
+                type="button"
+                onClick={() => handleSetBudgetLimit(0)}
+                className="py-3 px-4 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
+              >
+                Quitar Límite
+              </button>
+            )}
+          </div>
+        </div>
+      </ResponsiveModal>
 
       {/* Modal / Sheet de Personalización de Color de Marca (Exclusivo Dueño en su Vitrina) */}
       <ResponsiveModal
