@@ -174,6 +174,7 @@ export default function MarketplaceDirectory() {
   // Merchant Auth State
   const [isMerchantModalOpen, setIsMerchantModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [logoutConfirmType, setLogoutConfirmType] = useState(null); // 'customer' | 'merchant' | 'exit_home' | null
   const [merchantAuthMode, setMerchantAuthMode] = useState('register');
   const [merchantRegStep, setMerchantRegStep] = useState(1); // 1: Email, 2: Name, 3: 2FA
   const [merchantMfaSecret, setMerchantMfaSecret] = useState('');
@@ -3526,31 +3527,29 @@ export default function MarketplaceDirectory() {
                   </div>
                 )}
 
-                {/* Opciones de Acceso Neutral (Únicamente cuando NO hay sesión activa de comerciante) */}
-                {!hasMerchantAccess && (
+                {/* Opciones de Acceso Neutral (Únicamente cuando NO hay sesión de comerciante NI de cliente activa) */}
+                {(!hasMerchantAccess && !currentCustomer) && (
                   <div className="flex flex-col gap-2.5">
-                    {!currentCustomer && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          setAuthMode('login');
-                          setIsAuthModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-between p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all shadow-xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shadow-sm shrink-0">
-                            <User size={18} />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span className="font-bold text-sm text-slate-900 leading-tight">Soy Cliente</span>
-                            <span className="text-[11px] text-amber-800 font-medium leading-tight mt-0.5">Para compras, favoritos y pedidos</span>
-                          </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setAuthMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-between p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl cursor-pointer active:scale-95 transition-all shadow-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shadow-sm shrink-0">
+                          <User size={18} />
                         </div>
-                        <ChevronRight size={18} className="text-amber-600 shrink-0" />
-                      </button>
-                    )}
+                        <div className="flex flex-col text-left">
+                          <span className="font-bold text-sm text-slate-900 leading-tight">Soy Cliente</span>
+                          <span className="text-[11px] text-amber-800 font-medium leading-tight mt-0.5">Para compras, favoritos y pedidos</span>
+                        </div>
+                      </div>
+                      <ChevronRight size={18} className="text-amber-600 shrink-0" />
+                    </button>
 
                     <button
                       type="button"
@@ -3610,7 +3609,18 @@ export default function MarketplaceDirectory() {
                     <ChevronRight size={16} className="text-zinc-300 group-hover:text-amber-400" />
                   </button>
 
-                  <button onClick={() => { setIsMobileMenuOpen(false); navigate('/'); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (currentCustomer || hasMerchantAccess) {
+                        setLogoutConfirmType('exit_home');
+                      } else {
+                        setIsMobileMenuOpen(false);
+                        navigate('/');
+                      }
+                    }} 
+                    className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-white text-zinc-700 hover:text-amber-600 transition-all group"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-amber-500/10 group-hover:bg-amber-500/20 flex items-center justify-center text-amber-600 transition-colors">
                         <Home size={16} />
@@ -3677,13 +3687,13 @@ export default function MarketplaceDirectory() {
 
                 </div>
               </div>
-              {/* Botón de cierre de sesión al final del menú sin complicaciones */}
+              {/* Botón de cierre de sesión al final del menú con confirmación segura */}
               {(hasMerchantAccess || currentCustomer) && (
                 <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex flex-col gap-2">
                   {hasMerchantAccess && (
                     <button
                       type="button"
-                      onClick={handleMerchantLogout}
+                      onClick={() => setLogoutConfirmType('merchant')}
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-red-50 border border-red-200 text-red-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
                     >
                       <LogOut size={15} />
@@ -3693,7 +3703,7 @@ export default function MarketplaceDirectory() {
                   {currentCustomer && (
                     <button
                       type="button"
-                      onClick={handleCustomerLogout}
+                      onClick={() => setLogoutConfirmType('customer')}
                       className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-100 border border-zinc-200 text-zinc-600 font-bold text-xs shadow-sm active:scale-95 transition-all cursor-pointer"
                     >
                       <LogOut size={14} />
@@ -3709,6 +3719,86 @@ export default function MarketplaceDirectory() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmación de Salida / Cierre de Sesión Seguro */}
+      <AnimatePresence>
+        {logoutConfirmType && (
+          <div className="fixed inset-0 z-[350] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setLogoutConfirmType(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-2xl z-10 text-center flex flex-col items-center"
+            >
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-sm ${
+                logoutConfirmType === 'merchant'
+                  ? 'bg-red-500/10 text-red-600 border border-red-500/20'
+                  : logoutConfirmType === 'customer'
+                  ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                  : 'bg-orange-500/10 text-orange-600 border border-orange-500/20'
+              }`}>
+                {logoutConfirmType === 'exit_home' ? <Home size={28} /> : <LogOut size={28} />}
+              </div>
+
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white mb-2">
+                {logoutConfirmType === 'exit_home' && '¿Ir a la Pantalla Principal?'}
+                {logoutConfirmType === 'customer' && '¿Cerrar Sesión de Cliente?'}
+                {logoutConfirmType === 'merchant' && '¿Cerrar Sesión de Tienda?'}
+              </h3>
+
+              <p className="text-xs text-slate-600 dark:text-zinc-400 mb-6 leading-relaxed">
+                {logoutConfirmType === 'exit_home' &&
+                  'Tienes una sesión activa en Axon Market. Tu sesión seguirá abierta y podrás volver al mercado en cualquier momento.'}
+                {logoutConfirmType === 'customer' &&
+                  '¿Estás seguro de que deseas salir? Tus favoritos y órdenes guardadas seguirán en tu cuenta para cuando vuelvas a ingresar.'}
+                {logoutConfirmType === 'merchant' &&
+                  '¿Estás seguro de que deseas salir de tu panel comercial? Deberás ingresar tus credenciales para administrar tus ventas.'}
+              </p>
+
+              <div className="w-full flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLogoutConfirmType(null)}
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (logoutConfirmType === 'exit_home') {
+                      setIsMobileMenuOpen(false);
+                      setLogoutConfirmType(null);
+                      navigate('/');
+                    } else if (logoutConfirmType === 'customer') {
+                      setLogoutConfirmType(null);
+                      handleCustomerLogout();
+                    } else if (logoutConfirmType === 'merchant') {
+                      setLogoutConfirmType(null);
+                      handleMerchantLogout();
+                    }
+                  }}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-xs shadow-md active:scale-95 transition-all cursor-pointer ${
+                    logoutConfirmType === 'merchant'
+                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-600/20'
+                      : 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20'
+                  }`}
+                >
+                  {logoutConfirmType === 'exit_home' ? 'Confirmar Salida' : 'Cerrar Sesión'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

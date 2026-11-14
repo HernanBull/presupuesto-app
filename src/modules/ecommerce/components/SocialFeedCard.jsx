@@ -627,10 +627,10 @@ export default function SocialFeedCard({
     }
   };
 
-  // Enlace directo único a esta publicación garantizando compatibilidad universal
-  const shareOrigin = typeof window !== 'undefined' && (window.location.origin.includes('pages.dev') || window.location.origin.includes('localhost'))
+  // Enlace directo único a esta publicación oficial (axonmarket.vip)
+  const shareOrigin = typeof window !== 'undefined' && window.location.origin.includes('localhost')
     ? window.location.origin
-    : 'https://axonmarket.pages.dev';
+    : 'https://axonmarket.vip';
   const postShareUrl = `${shareOrigin}/?post=${postId}#post-${postId}`;
 
   const handleOpenShare = (e) => {

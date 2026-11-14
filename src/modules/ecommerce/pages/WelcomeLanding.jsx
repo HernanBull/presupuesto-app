@@ -16,6 +16,32 @@ export default function WelcomeLanding() {
   const navigate = useNavigate();
   const [showMerchantTrialModal, setShowMerchantTrialModal] = useState(false);
   const [merchantTrialInitialMode, setMerchantTrialInitialMode] = useState('register');
+  const [activeSession, setActiveSession] = useState(null);
+
+  // Detección de sesión activa previa (Cliente o Comerciante)
+  useEffect(() => {
+    try {
+      const savedCustomer = localStorage.getItem('ecommerce_current_customer');
+      const savedMerchant = localStorage.getItem('activeWorkspace');
+      if (savedCustomer) {
+        const parsed = JSON.parse(savedCustomer);
+        setActiveSession({
+          type: 'customer',
+          label: parsed?.name || parsed?.email?.split('@')[0] || 'Cliente',
+          path: '/explorar'
+        });
+      } else if (savedMerchant) {
+        const storeName = localStorage.getItem('storeSlug') || 'Mi Tienda';
+        setActiveSession({
+          type: 'merchant',
+          label: storeName,
+          path: '/dashboard'
+        });
+      }
+    } catch (e) {
+      console.warn('Error reading active session in WelcomeLanding:', e);
+    }
+  }, []);
 
   // Limpieza de estados anteriores que forzaban el modo comerciante
   useEffect(() => {
@@ -90,6 +116,31 @@ export default function WelcomeLanding() {
           <p className="hero-white-title text-sm sm:text-base font-semibold mb-8 max-w-lg">
             Tus tiendas, restaurantes y bodegones favoritos en un solo lugar
           </p>
+
+          {/* Banner de Retorno Inmediato si hay sesión activa detectada */}
+          {activeSession && (
+            <div className="w-full max-w-lg mb-4 px-2">
+              <button
+                type="button"
+                onClick={() => navigate(activeSession.path)}
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-black text-sm flex items-center justify-between shadow-2xl shadow-amber-500/30 border border-amber-200 active:scale-95 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-3 h-3 rounded-full bg-emerald-700 ring-4 ring-emerald-400/50 animate-pulse shrink-0" />
+                  <div className="flex flex-col text-left min-w-0">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-900 font-black">Sesión Activa Detectada</span>
+                    <span className="truncate text-slate-950 font-black text-sm">
+                      Continuar como {activeSession.label}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-slate-950 text-white px-3 py-1.5 rounded-xl shrink-0 group-hover:bg-slate-900 transition-colors shadow-sm ml-2">
+                  <span>Volver</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Selector de Entrada: Cliente o Comerciante con Iconos */}
           <div className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 mb-6 px-2">

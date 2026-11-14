@@ -123,26 +123,20 @@ export default function MerchantMorePage() {
       .catch(console.error);
   }, []);
 
-  // Dominio de alta compatibilidad para operadoras móviles (pages.dev garantiza 100% de acceso sin bloqueos DNS)
+  // Dominio oficial de producción para la vitrina comercial (axonmarket.vip)
   const canonicalOrigin = typeof window !== 'undefined' && window.location.origin.includes('localhost')
     ? window.location.origin
-    : (typeof window !== 'undefined' && window.location.origin.includes('pages.dev')
-        ? window.location.origin
-        : 'https://axonmarket.pages.dev');
+    : 'https://axonmarket.vip';
 
   const storeUrl = storeInfo.slug 
     ? `${canonicalOrigin}/${storeInfo.slug}`
     : `${canonicalOrigin}`;
 
-  const vipStoreUrl = storeInfo.slug
-    ? `https://axonmarket.vip/${storeInfo.slug}`
-    : 'https://axonmarket.vip';
-
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(storeUrl);
       setCopied(true);
-      toast.success('¡Enlace universal de tu vitrina copiado!');
+      toast.success('¡Enlace oficial de tu vitrina copiado!');
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
       toast.error('No se pudo copiar automáticamente');
@@ -151,7 +145,7 @@ export default function MerchantMorePage() {
 
   const handleShareUrl = async () => {
     const shareTitle = `${storeInfo.name} — Catálogo & Vitrina Oficial`;
-    const shareText = `Tus precios y stock real en vivo. Arma tu pedido directo desde el catálogo oficial:\n${storeUrl}\n\n(Enlace alternativo: ${vipStoreUrl})`;
+    const shareText = `Tus precios y stock real en vivo. Arma tu pedido directo desde el catálogo oficial:\n${storeUrl}`;
 
     if (navigator.share) {
       try {

@@ -23,6 +23,15 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="AxonMarket" />
 
+    <!-- ═══ Redirección canónica de dominios secundarios / obsoletos ═══ -->
+    <script>
+      (function() {
+        if (window.location.hostname === 'axonmarket.pages.dev') {
+          window.location.replace('https://axonmarket.vip' + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+
     <!-- ═══ SEO & Open Graph (Optimizado para WhatsApp, Telegram y Redes) ═══ -->
     <meta name="description" content="Tus precios y stock real en vivo. Arma tu pedido directo desde el catálogo digital oficial en AxonMarket." />
     <meta property="og:site_name" content="AxonMarket" />
