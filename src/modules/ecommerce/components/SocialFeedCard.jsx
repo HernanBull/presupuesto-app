@@ -902,6 +902,30 @@ export default function SocialFeedCard({
         isCleanMode ? 'opacity-0' : 'opacity-100'
       }`} />
 
+      {/* Top Left Overlay: Indicador de Tiempo y Velocidad de Video (Parte superior izquierda) */}
+      {isVideo && (
+        <div className="absolute top-16 left-3.5 z-30 flex items-center gap-1.5 select-none animate-in fade-in duration-200">
+          <span className="bg-black/45 hover:bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/15 text-white/95 font-mono font-bold text-[11px] shadow-sm flex items-center gap-1.5 transition-colors">
+            <Clock size={11} className="text-amber-400" />
+            <span>{formatSeconds(videoCurrentTime)} / {formatSeconds(videoDuration)}</span>
+          </span>
+
+          {/* Selector Rápido de Velocidad (1x, 1.5x, 2x) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTogglePlaybackSpeed();
+            }}
+            className="bg-black/45 hover:bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-full border border-white/15 text-white font-mono font-bold text-[10.5px] active:scale-95 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+            title="Cambiar velocidad (o mantén pulsada la pantalla para 2x)"
+          >
+            <Zap size={10} className="text-amber-400 fill-amber-400" />
+            <span>{playbackSpeed}x</span>
+          </button>
+        </div>
+      )}
+
       {/* Top Overlay: Botón Pantalla Completa / Modo Limpio, Audio Toggle y Carrusel */}
       <div className="absolute top-16 right-3.5 z-30 flex flex-col items-center gap-2 select-none">
         {/* Botón arriba del sonido para pantalla completa / ocultar toda la UI (Solo en videos) */}
@@ -1170,35 +1194,13 @@ export default function SocialFeedCard({
         </div>
       )}
 
-      {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo YouTube / TikTok profesional) */}
+      {/* Barra de Progreso y Retroceso Interactivo de Video estilo YouTube (Solo la pista en el borde inferior) */}
       {isVideo && (
         <div className="absolute inset-x-0 bottom-0 z-30 pb-0 select-none">
-          {/* Indicador de Segundos / Duración y Velocidad: Minimalista, traslúcido y siempre estático */}
-          <div className="px-3 pb-1.5 flex items-center justify-end gap-1.5 text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-            <span className="bg-black/35 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 flex items-center gap-1.5 shadow-xs">
-              <Clock size={10} className="text-amber-400" />
-              <span>{formatSeconds(videoCurrentTime)} / {formatSeconds(videoDuration)}</span>
-            </span>
-
-            {/* Selector Rápido de Velocidad (1x, 1.5x, 2x) */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTogglePlaybackSpeed();
-              }}
-              className="bg-black/35 hover:bg-black/60 backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/10 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-xs flex items-center gap-1"
-              title="Cambiar velocidad (o mantén pulsada la pantalla para 2x)"
-            >
-              <Zap size={10} className="text-amber-400 fill-amber-400" />
-              <span>{playbackSpeed}x</span>
-            </button>
-          </div>
-
           {/* Pista del reproductor estilo YouTube: Delgada, semitransparente, conteo fluido */}
           <div
             ref={progressBarRef}
-            className="h-5 flex items-end cursor-pointer group px-0 pb-0"
+            className="h-4 flex items-end cursor-pointer group px-0 pb-0"
             onClick={(e) => { e.stopPropagation(); handleSeek(e.clientX); }}
             onTouchStart={handleScrubberTouchStart}
             onTouchMove={handleScrubberTouchMove}
