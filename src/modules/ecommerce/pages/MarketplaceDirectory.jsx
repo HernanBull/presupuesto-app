@@ -2162,10 +2162,11 @@ export default function MarketplaceDirectory() {
                   ) : (
                     <button
                       onClick={() => { setAuthMode('login'); setIsAuthModalOpen(true); }}
-                      className="text-white/85 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10 flex items-center"
-                      title="Iniciar Sesión"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/45 hover:bg-black/65 border border-white/25 text-white text-xs font-black backdrop-blur-md shadow-sm active:scale-95 transition-all cursor-pointer"
+                      title="Iniciar Sesión como Cliente"
                     >
-                      <User size={20} strokeWidth={2} />
+                      <User size={13} className="text-amber-400 stroke-[2.5]" />
+                      <span>Entrar</span>
                     </button>
                   )
                 )}
@@ -3478,7 +3479,7 @@ export default function MarketplaceDirectory() {
         />
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Menu Drawer (Optimizado Cero Lag: sin backdrop-blur pesado ni resorte) */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -3486,14 +3487,16 @@ export default function MarketplaceDirectory() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200]"
+              className="fixed inset-0 bg-black/60 z-[200]"
             />
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              style={{ willChange: 'transform' }}
               className="fixed inset-y-0 left-0 w-[85%] max-w-sm bg-zinc-50 shadow-2xl z-[201] flex flex-col overflow-y-auto"
             >
               <div className="p-5 flex items-center justify-between border-b border-zinc-200 bg-white">

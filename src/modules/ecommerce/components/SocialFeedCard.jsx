@@ -809,8 +809,8 @@ export default function SocialFeedCard({
       {/* Full-Width Smooth Bottom Gradient for 100% Uniform Lighting */}
       <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-10" />
 
-      {/* Top Overlay: Pager & Audio Toggle */}
-      <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2 select-none">
+      {/* Top Overlay: Pager & Audio Toggle (Ubicado en top-16 para no colisionar con el header superior ni tapar botones) */}
+      <div className="absolute top-16 right-3.5 z-20 flex items-center gap-2 select-none">
         {isVideo && (
           <button
             type="button"
