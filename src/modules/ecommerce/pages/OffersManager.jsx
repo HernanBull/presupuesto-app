@@ -58,6 +58,53 @@ export default function OffersManager() {
   const [limitQty, setLimitQty] = useState('');
   const [offerDuration, setOfferDuration] = useState('indefinite');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [offerBannerUrl, setOfferBannerUrl] = useState('');
+  const [customBadges, setCustomBadges] = useState(() => {
+    try {
+      const wsId = localStorage.getItem('activeWorkspace') || 'default';
+      const saved = localStorage.getItem(`merchant_custom_offer_badges_${wsId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) { return []; }
+  });
+  const [isAddingBadge, setIsAddingBadge] = useState(false);
+  const [newBadgeInput, setNewBadgeInput] = useState('');
+
+  const handleCreateCustomBadge = (e) => {
+    e?.preventDefault();
+    if (!newBadgeInput || !newBadgeInput.trim()) {
+      setIsAddingBadge(false);
+      return;
+    }
+    const tag = newBadgeInput.trim();
+    if (!customBadges.includes(tag)) {
+      const updated = [...customBadges, tag];
+      setCustomBadges(updated);
+      try {
+        const wsId = localStorage.getItem('activeWorkspace') || 'default';
+        localStorage.setItem(`merchant_custom_offer_badges_${wsId}`, JSON.stringify(updated));
+      } catch (err) {}
+      setSelectedBadge(tag);
+      toast.success(`Etiqueta "${tag}" creada y seleccionada`);
+    } else {
+      setSelectedBadge(tag);
+    }
+    setNewBadgeInput('');
+    setIsAddingBadge(false);
+  };
+
+  const handleDeleteCustomBadge = (badgeToDelete, e) => {
+    e?.stopPropagation();
+    const updated = customBadges.filter(b => b !== badgeToDelete);
+    setCustomBadges(updated);
+    try {
+      const wsId = localStorage.getItem('activeWorkspace') || 'default';
+      localStorage.setItem(`merchant_custom_offer_badges_${wsId}`, JSON.stringify(updated));
+    } catch (err) {}
+    if (selectedBadge === badgeToDelete) {
+      setSelectedBadge('🔥 Oferta Flash');
+    }
+    toast.success(`Etiqueta "${badgeToDelete}" eliminada`);
+  };
 
   const toast = useToast();
   const workspaceId = localStorage.getItem('activeWorkspace');
@@ -95,6 +142,7 @@ export default function OffersManager() {
       delete cleanMetadata.offer_badge;
       delete cleanMetadata.offer_limit_qty;
       delete cleanMetadata.offer_end_date;
+      delete cleanMetadata.offer_banner_url;
 
       const { error } = await supabase
         .from('ecommerce_products')
@@ -122,6 +170,7 @@ export default function OffersManager() {
     setEditingProduct(product);
     setDiscountPrice(product.price > 0 ? (product.price * 0.8).toFixed(2) : '');
     setSelectedBadge(product.metadata?.offer_badge || '🔥 Oferta Flash');
+    setOfferBannerUrl(product.metadata?.offer_banner_url || '');
     setUnitType(product.unit_type || product.metadata?.unit_type || 'unidad');
     setLimitQty(product.metadata?.offer_limit_qty ? String(product.metadata.offer_limit_qty) : '');
     
@@ -173,6 +222,7 @@ export default function OffersManager() {
       offer_badge: selectedBadge,
       offer_limit_qty: limitQty && Number(limitQty) > 0 ? Number(limitQty) : null,
       offer_end_date: computedEndDate,
+      offer_banner_url: offerBannerUrl || null,
       unit_type: unitType,
       discount_pct: discountPct
     };
@@ -557,18 +607,18 @@ export default function OffersManager() {
                   </select>
                 </div>
 
-                {/* Badges de Marketing */}
+                {/* Badges de Marketing (Predefinidos + Personalizados) */}
                 <div>
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 block">
                     Etiqueta / Badge Promocional en Vitrina
                   </label>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {marketingBadges.map((badge) => (
                       <button
                         key={badge.label}
                         type="button"
                         onClick={() => setSelectedBadge(badge.label)}
-                        className={`text-xs px-2.5 py-1.5 rounded-lg font-bold border transition-all ${
+                        className={`text-xs px-2.5 py-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
                           selectedBadge === badge.label
                             ? 'ring-2 ring-amber-500 shadow-xs ' + badge.bg
                             : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
@@ -577,7 +627,139 @@ export default function OffersManager() {
                         {badge.label}
                       </button>
                     ))}
+
+                    {/* Etiquetas personalizadas creadas por el comerciante */}
+                    {customBadges.map((badgeText) => (
+                      <div
+                        key={badgeText}
+                        className={`inline-flex items-center text-xs rounded-lg font-bold border transition-all ${
+                          selectedBadge === badgeText
+                            ? 'ring-2 ring-amber-500 bg-amber-100 text-amber-900 border-amber-300 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedBadge(badgeText)}
+                          className="px-2.5 py-1.5 hover:underline cursor-pointer"
+                        >
+                          {badgeText}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteCustomBadge(badgeText, e)}
+                          className="pr-1.5 pl-0.5 text-slate-400 hover:text-red-500 cursor-pointer"
+                          title="Eliminar esta etiqueta"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Botón o Input para agregar nueva etiqueta */}
+                    {isAddingBadge ? (
+                      <form onSubmit={handleCreateCustomBadge} className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={newBadgeInput}
+                          onChange={(e) => setNewBadgeInput(e.target.value)}
+                          placeholder="Ej: 🎄 Especial Navidad"
+                          className="text-xs px-2.5 py-1.5 rounded-lg border border-amber-400 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none w-36"
+                        />
+                        <button
+                          type="submit"
+                          className="text-xs px-2 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold cursor-pointer"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setIsAddingBadge(false); setNewBadgeInput(''); }}
+                          className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingBadge(true)}
+                        className="text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 flex items-center gap-1 font-bold transition-all cursor-pointer"
+                        title="Crear nueva etiqueta personalizada"
+                      >
+                        <Plus size={13} />
+                        <span>Nueva Etiqueta</span>
+                      </button>
+                    )}
                   </div>
+                </div>
+
+                {/* Imagen de Portada / Banner de la Oferta (Ocupa la mitad superior del widget en la vitrina) */}
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <ImageIcon size={14} className="text-amber-500" />
+                      <span>Imagen de Portada de Oferta (Mitad Superior del Widget)</span>
+                    </label>
+                    <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-md border border-amber-300">
+                      Recomendado: 800 x 400 px (2:1)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                    Esta imagen se mostrará en la mitad superior de la tarjeta de la oferta en la vitrina para darle máxima presencia visual sin tapar los precios ni detalles.
+                  </p>
+
+                  {offerBannerUrl ? (
+                    <div className="relative w-full h-36 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group shadow-inner">
+                      <img src={offerBannerUrl} alt="Portada de Oferta" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setOfferBannerUrl('')}
+                        className="absolute top-2 right-2 p-1.5 bg-red-600/90 hover:bg-red-700 text-white rounded-lg transition-colors shadow-md cursor-pointer"
+                        title="Quitar portada"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        placeholder="Pega la URL de la imagen de portada o sube un archivo..."
+                        value={offerBannerUrl}
+                        onChange={(e) => setOfferBannerUrl(e.target.value)}
+                        className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-amber-500 text-slate-800 dark:text-white"
+                      />
+                      <label className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95">
+                        <UploadCloud size={14} />
+                        <span>Subir Imagen</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              toast.loading('Subiendo imagen de portada...', { id: 'upload-banner' });
+                              const fileExt = file.name.split('.').pop();
+                              const fileName = `offer_banner_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+                              const filePath = `offers/${fileName}`;
+                              const { error: upErr } = await supabase.storage.from('ecommerce-media').upload(filePath, file);
+                              if (upErr) throw upErr;
+                              const { data: pubData } = supabase.storage.from('ecommerce-media').getPublicUrl(filePath);
+                              setOfferBannerUrl(pubData.publicUrl);
+                              toast.success('¡Portada de oferta cargada!', { id: 'upload-banner' });
+                            } catch (err) {
+                              console.error(err);
+                              toast.error('Error al subir imagen: ' + err.message, { id: 'upload-banner' });
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Límite de Compra por Cliente (Anti-acaparamiento) */}

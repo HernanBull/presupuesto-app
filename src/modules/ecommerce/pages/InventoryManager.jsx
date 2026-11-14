@@ -39,6 +39,26 @@ export default function InventoryManager() {
       return next;
     });
   };
+  const [hideVitrinaStockCount, setHideVitrinaStockCount] = useState(false);
+
+  const handleToggleHideVitrinaStockCount = async () => {
+    const nextVal = !hideVitrinaStockCount;
+    setHideVitrinaStockCount(nextVal);
+    try {
+      const wsId = localStorage.getItem('activeWorkspace');
+      if (wsId) {
+        const { data: ws } = await supabase.from('workspaces').select('config').eq('id', wsId).single();
+        const currentCfg = ws?.config || {};
+        await supabase.from('workspaces').update({
+          config: { ...currentCfg, hide_vitrina_stock_count: nextVal }
+        }).eq('id', wsId);
+        toast.success(nextVal ? 'Cantidades de stock ocultas para clientes en vitrina' : 'Cantidades de stock visibles en vitrina');
+      }
+    } catch (err) {
+      console.error('Error guardando configuración de stock vitrina:', err);
+      toast.error('No se pudo guardar la configuración de stock');
+    }
+  };
   const [categoryFilter, setCategoryFilter] = useState('Todas');
   const [subcategoryFilter, setSubcategoryFilter] = useState('Todas');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -91,6 +111,9 @@ export default function InventoryManager() {
         .then(({ data }) => {
           if (data?.config?.adminPin) {
             setAdminPin(data.config.adminPin);
+          }
+          if (data?.config?.hide_vitrina_stock_count !== undefined) {
+            setHideVitrinaStockCount(Boolean(data.config.hide_vitrina_stock_count));
           }
         })
         .catch(console.error);
@@ -834,6 +857,20 @@ export default function InventoryManager() {
             ) : (
               <Eye size={18} className="text-slate-600 dark:text-slate-400" />
             )}
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleHideVitrinaStockCount}
+            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer ${
+              hideVitrinaStockCount
+                ? 'bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-400'
+                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+            title={hideVitrinaStockCount ? "Stock exacto oculto al cliente en vitrina (muestra 'En stock')" : "Stock exacto visible al cliente en vitrina (ej: 29 unidades)"}
+          >
+            <Package size={15} />
+            <span className="hidden sm:inline">Stock Vitrina:</span>
+            <span>{hideVitrinaStockCount ? 'Oculto' : 'Visible'}</span>
           </button>
         </div>
       </div>

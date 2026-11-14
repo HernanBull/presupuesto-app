@@ -5025,57 +5025,89 @@ export default function PublicStore() {
                     key={p.id}
                     id={`product-card-${p.id}`}
                     onClick={() => { if ((p.stock_vitrina || 0) > 0) openProductModal(p); }}
-                    className={`group relative flex justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`group relative flex flex-col bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:border-amber-400 hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 ${(p.stock_vitrina || 0) <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                   >
-                    <div className="flex-1 flex flex-col pt-1">
-                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        <span className="text-[10px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
-                          {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
-                        </span>
-                        {p.metadata?.offer_end_date && (
-                          <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
-                        )}
-                        {p.metadata?.offer_limit_qty && (
-                          <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
-                            Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
+                    {/* Imagen de Portada / Banner de Oferta (Ocupa la mitad superior del widget si fue asignada) */}
+                    {p.metadata?.offer_banner_url && (
+                      <div className="w-full h-36 sm:h-40 relative overflow-hidden bg-slate-100 shrink-0">
+                        <img 
+                          src={resolveImageUrl(p.metadata.offer_banner_url)} 
+                          alt={p.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap z-10">
+                          <span className="text-[10px] font-black text-amber-900 bg-amber-100/95 backdrop-blur-xs border border-amber-300 px-2 py-0.5 rounded-md shadow-xs">
+                            {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
                           </span>
+                          {p.metadata?.offer_end_date && (
+                            <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-4 flex justify-between gap-3 flex-1">
+                      <div className="flex-1 flex flex-col pt-1">
+                        {!p.metadata?.offer_banner_url && (
+                          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                            <span className="text-[10px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-md shadow-2xs">
+                              {p.metadata?.offer_badge || '🔥 OFERTA FLASH'}
+                            </span>
+                            {p.metadata?.offer_end_date && (
+                              <FlashOfferCountdown endDate={p.metadata.offer_end_date} compact />
+                            )}
+                            {p.metadata?.offer_limit_qty && (
+                              <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                                Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
+                              </span>
+                            )}
+                          </div>
                         )}
-                      </div>
-                      <p className="font-bold text-slate-900 text-[15px] line-clamp-2 mb-1 group-hover:text-amber-600 transition-colors leading-tight">{p.name}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed font-normal">{p.description || 'Sin descripción detallada.'}</p>
-                      
-                      <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
-                         {isUserAllowedToSeePrices ? (
-                            <div className="flex items-center gap-2">
-                              <p className="font-black text-base text-amber-600">
-                                ${Number(p.discount_price || p.price).toFixed(2)}
-                                <span className="text-xs font-semibold text-slate-500 ml-1">/ {p.unit_type || p.unit || 'und'}</span>
-                              </p>
-                              <p className="text-xs text-slate-400 line-through">${Number(p.price).toFixed(2)}</p>
-                            </div>
-                          ) : (
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
-                              className="text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200 inline-flex items-center gap-1.5"
-                            >
-                              <Lock size={12} /> Precio
-                            </button>
-                          )}
-                          {(p.stock_vitrina || 0) > 0 ? (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              (p.stock_vitrina || 0) <= 5 
-                                ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' 
-                                : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
-                            }`}>
-                              {(p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`}
+                        {p.metadata?.offer_banner_url && p.metadata?.offer_limit_qty && (
+                          <div className="mb-1.5">
+                            <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-md">
+                              Máx. {p.metadata.offer_limit_qty} {p.unit_type || p.unit || 'und'}
                             </span>
-                          ) : (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 border border-red-500/20">
-                              Agotado
-                            </span>
-                          )}
+                          </div>
+                        )}
+                        <p className="font-bold text-slate-900 text-[15px] line-clamp-2 mb-1 group-hover:text-amber-600 transition-colors leading-tight">{p.name}</p>
+                        <p className="text-xs text-slate-500 line-clamp-2 mb-3 leading-relaxed font-normal">{p.description || 'Sin descripción detallada.'}</p>
+                        
+                        <div className="mt-auto flex items-center justify-between gap-2 flex-wrap">
+                           {isUserAllowedToSeePrices ? (
+                              <div className="flex items-center gap-2">
+                                <p className="font-black text-base text-amber-600">
+                                  ${Number(p.discount_price || p.price).toFixed(2)}
+                                  <span className="text-xs font-semibold text-slate-500 ml-1">/ {p.unit_type || p.unit || 'und'}</span>
+                                </p>
+                                <p className="text-xs text-slate-400 line-through">${Number(p.price).toFixed(2)}</p>
+                              </div>
+                            ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setShowAuthModal(true); }}
+                                className="text-[10px] font-bold uppercase tracking-widest text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors border border-slate-200 inline-flex items-center gap-1.5"
+                              >
+                                <Lock size={12} /> Precio
+                              </button>
+                            )}
+                            {(p.stock_vitrina || 0) > 0 ? (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                (p.stock_vitrina || 0) <= 5 
+                                  ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' 
+                                  : 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20'
+                              }`}>
+                                {config?.hide_vitrina_stock_count
+                                  ? 'Disponible en vitrina'
+                                  : ((p.stock_vitrina || 0) <= 5 ? `¡Solo quedan ${p.stock_vitrina}!` : `${p.stock_vitrina} en vitrina`)}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 border border-red-500/20">
+                                Agotado
+                              </span>
+                            )}
+                        </div>
                       </div>
-                    </div>
 
                     <div className="w-[100px] h-[100px] md:w-28 md:h-28 rounded-2xl bg-slate-100 overflow-hidden relative flex-shrink-0 border border-slate-200 shadow-sm self-center">
                       {p.image_url ? (
@@ -5117,6 +5149,7 @@ export default function PublicStore() {
                       </div>
                     </div>
                   </div>
+                </div>
                 )) : (
                   <div className="col-span-full py-20 md:py-28 flex flex-col items-center justify-center text-center px-4">
                     <div className="w-20 h-20 rounded-3xl bg-amber-500/10 text-amber-600 flex items-center justify-center mb-5 shadow-xs border border-amber-500/20">
@@ -5408,6 +5441,20 @@ export default function PublicStore() {
                               <div className="shrink-0">
                                 {(() => {
                                   const qty = Number(p.stock_vitrina) || 0;
+                                  if (config?.hide_vitrina_stock_count) {
+                                    if (qty > 0) {
+                                      return (
+                                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title="Disponible">
+                                          En stock
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span className="text-[10px] font-black px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs" title="Agotado">
+                                        Agotado
+                                      </span>
+                                    );
+                                  }
                                   if (qty > 5) {
                                     return (
                                       <span className="text-xs font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" title={`Disponible: ${qty}`}>
@@ -5971,9 +6018,11 @@ export default function PublicStore() {
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
                       : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                   }`}>
-                    {(selectedProduct.stock_vitrina || 0) <= 5
-                      ? `¡Solo quedan ${selectedProduct.stock_vitrina}!`
-                      : `${selectedProduct.stock_vitrina} disponibles`}
+                    {config?.hide_vitrina_stock_count
+                      ? 'Disponible en tienda'
+                      : ((selectedProduct.stock_vitrina || 0) <= 5
+                          ? `¡Solo quedan ${selectedProduct.stock_vitrina}!`
+                          : `${selectedProduct.stock_vitrina} disponibles`)}
                   </span>
                 ) : (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-200">

@@ -933,12 +933,12 @@ export default function SocialFeedCard({
           )}
         </button>
 
-        {/* Botón de Sonido (Debajo del botón de pantalla completa) */}
-        {isVideo && !isCleanMode && (
+        {/* Botón de Sonido Estático (Siempre accesible tanto en modo normal como pantalla completa) */}
+        {isVideo && (
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); toggleMutedGlobal(); }}
-            className="w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm animate-in fade-in"
+            className="w-8 h-8 rounded-full bg-black/65 text-white flex items-center justify-center border border-white/20 hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
             title={isMutedGlobal ? "Activar sonido" : "Silenciar"}
           >
             {isMutedGlobal ? <VolumeX size={15} className="text-amber-400" /> : <Volume2 size={15} className="text-emerald-400" />}
@@ -1182,11 +1182,11 @@ export default function SocialFeedCard({
       {/* Barra de Progreso y Retroceso Interactivo de Video (Estilo TikTok / Reels) */}
       {isVideo && (
         <div className="absolute inset-x-0 bottom-0 z-30 pb-0 select-none">
-          {/* Indicador de Segundos / Duración del Video y Selector de Velocidad */}
-          <div className={`px-3 py-1 flex items-center justify-between text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] transition-opacity duration-300 ${
+          {/* Indicador de Segundos / Duración estilo TikTok alineado a la derecha para no colisionar con el botón VIP de la izquierda */}
+          <div className={`px-3 py-1 flex items-center justify-end gap-2 text-[11px] font-mono font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] transition-opacity duration-300 ${
             isCleanMode ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}>
-            <span className="bg-black/50 px-2.5 py-0.5 rounded-full border border-white/10 backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+            <span className="bg-black/65 px-2.5 py-0.5 rounded-full border border-white/15 backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
               <Clock size={11} className="text-amber-400" />
               <span>{formatSeconds(videoCurrentTime)} / {formatSeconds(videoDuration)}</span>
             </span>
@@ -1198,7 +1198,7 @@ export default function SocialFeedCard({
                 e.stopPropagation();
                 handleTogglePlaybackSpeed();
               }}
-              className="bg-black/60 hover:bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm flex items-center gap-1"
+              className="bg-black/65 hover:bg-black/85 px-2.5 py-0.5 rounded-full border border-white/20 text-white font-mono font-bold text-[10px] active:scale-95 transition-all cursor-pointer shadow-sm flex items-center gap-1"
               title="Cambiar velocidad (o mantén pulsada la pantalla para 2x)"
             >
               <Zap size={10} className="text-amber-400 fill-amber-400" />
