@@ -602,55 +602,43 @@ export default function PublicStore() {
   const [isLocatingUser, setIsLocatingUser] = useState(false);
 
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
-      setIsLocatingUser(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setIsLocatingUser(false);
-          const uLat = pos.coords.latitude;
-          const uLng = pos.coords.longitude;
-          
-          const sLat = Number(config?.location?.lat || config?.expediente?.gps?.lat || config?.gps?.lat);
-          const sLng = Number(config?.location?.lng || config?.expediente?.gps?.lng || config?.gps?.lng);
+    // Solo consultar ubicación en segundo plano si el permiso YA fue concedido previamente por el usuario
+    if (typeof navigator !== 'undefined' && 'permissions' in navigator && 'geolocation' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
+        if (permissionStatus.state === 'granted') {
+          setIsLocatingUser(true);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              setIsLocatingUser(false);
+              const uLat = pos.coords.latitude;
+              const uLng = pos.coords.longitude;
+              const sLat = Number(config?.location?.lat || config?.expediente?.gps?.lat || config?.gps?.lat);
+              const sLng = Number(config?.location?.lng || config?.expediente?.gps?.lng || config?.gps?.lng);
 
-          if (!isNaN(sLat) && !isNaN(sLng) && sLat !== 0 && sLng !== 0) {
-            const R = 6371; // Radio de la Tierra en km
-            const dLat = (sLat - uLat) * (Math.PI / 180);
-            const dLon = (sLng - uLng) * (Math.PI / 180);
-            const a =
-              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(uLat * (Math.PI / 180)) *
-                Math.cos(sLat * (Math.PI / 180)) *
-                Math.sin(dLon / 2) *
-                Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const dist = R * c;
-
-            if (dist < 1) {
-              setUserDistance(`A ${Math.round(dist * 1000)} m de ti`);
-            } else {
-              setUserDistance(`A ${dist.toFixed(1)} Km de ti`);
-            }
-          } else {
-            const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
-            if (storeCity) {
-              setUserDistance(`📍 ${storeCity}`);
-            } else {
-              setUserDistance(null);
-            }
-          }
-        },
-        () => {
-          setIsLocatingUser(false);
+              if (!isNaN(sLat) && !isNaN(sLng) && sLat !== 0 && sLng !== 0) {
+                const R = 6371;
+                const dLat = (sLat - uLat) * (Math.PI / 180);
+                const dLon = (sLng - uLng) * (Math.PI / 180);
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(uLat * (Math.PI / 180)) * Math.cos(sLat * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const dist = R * c;
+                setUserDistance(dist < 1 ? `A ${Math.round(dist * 1000)} m de ti` : `A ${dist.toFixed(1)} Km de ti`);
+              }
+            },
+            () => { setIsLocatingUser(false); },
+            { timeout: 5000, maximumAge: 600000 }
+          );
+        } else {
           const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
-          if (storeCity) {
-            setUserDistance(`📍 ${storeCity}`);
-          } else {
-            setUserDistance(null);
-          }
-        },
-        { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
-      );
+          if (storeCity) setUserDistance(`📍 ${storeCity}`);
+        }
+      }).catch(() => {
+        const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
+        if (storeCity) setUserDistance(`📍 ${storeCity}`);
+      });
+    } else {
+      const storeCity = config?.address || config?.location?.address || config?.expediente?.address;
+      if (storeCity) setUserDistance(`📍 ${storeCity}`);
     }
   }, [config]);
 
@@ -1363,37 +1351,111 @@ export default function PublicStore() {
     setGpsLoading(false);
   };
 
-  const getLocationFromGPS = () => {
+      // Función de respaldo por IP/Red en caso de falla o bloqueo de GPS físico
+  const fetchLocationFromIP = async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+      const res = await fetch('https://ipwho.is/', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.latitude && data.longitude) {
+          return {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            city: data.city || '',
+            region: data.region || '',
+            country: data.country || ''
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Fallo ipwho.is, intentando ipapi.co:', e);
+    }
+
+    try {
+      const controller2 = new AbortController();
+      const timeoutId2 = setTimeout(() => controller2.abort(), 4500);
+      const res2 = await fetch('https://ipapi.co/json/', { signal: controller2.signal });
+      clearTimeout(timeoutId2);
+      if (res2.ok) {
+        const data2 = await res2.json();
+        if (data2.latitude && data2.longitude) {
+          return {
+            latitude: data2.latitude,
+            longitude: data2.longitude,
+            city: data2.city || '',
+            region: data2.region || '',
+            country: data2.country_name || ''
+          };
+        }
+      }
+    } catch (e2) {
+      console.warn('Fallo ipapi.co fallback:', e2);
+    }
+    return null;
+  };
+
+  const getLocationFromGPS = async () => {
     setGpsLoading(true);
     setGpsError('');
-    if (!navigator.geolocation) {
-      setGpsError('Tu navegador no soporta geolocalización.');
+
+    // Función auxiliar para aplicar respaldo de ubicación por red
+    const tryNetworkFallback = async (reasonMsg) => {
+      try {
+        const ipLocation = await fetchLocationFromIP();
+        if (ipLocation && ipLocation.latitude && ipLocation.longitude) {
+          const fallbackAddress = [ipLocation.city, ipLocation.region, ipLocation.country].filter(Boolean).join(', ');
+          if (!checkoutAddress || checkoutAddress.trim() === '') {
+            setCheckoutAddress(fallbackAddress);
+          }
+          setCheckoutLocation({
+            lat: ipLocation.latitude,
+            lng: ipLocation.longitude,
+            accuracy: 1000,
+            address: fallbackAddress,
+            mapsUrl: `https://maps.google.com/?q=${ipLocation.latitude},${ipLocation.longitude}`,
+            isEstimated: true
+          });
+          setGpsError('');
+          setGpsLoading(false);
+          return true;
+        }
+      } catch (errFallback) {
+        console.warn('Fallback por IP falló:', errFallback);
+      }
+      setGpsError(reasonMsg);
       setGpsLoading(false);
+      return false;
+    };
+
+    if (!navigator.geolocation) {
+      await tryNetworkFallback('Tu navegador no soporta GPS. Puedes escribir tu dirección manualmente.');
       return;
     }
 
-    const friendlyError = (err) => {
-      if (!err) return 'No se pudo obtener la ubicación GPS.';
-      if (err.code === 1) return 'Permiso de ubicación denegado. Habilita los permisos de GPS en tu navegador.';
-      if (err.code === 2) return 'Señal GPS no disponible. Verifica que la ubicación esté activada en tu dispositivo.';
-      if (err.code === 3) return 'Tiempo de espera agotado al conectar con el GPS. Intenta nuevamente.';
-      return 'No se pudo obtener la ubicación GPS.';
-    };
-
-    // Fase 1: Intentar alta precisión con timeout de 6s
+    // Intentar GPS de alta precisión con timeout optimizado
     navigator.geolocation.getCurrentPosition(
-      (pos) => handlePositionSuccess(pos),
+      (pos) => {
+        handlePositionSuccess(pos);
+      },
       (err) => {
-        console.warn('GPS Fase 1 (alta precisión) no respondió, intentando Fase 2...', err);
-        // Fase 2: Redundancia estándar con caché reciente y timeout de 8s
+        console.warn('GPS Fase 1 no respondió, intentando modo estándar...', err);
         navigator.geolocation.getCurrentPosition(
-          (pos) => handlePositionSuccess(pos),
-          (err2) => {
-            console.error('GPS Fase 2 falló:', err2);
-            setGpsError(friendlyError(err2 || err));
-            setGpsLoading(false);
+          (pos) => {
+            handlePositionSuccess(pos);
           },
-          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+          async (err2) => {
+            console.warn('GPS Fase 2 falló o permiso denegado, activando geolocalización por red...', err2);
+            const fallbackOk = await tryNetworkFallback(
+              '⚠️ No se pudo obtener el GPS exacto. Puedes escribir tu dirección detallada arriba para continuar.'
+            );
+            if (!fallbackOk) {
+              setGpsError('⚠️ Permiso de ubicación no concedido o GPS apagado. Puedes escribir tu dirección manual arriba.');
+            }
+          },
+          { enableHighAccuracy: false, timeout: 7000, maximumAge: 60000 }
         );
       },
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
@@ -6121,11 +6183,25 @@ export default function PublicStore() {
                                 )}
                               </div>
 
-                              {/* Error de GPS */}
+                              {/* Error / Asistente de GPS */}
                               {gpsError && (
-                                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold animate-in fade-in duration-200">
-                                  <AlertTriangle size={15} className="flex-shrink-0 text-red-500 mt-0.5" />
-                                  <span>{gpsError}</span>
+                                <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl text-slate-800 text-xs space-y-2.5 animate-in fade-in duration-200 shadow-2xs">
+                                  <div className="flex items-start gap-2 text-amber-900 font-semibold leading-relaxed">
+                                    <AlertTriangle size={16} className="flex-shrink-0 text-amber-600 mt-0.5" />
+                                    <span>{gpsError}</span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-amber-200/70">
+                                    <button
+                                      type="button"
+                                      onClick={getLocationFromGPS}
+                                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] transition-colors flex items-center gap-1 shadow-2xs"
+                                    >
+                                      🔄 Reintentar GPS
+                                    </button>
+                                    <span className="text-[11px] text-amber-800 font-medium">
+                                      O escribe tu dirección arriba para continuar al pago
+                                    </span>
+                                  </div>
                                 </div>
                               )}
 

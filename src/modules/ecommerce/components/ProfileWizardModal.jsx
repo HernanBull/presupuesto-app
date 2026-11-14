@@ -447,17 +447,43 @@ export default function ProfileWizardModal({ isOpen, onClose, customer, onComple
           setIsDetectingLocation(false);
         }
       },
-      (error) => {
+      async (error) => {
+        console.warn('GPS hardware falló, intentando geolocalización por red...', error);
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          const res = await fetch('https://ipwho.is/', { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) {
+            const ipData = await res.json();
+            if (ipData.success && ipData.latitude && ipData.longitude) {
+              const fallbackAddr = [ipData.city, ipData.region, ipData.country].filter(Boolean).join(', ');
+              setFormData(prev => ({
+                ...prev,
+                addressDetail: prev.addressDetail || fallbackAddr,
+                lat: ipData.latitude,
+                lng: ipData.longitude
+              }));
+              setGpsStatus('success');
+              setGpsErrorMsg('');
+              setIsDetectingLocation(false);
+              return;
+            }
+          }
+        } catch (eFallback) {
+          console.warn('Fallback IP falló:', eFallback);
+        }
+
         setIsDetectingLocation(false);
         setGpsStatus('error');
-        if (error.code === 1) { // PERMISSION_DENIED
-          setGpsErrorMsg('Permiso de GPS no concedido. Por favor activa la ubicación en tu teléfono y autoriza al navegador, o toca directamente en el mapa para marcar tu casa.');
-        } else if (error.code === 2) { // POSITION_UNAVAILABLE
-          setGpsErrorMsg('GPS no disponible. Enciende la ubicación (GPS) en la barra de tu teléfono o selecciona tu punto directamente en el mapa.');
-        } else if (error.code === 3) { // TIMEOUT
-          setGpsErrorMsg('Tiempo de espera agotado buscando señal GPS. Puedes pulsar de nuevo o marcar tu punto en el mapa.');
+        if (error.code === 1) {
+          setGpsErrorMsg('Permiso de GPS no concedido. Puedes escribir tu dirección en el recuadro o marcar tu punto en el mapa.');
+        } else if (error.code === 2) {
+          setGpsErrorMsg('GPS no disponible. Puedes escribir tu dirección en el recuadro o marcar tu punto en el mapa.');
+        } else if (error.code === 3) {
+          setGpsErrorMsg('Tiempo de espera agotado buscando señal GPS. Puedes pulsar de nuevo o escribir tu dirección.');
         } else {
-          setGpsErrorMsg('No se pudo obtener la señal GPS. Puedes fijar tu ubicación tocando directamente en el mapa.');
+          setGpsErrorMsg('No se pudo obtener la señal GPS. Puedes escribir tu dirección en el recuadro.');
         }
       },
       {

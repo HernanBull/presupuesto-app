@@ -304,7 +304,29 @@ export default function MerchantOnboardingWizard({
             })
             .catch(() => {});
         },
-        (error) => {
+        async (error) => {
+          console.warn('GPS hardware falló en registro de tienda, intentando ubicación por red IP...', error);
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const res = await fetch('https://ipwho.is/', { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              const ipData = await res.json();
+              if (ipData.success && ipData.latitude && ipData.longitude) {
+                toast.dismiss('gps-loading');
+                setGpsCoords({ lat: ipData.latitude, lng: ipData.longitude });
+                const fallbackAddr = [ipData.city, ipData.region, ipData.country].filter(Boolean).join(', ');
+                if (!addressLine) {
+                  setAddressLine(fallbackAddr);
+                }
+                toast.success('Ubicación aproximada detectada por red', { icon: '📍' });
+                return;
+              }
+            }
+          } catch (eFallback) {
+            console.warn('Fallback IP falló:', eFallback);
+          }
           toast.dismiss('gps-loading');
           toast.error('No se pudo detectar el GPS. Puedes escribir la dirección manualmente.');
         },
